@@ -1,10 +1,9 @@
 /**
  * eyrie - Universal LLM Client
  * 
- * Following the langdag pattern:
- * - Wraps standard SDKs (OpenAI, Anthropic, etc.)
- * - Supports 54+ providers via baseUrl config
- * - Simple API for hawk to use
+ * Wraps standard SDKs (OpenAI, Anthropic, etc.)
+ * Supports 54+ providers via baseUrl config
+ * Simple API for hawk to use
  */
 
 import OpenAI from 'openai'
