@@ -32,6 +32,12 @@ export type {
   AgentId,
 } from './types/ids.js'
 
+export {
+  asSessionId,
+  asAgentId,
+  toAgentId,
+} from './types/ids.js'
+
 export type {
   ConnectorTextBlock,
   ConnectorTextDelta,
