@@ -16,158 +16,9 @@ export {
   APIUserAbortError as AnthropicAPIUserAbortError,
 } from '@anthropic-ai/sdk'
 
-export type {
-  ContentBlock as AnthropicContentBlock,
-  ContentBlockParam as AnthropicContentBlockParam,
-  TextBlock as AnthropicTextBlock,
-  TextBlockParam as AnthropicTextBlockParam,
-  ImageBlockParam as AnthropicImageBlockParam,
-  ToolUseBlock as AnthropicToolUseBlock,
-  ToolUseBlockParam as AnthropicToolUseBlockParam,
-  ToolResultBlockParam as AnthropicToolResultBlockParam,
-  Message as AnthropicMessage,
-  MessageParam as AnthropicMessageParam,
-  Tool as AnthropicTool,
-  ToolUnion as AnthropicToolUnion,
-  ToolChoice as AnthropicToolChoice,
-  Model as AnthropicModel,
-  Usage as AnthropicUsage,
-} from '@anthropic-ai/sdk/resources/messages.mjs'
-
-export type {
-  BetaMessage as AnthropicBetaMessage,
-  BetaMessageParam as AnthropicBetaMessageParam,
-  BetaContentBlock as AnthropicBetaContentBlock,
-  BetaContentBlockParam as AnthropicBetaContentBlockParam,
-  BetaUsage as AnthropicBetaUsage,
-  BetaToolUnion as AnthropicBetaToolUnion,
-} from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-
-export type { Stream as AnthropicStream } from '@anthropic-ai/sdk/streaming.mjs'
-export type { ClientOptions as AnthropicClientOptions } from '@anthropic-ai/sdk'
-
-// ============================================================================
-// OpenAI (GPT-4, GPT-3.5)
-// ============================================================================
-export { default as OpenAI } from 'openai'
-export {
-  APIError as OpenAIAPIError,
-  APIConnectionError as OpenAIAPIConnectionError,
-  APIConnectionTimeoutError as OpenAIAPIConnectionTimeoutError,
-} from 'openai'
-
-export type {
-  ChatCompletion as OpenAIChatCompletion,
-  ChatCompletionMessage as OpenAIChatCompletionMessage,
-  ChatCompletionMessageParam as OpenAIChatCompletionMessageParam,
-  ChatCompletionChunk as OpenAIChatCompletionChunk,
-  ChatCompletionTool as OpenAIChatCompletionTool,
-  ChatCompletionToolChoiceOption as OpenAIChatCompletionToolChoiceOption,
-  ChatCompletionCreateParams as OpenAIChatCompletionCreateParams,
-} from 'openai/resources/chat/completions'
-
-export type { Stream as OpenAIStream } from 'openai/streaming'
-export type { ClientOptions as OpenAIClientOptions } from 'openai'
-
-// ============================================================================
-// Google (Gemini)
-// ============================================================================
-export { GoogleGenerativeAI as Gemini } from '@google/generative-ai'
-
-export type {
-  GenerativeModel as GeminiGenerativeModel,
-  GenerateContentRequest as GeminiGenerateContentRequest,
-  GenerateContentResult as GeminiGenerateContentResult,
-  Content as GeminiContent,
-  Part as GeminiPart,
-  TextPart as GeminiTextPart,
-  InlineDataPart as GeminiInlineDataPart,
-  FunctionCallPart as GeminiFunctionCallPart,
-  FunctionResponsePart as GeminiFunctionResponsePart,
-  Tool as GeminiTool,
-  ToolConfig as GeminiToolConfig,
-  GenerationConfig as GeminiGenerationConfig,
-  SafetySetting as GeminiSafetySetting,
-} from '@google/generative-ai'
-
-// ============================================================================
-// Groq (Fast inference)
-// ============================================================================
-export { default as Groq } from 'groq-sdk'
-
-export type {
-  ChatCompletion as GroqChatCompletion,
-  ChatCompletionMessage as GroqChatCompletionMessage,
-  ChatCompletionMessageParam as GroqChatCompletionMessageParam,
-  ChatCompletionChunk as GroqChatCompletionChunk,
-  ChatCompletionCreateParams as GroqChatCompletionCreateParams,
-  ChatCompletionTool as GroqChatCompletionTool,
-} from 'groq-sdk/resources/chat/completions'
-
-export type { Stream as GroqStream } from 'groq-sdk/streaming'
-export type { ClientOptions as GroqClientOptions } from 'groq-sdk'
-
-// ============================================================================
-// AWS Bedrock (Amazon Titan, Claude via AWS)
-// ============================================================================
-export {
-  BedrockRuntimeClient as Bedrock,
-  InvokeModelCommand,
-  InvokeModelWithResponseStreamCommand,
-  ConverseCommand,
-  ConverseStreamCommand,
-} from '@aws-sdk/client-bedrock-runtime'
-
-export type {
-  BedrockRuntimeClientConfig as BedrockConfig,
-  Message as BedrockMessage,
-  ContentBlock as BedrockContentBlock,
-  ConversationRole as BedrockConversationRole,
-  InferenceConfiguration as BedrockInferenceConfiguration,
-  InvokeModelRequest as BedrockInvokeModelRequest,
-  InvokeModelResponse as BedrockInvokeModelResponse,
-} from '@aws-sdk/client-bedrock-runtime'
-
-// ============================================================================
-// Vercel AI SDK (Universal AI SDK)
-// ============================================================================
-export {
-  generateText,
-  streamText,
-  generateObject,
-  streamObject,
-  embed,
-  embedMany,
-} from 'ai'
-
-export type {
-  LanguageModelV1 as VercelLanguageModelV1,
-  LanguageModelV1Prompt as VercelLanguageModelV1Prompt,
-  LanguageModelV1StreamPart as VercelLanguageModelV1StreamPart,
-  EmbeddingModelV1 as VercelEmbeddingModelV1,
-} from 'ai'
-
-// ============================================================================
-// Google Vertex AI
-// ============================================================================
-export { VertexAI } from '@google-cloud/vertexai'
-
-export type {
-  GenerativeModel as VertexGenerativeModel,
-  GenerateContentRequest as VertexGenerateContentRequest,
-  GenerateContentResult as VertexGenerateContentResult,
-  Content as VertexContent,
-  Part as VertexPart,
-  TextPart as VertexTextPart,
-  InlineDataPart as VertexInlineDataPart,
-  FileDataPart as VertexFileDataPart,
-  FunctionCallPart as VertexFunctionCallPart,
-  FunctionResponsePart as VertexFunctionResponsePart,
-  Tool as VertexTool,
-  ToolConfig as VertexToolConfig,
-  GenerationConfig as VertexGenerationConfig,
-  SafetySetting as VertexSafetySetting,
-} from '@google-cloud/vertexai'
+// Mistral types are not exported as named exports - use the Mistral class directly
+// // OpenCode types not available in the package - using local definitions instead
+// export type { ... } from '@opencode-ai/sdk/client'
 
 // ============================================================================
 // Common Types (Provider-agnostic)
@@ -231,13 +82,15 @@ export const PROVIDERS = {
   VERCEL: 'vercel',
   VERTEX: 'vertex',
   BEDROCK: 'bedrock',
+  MISTRAL: 'mistral',
+  OPENCODE: 'opencode',
 } as const
 
 export type Provider = typeof PROVIDERS[keyof typeof PROVIDERS]
 
 export interface ProviderConfig {
   name: Provider
-  client: Anthropic | OpenAI | Gemini | Groq | VertexAI
+  client: unknown
   defaultModel: string
   supportsStreaming: boolean
   supportsTools: boolean
