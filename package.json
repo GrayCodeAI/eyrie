@@ -1,7 +1,7 @@
 {
   "name": "@hawk/eyrie",
   "version": "1.0.1",
-  "description": "🦅 Universal LLM abstraction layer - Types, providers & utilities with zero npm dependencies. The engine powering intelligent conversations across any provider (OpenAI, GrayCode, Codex, Ollama). Production-ready, fully typed, dependency-free.",
+  "description": "🦅 Universal LLM client - langdag-style wrapper for OpenAI, Anthropic, Gemini, Mistral, Groq and 50+ providers via baseUrl",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -33,8 +33,7 @@
     "ai": "^4.0.0",
     "@google-cloud/vertexai": "^1.10.0",
     "@aws-sdk/client-bedrock-runtime": "^3.1026.0",
-    "@mistralai/mistralai": "^2.2.0",
-    "@opencode-ai/sdk": "^1.3.17"
+    "@mistralai/mistralai": "^2.2.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

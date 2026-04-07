@@ -190,7 +190,24 @@ export {
 } from './types/sdk.js'
 
 // Version
-export const EYRIE_VERSION = '1.0.1'
+export const EYRIE_VERSION = '1.0.2'
 
-// SDK Re-exports - hawk imports SDK through eyrie
-export * from './sdk/index.js'
+// Client exports
+export {
+  EyrieClient,
+  createEyrie,
+  type EyrieConfig,
+  type EyrieMessage,
+  type EyrieTool,
+  type EyrieResponse,
+  type EyrieStreamEvent,
+  type EyrieUsage,
+} from './client/index.js'
+
+export {
+  CORE_PROVIDERS,
+  OPENAI_COMPATIBLE_PROVIDERS,
+  type ProviderConfig,
+  type ProviderType,
+  type OpenAICompatConfig,
+} from './providers/registry.js'

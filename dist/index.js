@@ -47,6 +47,7 @@ APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError,
 // Client
 GrayCode, } from './types/sdk.js';
 // Version
-export const EYRIE_VERSION = '1.0.1';
-// SDK Re-exports - hawk imports SDK through eyrie
-export * from './sdk/index.js';
+export const EYRIE_VERSION = '1.0.2';
+// Client exports
+export { EyrieClient, createEyrie, } from './client/index.js';
+export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, } from './providers/registry.js';
