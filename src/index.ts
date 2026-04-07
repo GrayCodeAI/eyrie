@@ -191,3 +191,6 @@ export {
 
 // Version
 export const EYRIE_VERSION = '1.0.1'
+
+// SDK Re-exports - hawk imports SDK through eyrie
+export * from './sdk/index.js'
