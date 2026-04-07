@@ -23,6 +23,10 @@ export { GoogleGenerativeAI as Gemini } from '@google/generative-ai';
 // ============================================================================
 export { default as Groq } from 'groq-sdk';
 // ============================================================================
+// AWS Bedrock (Amazon Titan, Claude via AWS)
+// ============================================================================
+export { BedrockRuntimeClient as Bedrock, InvokeModelCommand, InvokeModelWithResponseStreamCommand, ConverseCommand, ConverseStreamCommand, } from '@aws-sdk/client-bedrock-runtime';
+// ============================================================================
 // Vercel AI SDK (Universal AI SDK)
 // ============================================================================
 export { generateText, streamText, generateObject, streamObject, embed, embedMany, } from 'ai';
@@ -40,4 +44,5 @@ export const PROVIDERS = {
     GROQ: 'groq',
     VERCEL: 'vercel',
     VERTEX: 'vertex',
+    BEDROCK: 'bedrock',
 };

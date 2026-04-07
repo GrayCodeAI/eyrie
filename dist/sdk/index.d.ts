@@ -21,6 +21,8 @@ export { default as Groq } from 'groq-sdk';
 export type { ChatCompletion as GroqChatCompletion, ChatCompletionMessage as GroqChatCompletionMessage, ChatCompletionMessageParam as GroqChatCompletionMessageParam, ChatCompletionChunk as GroqChatCompletionChunk, ChatCompletionCreateParams as GroqChatCompletionCreateParams, ChatCompletionTool as GroqChatCompletionTool, } from 'groq-sdk/resources/chat/completions';
 export type { Stream as GroqStream } from 'groq-sdk/streaming';
 export type { ClientOptions as GroqClientOptions } from 'groq-sdk';
+export { BedrockRuntimeClient as Bedrock, InvokeModelCommand, InvokeModelWithResponseStreamCommand, ConverseCommand, ConverseStreamCommand, } from '@aws-sdk/client-bedrock-runtime';
+export type { BedrockRuntimeClientConfig as BedrockConfig, Message as BedrockMessage, ContentBlock as BedrockContentBlock, ConversationRole as BedrockConversationRole, InferenceConfiguration as BedrockInferenceConfiguration, InvokeModelRequest as BedrockInvokeModelRequest, InvokeModelResponse as BedrockInvokeModelResponse, } from '@aws-sdk/client-bedrock-runtime';
 export { generateText, streamText, generateObject, streamObject, embed, embedMany, } from 'ai';
 export type { LanguageModelV1 as VercelLanguageModelV1, LanguageModelV1Prompt as VercelLanguageModelV1Prompt, LanguageModelV1StreamPart as VercelLanguageModelV1StreamPart, EmbeddingModelV1 as VercelEmbeddingModelV1, } from 'ai';
 export { VertexAI } from '@google-cloud/vertexai';
@@ -73,6 +75,7 @@ export declare const PROVIDERS: {
     readonly GROQ: "groq";
     readonly VERCEL: "vercel";
     readonly VERTEX: "vertex";
+    readonly BEDROCK: "bedrock";
 };
 export type Provider = typeof PROVIDERS[keyof typeof PROVIDERS];
 export interface ProviderConfig {
