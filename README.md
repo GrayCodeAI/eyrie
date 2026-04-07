@@ -1,150 +1,136 @@
-# 🦅 @hawk/eyrie
-
 <div align="center">
 
-[![npm version](https://img.shields.io/npm/v/@hawk/eyrie.svg)](https://www.npmjs.com/package/@hawk/eyrie)
+# 🦅 eyrie
+
+**Universal LLM Abstraction Layer**
+
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/GrayCodeAI/eyrie)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](./package.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-GrayCodeAI-black.svg)](https://github.com/GrayCodeAI)
 
-**Core LLM client library for [Hawk](https://github.com/GrayCodeAI/hawk)**
+*Zero-dependency TypeScript toolkit for building intelligent LLM applications*
 
-*The engine that powers multi-provider AI interactions*
-
-[Installation](#installation) • [Usage](#usage) • [API](#api) • [Architecture](#architecture)
+[Installation](#installation) · [Usage](#usage) · [API](#api) · [Contributing](./CONTRIBUTING.md)
 
 </div>
 
 ---
 
-## ✨ Features
+## ✨ What is eyrie?
 
-- 🎯 **Zero UI Dependencies** - Pure logic, no React/Ink
-- 🔒 **Type Safe** - Full TypeScript with branded types
-- 🚀 **Multi-Provider** - OpenAI, Codex, Ollama support
-- 📦 **Dependency-Free** - Only Node.js built-ins
-- ⚡ **Production Ready** - Extracted from Hawk CLI
+**eyrie** is a lightweight, zero-dependency TypeScript library that provides the building blocks for LLM-powered applications. Named after an eagle's nest, it sits at the foundation of your AI stack, offering clean abstractions for:
+
+- 🎯 **Provider Management** - Seamlessly work with OpenAI, GrayCode, Codex, Ollama, and more
+- 📐 **Type Safety** - Fully typed message formats, content blocks, and API responses
+- ⚡ **Constants & Utilities** - API limits, error handling, validation helpers
+- 🏗️ **Zero Dependencies** - Pure TypeScript with no runtime npm dependencies
+
+> **Why eyrie?** Because building LLM apps shouldn't require juggling dozens of SDK versions. One clean interface, any provider.
 
 ---
 
-## 📦 Installation
+## 🚀 Installation
 
 ```bash
-# From npm (when published)
-npm install @hawk/eyrie
-
-# From GitHub (current)
+# From GitHub (recommended)
 npm install github:GrayCodeAI/eyrie#main
+
+# or with yarn
+yarn add github:GrayCodeAI/eyrie#main
+
+# or with pnpm
+pnpm add github:GrayCodeAI/eyrie#main
 ```
 
 ---
 
-## 🚀 Quick Start
+## 📦 What's Included
 
+### Constants (11)
+API limits and configuration values:
 ```typescript
 import {
-  // 🔧 Provider Resolution
-  resolveProviderRequest,
-  resolveCodexApiCredentials,
-  
-  // 🆔 Type-Safe IDs
-  type AgentId,
-  type SessionId,
-  asSessionId,
-  asAgentId,
-  
-  // 📏 API Limits
-  API_IMAGE_MAX_BASE64_SIZE,
-  API_MAX_MEDIA_PER_REQUEST,
+  API_IMAGE_MAX_BASE64_SIZE,  // 5MB
+  API_MAX_MEDIA_PER_REQUEST,   // 20 items
+  API_PDF_MAX_PAGES,           // 100 pages
+  // ... and more
 } from '@hawk/eyrie'
+```
 
-// Resolve provider for any model
+### Types (50+)
+Complete type definitions for LLM interactions:
+```typescript
+import type {
+  Message,
+  ContentBlock,
+  ToolUseBlock,
+  APIError,
+  // ... and more
+} from '@hawk/eyrie'
+```
+
+### Utilities (13)
+Helper functions for common operations:
+```typescript
+import {
+  createUserMessage,
+  isTextBlock,
+  resolveProviderRequest,
+  parsePromptTooLongTokenCounts,
+  // ... and more
+} from '@hawk/eyrie'
+```
+
+---
+
+## 💡 Usage Examples
+
+### Working with Messages
+```typescript
+import { createUserMessage, createAssistantMessage, isTextBlock } from '@hawk/eyrie'
+
+// Create messages
+const userMsg = createUserMessage('Hello, how are you?')
+const assistantMsg = createAssistantMessage('I'm doing great! How can I help?')
+
+// Type guards
+if (isTextBlock(block)) {
+  console.log(block.text)
+}
+```
+
+### Provider Resolution
+```typescript
+import { resolveProviderRequest } from '@hawk/eyrie'
+
+// Automatically detect provider from model
 const provider = resolveProviderRequest({ model: 'gpt-4o' })
 // → { transport: 'chat_completions', resolvedModel: 'gpt-4o', ... }
-
-// Create branded IDs
-const sessionId = asSessionId('sess-123') // ✓ Type-safe
-const agentId = asAgentId('agent-456')    // ✓ Type-safe
 ```
 
----
-
-## 📚 API Reference
-
-### 🔧 Provider Configuration
-
-Resolve which provider to use for any model:
-
+### Error Handling
 ```typescript
-import { resolveProviderRequest, type ResolvedProviderRequest } from '@hawk/eyrie'
+import { APIError, isMediaSizeError, getImageTooLargeErrorMessage } from '@hawk/eyrie'
 
-const config: ResolvedProviderRequest = resolveProviderRequest({
-  model: 'gpt-4o',
-  baseUrl: 'https://api.openai.com/v1' // optional
-})
-
-// Result:
-// {
-//   transport: 'chat_completions',
-//   requestedModel: 'gpt-4o',
-//   resolvedModel: 'gpt-4o',
-//   baseUrl: 'https://api.openai.com/v1'
-// }
-```
-
-### 🆔 Branded Types
-
-Type-safe IDs prevent mixing different ID types:
-
-```typescript
-import { type AgentId, type SessionId, asAgentId, asSessionId } from '@hawk/eyrie'
-
-function createSession(sessionId: SessionId, agentId: AgentId) {
-  // ✓ Type-safe: Can't accidentally swap IDs
+// Check error types
+if (isMediaSizeError(error.message)) {
+  console.error(getImageTooLargeErrorMessage())
 }
 
-createSession(
-  asSessionId('sess-abc'),  // ✓ Works
-  asAgentId('agent-xyz')    // ✓ Works
-)
+// API error classes
+throw new APIError(429, { message: 'Rate limited' }, 'Too many requests', {})
 ```
 
-### 📏 API Limits
-
-Constants for validation and limits:
-
+### Content Blocks
 ```typescript
-import {
-  API_IMAGE_MAX_BASE64_SIZE,    // 5MB
-  IMAGE_MAX_WIDTH,              // 7680px
-  IMAGE_MAX_HEIGHT,             // 7680px
-  API_PDF_MAX_PAGES,            // 100 pages
-  PDF_MAX_PAGES_PER_READ,       // 10 pages
-  API_MAX_MEDIA_PER_REQUEST,    // 20 items
-} from '@hawk/eyrie'
+import type { ContentBlock, TextBlock, ToolUseBlock } from '@hawk/eyrie'
 
-// Validate before sending to API
-if (imageBase64.length > API_IMAGE_MAX_BASE64_SIZE) {
-  throw new Error('Image too large')
-}
-```
-
-### 🔌 Connector Types
-
-Handle GrayCode connector messages:
-
-```typescript
-import { 
-  type ConnectorTextBlock, 
-  isConnectorTextBlock 
-} from '@hawk/eyrie'
-
-function processBlock(block: unknown) {
-  if (isConnectorTextBlock(block)) {
-    // block is now typed as ConnectorTextBlock
-    console.log(block.text)
-  }
-}
+const blocks: ContentBlock[] = [
+  { type: 'text', text: 'Hello' },
+  { type: 'tool_use', id: '1', name: 'search', input: { query: 'weather' } }
+]
 ```
 
 ---
@@ -152,40 +138,57 @@ function processBlock(block: unknown) {
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│              hawk (CLI App)                  │
-│  ┌─────────┐ ┌──────────┐ ┌──────────┐     │
-│  │  React  │ │ Commands │ │   Tools  │     │
-│  │   Ink   │ │          │ │          │     │
-│  └────┬────┘ └────┬─────┘ └────┬─────┘     │
-└───────┼──────────┼──────────┼─────────────┘
-        │          │          │
-        └──────────┴──────────┘
+┌─────────────────────────────────────────┐
+│           Your Application              │
+│  (Hawk CLI, Web App, Server, etc.)      │
+└──────────────────┬──────────────────────┘
+                   │ imports @hawk/eyrie
+                   ▼
+┌─────────────────────────────────────────┐
+│              @hawk/eyrie                │
+│  ┌─────────────┐  ┌─────────────────┐  │
+│  │   Types     │  │    Constants    │  │
+│  │  • Message  │  │  • API Limits   │  │
+│  │  • Content  │  │  • Error Msg    │  │
+│  │  • Tools    │  │  • Provider     │  │
+│  └─────────────┘  └─────────────────┘  │
+│  ┌─────────────┐  ┌─────────────────┐  │
+│  │  Utilities  │  │  Provider Config│  │
+│  │  • Creators │  │  • Resolution   │  │
+│  │  • Validators│  │  • Credentials │  │
+│  │  • Parsers  │  │  • Auth         │  │
+│  └─────────────┘  └─────────────────┘  │
+└─────────────────────────────────────────┘
                    │
-                   ▼ imports @hawk/eyrie
-┌─────────────────────────────────────────────┐
-│              @hawk/eyrie                     │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐    │
-│  │ Constants│ │  Types   │ │Providers │    │
-│  │  (API    │ │ (Branded │ │ (Model   │    │
-│  │  Limits) │ │   IDs)   │ │Resolution│    │
-│  └──────────┘ └──────────┘ └──────────┘    │
-└────────────────────┬────────────────────────┘
-                     │
-                     ▼ HTTP/API calls
-┌─────────────────────────────────────────────┐
-│         LLM Provider APIs                    │
-│  OpenAI  •  Codex  •  Ollama  •  etc.       │
-└─────────────────────────────────────────────┘
+                   ▼ Zero npm dependencies
+┌─────────────────────────────────────────┐
+│           LLM Providers                 │
+│  OpenAI • GrayCode • Codex • Ollama    │
+└─────────────────────────────────────────┘
 ```
 
-### Design Principles
+---
 
-1. **🎯 Zero UI Dependencies** - No React, Ink, or terminal logic
-2. **🔒 Type Safety** - Branded types prevent ID confusion
-3. **📦 Self-Contained** - Only Node.js built-ins (fs, os, path)
-4. **⚡ Production Tested** - Extracted from working Hawk codebase
-5. **🔄 Version Independent** - Can version separately from Hawk
+## 📊 Exports Overview
+
+| Category | Count | Description |
+|----------|-------|-------------|
+| **Constants** | 11 | API limits, sizes, thresholds |
+| **Core Types** | 20 | Messages, blocks, tools |
+| **SDK Types** | 30+ | API-compatible types |
+| **Functions** | 13 | Utilities, creators, validators |
+| **Total** | **64** | Everything you need |
+
+---
+
+## 🎯 Design Principles
+
+1. **🚀 Zero Dependencies** - No runtime npm packages, just pure TypeScript
+2. **🔒 Type Safety** - Full type coverage with strict TypeScript
+3. **📦 Self-Contained** - Everything needed in one package
+4. **⚡ Lightweight** - Tree-shakeable, only import what you use
+5. **🔄 Provider Agnostic** - Works with any LLM provider
+6. **✨ Developer Experience** - Clear APIs, great IntelliSense
 
 ---
 
@@ -196,7 +199,7 @@ function processBlock(block: unknown) {
 git clone https://github.com/GrayCodeAI/eyrie.git
 cd eyrie
 
-# Install dependencies
+# Install dev dependencies
 npm install
 
 # Build the project
@@ -205,31 +208,15 @@ npm run build
 # Watch mode for development
 npm run dev
 
-# Type checking
+# Type check
 npm run typecheck
 ```
 
 ---
 
-## 📖 Related Projects
-
-| Project | Language | Description |
-|---------|----------|-------------|
-| **[hawk](https://github.com/GrayCodeAI/hawk)** | TypeScript | Terminal UI for LLMs |
-| **[langdag](https://github.com/anthropics/langdag)** | Go | LLM abstraction library |
-| **[herm](https://github.com/anthropics/herm)** | Go | Terminal UI using langdag |
-
-**Pattern:** `langdag` → `herm` (Go) | `eyrie` → `hawk` (TypeScript)
-
----
-
 ## 🤝 Contributing
 
-This package is maintained as part of the Hawk project.
-
-- 🐛 **Bug Reports:** [GrayCodeAI/hawk/issues](https://github.com/GrayCodeAI/hawk/issues)
-- 💡 **Feature Requests:** [GrayCodeAI/hawk/discussions](https://github.com/GrayCodeAI/hawk/discussions)
-- 📖 **Documentation:** See [Hawk repository](https://github.com/GrayCodeAI/hawk)
+We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
 
 ---
 
@@ -241,8 +228,8 @@ MIT © [GrayCodeAI](https://github.com/GrayCodeAI)
 
 <div align="center">
 
-**Made with ❤️ by the Hawk team**
+**Made with ❤️ for the AI development community**
 
-[⭐ Star us on GitHub](https://github.com/GrayCodeAI/eyrie) • [🐦 Follow on X](https://x.com/GrayCodeAI)
+[⭐ Star us on GitHub](https://github.com/GrayCodeAI/eyrie) · [🐦 Follow on X](https://x.com/GrayCodeAI)
 
 </div>
