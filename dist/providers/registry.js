@@ -681,6 +681,34 @@ export const OPENAI_COMPATIBLE_PROVIDERS = {
         supportsTools: true,
         supportsReasoning: true,
     },
+    // ===== MISSING FROM OPENCODE (75+) =====
+    // Azure Cognitive Services
+    azurecog: {
+        name: 'azure-cognitive-services',
+        type: 'openai-compatible',
+        baseUrl: 'https://<resource>.cognitiveservices.azure.com/',
+        envKey: 'AZURE_COGNITIVE_SERVICES_API_KEY',
+        defaultModel: 'gpt-4o',
+        supportsStreaming: true,
+        supportsTools: true,
+        supportsReasoning: true,
+    },
+    // xAI (Grok)
+    xai: {
+        name: 'xai',
+        type: 'openai-compatible',
+        baseUrl: 'https://api.x.ai/v1',
+        envKey: 'XAI_API_KEY',
+        defaultModel: 'grok-beta',
+        supportsStreaming: true,
+        supportsTools: true,
+        supportsReasoning: true,
+        compat: {
+            supportsReasoningEffort: false,
+            supportsStore: false,
+            supportsDeveloperRole: false,
+        }
+    },
 };
 // ============================================================================
 // All Providers
