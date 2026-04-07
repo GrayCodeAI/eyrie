@@ -21,6 +21,10 @@ export { default as Groq } from 'groq-sdk';
 export type { ChatCompletion as GroqChatCompletion, ChatCompletionMessage as GroqChatCompletionMessage, ChatCompletionMessageParam as GroqChatCompletionMessageParam, ChatCompletionChunk as GroqChatCompletionChunk, ChatCompletionCreateParams as GroqChatCompletionCreateParams, ChatCompletionTool as GroqChatCompletionTool, } from 'groq-sdk/resources/chat/completions';
 export type { Stream as GroqStream } from 'groq-sdk/streaming';
 export type { ClientOptions as GroqClientOptions } from 'groq-sdk';
+export { generateText, streamText, generateObject, streamObject, embed, embedMany, } from 'ai';
+export type { LanguageModelV1 as VercelLanguageModelV1, LanguageModelV1Prompt as VercelLanguageModelV1Prompt, LanguageModelV1StreamPart as VercelLanguageModelV1StreamPart, EmbeddingModelV1 as VercelEmbeddingModelV1, } from 'ai';
+export { VertexAI } from '@google-cloud/vertexai';
+export type { GenerativeModel as VertexGenerativeModel, GenerateContentRequest as VertexGenerateContentRequest, GenerateContentResult as VertexGenerateContentResult, Content as VertexContent, Part as VertexPart, TextPart as VertexTextPart, InlineDataPart as VertexInlineDataPart, FileDataPart as VertexFileDataPart, FunctionCallPart as VertexFunctionCallPart, FunctionResponsePart as VertexFunctionResponsePart, Tool as VertexTool, ToolConfig as VertexToolConfig, GenerationConfig as VertexGenerationConfig, SafetySetting as VertexSafetySetting, } from '@google-cloud/vertexai';
 export interface Message {
     role: 'user' | 'assistant' | 'system';
     content: string;
@@ -67,11 +71,13 @@ export declare const PROVIDERS: {
     readonly OPENAI: "openai";
     readonly GEMINI: "gemini";
     readonly GROQ: "groq";
+    readonly VERCEL: "vercel";
+    readonly VERTEX: "vertex";
 };
 export type Provider = typeof PROVIDERS[keyof typeof PROVIDERS];
 export interface ProviderConfig {
     name: Provider;
-    client: Anthropic | OpenAI | Gemini | Groq;
+    client: Anthropic | OpenAI | Gemini | Groq | VertexAI;
     defaultModel: string;
     supportsStreaming: boolean;
     supportsTools: boolean;

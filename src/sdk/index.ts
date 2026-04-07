@@ -108,6 +108,47 @@ export type { Stream as GroqStream } from 'groq-sdk/streaming'
 export type { ClientOptions as GroqClientOptions } from 'groq-sdk'
 
 // ============================================================================
+// Vercel AI SDK (Universal AI SDK)
+// ============================================================================
+export {
+  generateText,
+  streamText,
+  generateObject,
+  streamObject,
+  embed,
+  embedMany,
+} from 'ai'
+
+export type {
+  LanguageModelV1 as VercelLanguageModelV1,
+  LanguageModelV1Prompt as VercelLanguageModelV1Prompt,
+  LanguageModelV1StreamPart as VercelLanguageModelV1StreamPart,
+  EmbeddingModelV1 as VercelEmbeddingModelV1,
+} from 'ai'
+
+// ============================================================================
+// Google Vertex AI
+// ============================================================================
+export { VertexAI } from '@google-cloud/vertexai'
+
+export type {
+  GenerativeModel as VertexGenerativeModel,
+  GenerateContentRequest as VertexGenerateContentRequest,
+  GenerateContentResult as VertexGenerateContentResult,
+  Content as VertexContent,
+  Part as VertexPart,
+  TextPart as VertexTextPart,
+  InlineDataPart as VertexInlineDataPart,
+  FileDataPart as VertexFileDataPart,
+  FunctionCallPart as VertexFunctionCallPart,
+  FunctionResponsePart as VertexFunctionResponsePart,
+  Tool as VertexTool,
+  ToolConfig as VertexToolConfig,
+  GenerationConfig as VertexGenerationConfig,
+  SafetySetting as VertexSafetySetting,
+} from '@google-cloud/vertexai'
+
+// ============================================================================
 // Common Types (Provider-agnostic)
 // ============================================================================
 
@@ -166,13 +207,15 @@ export const PROVIDERS = {
   OPENAI: 'openai',
   GEMINI: 'gemini',
   GROQ: 'groq',
+  VERCEL: 'vercel',
+  VERTEX: 'vertex',
 } as const
 
 export type Provider = typeof PROVIDERS[keyof typeof PROVIDERS]
 
 export interface ProviderConfig {
   name: Provider
-  client: Anthropic | OpenAI | Gemini | Groq
+  client: Anthropic | OpenAI | Gemini | Groq | VertexAI
   defaultModel: string
   supportsStreaming: boolean
   supportsTools: boolean
