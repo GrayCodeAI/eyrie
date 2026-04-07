@@ -23,6 +23,14 @@ export { GoogleGenerativeAI as Gemini } from '@google/generative-ai';
 // ============================================================================
 export { default as Groq } from 'groq-sdk';
 // ============================================================================
+// Vercel AI SDK (Universal AI SDK)
+// ============================================================================
+export { generateText, streamText, generateObject, streamObject, embed, embedMany, } from 'ai';
+// ============================================================================
+// Google Vertex AI
+// ============================================================================
+export { VertexAI } from '@google-cloud/vertexai';
+// ============================================================================
 // Provider Registry
 // ============================================================================
 export const PROVIDERS = {
@@ -30,4 +38,6 @@ export const PROVIDERS = {
     OPENAI: 'openai',
     GEMINI: 'gemini',
     GROQ: 'groq',
+    VERCEL: 'vercel',
+    VERTEX: 'vertex',
 };
