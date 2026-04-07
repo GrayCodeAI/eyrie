@@ -108,6 +108,27 @@ export type { Stream as GroqStream } from 'groq-sdk/streaming'
 export type { ClientOptions as GroqClientOptions } from 'groq-sdk'
 
 // ============================================================================
+// AWS Bedrock (Amazon Titan, Claude via AWS)
+// ============================================================================
+export {
+  BedrockRuntimeClient as Bedrock,
+  InvokeModelCommand,
+  InvokeModelWithResponseStreamCommand,
+  ConverseCommand,
+  ConverseStreamCommand,
+} from '@aws-sdk/client-bedrock-runtime'
+
+export type {
+  BedrockRuntimeClientConfig as BedrockConfig,
+  Message as BedrockMessage,
+  ContentBlock as BedrockContentBlock,
+  ConversationRole as BedrockConversationRole,
+  InferenceConfiguration as BedrockInferenceConfiguration,
+  InvokeModelRequest as BedrockInvokeModelRequest,
+  InvokeModelResponse as BedrockInvokeModelResponse,
+} from '@aws-sdk/client-bedrock-runtime'
+
+// ============================================================================
 // Vercel AI SDK (Universal AI SDK)
 // ============================================================================
 export {
@@ -209,6 +230,7 @@ export const PROVIDERS = {
   GROQ: 'groq',
   VERCEL: 'vercel',
   VERTEX: 'vertex',
+  BEDROCK: 'bedrock',
 } as const
 
 export type Provider = typeof PROVIDERS[keyof typeof PROVIDERS]

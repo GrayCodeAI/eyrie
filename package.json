@@ -31,7 +31,8 @@
     "@google/generative-ai": "^0.21.0",
     "groq-sdk": "^0.3.0",
     "ai": "^4.0.0",
-    "@google-cloud/vertexai": "^1.10.0"
+    "@google-cloud/vertexai": "^1.10.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1026.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
