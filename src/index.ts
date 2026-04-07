@@ -47,8 +47,25 @@ export {
   isConnectorTextBlock,
 } from './types/connector.js'
 
+// Phase 3: Provider Config
+export {
+  DEFAULT_OPENAI_BASE_URL,
+  DEFAULT_CODEX_BASE_URL,
+  isLocalProviderUrl,
+  isCodexBaseUrl,
+  resolveProviderRequest,
+  resolveCodexAuthPath,
+  parseChatgptAccountId,
+  resolveCodexApiCredentials,
+} from './config/providers.js'
+
+export type {
+  ProviderTransport,
+  ResolvedProviderRequest,
+  ResolvedCodexCredentials,
+} from './config/providers.js'
+
 // Future phases will add more exports here
-// Phase 3: Config
 // Phase 4: Errors
 // Phase 5: Clients
 
