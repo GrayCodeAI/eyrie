@@ -1,7 +1,7 @@
 {
   "name": "@hawk/eyrie",
   "version": "1.0.1",
-  "description": "Core LLM client library for hawk - extracted from hawk",
+  "description": "🦅 Universal LLM abstraction layer - Types, providers & utilities with zero npm dependencies. The engine powering intelligent conversations across any provider (OpenAI, GrayCode, Codex, Ollama). Production-ready, fully typed, dependency-free.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
