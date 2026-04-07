@@ -43,7 +43,7 @@ isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock,
 // Creators
 createUserMessage, createAssistantMessage, createSystemMessage, toSDKContentBlocks, 
 // Errors
-APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, 
+APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, NotFoundError, AuthenticationError, 
 // Client
 GrayCode, } from './types/sdk.js';
 // Version
