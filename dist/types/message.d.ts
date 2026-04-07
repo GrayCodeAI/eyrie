@@ -4,7 +4,7 @@
  * Base types used across the system for message handling.
  * These are intentionally minimal and can be extended in hawk.
  */
-import type { BetaContentBlockParam } from '@graycode-ai/sdk/resources/beta/messages/messages.mjs';
+import type { ContentBlockParam } from './sdk.js';
 /**
  * Text content block
  */
@@ -108,7 +108,7 @@ export declare function isToolResultBlock(block: unknown): block is ToolResultBl
 /**
  * Convert content blocks to SDK format
  */
-export declare function toSDKContentBlocks(blocks: ContentBlock[]): BetaContentBlockParam[];
+export declare function toSDKContentBlocks(blocks: ContentBlock[]): ContentBlockParam[];
 /**
  * Create a user message with text content
  */

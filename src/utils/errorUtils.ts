@@ -4,7 +4,7 @@
  * Helper functions for working with API errors across different providers.
  */
 
-import type { APIError } from '@graycode-ai/sdk'
+import { APIError } from '../types/sdk.js'
 
 // SSL/TLS error codes from OpenSSL (used by both Node.js and Bun)
 // See: https://www.openssl.org/docs/man3.1/man3/X509_STORE_CTX_get_error.html

@@ -26,7 +26,6 @@
     "test": "echo 'Tests not yet configured'"
   },
   "dependencies": {
-    "@graycode-ai/sdk": "0.0.3",
     "zod": "^3.24.0"
   },
   "devDependencies": {

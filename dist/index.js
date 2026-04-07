@@ -37,9 +37,14 @@ OAUTH_ORG_NOT_ALLOWED_ERROR_MESSAGE, getTokenRevokedErrorMessage, getOauthOrgNot
 // Phase 5: API Utilities
 export { EMPTY_USAGE, } from './types/usage.js';
 export { extractConnectionErrorDetails, getSSLErrorHint, sanitizeAPIError, } from './utils/errorUtils.js';
-export { isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock, toSDKContentBlocks, createUserMessage, createAssistantMessage, createSystemMessage, } from './types/message.js';
-// Phase 7: SDK Re-exports
-// Re-export GrayCode SDK types so hawk doesn't need direct npm dependency
-export * from './sdk/index.js';
+export { 
+// Type guards
+isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock, 
+// Creators
+createUserMessage, createAssistantMessage, createSystemMessage, toSDKContentBlocks, 
+// Errors
+APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, 
+// Client
+GrayCode, } from './types/sdk.js';
 // Version
-export const EYRIE_VERSION = '0.3.0';
+export const EYRIE_VERSION = '1.0.0';

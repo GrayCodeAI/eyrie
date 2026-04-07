@@ -123,35 +123,71 @@ export {
   type ConnectionErrorDetails,
 } from './utils/errorUtils.js'
 
-// Phase 6: Message Types
+// Phase 6 & 7: All Message and SDK Types (Independent - no npm dependency)
 export type {
+  // Core message types
   Message,
   UserMessage,
   AssistantMessage,
   SystemMessage,
-  ContentBlock,
-  TextBlock,
-  ImageBlock,
-  ToolUseBlock,
-  ToolResultBlock,
   MessageOrigin,
   MessageSource,
-} from './types/message.js'
+  // Content blocks
+  ContentBlock,
+  ContentBlockParam,
+  TextBlock,
+  TextBlockParam,
+  ImageBlock,
+  ImageBlockParam,
+  ToolUseBlock,
+  ToolUseBlockParam,
+  ToolResultBlock,
+  ToolResultBlockParam,
+  ThinkingBlock,
+  ThinkingBlockParam,
+  RedactedThinkingBlock,
+  RedactedThinkingBlockParam,
+  // Messages
+  MessageParam,
+  BetaMessage,
+  BetaMessageParam,
+  BetaContentBlock,
+  BetaContentBlockParam,
+  // Tools
+  Tool,
+  ToolUnion,
+  BetaToolUnion,
+  // Other types
+  Model,
+  StopReason,
+  MessageStreamEvent,
+  MessageCreateParams,
+  Usage,
+  BetaUsage,
+  Stream,
+  // Client
+  ClientOptions,
+} from './types/sdk.js'
 
 export {
+  // Type guards
   isTextBlock,
   isImageBlock,
   isToolUseBlock,
   isToolResultBlock,
-  toSDKContentBlocks,
+  // Creators
   createUserMessage,
   createAssistantMessage,
   createSystemMessage,
-} from './types/message.js'
-
-// Phase 7: SDK Re-exports
-// Re-export GrayCode SDK types so hawk doesn't need direct npm dependency
-export * from './sdk/index.js'
+  toSDKContentBlocks,
+  // Errors
+  APIError,
+  APIConnectionError,
+  APIConnectionTimeoutError,
+  APIUserAbortError,
+  // Client
+  GrayCode,
+} from './types/sdk.js'
 
 // Version
-export const EYRIE_VERSION = '0.3.0'
+export const EYRIE_VERSION = '1.0.0'

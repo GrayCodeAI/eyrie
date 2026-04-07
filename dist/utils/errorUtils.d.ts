@@ -3,7 +3,7 @@
  *
  * Helper functions for working with API errors across different providers.
  */
-import type { APIError } from '@graycode-ai/sdk';
+import { APIError } from '../types/sdk.js';
 export type ConnectionErrorDetails = {
     code: string;
     message: string;

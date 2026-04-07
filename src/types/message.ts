@@ -5,7 +5,7 @@
  * These are intentionally minimal and can be extended in hawk.
  */
 
-import type { BetaContentBlockParam, BetaMessageParam } from '@graycode-ai/sdk/resources/beta/messages/messages.mjs'
+import type { ContentBlockParam } from './sdk.js'
 
 // ============================================================================
 // Content Blocks
@@ -192,7 +192,7 @@ export function isToolResultBlock(block: unknown): block is ToolResultBlock {
  */
 export function toSDKContentBlocks(
   blocks: ContentBlock[],
-): BetaContentBlockParam[] {
+): ContentBlockParam[] {
   return blocks.map(block => {
     if (block.type === 'text') {
       return { type: 'text', text: block.text }
