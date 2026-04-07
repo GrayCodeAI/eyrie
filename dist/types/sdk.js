@@ -30,7 +30,17 @@ export class APIConnectionTimeoutError extends APIError {
 }
 export class APIUserAbortError extends APIError {
     constructor(message) {
-        super(undefined, undefined, message || 'Request aborted', undefined);
+        super(undefined, undefined, message, undefined);
+    }
+}
+export class NotFoundError extends APIError {
+    constructor(message) {
+        super(undefined, undefined, message, undefined);
+    }
+}
+export class AuthenticationError extends APIError {
+    constructor(message) {
+        super(undefined, undefined, message, undefined);
     }
 }
 // ============================================================================

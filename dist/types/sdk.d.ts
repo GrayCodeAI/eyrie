@@ -146,7 +146,13 @@ export declare class APIConnectionTimeoutError extends APIError {
     constructor(message?: string);
 }
 export declare class APIUserAbortError extends APIError {
-    constructor(message?: string);
+    constructor(message: string);
+}
+export declare class NotFoundError extends APIError {
+    constructor(message: string);
+}
+export declare class AuthenticationError extends APIError {
+    constructor(message: string);
 }
 export type MessageOrigin = 'user' | 'api' | 'tool' | 'system' | 'compact' | 'recovery';
 export type MessageSource = 'user' | 'teammate' | 'system' | 'tick' | 'task';
@@ -177,6 +183,15 @@ export interface ClientOptions {
     baseURL?: string;
     timeout?: number;
     httpAgent?: unknown;
+    maxRetries?: number;
+    fetch?: typeof globalThis.fetch;
+    fetchOptions?: RequestInit;
+    logger?: {
+        error: (msg: string, ...args: unknown[]) => void;
+        warn: (msg: string, ...args: unknown[]) => void;
+        info: (msg: string, ...args: unknown[]) => void;
+        debug: (msg: string, ...args: unknown[]) => void;
+    };
 }
 export declare class GrayCode {
     constructor(options?: ClientOptions);

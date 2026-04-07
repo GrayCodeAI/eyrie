@@ -235,10 +235,23 @@ export class APIConnectionTimeoutError extends APIError {
 }
 
 export class APIUserAbortError extends APIError {
-  constructor(message?: string) {
-    super(undefined, undefined, message || 'Request aborted', undefined)
+  constructor(message: string) {
+    super(undefined, undefined, message, undefined)
   }
 }
+
+export class NotFoundError extends APIError {
+  constructor(message: string) {
+    super(undefined, undefined, message, undefined)
+  }
+}
+
+export class AuthenticationError extends APIError {
+  constructor(message: string) {
+    super(undefined, undefined, message, undefined)
+  }
+}
+
 
 // ============================================================================
 // Helper Types
@@ -357,6 +370,15 @@ export interface ClientOptions {
   baseURL?: string
   timeout?: number
   httpAgent?: unknown
+  maxRetries?: number
+  fetch?: typeof globalThis.fetch
+  fetchOptions?: RequestInit
+  logger?: {
+    error: (msg: string, ...args: unknown[]) => void
+    warn: (msg: string, ...args: unknown[]) => void
+    info: (msg: string, ...args: unknown[]) => void
+    debug: (msg: string, ...args: unknown[]) => void
+  }
 }
 
 export class GrayCode {

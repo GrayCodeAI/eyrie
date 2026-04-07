@@ -185,6 +185,8 @@ export {
   APIConnectionError,
   APIConnectionTimeoutError,
   APIUserAbortError,
+  NotFoundError,
+  AuthenticationError,
   // Client
   GrayCode,
 } from './types/sdk.js'
