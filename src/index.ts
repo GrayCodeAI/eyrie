@@ -123,5 +123,31 @@ export {
   type ConnectionErrorDetails,
 } from './utils/errorUtils.js'
 
+// Phase 6: Message Types
+export type {
+  Message,
+  UserMessage,
+  AssistantMessage,
+  SystemMessage,
+  ContentBlock,
+  TextBlock,
+  ImageBlock,
+  ToolUseBlock,
+  ToolResultBlock,
+  MessageOrigin,
+  MessageSource,
+} from './types/message.js'
+
+export {
+  isTextBlock,
+  isImageBlock,
+  isToolUseBlock,
+  isToolResultBlock,
+  toSDKContentBlocks,
+  createUserMessage,
+  createAssistantMessage,
+  createSystemMessage,
+} from './types/message.js'
+
 // Version
-export const EYRIE_VERSION = '0.1.0'
+export const EYRIE_VERSION = '0.2.0'

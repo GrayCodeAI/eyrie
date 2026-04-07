@@ -37,5 +37,6 @@ OAUTH_ORG_NOT_ALLOWED_ERROR_MESSAGE, getTokenRevokedErrorMessage, getOauthOrgNot
 // Phase 5: API Utilities
 export { EMPTY_USAGE, } from './types/usage.js';
 export { extractConnectionErrorDetails, getSSLErrorHint, sanitizeAPIError, } from './utils/errorUtils.js';
+export { isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock, toSDKContentBlocks, createUserMessage, createAssistantMessage, createSystemMessage, } from './types/message.js';
 // Version
-export const EYRIE_VERSION = '0.1.0';
+export const EYRIE_VERSION = '0.2.0';

@@ -20,5 +20,7 @@ export type { ProviderTransport, ResolvedProviderRequest, ResolvedCodexCredentia
 export { API_ERROR_MESSAGE_PREFIX, startsWithApiErrorPrefix, PROMPT_TOO_LONG_ERROR_MESSAGE, parsePromptTooLongTokenCounts, CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE, INVALID_API_KEY_ERROR_MESSAGE, INVALID_API_KEY_ERROR_MESSAGE_EXTERNAL, ORG_DISABLED_ERROR_MESSAGE_ENV_KEY_WITH_OAUTH, ORG_DISABLED_ERROR_MESSAGE_ENV_KEY, TOKEN_REVOKED_ERROR_MESSAGE, CCR_AUTH_ERROR_MESSAGE, REPEATED_529_ERROR_MESSAGE, CUSTOM_OFF_SWITCH_MESSAGE, API_TIMEOUT_ERROR_MESSAGE, isMediaSizeError, getPdfTooLargeErrorMessage, getPdfPasswordProtectedErrorMessage, getPdfInvalidErrorMessage, getImageTooLargeErrorMessage, getRequestTooLargeErrorMessage, OAUTH_ORG_NOT_ALLOWED_ERROR_MESSAGE, getTokenRevokedErrorMessage, getOauthOrgNotAllowedErrorMessage, } from './errors/index.js';
 export { EMPTY_USAGE, type NonNullableUsage, type ServerToolUse, type CacheCreation, } from './types/usage.js';
 export { extractConnectionErrorDetails, getSSLErrorHint, sanitizeAPIError, type ConnectionErrorDetails, } from './utils/errorUtils.js';
-export declare const EYRIE_VERSION = "0.1.0";
+export type { Message, UserMessage, AssistantMessage, SystemMessage, ContentBlock, TextBlock, ImageBlock, ToolUseBlock, ToolResultBlock, MessageOrigin, MessageSource, } from './types/message.js';
+export { isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock, toSDKContentBlocks, createUserMessage, createAssistantMessage, createSystemMessage, } from './types/message.js';
+export declare const EYRIE_VERSION = "0.2.0";
 //# sourceMappingURL=index.d.ts.map
