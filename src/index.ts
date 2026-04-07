@@ -108,5 +108,20 @@ export {
 // Future phases will add more exports here
 // Phase 5: Clients
 
+// Phase 5: API Utilities
+export {
+  EMPTY_USAGE,
+  type NonNullableUsage,
+  type ServerToolUse,
+  type CacheCreation,
+} from './types/usage.js'
+
+export {
+  extractConnectionErrorDetails,
+  getSSLErrorHint,
+  sanitizeAPIError,
+  type ConnectionErrorDetails,
+} from './utils/errorUtils.js'
+
 // Version
 export const EYRIE_VERSION = '0.1.0'

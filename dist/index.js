@@ -34,5 +34,8 @@ isMediaSizeError, getPdfTooLargeErrorMessage, getPdfPasswordProtectedErrorMessag
 OAUTH_ORG_NOT_ALLOWED_ERROR_MESSAGE, getTokenRevokedErrorMessage, getOauthOrgNotAllowedErrorMessage, } from './errors/index.js';
 // Future phases will add more exports here
 // Phase 5: Clients
+// Phase 5: API Utilities
+export { EMPTY_USAGE, } from './types/usage.js';
+export { extractConnectionErrorDetails, getSSLErrorHint, sanitizeAPIError, } from './utils/errorUtils.js';
 // Version
 export const EYRIE_VERSION = '0.1.0';
