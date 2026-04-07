@@ -149,5 +149,9 @@ export {
   createSystemMessage,
 } from './types/message.js'
 
+// Phase 7: SDK Re-exports
+// Re-export GrayCode SDK types so hawk doesn't need direct npm dependency
+export * from './sdk/index.js'
+
 // Version
-export const EYRIE_VERSION = '0.2.0'
+export const EYRIE_VERSION = '0.3.0'

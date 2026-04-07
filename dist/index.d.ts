@@ -22,5 +22,6 @@ export { EMPTY_USAGE, type NonNullableUsage, type ServerToolUse, type CacheCreat
 export { extractConnectionErrorDetails, getSSLErrorHint, sanitizeAPIError, type ConnectionErrorDetails, } from './utils/errorUtils.js';
 export type { Message, UserMessage, AssistantMessage, SystemMessage, ContentBlock, TextBlock, ImageBlock, ToolUseBlock, ToolResultBlock, MessageOrigin, MessageSource, } from './types/message.js';
 export { isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock, toSDKContentBlocks, createUserMessage, createAssistantMessage, createSystemMessage, } from './types/message.js';
-export declare const EYRIE_VERSION = "0.2.0";
+export * from './sdk/index.js';
+export declare const EYRIE_VERSION = "0.3.0";
 //# sourceMappingURL=index.d.ts.map
