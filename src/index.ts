@@ -37,6 +37,10 @@ export type {
   ConnectorTextDelta,
 } from './types/connector.js'
 
+export {
+  isConnectorTextBlock,
+} from './types/connector.js'
+
 // Future phases will add more exports here
 // Phase 3: Config
 // Phase 4: Errors
