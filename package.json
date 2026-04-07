@@ -1,7 +1,7 @@
 {
   "name": "@hawk/eyrie",
   "version": "1.0.1",
-  "description": "🦅 Universal LLM client - langdag-style wrapper for OpenAI, Anthropic, Gemini, Mistral, Groq and 50+ providers via baseUrl",
+  "description": "🦅 Universal LLM client - wrapper for OpenAI, Anthropic, Gemini, Mistral, Groq and 50+ providers via baseUrl",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
