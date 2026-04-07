@@ -1,18 +1,18 @@
 /**
- * Re-exports from @graycode-ai/sdk
+ * Re-exports from @anthropic-ai/sdk
  * 
  * This allows hawk to import everything from @hawk/eyrie
- * without directly depending on @graycode-ai/sdk
+ * following the langdag pattern (using Anthropic SDK)
  */
 
 // Core SDK
-export { default as GrayCode } from '@graycode-ai/sdk'
+export { default as Anthropic } from '@anthropic-ai/sdk'
 export {
   APIError,
   APIConnectionError,
   APIConnectionTimeoutError,
   APIUserAbortError,
-} from '@graycode-ai/sdk'
+} from '@anthropic-ai/sdk'
 
 // Re-export all message-related types from the SDK
 export type {
@@ -37,14 +37,13 @@ export type {
   // Tools
   Tool,
   ToolUnion,
+  ToolChoice,
   
   // Other
   Model,
-  StopReason,
-  MessageStreamEvent,
-  MessageCreateParams,
+  Metadata,
   Usage,
-} from '@graycode-ai/sdk/resources/messages.mjs'
+} from '@anthropic-ai/sdk/resources/messages.mjs'
 
 // Beta API types
 export type {
@@ -54,15 +53,10 @@ export type {
   BetaContentBlockParam,
   BetaUsage,
   BetaToolUnion,
-} from '@graycode-ai/sdk/resources/beta/messages/messages.mjs'
-
-// Resources
-export type {
-  Base64ImageSource,
-} from '@graycode-ai/sdk/resources/index.mjs'
+} from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 
 // Streaming
-export type { Stream } from '@graycode-ai/sdk/streaming.mjs'
+export type { Stream } from '@anthropic-ai/sdk/streaming.mjs'
 
-// Client
-export type { ClientOptions } from '@graycode-ai/sdk'
+// Client options
+export type { ClientOptions } from '@anthropic-ai/sdk'

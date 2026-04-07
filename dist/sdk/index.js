@@ -1,9 +1,9 @@
 /**
- * Re-exports from @graycode-ai/sdk
+ * Re-exports from @anthropic-ai/sdk
  *
  * This allows hawk to import everything from @hawk/eyrie
- * without directly depending on @graycode-ai/sdk
+ * following the langdag pattern (using Anthropic SDK)
  */
 // Core SDK
-export { default as GrayCode } from '@graycode-ai/sdk';
-export { APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, } from '@graycode-ai/sdk';
+export { default as Anthropic } from '@anthropic-ai/sdk';
+export { APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, } from '@anthropic-ai/sdk';
