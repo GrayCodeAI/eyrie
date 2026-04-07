@@ -23,4 +23,5 @@ export { extractConnectionErrorDetails, getSSLErrorHint, sanitizeAPIError, type 
 export type { Message, UserMessage, AssistantMessage, SystemMessage, MessageOrigin, MessageSource, ContentBlock, ContentBlockParam, TextBlock, TextBlockParam, ImageBlock, ImageBlockParam, ToolUseBlock, ToolUseBlockParam, ToolResultBlock, ToolResultBlockParam, ThinkingBlock, ThinkingBlockParam, RedactedThinkingBlock, RedactedThinkingBlockParam, MessageParam, BetaMessage, BetaMessageParam, BetaContentBlock, BetaContentBlockParam, Tool, ToolUnion, BetaToolUnion, Model, StopReason, MessageStreamEvent, MessageCreateParams, Usage, BetaUsage, Stream, ClientOptions, } from './types/sdk.js';
 export { isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock, createUserMessage, createAssistantMessage, createSystemMessage, toSDKContentBlocks, APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, GrayCode, } from './types/sdk.js';
 export declare const EYRIE_VERSION = "1.0.1";
+export * from './sdk/index.js';
 //# sourceMappingURL=index.d.ts.map

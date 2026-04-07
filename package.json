@@ -25,7 +25,9 @@
     "typecheck": "tsc --noEmit",
     "test": "echo 'Tests not yet configured'"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@graycode-ai/sdk": "0.0.3"
+  },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "typescript": "^5.7.0"
