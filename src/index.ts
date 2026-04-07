@@ -26,8 +26,18 @@ export {
   API_MAX_MEDIA_PER_REQUEST,
 } from './constants/limits.js'
 
-// Future phases will add more exports here
 // Phase 2: Types
+export type {
+  SessionId,
+  AgentId,
+} from './types/ids.js'
+
+export type {
+  ConnectorTextBlock,
+  ConnectorTextDelta,
+} from './types/connector.js'
+
+// Future phases will add more exports here
 // Phase 3: Config
 // Phase 4: Errors
 // Phase 5: Clients
