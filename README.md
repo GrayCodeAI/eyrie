@@ -230,6 +230,6 @@ MIT © [GrayCodeAI](https://github.com/GrayCodeAI)
 
 **Made with ❤️ for the AI development community**
 
-[⭐ Star us on GitHub](https://github.com/GrayCodeAI/eyrie) · [🐦 Follow on X](https://x.com/GrayCodeAI)
+[⭐ Star us on GitHub](https://github.com/GrayCodeAI/eyrie) · [🐦 Follow on X](https://x.com/Lakshman2302) · [💬 Join Discord](https://discord.gg/AyGB7TjA)
 
 </div>
