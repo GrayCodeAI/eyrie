@@ -12,13 +12,14 @@ export interface TextBlockParam {
     type: 'text';
     text: string;
 }
+export interface Base64ImageSource {
+    type: 'base64';
+    media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    data: string;
+}
 export interface ImageBlockParam {
     type: 'image';
-    source: {
-        type: 'base64';
-        media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-        data: string;
-    };
+    source: Base64ImageSource;
 }
 export type ImageBlock = ImageBlockParam;
 export interface ToolUseBlock {
@@ -126,6 +127,7 @@ export interface MessageCreateParams {
     stop_sequences?: string[];
     stream?: boolean;
 }
+export type BetaMessageStreamParams = MessageCreateParams;
 export interface Usage {
     input_tokens: number;
     output_tokens: number;

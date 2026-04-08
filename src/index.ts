@@ -51,6 +51,9 @@ export {
 export {
   DEFAULT_OPENAI_BASE_URL,
   DEFAULT_CODEX_BASE_URL,
+  DEFAULT_GEMINI_OPENAI_BASE_URL,
+  DEFAULT_ANTHROPIC_OPENAI_BASE_URL,
+  DEFAULT_GROK_OPENAI_BASE_URL,
   isLocalProviderUrl,
   isCodexBaseUrl,
   resolveProviderRequest,
@@ -59,11 +62,24 @@ export {
   resolveCodexApiCredentials,
 } from './config/providers.js'
 
+export {
+  OPENAI_COMPATIBLE_RUNTIME_PROVIDERS,
+  isOpenAICompatibleRuntimeEnabled,
+  resolveOpenAICompatibleRuntime,
+} from './config/openaiCompatibleRuntime.js'
+
 export type {
   ProviderTransport,
   ResolvedProviderRequest,
   ResolvedCodexCredentials,
 } from './config/providers.js'
+
+export type {
+  OpenAICompatibleRuntimeProvider,
+  OpenAICompatibleRuntimeMode,
+  OpenAICompatibleApiKeySource,
+  ResolvedOpenAICompatibleRuntime,
+} from './config/openaiCompatibleRuntime.js'
 
 // Phase 4: Error Constants
 export {
@@ -127,6 +143,8 @@ export {
 export type {
   // Core message types
   Message,
+  // StopReason alias (backward compat with graycode-ai/sdk naming)
+  StopReason as BetaStopReason,
   UserMessage,
   AssistantMessage,
   SystemMessage,
@@ -139,6 +157,7 @@ export type {
   TextBlockParam,
   ImageBlock,
   ImageBlockParam,
+  Base64ImageSource,
   ToolUseBlock,
   ToolUseBlockParam,
   ToolResultBlock,
@@ -153,6 +172,7 @@ export type {
   BetaMessageParam,
   BetaContentBlock,
   BetaContentBlockParam,
+  BetaMessageStreamParams,
   // Tools
   Tool,
   ToolUnion,
@@ -187,7 +207,7 @@ export {
   APIUserAbortError,
   NotFoundError,
   AuthenticationError,
-  // Client
+  // Client (stub kept for any remaining type references during migration)
   GrayCode,
 } from './types/sdk.js'
 
@@ -205,6 +225,25 @@ export {
   type EyrieStreamEvent,
   type EyrieUsage,
 } from './client/index.js'
+
+// Provider-aware client factory (the main entry point for hawk)
+export {
+  createAnthropicClient,
+  detectProvider,
+  resolveProviderModelEnvOverride,
+  parseCustomHeaders,
+  type AnthropicClientConfig,
+  type APIProvider,
+} from './client/factory.js'
+
+export {
+  defaultModelCatalog,
+  loadModelCatalogSync,
+  fetchModelCatalog,
+  modelsForProvider,
+  type ModelCatalog,
+  type ModelCatalogEntry,
+} from './catalog/modelCatalog.js'
 
 export {
   CORE_PROVIDERS,

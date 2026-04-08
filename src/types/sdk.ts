@@ -19,13 +19,15 @@ export interface TextBlockParam {
   text: string
 }
 
+export interface Base64ImageSource {
+  type: 'base64'
+  media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+  data: string
+}
+
 export interface ImageBlockParam {
   type: 'image'
-  source: {
-    type: 'base64'
-    media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
-    data: string
-  }
+  source: Base64ImageSource
 }
 
 // Alias for backward compatibility
@@ -186,6 +188,9 @@ export interface MessageCreateParams {
   stop_sequences?: string[]
   stream?: boolean
 }
+
+// Alias for backward compatibility with Beta API
+export type BetaMessageStreamParams = MessageCreateParams
 
 export interface Usage {
   input_tokens: number
