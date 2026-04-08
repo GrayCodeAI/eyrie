@@ -1,5 +1,8 @@
 export declare const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 export declare const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex";
+export declare const DEFAULT_GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai";
+export declare const DEFAULT_ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1";
+export declare const DEFAULT_GROK_OPENAI_BASE_URL = "https://api.x.ai/v1";
 type ReasoningEffort = 'low' | 'medium' | 'high';
 export type ProviderTransport = 'chat_completions' | 'codex_responses';
 export type ResolvedProviderRequest = {

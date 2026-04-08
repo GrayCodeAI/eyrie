@@ -15,7 +15,8 @@ export { API_IMAGE_MAX_BASE64_SIZE, IMAGE_TARGET_RAW_SIZE, IMAGE_MAX_WIDTH, IMAG
 export { asSessionId, asAgentId, toAgentId, } from './types/ids.js';
 export { isConnectorTextBlock, } from './types/connector.js';
 // Phase 3: Provider Config
-export { DEFAULT_OPENAI_BASE_URL, DEFAULT_CODEX_BASE_URL, isLocalProviderUrl, isCodexBaseUrl, resolveProviderRequest, resolveCodexAuthPath, parseChatgptAccountId, resolveCodexApiCredentials, } from './config/providers.js';
+export { DEFAULT_OPENAI_BASE_URL, DEFAULT_CODEX_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, isLocalProviderUrl, isCodexBaseUrl, resolveProviderRequest, resolveCodexAuthPath, parseChatgptAccountId, resolveCodexApiCredentials, } from './config/providers.js';
+export { OPENAI_COMPATIBLE_RUNTIME_PROVIDERS, isOpenAICompatibleRuntimeEnabled, resolveOpenAICompatibleRuntime, } from './config/openaiCompatibleRuntime.js';
 // Phase 4: Error Constants
 export { 
 // Error prefixes
@@ -44,10 +45,13 @@ isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock,
 createUserMessage, createAssistantMessage, createSystemMessage, toSDKContentBlocks, 
 // Errors
 APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, NotFoundError, AuthenticationError, 
-// Client
+// Client (stub kept for any remaining type references during migration)
 GrayCode, } from './types/sdk.js';
 // Version
 export const EYRIE_VERSION = '1.0.2';
 // Client exports
 export { EyrieClient, createEyrie, } from './client/index.js';
+// Provider-aware client factory (the main entry point for hawk)
+export { createAnthropicClient, detectProvider, parseCustomHeaders, } from './client/factory.js';
+export { defaultModelCatalog, loadModelCatalogSync, fetchModelCatalog, modelsForProvider, } from './catalog/modelCatalog.js';
 export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, } from './providers/registry.js';
