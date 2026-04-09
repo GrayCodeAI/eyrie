@@ -66,16 +66,6 @@ export const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS = {
 };
 // Ollama is OpenAI-compatible but key-less (just needs a base URL)
 const OLLAMA_BASE_URL = 'http://localhost:11434/v1';
-/**
- * Provider priority mirrors herm's config field order:
- * Grok → Gemini → OpenAI → Ollama
- * (Anthropic is handled separately via createAnthropicClient, not the shim)
- */
-const EXPLICIT_PROVIDER_PRIORITY = [
-    'grok',
-    'gemini',
-    'anthropic',
-];
 function asTrimmedString(value) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
@@ -105,6 +95,8 @@ function resolveRuntimeProvider(env) {
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.grok;
     if (env.GEMINI_API_KEY)
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.gemini;
+    if (env.ANTHROPIC_API_KEY)
+        return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.anthropic;
     if (env.OPENAI_API_KEY)
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openai;
     // Ollama: no API key, just a base URL
@@ -139,13 +131,14 @@ function resolveProviderApiKey(provider, env) {
 /**
  * Returns true when an OpenAI-compatible provider is active.
  * Detected by API key presence – same logic as detectProvider() in graycodeClient.
- * Note: ANTHROPIC_API_KEY is NOT included here; that goes through the Anthropic SDK directly.
+ * Includes provider-scoped key detection, including Anthropic compatibility mode.
  */
 export function isOpenAICompatibleRuntimeEnabled(env = process.env) {
     return !!(env.OPENROUTER_API_KEY ||
         env.GROK_API_KEY ||
         env.XAI_API_KEY ||
         env.GEMINI_API_KEY ||
+        env.ANTHROPIC_API_KEY ||
         env.OPENAI_API_KEY ||
         env.OLLAMA_BASE_URL);
 }
