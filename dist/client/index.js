@@ -138,9 +138,11 @@ export class EyrieClient {
                         completionTokens: response.usage.completion_tokens || 0,
                         totalTokens: response.usage.total_tokens || 0
                     } : undefined,
-                    toolCalls: choice?.message?.tool_calls?.map(tc => ({
+                    toolCalls: choice?.message?.tool_calls
+                        ?.filter((tc) => 'function' in tc)
+                        .map(tc => ({
                         name: tc.function.name,
-                        arguments: JSON.parse(tc.function.arguments)
+                        arguments: JSON.parse(tc.function.arguments),
                     })),
                     finishReason: choice?.finish_reason || 'unknown'
                 };
