@@ -20,12 +20,14 @@
 
 ## ✨ What is eyrie?
 
-**eyrie** is a lightweight, zero-dependency TypeScript library that provides the building blocks for LLM-powered applications. Named after an eagle's nest, it sits at the foundation of your AI stack, offering clean abstractions for:
+**eyrie** is a lightweight TypeScript library that provides the runtime and catalog building blocks for LLM-powered applications. Named after an eagle's nest, it sits at the foundation of your AI stack, offering clean abstractions for:
 
 - 🎯 **Provider Management** - Work with OpenAI, OpenRouter, Anthropic, Grok/xAI, Gemini, and Ollama
 - 📐 **Type Safety** - Fully typed message formats, content blocks, and API responses
 - ⚡ **Constants & Utilities** - API limits, error handling, validation helpers
 - 🏗️ **Provider Runtime Resolution** - Provider-scoped key/model/base URL resolution
+
+Provider runtime precedence is provider-scoped (OpenRouter/Grok/Gemini keys are resolved before generic `OPENAI_API_KEY`), matching the Hawk/Herm integration model.
 
 > **Why eyrie?** Because building LLM apps shouldn't require juggling dozens of SDK versions. One clean interface, any provider.
 
@@ -82,6 +84,14 @@ import {
   // ... and more
 } from '@hawk/eyrie'
 ```
+
+## ✅ Testing & CI
+
+```bash
+npm run ci
+```
+
+This runs typecheck + build + runtime tests used by CI.
 
 ---
 

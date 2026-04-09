@@ -24,7 +24,7 @@ export declare const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS: Record<RuntimeProvider
 /**
  * Returns true when an OpenAI-compatible provider is active.
  * Detected by API key presence – same logic as detectProvider() in graycodeClient.
- * Note: ANTHROPIC_API_KEY is NOT included here; that goes through the Anthropic SDK directly.
+ * Includes provider-scoped key detection, including Anthropic compatibility mode.
  */
 export declare function isOpenAICompatibleRuntimeEnabled(env?: NodeJS.ProcessEnv): boolean;
 export declare function resolveOpenAICompatibleRuntime(options?: {
