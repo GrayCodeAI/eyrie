@@ -97,15 +97,16 @@ function isEnvTruthy(value) {
         normalized === 'on');
 }
 function resolveRuntimeProvider(env) {
-    // Detect by API key presence, same as herm picks the first non-empty key
-    if (env.OPENAI_API_KEY)
-        return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openai;
+    // Detect by provider-specific API key presence first.
+    // OPENAI_API_KEY can be present as a compatibility mirror for other providers.
     if (env.OPENROUTER_API_KEY)
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openrouter;
     if (env.GROK_API_KEY || env.XAI_API_KEY)
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.grok;
     if (env.GEMINI_API_KEY)
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.gemini;
+    if (env.OPENAI_API_KEY)
+        return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openai;
     // Ollama: no API key, just a base URL
     if (env.OLLAMA_BASE_URL) {
         return {
