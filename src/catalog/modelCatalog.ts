@@ -109,6 +109,7 @@ export function loadModelCatalogSync(cachePath?: string): ModelCatalog {
 export async function fetchModelCatalog(
   cachePath?: string,
   sourceUrl = DEFAULT_CATALOG_URL,
+  env: NodeJS.ProcessEnv = process.env,
 ): Promise<ModelCatalog> {
   const res = await fetch(sourceUrl, {
     headers: {
@@ -132,7 +133,7 @@ export async function fetchModelCatalog(
   }
 
   try {
-    const openrouterModels = await fetchOpenRouterCatalog()
+    const openrouterModels = await fetchOpenRouterCatalog(env)
     if (openrouterModels) {
       normalized.providers.openrouter = openrouterModels
     }

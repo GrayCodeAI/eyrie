@@ -81,7 +81,7 @@ export function loadModelCatalogSync(cachePath) {
     }
     return defaultModelCatalog();
 }
-export async function fetchModelCatalog(cachePath, sourceUrl = DEFAULT_CATALOG_URL) {
+export async function fetchModelCatalog(cachePath, sourceUrl = DEFAULT_CATALOG_URL, env = process.env) {
     const res = await fetch(sourceUrl, {
         headers: {
             'User-Agent': 'eyrie-model-catalog/1.0',
@@ -103,7 +103,7 @@ export async function fetchModelCatalog(cachePath, sourceUrl = DEFAULT_CATALOG_U
         },
     };
     try {
-        const openrouterModels = await fetchOpenRouterCatalog();
+        const openrouterModels = await fetchOpenRouterCatalog(env);
         if (openrouterModels) {
             normalized.providers.openrouter = openrouterModels;
         }
