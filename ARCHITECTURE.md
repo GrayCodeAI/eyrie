@@ -76,3 +76,8 @@ sequenceDiagram
 - Provider-scoped resolution prevents key/model leakage across providers.
 - Catalog behavior is resilient: embedded defaults + cache fallback + best-effort live enrichment.
 - Public API is centralized through `src/index.ts` to keep integration stable as internals evolve.
+
+## 6) Detailed Design
+
+- See [COMPONENTS.md](./COMPONENTS.md) for C4-L3 module/component diagrams.
+- See ADRs in [docs/adr](./docs/adr/) for key architectural decisions.
