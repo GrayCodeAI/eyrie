@@ -1,13 +1,10 @@
 import {
   DEFAULT_ANTHROPIC_OPENAI_BASE_URL,
-  DEFAULT_CODEX_BASE_URL,
   DEFAULT_GEMINI_OPENAI_BASE_URL,
   DEFAULT_GROK_OPENAI_BASE_URL,
   DEFAULT_OPENAI_BASE_URL,
   DEFAULT_OPENROUTER_OPENAI_BASE_URL,
-  resolveCodexApiCredentials,
   resolveProviderRequest,
-  type ResolvedCodexCredentials,
   type ResolvedProviderRequest,
 } from './providers.js'
 
@@ -17,7 +14,6 @@ export type OpenAICompatibleRuntimeMode =
   | 'gemini'
   | 'grok'
   | 'anthropic'
-  | 'codex'
 
 export type OpenAICompatibleApiKeySource =
   | 'openai'
@@ -26,8 +22,6 @@ export type OpenAICompatibleApiKeySource =
   | 'grok'
   | 'xai'
   | 'anthropic'
-  | 'codex_env'
-  | 'codex_auth_json'
   | 'none'
 
 export type ResolvedOpenAICompatibleRuntime = {
@@ -35,10 +29,9 @@ export type ResolvedOpenAICompatibleRuntime = {
   request: ResolvedProviderRequest
   apiKey: string
   apiKeySource: OpenAICompatibleApiKeySource
-  codexCredentials?: ResolvedCodexCredentials
 }
 
-type RuntimeProviderMode = Exclude<OpenAICompatibleRuntimeMode, 'codex'>
+type RuntimeProviderMode = OpenAICompatibleRuntimeMode
 
 export type OpenAICompatibleRuntimeProvider = {
   mode: RuntimeProviderMode
@@ -247,27 +240,6 @@ export function resolveOpenAICompatibleRuntime(options?: {
       firstEnvValue(env, provider.modelEnv) ??
       provider.defaultModel,
   })
-
-  if (request.transport === 'codex_responses') {
-    const credentials = resolveCodexApiCredentials(env)
-    const source: OpenAICompatibleApiKeySource =
-      credentials.source === 'env'
-        ? 'codex_env'
-        : credentials.source === 'auth.json'
-          ? 'codex_auth_json'
-          : 'none'
-
-    return {
-      mode: 'codex',
-      request: {
-        ...request,
-        baseUrl: runtimeBaseUrl ?? DEFAULT_CODEX_BASE_URL,
-      },
-      apiKey: credentials.apiKey,
-      apiKeySource: source,
-      codexCredentials: credentials,
-    }
-  }
 
   return {
     mode: provider.mode,

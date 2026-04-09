@@ -50,17 +50,12 @@ export {
 // Phase 3: Provider Config
 export {
   DEFAULT_OPENAI_BASE_URL,
-  DEFAULT_CODEX_BASE_URL,
   DEFAULT_OPENROUTER_OPENAI_BASE_URL,
   DEFAULT_GEMINI_OPENAI_BASE_URL,
   DEFAULT_ANTHROPIC_OPENAI_BASE_URL,
   DEFAULT_GROK_OPENAI_BASE_URL,
   isLocalProviderUrl,
-  isCodexBaseUrl,
   resolveProviderRequest,
-  resolveCodexAuthPath,
-  parseChatgptAccountId,
-  resolveCodexApiCredentials,
 } from './config/providers.js'
 
 export {
@@ -72,7 +67,6 @@ export {
 export type {
   ProviderTransport,
   ResolvedProviderRequest,
-  ResolvedCodexCredentials,
 } from './config/providers.js'
 
 export type {

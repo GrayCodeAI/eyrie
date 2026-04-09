@@ -1,14 +1,13 @@
-import { type ResolvedCodexCredentials, type ResolvedProviderRequest } from './providers.js';
-export type OpenAICompatibleRuntimeMode = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'anthropic' | 'codex';
-export type OpenAICompatibleApiKeySource = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'xai' | 'anthropic' | 'codex_env' | 'codex_auth_json' | 'none';
+import { type ResolvedProviderRequest } from './providers.js';
+export type OpenAICompatibleRuntimeMode = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'anthropic';
+export type OpenAICompatibleApiKeySource = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'xai' | 'anthropic' | 'none';
 export type ResolvedOpenAICompatibleRuntime = {
     mode: OpenAICompatibleRuntimeMode;
     request: ResolvedProviderRequest;
     apiKey: string;
     apiKeySource: OpenAICompatibleApiKeySource;
-    codexCredentials?: ResolvedCodexCredentials;
 };
-type RuntimeProviderMode = Exclude<OpenAICompatibleRuntimeMode, 'codex'>;
+type RuntimeProviderMode = OpenAICompatibleRuntimeMode;
 export type OpenAICompatibleRuntimeProvider = {
     mode: RuntimeProviderMode;
     enableEnv?: string;
