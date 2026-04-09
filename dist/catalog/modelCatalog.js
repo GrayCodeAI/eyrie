@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { DEFAULT_OPENROUTER_OPENAI_BASE_URL } from '../config/providers.js';
 import { DEFAULT_PROVIDER_CATALOGS } from './providers/index.js';
 const DEFAULT_MODEL_CATALOG = {
     updated_at: '2026-04-09T00:00:00.000Z',
@@ -7,6 +8,56 @@ const DEFAULT_MODEL_CATALOG = {
     providers: DEFAULT_PROVIDER_CATALOGS,
 };
 const DEFAULT_CATALOG_URL = 'https://raw.githubusercontent.com/aduermael/langdag/main/internal/models/catalog.json';
+function asNumber(value) {
+    if (typeof value === 'number' && Number.isFinite(value))
+        return value;
+    if (typeof value === 'string' && value.trim()) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed))
+            return parsed;
+    }
+    return undefined;
+}
+async function fetchOpenRouterCatalog(env = process.env) {
+    const apiKey = env.OPENROUTER_API_KEY?.trim();
+    if (!apiKey)
+        return null;
+    const baseUrl = (env.OPENROUTER_BASE_URL?.trim() || DEFAULT_OPENROUTER_OPENAI_BASE_URL).replace(/\/+$/, '');
+    const res = await fetch(`${baseUrl}/models`, {
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+            Accept: 'application/json',
+            'User-Agent': 'eyrie-model-catalog/1.0',
+        },
+    });
+    if (!res.ok) {
+        throw new Error(`openrouter model fetch failed (${res.status})`);
+    }
+    const payload = (await res.json());
+    if (!payload || typeof payload !== 'object' || !Array.isArray(payload.data)) {
+        return null;
+    }
+    const entries = [];
+    for (const raw of payload.data) {
+        const id = typeof raw.id === 'string' ? raw.id.trim() : '';
+        if (!id)
+            continue;
+        const contextWindow = asNumber(raw.context_length) ??
+            asNumber(raw.top_provider?.context_length) ??
+            128000;
+        const maxOutput = asNumber(raw.top_provider?.max_completion_tokens) ?? 16384;
+        const inputPrice = asNumber(raw.pricing?.prompt) ?? 0;
+        const outputPrice = asNumber(raw.pricing?.completion) ?? 0;
+        entries.push({
+            id,
+            input_price_per_1m: inputPrice * 1_000_000,
+            output_price_per_1m: outputPrice * 1_000_000,
+            context_window: contextWindow,
+            max_output: maxOutput,
+        });
+    }
+    return entries.length > 0 ? entries : null;
+}
 function isCatalog(value) {
     if (!value || typeof value !== 'object')
         return false;
@@ -51,6 +102,15 @@ export async function fetchModelCatalog(cachePath, sourceUrl = DEFAULT_CATALOG_U
             ...parsed.providers,
         },
     };
+    try {
+        const openrouterModels = await fetchOpenRouterCatalog();
+        if (openrouterModels) {
+            normalized.providers.openrouter = openrouterModels;
+        }
+    }
+    catch {
+        // Keep default or fetched catalog entries on OpenRouter fetch failure.
+    }
     if (cachePath) {
         mkdirSync(dirname(cachePath), { recursive: true });
         writeFileSync(cachePath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8');
