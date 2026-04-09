@@ -54,10 +54,10 @@ export interface AnthropicClientConfig {
  */
 export function detectProvider(): APIProvider {
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
-  if (process.env.OPENAI_API_KEY) return 'openai'
   if (process.env.OPENROUTER_API_KEY) return 'openrouter'
   if (process.env.GROK_API_KEY || process.env.XAI_API_KEY) return 'grok'
   if (process.env.GEMINI_API_KEY) return 'gemini'
+  if (process.env.OPENAI_API_KEY) return 'openai'
   if (process.env.OLLAMA_BASE_URL) return 'ollama'
   return 'anthropic'
 }
