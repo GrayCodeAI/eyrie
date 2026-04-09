@@ -1,0 +1,15 @@
+import type { APIProvider } from '../client/factory.js';
+export type ModelCatalogEntry = {
+    id: string;
+    input_price_per_1m: number;
+    output_price_per_1m: number;
+    context_window: number;
+    max_output: number;
+    server_tools?: string[];
+};
+export type ModelCatalog = {
+    updated_at: string;
+    source: string;
+    providers: Partial<Record<APIProvider, ModelCatalogEntry[]>>;
+};
+//# sourceMappingURL=types.d.ts.map

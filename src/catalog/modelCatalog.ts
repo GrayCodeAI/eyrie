@@ -1,108 +1,13 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import type { APIProvider } from '../client/factory.js'
-
-export type ModelCatalogEntry = {
-  id: string
-  input_price_per_1m: number
-  output_price_per_1m: number
-  context_window: number
-  max_output: number
-  server_tools?: string[]
-}
-
-export type ModelCatalog = {
-  updated_at: string
-  source: string
-  providers: Partial<Record<APIProvider, ModelCatalogEntry[]>>
-}
+import { DEFAULT_PROVIDER_CATALOGS } from './providers/index.js'
+import type { ModelCatalog, ModelCatalogEntry } from './types.js'
 
 const DEFAULT_MODEL_CATALOG: ModelCatalog = {
   updated_at: '2026-04-09T00:00:00.000Z',
   source: 'embedded',
-  providers: {
-    anthropic: [
-      {
-        id: 'claude-opus-4-6',
-        input_price_per_1m: 15,
-        output_price_per_1m: 75,
-        context_window: 200000,
-        max_output: 32000,
-        server_tools: ['web_search'],
-      },
-      {
-        id: 'claude-sonnet-4-6',
-        input_price_per_1m: 3,
-        output_price_per_1m: 15,
-        context_window: 200000,
-        max_output: 32000,
-        server_tools: ['web_search'],
-      },
-      {
-        id: 'claude-haiku-4-5-20251001',
-        input_price_per_1m: 1,
-        output_price_per_1m: 5,
-        context_window: 200000,
-        max_output: 16000,
-        server_tools: ['web_search'],
-      },
-    ],
-    openai: [
-      {
-        id: 'gpt-4o',
-        input_price_per_1m: 5,
-        output_price_per_1m: 15,
-        context_window: 128000,
-        max_output: 16000,
-        server_tools: ['web_search'],
-      },
-      {
-        id: 'gpt-4o-mini',
-        input_price_per_1m: 0.15,
-        output_price_per_1m: 0.6,
-        context_window: 128000,
-        max_output: 16000,
-        server_tools: ['web_search'],
-      },
-    ],
-    grok: [
-      {
-        id: 'grok-2',
-        input_price_per_1m: 2,
-        output_price_per_1m: 10,
-        context_window: 128000,
-        max_output: 8000,
-        server_tools: ['web_search'],
-      },
-    ],
-    gemini: [
-      {
-        id: 'gemini-2.5-pro-preview-03-25',
-        input_price_per_1m: 1.25,
-        output_price_per_1m: 5,
-        context_window: 1000000,
-        max_output: 65536,
-        server_tools: ['web_search'],
-      },
-      {
-        id: 'gemini-2.0-flash',
-        input_price_per_1m: 0.1,
-        output_price_per_1m: 0.4,
-        context_window: 1000000,
-        max_output: 8192,
-        server_tools: ['web_search'],
-      },
-      {
-        id: 'gemini-2.0-flash-lite',
-        input_price_per_1m: 0.075,
-        output_price_per_1m: 0.3,
-        context_window: 1000000,
-        max_output: 8192,
-        server_tools: ['web_search'],
-      },
-    ],
-    ollama: [],
-  },
+  providers: DEFAULT_PROVIDER_CATALOGS,
 }
 
 const DEFAULT_CATALOG_URL =
@@ -165,3 +70,5 @@ export function modelsForProvider(
   if (!catalog?.providers?.[provider]) return []
   return catalog.providers[provider] ?? []
 }
+
+export type { ModelCatalog, ModelCatalogEntry } from './types.js'
