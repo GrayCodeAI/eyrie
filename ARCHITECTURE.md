@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-  APP[Consumer App<br/>Hawk / Node service / API server] --> E[@hawk/eyrie]
+  APP[Consumer App<br/>Hawk / Node service / API server] --> E["eyrie package"]
   E --> T[Typed Models + Message Blocks]
   E --> K[Constants + Error Helpers]
   E --> RR[Provider Runtime Resolver]
