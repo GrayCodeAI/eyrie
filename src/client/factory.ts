@@ -6,6 +6,7 @@
  *
  *   ANTHROPIC_API_KEY              → anthropic  (Anthropic SDK direct)
  *   OPENAI_API_KEY                 → openai     (OpenAI shim)
+ *   OPENROUTER_API_KEY             → openrouter (OpenAI shim, OpenRouter base URL)
  *   GROK_API_KEY / XAI_API_KEY     → grok       (OpenAI shim, xAI base URL)
  *   GEMINI_API_KEY                → gemini    (OpenAI shim, Google base URL)
  *   OLLAMA_BASE_URL                → ollama     (OpenAI shim, local)
@@ -18,7 +19,13 @@ import Anthropic from '@anthropic-ai/sdk'
 // Types
 // ============================================================================
 
-export type APIProvider = 'anthropic' | 'openai' | 'grok' | 'gemini' | 'ollama'
+export type APIProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'openrouter'
+  | 'grok'
+  | 'gemini'
+  | 'ollama'
 
 export interface AnthropicClientConfig {
   /** API key. Falls back to ANTHROPIC_API_KEY env var. */
@@ -43,11 +50,12 @@ export interface AnthropicClientConfig {
 /**
  * Returns the active provider by checking which API key / URL is set.
  * Priority mirrors herm's config field order exactly:
- *   Anthropic → OpenAI → Grok → Gemini → Ollama
+ *   Anthropic → OpenAI → OpenRouter → Grok → Gemini → Ollama
  */
 export function detectProvider(): APIProvider {
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
   if (process.env.OPENAI_API_KEY) return 'openai'
+  if (process.env.OPENROUTER_API_KEY) return 'openrouter'
   if (process.env.GROK_API_KEY || process.env.XAI_API_KEY) return 'grok'
   if (process.env.GEMINI_API_KEY) return 'gemini'
   if (process.env.OLLAMA_BASE_URL) return 'ollama'
@@ -64,6 +72,7 @@ export function resolveProviderModelEnvOverride(
 ): string | undefined {
   if (provider === 'gemini') return env.GEMINI_MODEL
   if (provider === 'grok') return env.GROK_MODEL || env.XAI_MODEL
+  if (provider === 'openrouter') return env.OPENROUTER_MODEL || env.OPENAI_MODEL
   if (provider === 'openai' || provider === 'ollama') return env.OPENAI_MODEL
   return env.ANTHROPIC_MODEL
 }

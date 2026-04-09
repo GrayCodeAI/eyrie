@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 export const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1'
 export const DEFAULT_CODEX_BASE_URL = 'https://chatgpt.com/backend-api/codex'
+export const DEFAULT_OPENROUTER_OPENAI_BASE_URL = 'https://openrouter.ai/api/v1'
 export const DEFAULT_GEMINI_OPENAI_BASE_URL =
   'https://generativelanguage.googleapis.com/v1beta/openai'
 export const DEFAULT_ANTHROPIC_OPENAI_BASE_URL = 'https://api.anthropic.com/v1'

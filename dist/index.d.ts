@@ -15,7 +15,7 @@ export type { SessionId, AgentId, } from './types/ids.js';
 export { asSessionId, asAgentId, toAgentId, } from './types/ids.js';
 export type { ConnectorTextBlock, ConnectorTextDelta, } from './types/connector.js';
 export { isConnectorTextBlock, } from './types/connector.js';
-export { DEFAULT_OPENAI_BASE_URL, DEFAULT_CODEX_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, isLocalProviderUrl, isCodexBaseUrl, resolveProviderRequest, resolveCodexAuthPath, parseChatgptAccountId, resolveCodexApiCredentials, } from './config/providers.js';
+export { DEFAULT_OPENAI_BASE_URL, DEFAULT_CODEX_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, isLocalProviderUrl, isCodexBaseUrl, resolveProviderRequest, resolveCodexAuthPath, parseChatgptAccountId, resolveCodexApiCredentials, } from './config/providers.js';
 export { OPENAI_COMPATIBLE_RUNTIME_PROVIDERS, isOpenAICompatibleRuntimeEnabled, resolveOpenAICompatibleRuntime, } from './config/openaiCompatibleRuntime.js';
 export type { ProviderTransport, ResolvedProviderRequest, ResolvedCodexCredentials, } from './config/providers.js';
 export type { OpenAICompatibleRuntimeProvider, OpenAICompatibleRuntimeMode, OpenAICompatibleApiKeySource, ResolvedOpenAICompatibleRuntime, } from './config/openaiCompatibleRuntime.js';

@@ -6,13 +6,14 @@
  *
  *   ANTHROPIC_API_KEY              → anthropic  (Anthropic SDK direct)
  *   OPENAI_API_KEY                 → openai     (OpenAI shim)
+ *   OPENROUTER_API_KEY             → openrouter (OpenAI shim, OpenRouter base URL)
  *   GROK_API_KEY / XAI_API_KEY     → grok       (OpenAI shim, xAI base URL)
  *   GEMINI_API_KEY                → gemini    (OpenAI shim, Google base URL)
  *   OLLAMA_BASE_URL                → ollama     (OpenAI shim, local)
  *   (none set)                     → anthropic  (fallback)
  */
 import Anthropic from '@anthropic-ai/sdk';
-export type APIProvider = 'anthropic' | 'openai' | 'grok' | 'gemini' | 'ollama';
+export type APIProvider = 'anthropic' | 'openai' | 'openrouter' | 'grok' | 'gemini' | 'ollama';
 export interface AnthropicClientConfig {
     /** API key. Falls back to ANTHROPIC_API_KEY env var. */
     apiKey?: string;
@@ -31,7 +32,7 @@ export interface AnthropicClientConfig {
 /**
  * Returns the active provider by checking which API key / URL is set.
  * Priority mirrors herm's config field order exactly:
- *   Anthropic → OpenAI → Grok → Gemini → Ollama
+ *   Anthropic → OpenAI → OpenRouter → Grok → Gemini → Ollama
  */
 export declare function detectProvider(): APIProvider;
 /**
