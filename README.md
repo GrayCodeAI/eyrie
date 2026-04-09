@@ -2,7 +2,7 @@
 
 # 🦅 eyrie
 
-**Universal LLM Abstraction Layer**
+**Provider Runtime + Model Catalog Layer**
 
 [![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/GrayCodeAI/eyrie)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-GrayCodeAI-black.svg)](https://github.com/GrayCodeAI)
 
-*Zero-dependency TypeScript toolkit for building intelligent LLM applications*
+*Provider-aware TypeScript toolkit used by Hawk for runtime routing and model catalogs*
 
 [Installation](#installation) · [Usage](#usage) · [API](#api) · [Contributing](./CONTRIBUTING.md)
 
@@ -22,10 +22,10 @@
 
 **eyrie** is a lightweight, zero-dependency TypeScript library that provides the building blocks for LLM-powered applications. Named after an eagle's nest, it sits at the foundation of your AI stack, offering clean abstractions for:
 
-- 🎯 **Provider Management** - Seamlessly work with OpenAI, GrayCode, Codex, Ollama, and more
+- 🎯 **Provider Management** - Work with OpenAI, OpenRouter, Anthropic, Grok/xAI, Gemini, and Ollama
 - 📐 **Type Safety** - Fully typed message formats, content blocks, and API responses
 - ⚡ **Constants & Utilities** - API limits, error handling, validation helpers
-- 🏗️ **Zero Dependencies** - Pure TypeScript with no runtime npm dependencies
+- 🏗️ **Provider Runtime Resolution** - Provider-scoped key/model/base URL resolution
 
 > **Why eyrie?** Because building LLM apps shouldn't require juggling dozens of SDK versions. One clean interface, any provider.
 
