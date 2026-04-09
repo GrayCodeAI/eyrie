@@ -147,35 +147,7 @@ const blocks: ContentBlock[] = [
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────┐
-│           Your Application              │
-│  (Hawk CLI, Web App, Server, etc.)      │
-└──────────────────┬──────────────────────┘
-                   │ imports @hawk/eyrie
-                   ▼
-┌─────────────────────────────────────────┐
-│              @hawk/eyrie                │
-│  ┌─────────────┐  ┌─────────────────┐  │
-│  │   Types     │  │    Constants    │  │
-│  │  • Message  │  │  • API Limits   │  │
-│  │  • Content  │  │  • Error Msg    │  │
-│  │  • Tools    │  │  • Provider     │  │
-│  └─────────────┘  └─────────────────┘  │
-│  ┌─────────────┐  ┌─────────────────┐  │
-│  │  Utilities  │  │  Provider Config│  │
-│  │  • Creators │  │  • Resolution   │  │
-│  │  • Validators│  │  • Credentials │  │
-│  │  • Parsers  │  │  • Auth         │  │
-│  └─────────────┘  └─────────────────┘  │
-└─────────────────────────────────────────┘
-                   │
-                   ▼ Zero npm dependencies
-┌─────────────────────────────────────────┐
-│           LLM Providers                 │
-│  OpenAI • GrayCode • Codex • Ollama    │
-└─────────────────────────────────────────┘
-```
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for component and provider flow diagrams.
 
 ---
 
