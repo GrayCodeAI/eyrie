@@ -1,4 +1,4 @@
-import { DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_CODEX_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, DEFAULT_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, resolveCodexApiCredentials, resolveProviderRequest, } from './providers.js';
+import { DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, DEFAULT_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, resolveProviderRequest, } from './providers.js';
 export const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS = {
     anthropic: {
         mode: 'anthropic',
@@ -160,24 +160,6 @@ export function resolveOpenAICompatibleRuntime(options) {
             firstEnvValue(env, provider.modelEnv) ??
             provider.defaultModel,
     });
-    if (request.transport === 'codex_responses') {
-        const credentials = resolveCodexApiCredentials(env);
-        const source = credentials.source === 'env'
-            ? 'codex_env'
-            : credentials.source === 'auth.json'
-                ? 'codex_auth_json'
-                : 'none';
-        return {
-            mode: 'codex',
-            request: {
-                ...request,
-                baseUrl: runtimeBaseUrl ?? DEFAULT_CODEX_BASE_URL,
-            },
-            apiKey: credentials.apiKey,
-            apiKeySource: source,
-            codexCredentials: credentials,
-        };
-    }
     return {
         mode: provider.mode,
         request,
