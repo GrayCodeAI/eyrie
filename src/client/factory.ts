@@ -7,7 +7,7 @@
  *   ANTHROPIC_API_KEY              → anthropic  (Anthropic SDK direct)
  *   OPENAI_API_KEY                 → openai     (OpenAI shim)
  *   GROK_API_KEY / XAI_API_KEY     → grok       (OpenAI shim, xAI base URL)
- *   GEMINI_API_KEY / GOOGLE_API_KEY → gemini    (OpenAI shim, Google base URL)
+ *   GEMINI_API_KEY                → gemini    (OpenAI shim, Google base URL)
  *   OLLAMA_BASE_URL                → ollama     (OpenAI shim, local)
  *   (none set)                     → anthropic  (fallback)
  */
@@ -49,7 +49,7 @@ export function detectProvider(): APIProvider {
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
   if (process.env.OPENAI_API_KEY) return 'openai'
   if (process.env.GROK_API_KEY || process.env.XAI_API_KEY) return 'grok'
-  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) return 'gemini'
+  if (process.env.GEMINI_API_KEY) return 'gemini'
   if (process.env.OLLAMA_BASE_URL) return 'ollama'
   return 'anthropic'
 }

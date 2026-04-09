@@ -20,7 +20,6 @@ export type OpenAICompatibleRuntimeMode =
 export type OpenAICompatibleApiKeySource =
   | 'openai'
   | 'gemini'
-  | 'google'
   | 'grok'
   | 'xai'
   | 'anthropic'
@@ -94,7 +93,6 @@ export const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS: Record<
     baseUrlEnv: ['GEMINI_BASE_URL', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'],
     apiKeys: [
       { env: 'GEMINI_API_KEY', source: 'gemini' },
-      { env: 'GOOGLE_API_KEY', source: 'google' },
       { env: 'OPENAI_API_KEY', source: 'openai' },
     ],
   },
@@ -155,7 +153,7 @@ function resolveRuntimeProvider(
   // Detect by API key presence, same as herm picks the first non-empty key
   if (env.OPENAI_API_KEY) return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openai
   if (env.GROK_API_KEY || env.XAI_API_KEY) return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.grok
-  if (env.GEMINI_API_KEY || env.GOOGLE_API_KEY) return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.gemini
+  if (env.GEMINI_API_KEY) return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.gemini
   // Ollama: no API key, just a base URL
   if (env.OLLAMA_BASE_URL) {
     return {
@@ -206,7 +204,6 @@ export function isOpenAICompatibleRuntimeEnabled(
     env.GROK_API_KEY ||
     env.XAI_API_KEY ||
     env.GEMINI_API_KEY ||
-    env.GOOGLE_API_KEY ||
     env.OPENAI_API_KEY ||
     env.OLLAMA_BASE_URL
   )

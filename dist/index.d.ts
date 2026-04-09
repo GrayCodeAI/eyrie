@@ -26,7 +26,7 @@ export type { Message, StopReason as BetaStopReason, UserMessage, AssistantMessa
 export { isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock, createUserMessage, createAssistantMessage, createSystemMessage, toSDKContentBlocks, APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, NotFoundError, AuthenticationError, GrayCode, } from './types/sdk.js';
 export declare const EYRIE_VERSION = "1.0.2";
 export { EyrieClient, createEyrie, type EyrieConfig, type EyrieMessage, type EyrieTool, type EyrieResponse, type EyrieStreamEvent, type EyrieUsage, } from './client/index.js';
-export { createAnthropicClient, detectProvider, parseCustomHeaders, type AnthropicClientConfig, type APIProvider, } from './client/factory.js';
+export { createAnthropicClient, detectProvider, resolveProviderModelEnvOverride, parseCustomHeaders, type AnthropicClientConfig, type APIProvider, } from './client/factory.js';
 export { defaultModelCatalog, loadModelCatalogSync, fetchModelCatalog, modelsForProvider, type ModelCatalog, type ModelCatalogEntry, } from './catalog/modelCatalog.js';
 export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, type ProviderConfig, type ProviderType, type OpenAICompatConfig, } from './providers/registry.js';
 //# sourceMappingURL=index.d.ts.map

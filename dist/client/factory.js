@@ -7,7 +7,7 @@
  *   ANTHROPIC_API_KEY              → anthropic  (Anthropic SDK direct)
  *   OPENAI_API_KEY                 → openai     (OpenAI shim)
  *   GROK_API_KEY / XAI_API_KEY     → grok       (OpenAI shim, xAI base URL)
- *   GEMINI_API_KEY / GOOGLE_API_KEY → gemini    (OpenAI shim, Google base URL)
+ *   GEMINI_API_KEY                → gemini    (OpenAI shim, Google base URL)
  *   OLLAMA_BASE_URL                → ollama     (OpenAI shim, local)
  *   (none set)                     → anthropic  (fallback)
  */
@@ -27,11 +27,24 @@ export function detectProvider() {
         return 'openai';
     if (process.env.GROK_API_KEY || process.env.XAI_API_KEY)
         return 'grok';
-    if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
+    if (process.env.GEMINI_API_KEY)
         return 'gemini';
     if (process.env.OLLAMA_BASE_URL)
         return 'ollama';
     return 'anthropic';
+}
+/**
+ * Provider-scoped model environment override.
+ * Avoids cross-provider leaks (e.g. OPENAI_MODEL overriding Grok sessions).
+ */
+export function resolveProviderModelEnvOverride(provider = detectProvider(), env = process.env) {
+    if (provider === 'gemini')
+        return env.GEMINI_MODEL;
+    if (provider === 'grok')
+        return env.GROK_MODEL || env.XAI_MODEL;
+    if (provider === 'openai' || provider === 'ollama')
+        return env.OPENAI_MODEL;
+    return env.ANTHROPIC_MODEL;
 }
 // ============================================================================
 // Custom header parsing

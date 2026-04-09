@@ -7,7 +7,7 @@
  *   ANTHROPIC_API_KEY              → anthropic  (Anthropic SDK direct)
  *   OPENAI_API_KEY                 → openai     (OpenAI shim)
  *   GROK_API_KEY / XAI_API_KEY     → grok       (OpenAI shim, xAI base URL)
- *   GEMINI_API_KEY / GOOGLE_API_KEY → gemini    (OpenAI shim, Google base URL)
+ *   GEMINI_API_KEY                → gemini    (OpenAI shim, Google base URL)
  *   OLLAMA_BASE_URL                → ollama     (OpenAI shim, local)
  *   (none set)                     → anthropic  (fallback)
  */
@@ -34,6 +34,11 @@ export interface AnthropicClientConfig {
  *   Anthropic → OpenAI → Grok → Gemini → Ollama
  */
 export declare function detectProvider(): APIProvider;
+/**
+ * Provider-scoped model environment override.
+ * Avoids cross-provider leaks (e.g. OPENAI_MODEL overriding Grok sessions).
+ */
+export declare function resolveProviderModelEnvOverride(provider?: APIProvider, env?: NodeJS.ProcessEnv): string | undefined;
 /**
  * Parses GRAYCODE_CUSTOM_HEADERS into a key/value map.
  * Accepts newline-separated curl-style "Name: Value" entries.
