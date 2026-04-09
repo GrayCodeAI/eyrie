@@ -39,7 +39,6 @@ export const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS = {
         baseUrlEnv: ['GEMINI_BASE_URL', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'],
         apiKeys: [
             { env: 'GEMINI_API_KEY', source: 'gemini' },
-            { env: 'GOOGLE_API_KEY', source: 'google' },
             { env: 'OPENAI_API_KEY', source: 'openai' },
         ],
     },
@@ -91,7 +90,7 @@ function resolveRuntimeProvider(env) {
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openai;
     if (env.GROK_API_KEY || env.XAI_API_KEY)
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.grok;
-    if (env.GEMINI_API_KEY || env.GOOGLE_API_KEY)
+    if (env.GEMINI_API_KEY)
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.gemini;
     // Ollama: no API key, just a base URL
     if (env.OLLAMA_BASE_URL) {
@@ -131,7 +130,6 @@ export function isOpenAICompatibleRuntimeEnabled(env = process.env) {
     return !!(env.GROK_API_KEY ||
         env.XAI_API_KEY ||
         env.GEMINI_API_KEY ||
-        env.GOOGLE_API_KEY ||
         env.OPENAI_API_KEY ||
         env.OLLAMA_BASE_URL);
 }

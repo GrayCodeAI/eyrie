@@ -52,6 +52,6 @@ export const EYRIE_VERSION = '1.0.2';
 // Client exports
 export { EyrieClient, createEyrie, } from './client/index.js';
 // Provider-aware client factory (the main entry point for hawk)
-export { createAnthropicClient, detectProvider, parseCustomHeaders, } from './client/factory.js';
+export { createAnthropicClient, detectProvider, resolveProviderModelEnvOverride, parseCustomHeaders, } from './client/factory.js';
 export { defaultModelCatalog, loadModelCatalogSync, fetchModelCatalog, modelsForProvider, } from './catalog/modelCatalog.js';
 export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, } from './providers/registry.js';

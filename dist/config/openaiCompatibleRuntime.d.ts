@@ -1,6 +1,6 @@
 import { type ResolvedCodexCredentials, type ResolvedProviderRequest } from './providers.js';
 export type OpenAICompatibleRuntimeMode = 'openai' | 'gemini' | 'grok' | 'anthropic' | 'codex';
-export type OpenAICompatibleApiKeySource = 'openai' | 'gemini' | 'google' | 'grok' | 'xai' | 'anthropic' | 'codex_env' | 'codex_auth_json' | 'none';
+export type OpenAICompatibleApiKeySource = 'openai' | 'gemini' | 'grok' | 'xai' | 'anthropic' | 'codex_env' | 'codex_auth_json' | 'none';
 export type ResolvedOpenAICompatibleRuntime = {
     mode: OpenAICompatibleRuntimeMode;
     request: ResolvedProviderRequest;
