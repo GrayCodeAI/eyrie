@@ -54,13 +54,20 @@ export async function fetchModelCatalog(
   if (!isCatalog(parsed)) {
     throw new Error('model catalog payload is invalid')
   }
+  const normalized: ModelCatalog = {
+    ...parsed,
+    providers: {
+      ...DEFAULT_MODEL_CATALOG.providers,
+      ...parsed.providers,
+    },
+  }
 
   if (cachePath) {
     mkdirSync(dirname(cachePath), { recursive: true })
-    writeFileSync(cachePath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8')
+    writeFileSync(cachePath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8')
   }
 
-  return parsed
+  return normalized
 }
 
 export function modelsForProvider(

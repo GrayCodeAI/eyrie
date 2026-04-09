@@ -1,4 +1,4 @@
-import { DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_CODEX_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, DEFAULT_OPENAI_BASE_URL, resolveCodexApiCredentials, resolveProviderRequest, } from './providers.js';
+import { DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_CODEX_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, DEFAULT_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, resolveCodexApiCredentials, resolveProviderRequest, } from './providers.js';
 export const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS = {
     anthropic: {
         mode: 'anthropic',
@@ -51,6 +51,18 @@ export const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS = {
         baseUrlEnv: ['OPENAI_BASE_URL', 'OPENAI_API_BASE'],
         apiKeys: [{ env: 'OPENAI_API_KEY', source: 'openai' }],
     },
+    openrouter: {
+        mode: 'openrouter',
+        enableEnv: undefined,
+        defaultBaseUrl: DEFAULT_OPENROUTER_OPENAI_BASE_URL,
+        defaultModel: 'openai/gpt-4o-mini',
+        modelEnv: ['OPENROUTER_MODEL', 'OPENAI_MODEL'],
+        baseUrlEnv: ['OPENROUTER_BASE_URL', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'],
+        apiKeys: [
+            { env: 'OPENROUTER_API_KEY', source: 'openrouter' },
+            { env: 'OPENAI_API_KEY', source: 'openai' },
+        ],
+    },
 };
 // Ollama is OpenAI-compatible but key-less (just needs a base URL)
 const OLLAMA_BASE_URL = 'http://localhost:11434/v1';
@@ -88,6 +100,8 @@ function resolveRuntimeProvider(env) {
     // Detect by API key presence, same as herm picks the first non-empty key
     if (env.OPENAI_API_KEY)
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openai;
+    if (env.OPENROUTER_API_KEY)
+        return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openrouter;
     if (env.GROK_API_KEY || env.XAI_API_KEY)
         return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.grok;
     if (env.GEMINI_API_KEY)
@@ -127,7 +141,8 @@ function resolveProviderApiKey(provider, env) {
  * Note: ANTHROPIC_API_KEY is NOT included here; that goes through the Anthropic SDK directly.
  */
 export function isOpenAICompatibleRuntimeEnabled(env = process.env) {
-    return !!(env.GROK_API_KEY ||
+    return !!(env.OPENROUTER_API_KEY ||
+        env.GROK_API_KEY ||
         env.XAI_API_KEY ||
         env.GEMINI_API_KEY ||
         env.OPENAI_API_KEY ||
