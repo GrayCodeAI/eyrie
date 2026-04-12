@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import type { APIProvider } from '../client/factory.js'
+import type { APIProvider } from '../config/providerProfiles.js'
 import { DEFAULT_OPENROUTER_OPENAI_BASE_URL } from '../config/providers.js'
 import { DEFAULT_PROVIDER_CATALOGS } from './providers/index.js'
 import type { ModelCatalog, ModelCatalogEntry } from './types.js'

@@ -1,4 +1,4 @@
-import type { APIProvider } from '../client/factory.js';
+import type { APIProvider } from '../config/providerProfiles.js';
 import type { ModelCatalog, ModelCatalogEntry } from './types.js';
 export declare function defaultModelCatalog(): ModelCatalog;
 export declare function loadModelCatalogSync(cachePath?: string): ModelCatalog;

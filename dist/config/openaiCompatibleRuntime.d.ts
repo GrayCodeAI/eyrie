@@ -1,18 +1,19 @@
 import { type ResolvedProviderRequest } from './providers.js';
+import { type OpenAICompatibleRuntimeProfileKey } from './providerProfiles.js';
 export type OpenAICompatibleRuntimeMode = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'anthropic';
-export type OpenAICompatibleApiKeySource = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'xai' | 'anthropic' | 'none';
+export type OpenAICompatibleApiKeySource = 'openai' | 'canopywave' | 'openrouter' | 'gemini' | 'grok' | 'xai' | 'anthropic' | 'none';
 export type ResolvedOpenAICompatibleRuntime = {
     mode: OpenAICompatibleRuntimeMode;
     request: ResolvedProviderRequest;
     apiKey: string;
     apiKeySource: OpenAICompatibleApiKeySource;
 };
-type RuntimeProviderMode = OpenAICompatibleRuntimeMode;
 export type OpenAICompatibleRuntimeProvider = {
-    mode: RuntimeProviderMode;
+    mode: OpenAICompatibleRuntimeMode;
     enableEnv?: string;
     defaultBaseUrl: string;
     defaultModel: string;
+    detectionEnv: string[];
     modelEnv: string[];
     baseUrlEnv: string[];
     apiKeys: Array<{
@@ -20,7 +21,7 @@ export type OpenAICompatibleRuntimeProvider = {
         source: OpenAICompatibleApiKeySource;
     }>;
 };
-export declare const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS: Record<RuntimeProviderMode, OpenAICompatibleRuntimeProvider>;
+export declare const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS: Record<OpenAICompatibleRuntimeProfileKey, OpenAICompatibleRuntimeProvider>;
 /**
  * Returns true when an OpenAI-compatible provider is active.
  * Detected by API key presence – same logic as detectProvider() in graycodeClient.
@@ -33,5 +34,4 @@ export declare function resolveOpenAICompatibleRuntime(options?: {
     baseUrl?: string;
     fallbackModel?: string;
 }): ResolvedOpenAICompatibleRuntime;
-export {};
 //# sourceMappingURL=openaiCompatibleRuntime.d.ts.map

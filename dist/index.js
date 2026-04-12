@@ -15,8 +15,9 @@ export { API_IMAGE_MAX_BASE64_SIZE, IMAGE_TARGET_RAW_SIZE, IMAGE_MAX_WIDTH, IMAG
 export { asSessionId, asAgentId, toAgentId, } from './types/ids.js';
 export { isConnectorTextBlock, } from './types/connector.js';
 // Phase 3: Provider Config
-export { DEFAULT_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, isLocalProviderUrl, resolveProviderRequest, } from './config/providers.js';
+export { DEFAULT_OPENAI_BASE_URL, DEFAULT_CANOPYWAVE_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, isLocalProviderUrl, resolveProviderRequest, } from './config/providers.js';
 export { OPENAI_COMPATIBLE_RUNTIME_PROVIDERS, isOpenAICompatibleRuntimeEnabled, resolveOpenAICompatibleRuntime, } from './config/openaiCompatibleRuntime.js';
+export { API_PROVIDER_DETECTION_ORDER, OPENAI_COMPATIBLE_RUNTIME_PROFILES, OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER, PROVIDER_MODEL_ENV_KEYS, } from './config/providerProfiles.js';
 // Phase 4: Error Constants
 export { 
 // Error prefixes
