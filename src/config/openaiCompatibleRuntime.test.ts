@@ -33,6 +33,23 @@ test('runtime resolves Gemini ahead of OPENAI_API_KEY', () => {
   assert.equal(runtime.request.resolvedModel, 'gemini-2.5-pro')
 })
 
+test('runtime resolves CanopyWave ahead of OPENAI_API_KEY', () => {
+  const runtime = resolveOpenAICompatibleRuntime({
+    env: {
+      OPENAI_API_KEY: 'openai-key',
+      CANOPYWAVE_API_KEY: 'canopywave-key',
+      CANOPYWAVE_MODEL: 'zai/glm-4.6',
+      CANOPYWAVE_BASE_URL: 'https://inference.canopywave.io/v1',
+    } as NodeJS.ProcessEnv,
+  })
+
+  assert.equal(runtime.mode, 'openai')
+  assert.equal(runtime.apiKeySource, 'canopywave')
+  assert.equal(runtime.apiKey, 'canopywave-key')
+  assert.equal(runtime.request.baseUrl, 'https://inference.canopywave.io/v1')
+  assert.equal(runtime.request.resolvedModel, 'zai/glm-4.6')
+})
+
 test('runtime enabled check accepts provider-scoped keys', () => {
   assert.equal(
     isOpenAICompatibleRuntimeEnabled({
@@ -43,6 +60,12 @@ test('runtime enabled check accepts provider-scoped keys', () => {
   assert.equal(
     isOpenAICompatibleRuntimeEnabled({
       ANTHROPIC_API_KEY: 'key',
+    } as NodeJS.ProcessEnv),
+    true,
+  )
+  assert.equal(
+    isOpenAICompatibleRuntimeEnabled({
+      CANOPYWAVE_API_KEY: 'key',
     } as NodeJS.ProcessEnv),
     true,
   )

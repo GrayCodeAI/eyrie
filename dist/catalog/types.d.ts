@@ -1,4 +1,4 @@
-import type { APIProvider } from '../client/factory.js';
+import type { APIProvider } from '../config/providerProfiles.js';
 export type ModelCatalogEntry = {
     id: string;
     input_price_per_1m: number;

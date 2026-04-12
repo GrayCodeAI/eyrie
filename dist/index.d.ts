@@ -15,9 +15,11 @@ export type { SessionId, AgentId, } from './types/ids.js';
 export { asSessionId, asAgentId, toAgentId, } from './types/ids.js';
 export type { ConnectorTextBlock, ConnectorTextDelta, } from './types/connector.js';
 export { isConnectorTextBlock, } from './types/connector.js';
-export { DEFAULT_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, isLocalProviderUrl, resolveProviderRequest, } from './config/providers.js';
+export { DEFAULT_OPENAI_BASE_URL, DEFAULT_CANOPYWAVE_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, isLocalProviderUrl, resolveProviderRequest, } from './config/providers.js';
 export { OPENAI_COMPATIBLE_RUNTIME_PROVIDERS, isOpenAICompatibleRuntimeEnabled, resolveOpenAICompatibleRuntime, } from './config/openaiCompatibleRuntime.js';
 export type { ProviderTransport, ResolvedProviderRequest, } from './config/providers.js';
+export type { APIProvider } from './config/providerProfiles.js';
+export { API_PROVIDER_DETECTION_ORDER, OPENAI_COMPATIBLE_RUNTIME_PROFILES, OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER, PROVIDER_MODEL_ENV_KEYS, } from './config/providerProfiles.js';
 export type { OpenAICompatibleRuntimeProvider, OpenAICompatibleRuntimeMode, OpenAICompatibleApiKeySource, ResolvedOpenAICompatibleRuntime, } from './config/openaiCompatibleRuntime.js';
 export { API_ERROR_MESSAGE_PREFIX, startsWithApiErrorPrefix, PROMPT_TOO_LONG_ERROR_MESSAGE, parsePromptTooLongTokenCounts, CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE, INVALID_API_KEY_ERROR_MESSAGE, INVALID_API_KEY_ERROR_MESSAGE_EXTERNAL, ORG_DISABLED_ERROR_MESSAGE_ENV_KEY_WITH_OAUTH, ORG_DISABLED_ERROR_MESSAGE_ENV_KEY, TOKEN_REVOKED_ERROR_MESSAGE, CCR_AUTH_ERROR_MESSAGE, REPEATED_529_ERROR_MESSAGE, CUSTOM_OFF_SWITCH_MESSAGE, API_TIMEOUT_ERROR_MESSAGE, isMediaSizeError, getPdfTooLargeErrorMessage, getPdfPasswordProtectedErrorMessage, getPdfInvalidErrorMessage, getImageTooLargeErrorMessage, getRequestTooLargeErrorMessage, OAUTH_ORG_NOT_ALLOWED_ERROR_MESSAGE, getTokenRevokedErrorMessage, getOauthOrgNotAllowedErrorMessage, } from './errors/index.js';
 export { EMPTY_USAGE, type NonNullableUsage, type ServerToolUse, type CacheCreation, } from './types/usage.js';
@@ -26,7 +28,7 @@ export type { Message, StopReason as BetaStopReason, UserMessage, AssistantMessa
 export { isTextBlock, isImageBlock, isToolUseBlock, isToolResultBlock, createUserMessage, createAssistantMessage, createSystemMessage, toSDKContentBlocks, APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, NotFoundError, AuthenticationError, GrayCode, } from './types/sdk.js';
 export declare const EYRIE_VERSION = "1.0.2";
 export { EyrieClient, createEyrie, type EyrieConfig, type EyrieMessage, type EyrieTool, type EyrieResponse, type EyrieStreamEvent, type EyrieUsage, } from './client/index.js';
-export { createAnthropicClient, detectProvider, resolveProviderModelEnvOverride, parseCustomHeaders, type AnthropicClientConfig, type APIProvider, } from './client/factory.js';
+export { createAnthropicClient, detectProvider, resolveProviderModelEnvOverride, parseCustomHeaders, type AnthropicClientConfig, } from './client/factory.js';
 export { defaultModelCatalog, loadModelCatalogSync, fetchModelCatalog, modelsForProvider, type ModelCatalog, type ModelCatalogEntry, } from './catalog/modelCatalog.js';
 export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, type ProviderConfig, type ProviderType, type OpenAICompatConfig, } from './providers/registry.js';
 //# sourceMappingURL=index.d.ts.map
