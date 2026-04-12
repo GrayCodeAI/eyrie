@@ -1,5 +1,5 @@
 import { resolveProviderRequest, } from './providers.js';
-import { OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER, OPENAI_COMPATIBLE_RUNTIME_PROFILES, } from './providerProfiles.js';
+import { OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER, OPENAI_COMPATIBLE_RUNTIME_PROFILES, OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL, } from './providerProfiles.js';
 export const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS = {
     anthropic: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.anthropic },
     grok: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.grok },
@@ -8,8 +8,6 @@ export const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS = {
     openai: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.openai },
     openrouter: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.openrouter },
 };
-// Ollama is OpenAI-compatible but key-less (just needs a base URL)
-const OLLAMA_BASE_URL = 'http://localhost:11434/v1';
 function asTrimmedString(value) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
@@ -36,8 +34,8 @@ function resolveRuntimeProvider(env) {
     if (env.OLLAMA_BASE_URL) {
         return {
             ...OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openai,
-            defaultBaseUrl: env.OLLAMA_BASE_URL || OLLAMA_BASE_URL,
-            defaultModel: 'llama3.1',
+            defaultBaseUrl: env.OLLAMA_BASE_URL || OLLAMA_DEFAULT_BASE_URL,
+            defaultModel: OLLAMA_DEFAULT_MODEL,
             modelEnv: ['OLLAMA_MODEL'],
             baseUrlEnv: ['OLLAMA_BASE_URL'],
             apiKeys: [],

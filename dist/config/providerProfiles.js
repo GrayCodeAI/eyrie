@@ -17,6 +17,8 @@ export const PROVIDER_MODEL_ENV_KEYS = {
     gemini: ['GEMINI_MODEL', 'OPENAI_MODEL'],
     ollama: ['OLLAMA_MODEL', 'OPENAI_MODEL'],
 };
+export const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434/v1';
+export const OLLAMA_DEFAULT_MODEL = 'llama3.1:8b';
 export const OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER = [
     'openrouter',
     'grok',
