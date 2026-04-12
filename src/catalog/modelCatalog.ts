@@ -1,7 +1,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import type { APIProvider } from '../config/providerProfiles.js'
-import { DEFAULT_OPENROUTER_OPENAI_BASE_URL } from '../config/providers.js'
+import {
+  DEFAULT_CANOPYWAVE_OPENAI_BASE_URL,
+  DEFAULT_OPENROUTER_OPENAI_BASE_URL,
+} from '../config/providers.js'
 import { DEFAULT_PROVIDER_CATALOGS } from './providers/index.js'
 import type { ModelCatalog, ModelCatalogEntry } from './types.js'
 
@@ -34,6 +37,38 @@ type OpenRouterModelPayload = {
     prompt?: string | number
     completion?: string | number
   }
+}
+
+type OpenAICompatibleModelPayload = {
+  id?: string
+  context_length?: number
+  max_completion_tokens?: number
+  pricing?: {
+    prompt?: string | number
+    completion?: string | number
+  }
+}
+
+function parseOpenAICompatibleModelEntries(
+  data: OpenAICompatibleModelPayload[],
+): ModelCatalogEntry[] {
+  const entries: ModelCatalogEntry[] = []
+  for (const raw of data) {
+    const id = typeof raw.id === 'string' ? raw.id.trim() : ''
+    if (!id) continue
+    const contextWindow = asNumber(raw.context_length) ?? 128000
+    const maxOutput = asNumber(raw.max_completion_tokens) ?? 16384
+    const inputPrice = asNumber(raw.pricing?.prompt) ?? 0
+    const outputPrice = asNumber(raw.pricing?.completion) ?? 0
+    entries.push({
+      id,
+      input_price_per_1m: inputPrice * 1_000_000,
+      output_price_per_1m: outputPrice * 1_000_000,
+      context_window: contextWindow,
+      max_output: maxOutput,
+    })
+  }
+  return entries
 }
 
 async function fetchOpenRouterCatalog(
@@ -79,6 +114,35 @@ async function fetchOpenRouterCatalog(
     })
   }
 
+  return entries.length > 0 ? entries : null
+}
+
+async function fetchCanopyWaveCatalog(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<ModelCatalogEntry[] | null> {
+  const apiKey = env.CANOPYWAVE_API_KEY?.trim()
+  if (!apiKey) return null
+
+  const baseUrl = (env.CANOPYWAVE_BASE_URL?.trim() || DEFAULT_CANOPYWAVE_OPENAI_BASE_URL).replace(/\/+$/, '')
+  const res = await fetch(`${baseUrl}/models`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+      'User-Agent': 'eyrie-model-catalog/1.0',
+    },
+  })
+  if (!res.ok) {
+    throw new Error(`canopywave model fetch failed (${res.status})`)
+  }
+
+  const payload = (await res.json()) as { data?: OpenAICompatibleModelPayload[] } | unknown
+  if (!payload || typeof payload !== 'object' || !Array.isArray((payload as { data?: unknown }).data)) {
+    return null
+  }
+
+  const entries = parseOpenAICompatibleModelEntries(
+    (payload as { data: OpenAICompatibleModelPayload[] }).data,
+  )
   return entries.length > 0 ? entries : null
 }
 
@@ -139,6 +203,15 @@ export async function fetchModelCatalog(
     }
   } catch {
     // Keep default or fetched catalog entries on OpenRouter fetch failure.
+  }
+
+  try {
+    const canopywaveModels = await fetchCanopyWaveCatalog(env)
+    if (canopywaveModels) {
+      normalized.providers.canopywave = canopywaveModels
+    }
+  } catch {
+    // Keep default or fetched catalog entries on CanopyWave fetch failure.
   }
 
   if (cachePath) {
