@@ -36,6 +36,9 @@ export const PROVIDER_MODEL_ENV_KEYS: Record<APIProvider, string[]> = {
   ollama: ['OLLAMA_MODEL', 'OPENAI_MODEL'],
 }
 
+export const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434/v1'
+export const OLLAMA_DEFAULT_MODEL = 'llama3.1:8b'
+
 export type RuntimeProviderProfile = {
   mode: 'anthropic' | 'openai' | 'openrouter' | 'grok' | 'gemini'
   defaultBaseUrl: string
