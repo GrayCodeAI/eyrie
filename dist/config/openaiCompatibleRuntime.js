@@ -1,78 +1,9 @@
 import { resolveProviderRequest, } from './providers.js';
-import { OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER, OPENAI_COMPATIBLE_RUNTIME_PROFILES, OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL, } from './providerProfiles.js';
-export const OPENAI_COMPATIBLE_RUNTIME_PROVIDERS = {
-    anthropic: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.anthropic },
-    grok: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.grok },
-    gemini: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.gemini },
-    canopywave: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.canopywave },
-    openai: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.openai },
-    openrouter: { ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.openrouter },
-};
-function asTrimmedString(value) {
-    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
-function firstEnvValue(env, keys) {
-    for (const key of keys) {
-        const value = asTrimmedString(env[key]);
-        if (value)
-            return value;
-    }
-    return undefined;
-}
-function resolveRuntimeProvider(env) {
-    // Detect by provider-specific API key presence first.
-    // OPENAI_API_KEY can be present as a compatibility mirror for other providers.
-    for (const key of OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER) {
-        const provider = OPENAI_COMPATIBLE_RUNTIME_PROVIDERS[key];
-        for (const envKey of provider.detectionEnv) {
-            if (asTrimmedString(env[envKey])) {
-                return provider;
-            }
-        }
-    }
-    // Ollama: no API key, just a base URL
-    if (env.OLLAMA_BASE_URL) {
-        return {
-            ...OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openai,
-            defaultBaseUrl: env.OLLAMA_BASE_URL || OLLAMA_DEFAULT_BASE_URL,
-            defaultModel: OLLAMA_DEFAULT_MODEL,
-            modelEnv: ['OLLAMA_MODEL'],
-            baseUrlEnv: ['OLLAMA_BASE_URL'],
-            apiKeys: [],
-        };
-    }
-    return OPENAI_COMPATIBLE_RUNTIME_PROVIDERS.openai;
-}
-function resolveProviderApiKey(provider, env) {
-    for (const key of provider.apiKeys) {
-        const value = asTrimmedString(env[key.env]);
-        if (value) {
-            return {
-                apiKey: value,
-                apiKeySource: key.source,
-            };
-        }
-    }
-    return {
-        apiKey: '',
-        apiKeySource: 'none',
-    };
-}
-/**
- * Returns true when an OpenAI-compatible provider is active.
- * Detected by API key presence – same logic as detectProvider() in graycodeClient.
- * Includes provider-scoped key detection, including Anthropic compatibility mode.
- */
-export function isOpenAICompatibleRuntimeEnabled(env = process.env) {
-    return !!(env.OPENROUTER_API_KEY ||
-        env.GROK_API_KEY ||
-        env.XAI_API_KEY ||
-        env.GEMINI_API_KEY ||
-        env.ANTHROPIC_API_KEY ||
-        env.CANOPYWAVE_API_KEY ||
-        env.OPENAI_API_KEY ||
-        env.OLLAMA_BASE_URL);
-}
+import { OPENAI_COMPATIBLE_RUNTIME_PROVIDERS, resolveRuntimeProvider, } from './openaiCompatibleRuntime/providers/index.js';
+import { resolveProviderApiKey } from './openaiCompatibleRuntime/apiKey.js';
+import { firstEnvValue, } from './openaiCompatibleRuntime/utils.js';
+import { isOpenAICompatibleRuntimeEnabled } from './openaiCompatibleRuntime/enabled.js';
+export { OPENAI_COMPATIBLE_RUNTIME_PROVIDERS, isOpenAICompatibleRuntimeEnabled };
 export function resolveOpenAICompatibleRuntime(options) {
     const env = options?.env ?? process.env;
     const provider = resolveRuntimeProvider(env);
