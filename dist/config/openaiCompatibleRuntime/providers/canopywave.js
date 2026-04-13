@@ -1,4 +1,4 @@
-import { OPENAI_COMPATIBLE_RUNTIME_PROFILES } from '../../providerProfiles.js';
+import { CANOPYWAVE_RUNTIME_PROFILE } from '../../providerProfiles/providers/canopywave.js';
 export const CANOPYWAVE_RUNTIME_PROVIDER = {
-    ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.canopywave,
+    ...CANOPYWAVE_RUNTIME_PROFILE,
 };

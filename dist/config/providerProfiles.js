@@ -1,4 +1,9 @@
-import { DEFAULT_ANTHROPIC_OPENAI_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, DEFAULT_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, DEFAULT_CANOPYWAVE_OPENAI_BASE_URL, } from './providers.js';
+import { ANTHROPIC_RUNTIME_PROFILE } from './providerProfiles/providers/anthropic.js';
+import { CANOPYWAVE_RUNTIME_PROFILE } from './providerProfiles/providers/canopywave.js';
+import { GEMINI_RUNTIME_PROFILE } from './providerProfiles/providers/gemini.js';
+import { GROK_RUNTIME_PROFILE } from './providerProfiles/providers/grok.js';
+import { OPENAI_RUNTIME_PROFILE } from './providerProfiles/providers/openai.js';
+import { OPENROUTER_RUNTIME_PROFILE } from './providerProfiles/providers/openrouter.js';
 export const API_PROVIDER_DETECTION_ORDER = [
     'anthropic',
     'openrouter',
@@ -9,12 +14,12 @@ export const API_PROVIDER_DETECTION_ORDER = [
     'ollama',
 ];
 export const PROVIDER_MODEL_ENV_KEYS = {
-    anthropic: ['ANTHROPIC_MODEL', 'OPENAI_MODEL'],
-    openai: ['OPENAI_MODEL'],
-    canopywave: ['CANOPYWAVE_MODEL', 'OPENAI_MODEL'],
-    openrouter: ['OPENROUTER_MODEL', 'OPENAI_MODEL'],
-    grok: ['GROK_MODEL', 'XAI_MODEL', 'OPENAI_MODEL'],
-    gemini: ['GEMINI_MODEL', 'OPENAI_MODEL'],
+    anthropic: [...ANTHROPIC_RUNTIME_PROFILE.modelEnv],
+    openai: [...OPENAI_RUNTIME_PROFILE.modelEnv],
+    canopywave: [...CANOPYWAVE_RUNTIME_PROFILE.modelEnv],
+    openrouter: [...OPENROUTER_RUNTIME_PROFILE.modelEnv],
+    grok: [...GROK_RUNTIME_PROFILE.modelEnv],
+    gemini: [...GEMINI_RUNTIME_PROFILE.modelEnv],
     ollama: ['OLLAMA_MODEL', 'OPENAI_MODEL'],
 };
 export const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434/v1';
@@ -28,74 +33,10 @@ export const OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER = [
     'openai',
 ];
 export const OPENAI_COMPATIBLE_RUNTIME_PROFILES = {
-    anthropic: {
-        mode: 'anthropic',
-        defaultBaseUrl: DEFAULT_ANTHROPIC_OPENAI_BASE_URL,
-        defaultModel: 'claude-3-5-sonnet-latest',
-        detectionEnv: ['ANTHROPIC_API_KEY'],
-        modelEnv: PROVIDER_MODEL_ENV_KEYS.anthropic,
-        baseUrlEnv: ['ANTHROPIC_BASE_URL', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'],
-        apiKeys: [
-            { env: 'ANTHROPIC_API_KEY', source: 'anthropic' },
-            { env: 'OPENAI_API_KEY', source: 'openai' },
-        ],
-    },
-    grok: {
-        mode: 'grok',
-        defaultBaseUrl: DEFAULT_GROK_OPENAI_BASE_URL,
-        defaultModel: 'grok-2',
-        detectionEnv: ['GROK_API_KEY', 'XAI_API_KEY'],
-        modelEnv: PROVIDER_MODEL_ENV_KEYS.grok,
-        baseUrlEnv: ['GROK_BASE_URL', 'XAI_BASE_URL', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'],
-        apiKeys: [
-            { env: 'GROK_API_KEY', source: 'grok' },
-            { env: 'XAI_API_KEY', source: 'xai' },
-            { env: 'OPENAI_API_KEY', source: 'openai' },
-        ],
-    },
-    gemini: {
-        mode: 'gemini',
-        defaultBaseUrl: DEFAULT_GEMINI_OPENAI_BASE_URL,
-        defaultModel: 'gemini-2.0-flash',
-        detectionEnv: ['GEMINI_API_KEY'],
-        modelEnv: PROVIDER_MODEL_ENV_KEYS.gemini,
-        baseUrlEnv: ['GEMINI_BASE_URL', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'],
-        apiKeys: [
-            { env: 'GEMINI_API_KEY', source: 'gemini' },
-            { env: 'OPENAI_API_KEY', source: 'openai' },
-        ],
-    },
-    canopywave: {
-        mode: 'openai',
-        defaultBaseUrl: DEFAULT_CANOPYWAVE_OPENAI_BASE_URL,
-        defaultModel: 'zai/glm-4.6',
-        detectionEnv: ['CANOPYWAVE_API_KEY'],
-        modelEnv: PROVIDER_MODEL_ENV_KEYS.canopywave,
-        baseUrlEnv: ['CANOPYWAVE_BASE_URL', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'],
-        apiKeys: [
-            { env: 'CANOPYWAVE_API_KEY', source: 'canopywave' },
-            { env: 'OPENAI_API_KEY', source: 'openai' },
-        ],
-    },
-    openai: {
-        mode: 'openai',
-        defaultBaseUrl: DEFAULT_OPENAI_BASE_URL,
-        defaultModel: 'gpt-4o',
-        detectionEnv: ['OPENAI_API_KEY'],
-        modelEnv: PROVIDER_MODEL_ENV_KEYS.openai,
-        baseUrlEnv: ['OPENAI_BASE_URL', 'OPENAI_API_BASE'],
-        apiKeys: [{ env: 'OPENAI_API_KEY', source: 'openai' }],
-    },
-    openrouter: {
-        mode: 'openrouter',
-        defaultBaseUrl: DEFAULT_OPENROUTER_OPENAI_BASE_URL,
-        defaultModel: 'openai/gpt-4o-mini',
-        detectionEnv: ['OPENROUTER_API_KEY'],
-        modelEnv: PROVIDER_MODEL_ENV_KEYS.openrouter,
-        baseUrlEnv: ['OPENROUTER_BASE_URL', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'],
-        apiKeys: [
-            { env: 'OPENROUTER_API_KEY', source: 'openrouter' },
-            { env: 'OPENAI_API_KEY', source: 'openai' },
-        ],
-    },
+    anthropic: ANTHROPIC_RUNTIME_PROFILE,
+    grok: GROK_RUNTIME_PROFILE,
+    gemini: GEMINI_RUNTIME_PROFILE,
+    canopywave: CANOPYWAVE_RUNTIME_PROFILE,
+    openai: OPENAI_RUNTIME_PROFILE,
+    openrouter: OPENROUTER_RUNTIME_PROFILE,
 };

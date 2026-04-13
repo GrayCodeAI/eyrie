@@ -1,4 +1,4 @@
-import { OPENAI_COMPATIBLE_RUNTIME_PROFILES } from '../../providerProfiles.js';
+import { GEMINI_RUNTIME_PROFILE } from '../../providerProfiles/providers/gemini.js';
 export const GEMINI_RUNTIME_PROVIDER = {
-    ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.gemini,
+    ...GEMINI_RUNTIME_PROFILE,
 };
