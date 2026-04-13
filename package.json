@@ -20,10 +20,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test dist/**/*.test.js",
+    "test": "npm run build && node --test dist/client/factory/*.test.js dist/config/openaiCompatibleRuntime/*.test.js",
     "ci": "npm run typecheck && npm run test"
   },
   "dependencies": {

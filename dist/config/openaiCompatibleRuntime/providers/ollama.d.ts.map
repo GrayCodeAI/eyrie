@@ -1,0 +1,1 @@
+{"version":3,"file":"ollama.d.ts","sourceRoot":"","sources":["../../../../src/config/openaiCompatibleRuntime/providers/ollama.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,EAAE,+BAA+B,EAAE,MAAM,aAAa,CAAA;AAElE,wBAAgB,2BAA2B,CACzC,GAAG,EAAE,MAAM,CAAC,UAAU,EACtB,qBAAqB,EAAE,+BAA+B,GACrD,+BAA+B,CASjC"}
