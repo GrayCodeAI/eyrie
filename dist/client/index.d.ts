@@ -65,6 +65,11 @@ export declare class EyrieClient {
      */
     private getProviderConfig;
     /**
+     * Client factory map for data-driven client creation
+     * Only includes providers used by Hawk (7 providers)
+     */
+    private readonly clientFactories;
+    /**
      * Create provider client
      */
     private createClient;
