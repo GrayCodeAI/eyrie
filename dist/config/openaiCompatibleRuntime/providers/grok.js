@@ -1,4 +1,4 @@
-import { OPENAI_COMPATIBLE_RUNTIME_PROFILES } from '../../providerProfiles.js';
+import { GROK_RUNTIME_PROFILE } from '../../providerProfiles/providers/grok.js';
 export const GROK_RUNTIME_PROVIDER = {
-    ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.grok,
+    ...GROK_RUNTIME_PROFILE,
 };

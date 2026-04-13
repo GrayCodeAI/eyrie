@@ -1,4 +1,4 @@
-import { OPENAI_COMPATIBLE_RUNTIME_PROFILES } from '../../providerProfiles.js';
+import { OPENROUTER_RUNTIME_PROFILE } from '../../providerProfiles/providers/openrouter.js';
 export const OPENROUTER_RUNTIME_PROVIDER = {
-    ...OPENAI_COMPATIBLE_RUNTIME_PROFILES.openrouter,
+    ...OPENROUTER_RUNTIME_PROFILE,
 };
