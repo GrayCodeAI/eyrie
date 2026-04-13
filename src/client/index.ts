@@ -147,6 +147,20 @@ export class EyrieClient {
   }
   
   /**
+   * Client factory map for data-driven client creation
+   * Only includes providers used by Hawk (7 providers)
+   */
+  private readonly clientFactories: Partial<Record<
+    ProviderType,
+    (apiKey: string, baseUrl?: string) => ProviderClient
+  >> = {
+    anthropic: (apiKey) => this.createAnthropicClient(apiKey),
+    openai: (apiKey, baseUrl) => this.createOpenAIClient(apiKey, baseUrl),
+    'openai-compatible': (apiKey, baseUrl) => this.createOpenAICompatibleClient(apiKey, baseUrl),
+    google: (apiKey) => this.createGoogleClient(apiKey),
+  }
+
+  /**
    * Create provider client
    */
   private createClient(provider: string, apiKey: string): ProviderClient {
@@ -158,20 +172,14 @@ export class EyrieClient {
       return this.createGroqClient(apiKey)
     }
     
-    switch (type) {
-      case 'anthropic':
-        return this.createAnthropicClient(apiKey)
-      case 'openai':
-        return this.createOpenAIClient(apiKey, config.baseUrl)
-      case 'openai-compatible':
-        return this.createOpenAICompatibleClient(apiKey, config.baseUrl)
-      case 'google':
-        return this.createGoogleClient(apiKey)
-      case 'mistral':
-        return this.createMistralClient(apiKey)
-      default:
-        return this.createOpenAICompatibleClient(apiKey, config.baseUrl)
+    // Use factory map for data-driven client creation
+    const factory = this.clientFactories[type]
+    if (factory) {
+      return factory(apiKey, config.baseUrl)
     }
+    
+    // Default to OpenAI-compatible
+    return this.createOpenAICompatibleClient(apiKey, config.baseUrl)
   }
   
   /**
