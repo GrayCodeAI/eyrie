@@ -34,7 +34,7 @@ export declare const HAWK_3_7_SONNET_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.0-flash";
     readonly ollama: "llama3.1:8b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_3_5_V2_SONNET_CONFIG: {
     readonly anthropic: "claude-3-5-sonnet-20241022";
@@ -44,7 +44,7 @@ export declare const HAWK_3_5_V2_SONNET_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.0-flash";
     readonly ollama: "llama3.1:8b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_3_5_HAIKU_CONFIG: {
     readonly anthropic: "claude-3-5-haiku-20241022";
@@ -54,7 +54,7 @@ export declare const HAWK_3_5_HAIKU_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.0-flash-lite";
     readonly ollama: "llama3.2:3b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_HAIKU_4_5_CONFIG: {
     readonly anthropic: "claude-haiku-4-5-20251001";
@@ -64,7 +64,7 @@ export declare const HAWK_HAIKU_4_5_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.0-flash-lite";
     readonly ollama: "llama3.2:3b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_SONNET_4_CONFIG: {
     readonly anthropic: "claude-sonnet-4-20250514";
@@ -74,7 +74,7 @@ export declare const HAWK_SONNET_4_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.0-flash";
     readonly ollama: "llama3.1:8b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_SONNET_4_5_CONFIG: {
     readonly anthropic: "claude-sonnet-4-5-20250929";
@@ -84,7 +84,7 @@ export declare const HAWK_SONNET_4_5_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.0-flash";
     readonly ollama: "llama3.1:70b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_SONNET_4_6_CONFIG: {
     readonly anthropic: "claude-sonnet-4-6";
@@ -94,7 +94,7 @@ export declare const HAWK_SONNET_4_6_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.0-flash";
     readonly ollama: "llama3.1:70b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_OPUS_4_CONFIG: {
     readonly anthropic: "claude-opus-4-20250514";
@@ -104,7 +104,7 @@ export declare const HAWK_OPUS_4_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.5-pro-preview-03-25";
     readonly ollama: "llama3.1:70b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_OPUS_4_1_CONFIG: {
     readonly anthropic: "claude-opus-4-1-20250805";
@@ -114,7 +114,7 @@ export declare const HAWK_OPUS_4_1_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.5-pro-preview-03-25";
     readonly ollama: "llama3.1:70b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_OPUS_4_5_CONFIG: {
     readonly anthropic: "claude-opus-4-5-20251101";
@@ -124,7 +124,7 @@ export declare const HAWK_OPUS_4_5_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.5-pro-preview-03-25";
     readonly ollama: "llama3.1:70b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const HAWK_OPUS_4_6_CONFIG: {
     readonly anthropic: "claude-opus-4-6";
@@ -134,7 +134,7 @@ export declare const HAWK_OPUS_4_6_CONFIG: {
     readonly grok: "grok-2";
     readonly gemini: "gemini-2.5-pro-preview-03-25";
     readonly ollama: "llama3.1:70b";
-    readonly opencodego: "opencode-go";
+    readonly opencodego: "kimi-k2.5";
 };
 export declare const ALL_MODEL_CONFIGS: {
     readonly haiku35: {
@@ -145,7 +145,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.0-flash-lite";
         readonly ollama: "llama3.2:3b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly haiku45: {
         readonly anthropic: "claude-haiku-4-5-20251001";
@@ -155,7 +155,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.0-flash-lite";
         readonly ollama: "llama3.2:3b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly sonnet35: {
         readonly anthropic: "claude-3-5-sonnet-20241022";
@@ -165,7 +165,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.0-flash";
         readonly ollama: "llama3.1:8b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly sonnet37: {
         readonly anthropic: "claude-3-7-sonnet-20250219";
@@ -175,7 +175,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.0-flash";
         readonly ollama: "llama3.1:8b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly sonnet40: {
         readonly anthropic: "claude-sonnet-4-20250514";
@@ -185,7 +185,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.0-flash";
         readonly ollama: "llama3.1:8b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly sonnet45: {
         readonly anthropic: "claude-sonnet-4-5-20250929";
@@ -195,7 +195,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.0-flash";
         readonly ollama: "llama3.1:70b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly sonnet46: {
         readonly anthropic: "claude-sonnet-4-6";
@@ -205,7 +205,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.0-flash";
         readonly ollama: "llama3.1:70b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly opus40: {
         readonly anthropic: "claude-opus-4-20250514";
@@ -215,7 +215,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.5-pro-preview-03-25";
         readonly ollama: "llama3.1:70b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly opus41: {
         readonly anthropic: "claude-opus-4-1-20250805";
@@ -225,7 +225,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.5-pro-preview-03-25";
         readonly ollama: "llama3.1:70b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly opus45: {
         readonly anthropic: "claude-opus-4-5-20251101";
@@ -235,7 +235,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.5-pro-preview-03-25";
         readonly ollama: "llama3.1:70b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
     readonly opus46: {
         readonly anthropic: "claude-opus-4-6";
@@ -245,7 +245,7 @@ export declare const ALL_MODEL_CONFIGS: {
         readonly grok: "grok-2";
         readonly gemini: "gemini-2.5-pro-preview-03-25";
         readonly ollama: "llama3.1:70b";
-        readonly opencodego: "opencode-go";
+        readonly opencodego: "kimi-k2.5";
     };
 };
 export type ModelKey = keyof typeof ALL_MODEL_CONFIGS;

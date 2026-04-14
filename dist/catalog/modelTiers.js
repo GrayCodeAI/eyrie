@@ -35,7 +35,7 @@ export const HAWK_3_7_SONNET_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.0-flash',
     ollama: 'llama3.1:8b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_3_5_V2_SONNET_CONFIG = {
     anthropic: 'claude-3-5-sonnet-20241022',
@@ -45,7 +45,7 @@ export const HAWK_3_5_V2_SONNET_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.0-flash',
     ollama: 'llama3.1:8b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_3_5_HAIKU_CONFIG = {
     anthropic: 'claude-3-5-haiku-20241022',
@@ -55,7 +55,7 @@ export const HAWK_3_5_HAIKU_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.0-flash-lite',
     ollama: 'llama3.2:3b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_HAIKU_4_5_CONFIG = {
     anthropic: 'claude-haiku-4-5-20251001',
@@ -65,7 +65,7 @@ export const HAWK_HAIKU_4_5_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.0-flash-lite',
     ollama: 'llama3.2:3b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_SONNET_4_CONFIG = {
     anthropic: 'claude-sonnet-4-20250514',
@@ -75,7 +75,7 @@ export const HAWK_SONNET_4_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.0-flash',
     ollama: 'llama3.1:8b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_SONNET_4_5_CONFIG = {
     anthropic: 'claude-sonnet-4-5-20250929',
@@ -85,7 +85,7 @@ export const HAWK_SONNET_4_5_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.0-flash',
     ollama: 'llama3.1:70b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_SONNET_4_6_CONFIG = {
     anthropic: 'claude-sonnet-4-6',
@@ -95,7 +95,7 @@ export const HAWK_SONNET_4_6_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.0-flash',
     ollama: 'llama3.1:70b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_OPUS_4_CONFIG = {
     anthropic: 'claude-opus-4-20250514',
@@ -105,7 +105,7 @@ export const HAWK_OPUS_4_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.5-pro-preview-03-25',
     ollama: 'llama3.1:70b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_OPUS_4_1_CONFIG = {
     anthropic: 'claude-opus-4-1-20250805',
@@ -115,7 +115,7 @@ export const HAWK_OPUS_4_1_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.5-pro-preview-03-25',
     ollama: 'llama3.1:70b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_OPUS_4_5_CONFIG = {
     anthropic: 'claude-opus-4-5-20251101',
@@ -125,7 +125,7 @@ export const HAWK_OPUS_4_5_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.5-pro-preview-03-25',
     ollama: 'llama3.1:70b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 export const HAWK_OPUS_4_6_CONFIG = {
     anthropic: 'claude-opus-4-6',
@@ -135,7 +135,7 @@ export const HAWK_OPUS_4_6_CONFIG = {
     grok: 'grok-2',
     gemini: 'gemini-2.5-pro-preview-03-25',
     ollama: 'llama3.1:70b',
-    opencodego: 'opencode-go',
+    opencodego: 'kimi-k2.5',
 };
 // @[MODEL LAUNCH]: Register the new config here.
 export const ALL_MODEL_CONFIGS = {

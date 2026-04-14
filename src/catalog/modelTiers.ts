@@ -54,7 +54,7 @@ export const HAWK_3_7_SONNET_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.0-flash',
   ollama: 'llama3.1:8b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_3_5_V2_SONNET_CONFIG = {
@@ -65,7 +65,7 @@ export const HAWK_3_5_V2_SONNET_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.0-flash',
   ollama: 'llama3.1:8b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_3_5_HAIKU_CONFIG = {
@@ -76,7 +76,7 @@ export const HAWK_3_5_HAIKU_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.0-flash-lite',
   ollama: 'llama3.2:3b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_HAIKU_4_5_CONFIG = {
@@ -87,7 +87,7 @@ export const HAWK_HAIKU_4_5_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.0-flash-lite',
   ollama: 'llama3.2:3b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_SONNET_4_CONFIG = {
@@ -98,7 +98,7 @@ export const HAWK_SONNET_4_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.0-flash',
   ollama: 'llama3.1:8b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_SONNET_4_5_CONFIG = {
@@ -109,7 +109,7 @@ export const HAWK_SONNET_4_5_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.0-flash',
   ollama: 'llama3.1:70b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_SONNET_4_6_CONFIG = {
@@ -120,7 +120,7 @@ export const HAWK_SONNET_4_6_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.0-flash',
   ollama: 'llama3.1:70b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_OPUS_4_CONFIG = {
@@ -131,7 +131,7 @@ export const HAWK_OPUS_4_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.5-pro-preview-03-25',
   ollama: 'llama3.1:70b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_OPUS_4_1_CONFIG = {
@@ -142,7 +142,7 @@ export const HAWK_OPUS_4_1_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.5-pro-preview-03-25',
   ollama: 'llama3.1:70b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_OPUS_4_5_CONFIG = {
@@ -153,7 +153,7 @@ export const HAWK_OPUS_4_5_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.5-pro-preview-03-25',
   ollama: 'llama3.1:70b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 export const HAWK_OPUS_4_6_CONFIG = {
@@ -164,7 +164,7 @@ export const HAWK_OPUS_4_6_CONFIG = {
   grok: 'grok-2',
   gemini: 'gemini-2.5-pro-preview-03-25',
   ollama: 'llama3.1:70b',
-  opencodego: 'opencode-go',
+  opencodego: 'kimi-k2.5',
 } as const satisfies ModelConfig
 
 // @[MODEL LAUNCH]: Register the new config here.
