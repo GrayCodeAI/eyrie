@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { DEFAULT_CANOPYWAVE_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, OPENCODEGO_DEFAULT_BASE_URL, } from '../config/providers.js';
+import { DEFAULT_CANOPYWAVE_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, } from '../config/providers.js';
 import { DEFAULT_PROVIDER_CATALOGS } from './providers/index.js';
 const DEFAULT_MODEL_CATALOG = {
     updated_at: '2026-04-09T00:00:00.000Z',
@@ -100,28 +100,6 @@ async function fetchCanopyWaveCatalog(env = process.env) {
     const entries = parseOpenAICompatibleModelEntries(payload.data);
     return entries.length > 0 ? entries : null;
 }
-async function fetchOpenCodeGoCatalog(env = process.env) {
-    const apiKey = env.OPENCODEGO_API_KEY?.trim();
-    if (!apiKey)
-        return null;
-    const baseUrl = (env.OPENCODEGO_BASE_URL?.trim() || OPENCODEGO_DEFAULT_BASE_URL).replace(/\/+$/, '');
-    const res = await fetch(`${baseUrl}/models`, {
-        headers: {
-            Authorization: `Bearer ${apiKey}`,
-            Accept: 'application/json',
-            'User-Agent': 'eyrie-model-catalog/1.0',
-        },
-    });
-    if (!res.ok) {
-        throw new Error(`opencodego model fetch failed (${res.status})`);
-    }
-    const payload = (await res.json());
-    if (!payload || typeof payload !== 'object' || !Array.isArray(payload.data)) {
-        return null;
-    }
-    const entries = parseOpenAICompatibleModelEntries(payload.data);
-    return entries.length > 0 ? entries : null;
-}
 function isCatalog(value) {
     if (!value || typeof value !== 'object')
         return false;
@@ -183,15 +161,6 @@ export async function fetchModelCatalog(cachePath, sourceUrl = DEFAULT_CATALOG_U
     }
     catch {
         // Keep default or fetched catalog entries on CanopyWave fetch failure.
-    }
-    try {
-        const opencodegoModels = await fetchOpenCodeGoCatalog(env);
-        if (opencodegoModels) {
-            normalized.providers.opencodego = opencodegoModels;
-        }
-    }
-    catch {
-        // Keep default or fetched catalog entries on OpenCodeGO fetch failure.
     }
     if (cachePath) {
         mkdirSync(dirname(cachePath), { recursive: true });
