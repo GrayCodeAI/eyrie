@@ -1,7 +1,7 @@
 export const OPENCODEGO_RUNTIME_PROFILE = {
     mode: 'opencodego',
     defaultBaseUrl: 'https://opencode.ai/zen/go/v1',
-    defaultModel: 'opencode-go/glm-5',
+    defaultModel: 'kimi-k2.5',
     detectionEnv: ['OPENCODEGO_API_KEY'],
     modelEnv: ['OPENCODEGO_MODEL'],
     baseUrlEnv: ['OPENCODEGO_BASE_URL'],
