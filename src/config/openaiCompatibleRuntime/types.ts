@@ -6,6 +6,7 @@ export type OpenAICompatibleRuntimeMode =
   | 'gemini'
   | 'grok'
   | 'anthropic'
+  | 'opencodego'
 
 export type OpenAICompatibleApiKeySource =
   | 'openai'
@@ -15,6 +16,7 @@ export type OpenAICompatibleApiKeySource =
   | 'grok'
   | 'xai'
   | 'anthropic'
+  | 'opencodego'
   | 'none'
 
 export type ResolvedOpenAICompatibleRuntime = {

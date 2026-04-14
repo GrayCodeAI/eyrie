@@ -6,6 +6,7 @@ import { isGrokConfigured } from './grok.js'
 import { isOllamaConfigured } from './ollama.js'
 import { isOpenAIConfigured } from './openai.js'
 import { isOpenRouterConfigured } from './openrouter.js'
+import { isOpenCodeGoConfigured } from './opencodego.js'
 
 export const PROVIDER_PRESENCE_CHECKS: Record<
   APIProvider,
@@ -18,4 +19,5 @@ export const PROVIDER_PRESENCE_CHECKS: Record<
   canopywave: isCanopyWaveConfigured,
   openai: isOpenAIConfigured,
   ollama: isOllamaConfigured,
+  opencodego: isOpenCodeGoConfigured,
 }

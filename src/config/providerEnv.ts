@@ -1,0 +1,276 @@
+/**
+ * Provider environment configuration.
+ *
+ * Owns the user-facing provider config shape (stored in ~/.hawk/provider.json),
+ * the env-var application logic per provider, and all supporting helpers.
+ */
+
+import type { APIProvider } from './providerProfiles/types.js'
+import {
+  DEFAULT_ANTHROPIC_OPENAI_BASE_URL,
+  DEFAULT_CANOPYWAVE_OPENAI_BASE_URL,
+  DEFAULT_GEMINI_OPENAI_BASE_URL,
+  DEFAULT_GROK_OPENAI_BASE_URL,
+  DEFAULT_OPENAI_BASE_URL,
+  DEFAULT_OPENROUTER_OPENAI_BASE_URL,
+} from './providers.js'
+import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL } from './providerProfiles.js'
+import { getPreferredProviderModel, getProviderDefaultModel } from '../catalog/modelTiers.js'
+import type { ModelCatalog } from '../catalog/types.js'
+
+// ---------------------------------------------------------------------------
+// User config shape — mirrors ~/.hawk/provider.json
+// ---------------------------------------------------------------------------
+
+export type ProviderConfig = {
+  _version?: string
+  active_provider?: APIProvider
+  anthropic_api_key?: string
+  grok_api_key?: string
+  xai_api_key?: string
+  openai_api_key?: string
+  canopywave_api_key?: string
+  openrouter_api_key?: string
+  gemini_api_key?: string
+  ollama_base_url?: string
+  opencodego_api_key?: string
+  anthropic_base_url?: string
+  canopywave_base_url?: string
+  grok_base_url?: string
+  xai_base_url?: string
+  openai_base_url?: string
+  openrouter_base_url?: string
+  gemini_base_url?: string
+  opencodego_base_url?: string
+  anthropic_model?: string
+  openai_model?: string
+  canopywave_model?: string
+  grok_model?: string
+  xai_model?: string
+  openrouter_model?: string
+  gemini_model?: string
+  ollama_model?: string
+  opencodego_model?: string
+  active_model?: string
+  exploration_model?: string
+  anthropic_version?: string
+}
+
+export type ProviderEnvApplyContext = {
+  env: NodeJS.ProcessEnv
+  config: ProviderConfig
+  activeModel: string | undefined
+  overwrite: boolean
+  catalog?: ModelCatalog | null
+}
+
+// ---------------------------------------------------------------------------
+// Provider config field mappings
+// ---------------------------------------------------------------------------
+
+export const PROVIDER_CONFIG_KEYS: Record<
+  APIProvider,
+  {
+    apiKey: Array<keyof ProviderConfig>
+    model: Array<keyof ProviderConfig>
+    baseUrl: keyof ProviderConfig
+  }
+> = {
+  anthropic: {
+    apiKey: ['anthropic_api_key'],
+    model: ['anthropic_model'],
+    baseUrl: 'anthropic_base_url',
+  },
+  openai: {
+    apiKey: ['openai_api_key'],
+    model: ['openai_model'],
+    baseUrl: 'openai_base_url',
+  },
+  canopywave: {
+    apiKey: ['canopywave_api_key'],
+    model: ['canopywave_model'],
+    baseUrl: 'canopywave_base_url',
+  },
+  openrouter: {
+    apiKey: ['openrouter_api_key'],
+    model: ['openrouter_model'],
+    baseUrl: 'openrouter_base_url',
+  },
+  grok: {
+    apiKey: ['grok_api_key', 'xai_api_key'],
+    model: ['grok_model', 'xai_model'],
+    baseUrl: 'grok_base_url',
+  },
+  gemini: {
+    apiKey: ['gemini_api_key'],
+    model: ['gemini_model'],
+    baseUrl: 'gemini_base_url',
+  },
+  ollama: {
+    apiKey: [],
+    model: ['ollama_model'],
+    baseUrl: 'ollama_base_url',
+  },
+  opencodego: {
+    apiKey: ['opencodego_api_key'],
+    model: ['opencodego_model'],
+    baseUrl: 'opencodego_base_url',
+  },
+}
+
+// ---------------------------------------------------------------------------
+// Low-level helpers
+// ---------------------------------------------------------------------------
+
+export function asNonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+export function normalizeOllamaOpenAIBaseUrl(baseUrl: string | undefined): string | undefined {
+  if (!baseUrl) return undefined
+  const trimmed = baseUrl.replace(/\/+$/, '')
+  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`
+}
+
+export function setEnvValue(
+  env: NodeJS.ProcessEnv,
+  key: string,
+  value: string | undefined,
+  overwrite: boolean,
+): void {
+  if (!value) return
+  if (!overwrite && env[key]) return
+  env[key] = value
+}
+
+export function applyOpenAICompatibleProvider(
+  env: NodeJS.ProcessEnv,
+  prefix: string,
+  apiKey: string | undefined,
+  model: string,
+  baseUrl: string,
+  overwrite: boolean,
+): void {
+  setEnvValue(env, `${prefix}_API_KEY`, apiKey, overwrite)
+  setEnvValue(env, `${prefix}_MODEL`, model, overwrite)
+  setEnvValue(env, `${prefix}_BASE_URL`, baseUrl, overwrite)
+  setEnvValue(env, 'OPENAI_API_KEY', apiKey, overwrite)
+  setEnvValue(env, 'OPENAI_MODEL', model, overwrite)
+  setEnvValue(env, 'OPENAI_BASE_URL', baseUrl, overwrite)
+}
+
+export function getProviderModel(config: ProviderConfig, provider: APIProvider): string | undefined {
+  const modelKeys = PROVIDER_CONFIG_KEYS[provider].model
+  for (const modelKey of modelKeys) {
+    const value = asNonEmptyString(config[modelKey])
+    if (value) return value
+  }
+  return undefined
+}
+
+export function getProviderApiKey(config: ProviderConfig, provider: APIProvider): string | undefined {
+  const keys = PROVIDER_CONFIG_KEYS[provider].apiKey
+  for (const keyField of keys) {
+    const value = asNonEmptyString(config[keyField])
+    if (value) return value
+  }
+  return undefined
+}
+
+export function getProviderModelKey(provider: APIProvider): keyof ProviderConfig {
+  return PROVIDER_CONFIG_KEYS[provider].model[0]
+}
+
+export function getProviderBaseUrlKey(provider: APIProvider): keyof ProviderConfig {
+  return PROVIDER_CONFIG_KEYS[provider].baseUrl
+}
+
+export function validateApiKey(apiKey: string | undefined, providerName: string): string | null {
+  if (!apiKey) return `${providerName} requires an API key`
+  if (apiKey === 'SUA_CHAVE') return `${providerName} API key cannot be placeholder value 'SUA_CHAVE'`
+  if (apiKey.length < 10) return `${providerName} API key appears invalid (too short)`
+  return null
+}
+
+export function validateBaseUrl(baseUrl: string | undefined): string | null {
+  if (!baseUrl) return null
+  try {
+    new URL(baseUrl)
+    return null
+  } catch {
+    return `Invalid base URL: ${baseUrl}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Per-provider env application
+// ---------------------------------------------------------------------------
+
+function applyAnthropicProviderEnv({ env, config, activeModel, overwrite, catalog }: ProviderEnvApplyContext): void {
+  setEnvValue(env, 'ANTHROPIC_API_KEY', asNonEmptyString(config.anthropic_api_key), overwrite)
+  setEnvValue(env, 'ANTHROPIC_MODEL', activeModel ?? getPreferredProviderModel('anthropic', 'sonnet', catalog), overwrite)
+  setEnvValue(env, 'ANTHROPIC_BASE_URL', asNonEmptyString(config.anthropic_base_url), overwrite)
+  setEnvValue(env, 'ANTHROPIC_VERSION', asNonEmptyString(config.anthropic_version), overwrite)
+}
+
+function applyOpenAIProviderEnv({ env, config, activeModel, overwrite, catalog }: ProviderEnvApplyContext): void {
+  setEnvValue(env, 'OPENAI_API_KEY', asNonEmptyString(config.openai_api_key), overwrite)
+  setEnvValue(env, 'OPENAI_MODEL', activeModel ?? getProviderDefaultModel('openai', catalog), overwrite)
+  setEnvValue(env, 'OPENAI_BASE_URL', asNonEmptyString(config.openai_base_url) ?? DEFAULT_OPENAI_BASE_URL, overwrite)
+}
+
+function applyGeminiProviderEnv({ env, config, activeModel, overwrite, catalog }: ProviderEnvApplyContext): void {
+  const apiKey = asNonEmptyString(config.gemini_api_key)
+  const baseUrl = asNonEmptyString(config.gemini_base_url) ?? DEFAULT_GEMINI_OPENAI_BASE_URL
+  const model = activeModel ?? getProviderDefaultModel('gemini', catalog)
+  applyOpenAICompatibleProvider(env, 'GEMINI', apiKey, model, baseUrl, overwrite)
+}
+
+function applyGrokProviderEnv({ env, config, activeModel, overwrite, catalog }: ProviderEnvApplyContext): void {
+  const apiKey = asNonEmptyString(config.grok_api_key) ?? asNonEmptyString(config.xai_api_key)
+  const baseUrl = asNonEmptyString(config.grok_base_url) ?? asNonEmptyString(config.xai_base_url) ?? DEFAULT_GROK_OPENAI_BASE_URL
+  const model = activeModel ?? getProviderDefaultModel('grok', catalog)
+  setEnvValue(env, 'GROK_API_KEY', asNonEmptyString(config.grok_api_key), overwrite)
+  setEnvValue(env, 'XAI_API_KEY', asNonEmptyString(config.xai_api_key), overwrite)
+  applyOpenAICompatibleProvider(env, 'GROK', apiKey, model, baseUrl, overwrite)
+}
+
+function applyCanopyWaveProviderEnv({ env, config, activeModel, overwrite, catalog }: ProviderEnvApplyContext): void {
+  const apiKey = asNonEmptyString(config.canopywave_api_key)
+  const baseUrl = asNonEmptyString(config.canopywave_base_url) ?? DEFAULT_CANOPYWAVE_OPENAI_BASE_URL
+  const model = activeModel ?? getProviderDefaultModel('canopywave', catalog)
+  applyOpenAICompatibleProvider(env, 'CANOPYWAVE', apiKey, model, baseUrl, overwrite)
+}
+
+function applyOpenRouterProviderEnv({ env, config, activeModel, overwrite, catalog }: ProviderEnvApplyContext): void {
+  const apiKey = asNonEmptyString(config.openrouter_api_key)
+  const baseUrl = asNonEmptyString(config.openrouter_base_url) ?? DEFAULT_OPENROUTER_OPENAI_BASE_URL
+  const model = activeModel ?? getProviderDefaultModel('openrouter', catalog)
+  applyOpenAICompatibleProvider(env, 'OPENROUTER', apiKey, model, baseUrl, overwrite)
+}
+
+function applyOllamaProviderEnv({ env, config, activeModel, overwrite }: ProviderEnvApplyContext): void {
+  setEnvValue(env, 'OPENAI_MODEL', activeModel ?? OLLAMA_DEFAULT_MODEL, overwrite)
+  setEnvValue(
+    env,
+    'OPENAI_BASE_URL',
+    normalizeOllamaOpenAIBaseUrl(asNonEmptyString(config.ollama_base_url)) ?? OLLAMA_DEFAULT_BASE_URL,
+    overwrite,
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Single entry point
+// ---------------------------------------------------------------------------
+
+export function applyProviderEnv(provider: APIProvider, context: ProviderEnvApplyContext): void {
+  switch (provider) {
+    case 'anthropic':   return applyAnthropicProviderEnv(context)
+    case 'openai':      return applyOpenAIProviderEnv(context)
+    case 'gemini':      return applyGeminiProviderEnv(context)
+    case 'grok':        return applyGrokProviderEnv(context)
+    case 'canopywave':  return applyCanopyWaveProviderEnv(context)
+    case 'openrouter':  return applyOpenRouterProviderEnv(context)
+    case 'ollama':      return applyOllamaProviderEnv(context)
+  }
+}

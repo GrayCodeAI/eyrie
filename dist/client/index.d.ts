@@ -5,7 +5,7 @@
  * Supports 54+ providers via baseUrl config
  * Simple API for hawk to use
  */
-import { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, type ProviderConfig, type ProviderType } from '../providers/registry.js';
+import { type ProviderConfig } from '../providers/registry';
 export interface EyrieConfig {
     provider?: string;
     apiKey?: string;
@@ -64,11 +64,13 @@ export declare class EyrieClient {
      * Get provider config
      */
     private getProviderConfig;
-    /**
-     * Client factory map for data-driven client creation
-     * Only includes providers used by Hawk (7 providers)
-     */
     private readonly clientFactories;
+    /**
+     * Resolve the default model for a provider from the eyrie runtime catalog.
+     * Returns undefined for providers not tracked in the catalog (e.g. groq, ollama)
+     * — callers must supply a model explicitly in that case.
+     */
+    private resolveDefaultModel;
     /**
      * Create provider client
      */
@@ -82,48 +84,39 @@ export declare class EyrieClient {
      */
     private createOpenAIClient;
     /**
-     * OpenAI-compatible client (for all other providers)
+     * OpenAI-compatible client (for all other providers, including groq)
      */
     private createOpenAICompatibleClient;
     /**
-     * Google Gemini client
-     */
-    private createGoogleClient;
-    /**
-     * Mistral client
-     */
-    private createMistralClient;
-    /**
-     * Groq client
-     */
-    private createGroqClient;
-    /**
-     * Send a chat message
+     * Generate content with the specified provider
      */
     chat(messages: EyrieMessage[], options?: {
         provider?: string;
         model?: string;
         temperature?: number;
         maxTokens?: number;
+        tools?: EyrieTool[];
+        stream?: boolean;
     }): Promise<EyrieResponse>;
     /**
-     * Stream chat response
+     * Stream content with the specified provider
      */
-    stream(messages: EyrieMessage[], options?: {
+    streamChat(messages: EyrieMessage[], options?: {
         provider?: string;
         model?: string;
         temperature?: number;
         maxTokens?: number;
+        tools?: EyrieTool[];
     }): AsyncGenerator<EyrieStreamEvent>;
     /**
      * List available providers
      */
-    listProviders(): string[];
+    getProviders(): string[];
     /**
      * Get provider info
      */
-    getProviderInfo(provider: string): ProviderConfig;
+    getProviderInfo(provider: string): ProviderConfig | undefined;
 }
 export declare function createEyrie(config?: EyrieConfig): EyrieClient;
-export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, type ProviderConfig, type ProviderType };
+export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, ProviderConfig, ProviderType } from '../providers/registry.js';
 //# sourceMappingURL=index.d.ts.map

@@ -4,13 +4,12 @@
  * Following the pi-mono pattern - one SDK, many providers via baseUrl
  */
 import { OpenAI } from 'openai';
-export type ProviderType = 'anthropic' | 'openai' | 'openai-compatible' | 'google' | 'mistral' | 'bedrock';
+export type ProviderType = 'anthropic' | 'openai' | 'openai-compatible';
 export interface ProviderConfig {
     name: string;
     type: ProviderType;
     baseUrl?: string;
     envKey: string;
-    defaultModel: string;
     supportsStreaming: boolean;
     supportsTools: boolean;
     supportsReasoning: boolean;

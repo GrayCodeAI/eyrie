@@ -56,3 +56,11 @@ export { EyrieClient, createEyrie, } from './client/index.js';
 export { createAnthropicClient, detectProvider, resolveProviderModelEnvOverride, parseCustomHeaders, } from './client/factory.js';
 export { defaultModelCatalog, loadModelCatalogSync, fetchModelCatalog, modelsForProvider, } from './catalog/modelCatalog.js';
 export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, } from './providers/registry.js';
+// Model tier tables and resolution
+export { ALL_MODEL_CONFIGS, CANONICAL_MODEL_IDS, CANONICAL_ID_TO_KEY, OPENAI_MODEL_DEFAULTS, GEMINI_MODEL_DEFAULTS, MODEL_TIER_ALIASES, getProviderModelCandidates, getPreferredProviderModel, getProviderDefaultModel, } from './catalog/modelTiers.js';
+// Model name canonicalization and marketing display names
+export { anthropicNameToCanonical, getModelMarketingName, } from './catalog/modelNames.js';
+// Model deprecation metadata
+export { DEPRECATED_MODELS, getModelDeprecationWarning, } from './catalog/deprecation.js';
+// Provider env configuration
+export { applyProviderEnv, PROVIDER_CONFIG_KEYS, asNonEmptyString, setEnvValue, normalizeOllamaOpenAIBaseUrl, applyOpenAICompatibleProvider, getProviderModel, getProviderApiKey, getProviderModelKey, getProviderBaseUrlKey, validateApiKey, validateBaseUrl, } from './config/providerEnv.js';
