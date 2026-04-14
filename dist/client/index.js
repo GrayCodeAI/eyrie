@@ -7,10 +7,8 @@
  */
 import OpenAI from 'openai';
 import { Anthropic } from '@anthropic-ai/sdk';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Mistral } from '@mistralai/mistralai';
-import { Groq } from 'groq-sdk';
-import { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS } from '../providers/registry.js';
+import { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, } from '../providers/registry';
+import { loadModelCatalogSync, modelsForProvider } from '../catalog/modelCatalog.js';
 // ============================================================================
 // Main Client
 // ============================================================================
@@ -59,43 +57,48 @@ export class EyrieClient {
             return openai;
         throw new Error(`Unknown provider: ${provider}`);
     }
-    /**
-     * Client factory map for data-driven client creation
-     * Only includes providers used by Hawk (7 providers)
-     */
+    // ============================================================================
+    // Client Factories
+    // ============================================================================
     clientFactories = {
-        anthropic: (apiKey) => this.createAnthropicClient(apiKey),
-        openai: (apiKey, baseUrl) => this.createOpenAIClient(apiKey, baseUrl),
-        'openai-compatible': (apiKey, baseUrl) => this.createOpenAICompatibleClient(apiKey, baseUrl),
-        google: (apiKey) => this.createGoogleClient(apiKey),
+        anthropic: (apiKey, config) => this.createAnthropicClient(apiKey, config.defaultModel),
+        openai: (apiKey, config) => this.createOpenAIClient(apiKey, config.baseUrl, config.defaultModel),
+        'openai-compatible': (apiKey, config) => this.createOpenAICompatibleClient(apiKey, config.baseUrl, config.defaultModel),
     };
+    /**
+     * Resolve the default model for a provider from the eyrie runtime catalog.
+     * Returns undefined for providers not tracked in the catalog (e.g. groq, ollama)
+     * — callers must supply a model explicitly in that case.
+     */
+    resolveDefaultModel(provider) {
+        const catalog = loadModelCatalogSync();
+        const models = modelsForProvider(catalog, provider);
+        return models.length > 0 ? models[0].id : undefined;
+    }
     /**
      * Create provider client
      */
     createClient(provider, apiKey) {
         const config = this.getProviderConfig(provider);
-        const type = config.type;
-        // Handle special cases by provider name
-        if (provider === 'groq') {
-            return this.createGroqClient(apiKey);
-        }
-        // Use factory map for data-driven client creation
-        const factory = this.clientFactories[type];
+        const defaultModel = this.resolveDefaultModel(provider);
+        const factory = this.clientFactories[config.type];
         if (factory) {
-            return factory(apiKey, config.baseUrl);
+            return factory(apiKey, { ...config, defaultModel });
         }
-        // Default to OpenAI-compatible
-        return this.createOpenAICompatibleClient(apiKey, config.baseUrl);
+        return this.createOpenAICompatibleClient(apiKey, config.baseUrl, defaultModel);
     }
     /**
      * Anthropic (Claude) client
      */
-    createAnthropicClient(apiKey) {
+    createAnthropicClient(apiKey, defaultModel) {
         const client = new Anthropic({ apiKey });
         return {
             chat: async (messages, options) => {
+                const model = options?.model ?? defaultModel;
+                if (!model)
+                    throw new Error('No model specified for anthropic. Pass model in options or ensure the catalog has an entry for this provider.');
                 const response = await client.messages.create({
-                    model: options?.model || 'claude-3-5-sonnet-20241022',
+                    model,
                     messages: messages.map(m => ({
                         role: m.role,
                         content: m.content
@@ -119,15 +122,18 @@ export class EyrieClient {
     /**
      * OpenAI client
      */
-    createOpenAIClient(apiKey, baseUrl) {
+    createOpenAIClient(apiKey, baseUrl, defaultModel) {
         const client = new OpenAI({
             apiKey,
-            baseURL: baseUrl
+            baseURL: baseUrl,
         });
         return {
             chat: async (messages, options) => {
+                const model = options?.model ?? defaultModel;
+                if (!model)
+                    throw new Error('No model specified for openai. Pass model in options or ensure the catalog has an entry for this provider.');
                 const response = await client.chat.completions.create({
-                    model: options?.model || 'gpt-4o-mini',
+                    model,
                     messages: messages,
                     temperature: options?.temperature,
                     max_tokens: options?.maxTokens,
@@ -153,101 +159,20 @@ export class EyrieClient {
         };
     }
     /**
-     * OpenAI-compatible client (for all other providers)
+     * OpenAI-compatible client (for all other providers, including groq)
      */
-    createOpenAICompatibleClient(apiKey, baseUrl) {
+    createOpenAICompatibleClient(apiKey, baseUrl, defaultModel) {
         const client = new OpenAI({
             apiKey,
-            baseURL: baseUrl
+            baseURL: baseUrl,
         });
         return {
             chat: async (messages, options) => {
+                const model = options?.model ?? defaultModel;
+                if (!model)
+                    throw new Error(`No model specified for provider at ${baseUrl ?? 'unknown'}. Pass model in options or add this provider to the eyrie catalog.`);
                 const response = await client.chat.completions.create({
-                    model: options?.model || 'gpt-4o-mini',
-                    messages: messages,
-                    temperature: options?.temperature,
-                    max_tokens: options?.maxTokens,
-                    stream: false
-                });
-                const choice = response.choices[0];
-                return {
-                    content: choice?.message?.content || '',
-                    usage: response.usage ? {
-                        promptTokens: response.usage.prompt_tokens || 0,
-                        completionTokens: response.usage.completion_tokens || 0,
-                        totalTokens: response.usage.total_tokens || 0
-                    } : undefined,
-                    finishReason: choice?.finish_reason || 'unknown'
-                };
-            }
-        };
-    }
-    /**
-     * Google Gemini client
-     */
-    createGoogleClient(apiKey) {
-        const client = new GoogleGenerativeAI(apiKey);
-        return {
-            chat: async (messages, options) => {
-                const model = client.getGenerativeModel({
-                    model: options?.model || 'gemini-1.5-flash'
-                });
-                const chat = model.startChat({
-                    history: messages.slice(0, -1).map(m => ({
-                        role: m.role === 'user' ? 'user' : 'model',
-                        parts: [{ text: m.content }]
-                    })),
-                    generationConfig: {
-                        temperature: options?.temperature,
-                        maxOutputTokens: options?.maxTokens
-                    }
-                });
-                const result = await chat.sendMessage(messages[messages.length - 1].content);
-                return {
-                    content: result.response.text(),
-                    finishReason: 'stop'
-                };
-            }
-        };
-    }
-    /**
-     * Mistral client
-     */
-    createMistralClient(apiKey) {
-        const client = new Mistral({ apiKey });
-        return {
-            chat: async (messages, options) => {
-                const response = await client.chat.complete({
-                    model: options?.model || 'mistral-small-latest',
-                    messages: messages.map(m => ({
-                        role: m.role,
-                        content: m.content
-                    })),
-                    temperature: options?.temperature,
-                    maxTokens: options?.maxTokens
-                });
-                const choice = response.choices?.[0];
-                return {
-                    content: choice?.message?.content || '',
-                    usage: response.usage ? {
-                        promptTokens: Number(response.usage.prompt_tokens) || 0,
-                        completionTokens: Number(response.usage.completion_tokens) || 0,
-                        totalTokens: Number(response.usage.total_tokens) || 0
-                    } : undefined,
-                    finishReason: choice?.finish_reason || 'stop'
-                };
-            }
-        };
-    }
-    /**
-     * Groq client
-     */
-    createGroqClient(apiKey) {
-        const client = new Groq({ apiKey });
-        return {
-            chat: async (messages, options) => {
-                const response = await client.chat.completions.create({
-                    model: options?.model || 'llama-3.1-70b-versatile',
+                    model,
                     messages: messages,
                     temperature: options?.temperature,
                     max_tokens: options?.maxTokens,
@@ -270,45 +195,35 @@ export class EyrieClient {
     // Public API
     // ============================================================================
     /**
-     * Send a chat message
+     * Generate content with the specified provider
      */
     async chat(messages, options) {
         const provider = options?.provider || this.defaultProvider;
         const client = this.getClient(provider);
-        return client.chat(messages, {
-            model: options?.model,
-            temperature: options?.temperature,
-            maxTokens: options?.maxTokens
-        });
+        return await client.chat(messages, options);
     }
     /**
-     * Stream chat response
+     * Stream content with the specified provider
      */
-    async *stream(messages, options) {
+    async *streamChat(messages, options) {
         const provider = options?.provider || this.defaultProvider;
         const client = this.getClient(provider);
-        if (client.streamChat) {
-            yield* client.streamChat(messages, options);
+        if (!client.streamChat) {
+            throw new Error('Streaming not supported for this provider');
         }
-        else {
-            const response = await this.chat(messages, options);
-            yield { type: 'content', content: response.content };
-            yield { type: 'done' };
-        }
+        yield* client.streamChat(messages, options);
     }
     /**
      * List available providers
      */
-    listProviders() {
-        const coreProviders = Object.keys(CORE_PROVIDERS);
-        const openaiProviders = Object.keys(OPENAI_COMPATIBLE_PROVIDERS);
-        return [...coreProviders, ...openaiProviders];
+    getProviders() {
+        return Object.keys(CORE_PROVIDERS).concat(Object.keys(OPENAI_COMPATIBLE_PROVIDERS));
     }
     /**
      * Get provider info
      */
     getProviderInfo(provider) {
-        return this.getProviderConfig(provider);
+        return { ...CORE_PROVIDERS[provider], ...OPENAI_COMPATIBLE_PROVIDERS[provider] };
     }
 }
 // ============================================================================
@@ -320,4 +235,4 @@ export function createEyrie(config) {
 // ============================================================================
 // Re-export provider registry
 // ============================================================================
-export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS };
+export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS } from '../providers/registry.js';

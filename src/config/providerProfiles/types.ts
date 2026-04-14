@@ -6,8 +6,9 @@ export type APIProvider =
   | 'grok'
   | 'gemini'
   | 'ollama'
+  | 'opencodego'
 
-type RuntimeMode = 'anthropic' | 'openai' | 'openrouter' | 'grok' | 'gemini'
+type RuntimeMode = 'anthropic' | 'openai' | 'openrouter' | 'grok' | 'gemini' | 'opencodego'
 type ApiKeySource =
   | 'openai'
   | 'openrouter'
@@ -16,6 +17,7 @@ type ApiKeySource =
   | 'xai'
   | 'anthropic'
   | 'canopywave'
+  | 'opencodego'
 
 export type RuntimeProviderProfile = {
   mode: RuntimeMode

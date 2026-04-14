@@ -253,7 +253,56 @@ export {
 export {
   CORE_PROVIDERS,
   OPENAI_COMPATIBLE_PROVIDERS,
-  type ProviderConfig,
+  type ProviderConfig as EyrieProviderConfig,
   type ProviderType,
   type OpenAICompatConfig,
 } from './providers/registry.js'
+
+// Model tier tables and resolution
+export {
+  ALL_MODEL_CONFIGS,
+  CANONICAL_MODEL_IDS,
+  CANONICAL_ID_TO_KEY,
+  OPENAI_MODEL_DEFAULTS,
+  GEMINI_MODEL_DEFAULTS,
+  MODEL_TIER_ALIASES,
+  getProviderModelCandidates,
+  getPreferredProviderModel,
+  getProviderDefaultModel,
+  type ModelConfig,
+  type ModelKey,
+  type ModelTier,
+  type ModelTierAlias,
+  type ModelName,
+  type CanonicalModelId,
+} from './catalog/modelTiers.js'
+
+// Model name canonicalization and marketing display names
+export {
+  anthropicNameToCanonical,
+  getModelMarketingName,
+} from './catalog/modelNames.js'
+
+// Model deprecation metadata
+export {
+  DEPRECATED_MODELS,
+  getModelDeprecationWarning,
+} from './catalog/deprecation.js'
+
+// Provider env configuration
+export {
+  applyProviderEnv,
+  PROVIDER_CONFIG_KEYS,
+  asNonEmptyString,
+  setEnvValue,
+  normalizeOllamaOpenAIBaseUrl,
+  applyOpenAICompatibleProvider,
+  getProviderModel,
+  getProviderApiKey,
+  getProviderModelKey,
+  getProviderBaseUrlKey,
+  validateApiKey,
+  validateBaseUrl,
+  type ProviderConfig,
+  type ProviderEnvApplyContext,
+} from './config/providerEnv.js'

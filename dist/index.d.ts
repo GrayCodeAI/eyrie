@@ -30,5 +30,9 @@ export declare const EYRIE_VERSION = "1.0.2";
 export { EyrieClient, createEyrie, type EyrieConfig, type EyrieMessage, type EyrieTool, type EyrieResponse, type EyrieStreamEvent, type EyrieUsage, } from './client/index.js';
 export { createAnthropicClient, detectProvider, resolveProviderModelEnvOverride, parseCustomHeaders, type AnthropicClientConfig, } from './client/factory.js';
 export { defaultModelCatalog, loadModelCatalogSync, fetchModelCatalog, modelsForProvider, type ModelCatalog, type ModelCatalogEntry, } from './catalog/modelCatalog.js';
-export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, type ProviderConfig, type ProviderType, type OpenAICompatConfig, } from './providers/registry.js';
+export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, type ProviderConfig as EyrieProviderConfig, type ProviderType, type OpenAICompatConfig, } from './providers/registry.js';
+export { ALL_MODEL_CONFIGS, CANONICAL_MODEL_IDS, CANONICAL_ID_TO_KEY, OPENAI_MODEL_DEFAULTS, GEMINI_MODEL_DEFAULTS, MODEL_TIER_ALIASES, getProviderModelCandidates, getPreferredProviderModel, getProviderDefaultModel, type ModelConfig, type ModelKey, type ModelTier, type ModelTierAlias, type ModelName, type CanonicalModelId, } from './catalog/modelTiers.js';
+export { anthropicNameToCanonical, getModelMarketingName, } from './catalog/modelNames.js';
+export { DEPRECATED_MODELS, getModelDeprecationWarning, } from './catalog/deprecation.js';
+export { applyProviderEnv, PROVIDER_CONFIG_KEYS, asNonEmptyString, setEnvValue, normalizeOllamaOpenAIBaseUrl, applyOpenAICompatibleProvider, getProviderModel, getProviderApiKey, getProviderModelKey, getProviderBaseUrlKey, validateApiKey, validateBaseUrl, type ProviderConfig, type ProviderEnvApplyContext, } from './config/providerEnv.js';
 //# sourceMappingURL=index.d.ts.map

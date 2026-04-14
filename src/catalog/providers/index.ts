@@ -7,6 +7,7 @@ import { GROK_MODELS } from './grok.js'
 import { OLLAMA_MODELS } from './ollama.js'
 import { OPENAI_MODELS } from './openai.js'
 import { OPENROUTER_MODELS } from './openrouter.js'
+import { OPENCODEGO_MODELS } from './opencodego.js'
 
 export const DEFAULT_PROVIDER_CATALOGS: Partial<
   Record<APIProvider, ModelCatalogEntry[]>
@@ -18,4 +19,5 @@ export const DEFAULT_PROVIDER_CATALOGS: Partial<
   grok: GROK_MODELS,
   gemini: GEMINI_MODELS,
   ollama: OLLAMA_MODELS,
+  opencodego: OPENCODEGO_MODELS,
 }

@@ -8,15 +8,14 @@
 
 import OpenAI from 'openai'
 import { Anthropic } from '@anthropic-ai/sdk'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { Mistral } from '@mistralai/mistralai'
-import { Groq } from 'groq-sdk'
-import { 
-  CORE_PROVIDERS, 
-  OPENAI_COMPATIBLE_PROVIDERS, 
+import {
+  CORE_PROVIDERS,
+  OPENAI_COMPATIBLE_PROVIDERS,
   type ProviderConfig,
-  type ProviderType 
-} from '../providers/registry.js'
+  type ProviderType,
+} from '../providers/registry'
+import { loadModelCatalogSync, modelsForProvider } from '../catalog/modelCatalog.js'
+import type { APIProvider } from '../config/providerProfiles.js'
 
 // ============================================================================
 // Types
@@ -98,7 +97,7 @@ export class EyrieClient {
   private clients: Map<string, ProviderClient> = new Map()
   private defaultProvider: string = 'openai'
   private apiKeys: Map<string, string> = new Map()
-  
+
   constructor(config?: EyrieConfig) {
     if (config?.provider) {
       this.defaultProvider = config.provider
@@ -107,14 +106,14 @@ export class EyrieClient {
       this.apiKeys.set(config.provider || this.defaultProvider, config.apiKey)
     }
   }
-  
+
   /**
    * Set API key for a provider
    */
   setApiKey(provider: string, apiKey: string): void {
     this.apiKeys.set(provider, apiKey)
   }
-  
+
   /**
    * Get client for a provider
    */
@@ -132,7 +131,7 @@ export class EyrieClient {
     this.clients.set(provider, client)
     return client
   }
-  
+
   /**
    * Get provider config
    */
@@ -145,19 +144,29 @@ export class EyrieClient {
     
     throw new Error(`Unknown provider: ${provider}`)
   }
-  
-  /**
-   * Client factory map for data-driven client creation
-   * Only includes providers used by Hawk (7 providers)
-   */
+
+  // ============================================================================
+  // Client Factories
+  // ============================================================================
+
   private readonly clientFactories: Partial<Record<
     ProviderType,
-    (apiKey: string, baseUrl?: string) => ProviderClient
+    (apiKey: string, config: ProviderConfig & { defaultModel?: string }) => ProviderClient
   >> = {
-    anthropic: (apiKey) => this.createAnthropicClient(apiKey),
-    openai: (apiKey, baseUrl) => this.createOpenAIClient(apiKey, baseUrl),
-    'openai-compatible': (apiKey, baseUrl) => this.createOpenAICompatibleClient(apiKey, baseUrl),
-    google: (apiKey) => this.createGoogleClient(apiKey),
+    anthropic: (apiKey, config) => this.createAnthropicClient(apiKey, config.defaultModel),
+    openai: (apiKey, config) => this.createOpenAIClient(apiKey, config.baseUrl, config.defaultModel),
+    'openai-compatible': (apiKey, config) => this.createOpenAICompatibleClient(apiKey, config.baseUrl, config.defaultModel),
+  }
+
+  /**
+   * Resolve the default model for a provider from the eyrie runtime catalog.
+   * Returns undefined for providers not tracked in the catalog (e.g. groq, ollama)
+   * — callers must supply a model explicitly in that case.
+   */
+  private resolveDefaultModel(provider: string): string | undefined {
+    const catalog = loadModelCatalogSync()
+    const models = modelsForProvider(catalog, provider as APIProvider)
+    return models.length > 0 ? models[0].id : undefined
   }
 
   /**
@@ -165,33 +174,26 @@ export class EyrieClient {
    */
   private createClient(provider: string, apiKey: string): ProviderClient {
     const config = this.getProviderConfig(provider)
-    const type = config.type
-    
-    // Handle special cases by provider name
-    if (provider === 'groq') {
-      return this.createGroqClient(apiKey)
-    }
-    
-    // Use factory map for data-driven client creation
-    const factory = this.clientFactories[type]
+    const defaultModel = this.resolveDefaultModel(provider)
+    const factory = this.clientFactories[config.type]
     if (factory) {
-      return factory(apiKey, config.baseUrl)
+      return factory(apiKey, { ...config, defaultModel } as ProviderConfig & { defaultModel?: string })
     }
-    
-    // Default to OpenAI-compatible
-    return this.createOpenAICompatibleClient(apiKey, config.baseUrl)
+    return this.createOpenAICompatibleClient(apiKey, config.baseUrl, defaultModel)
   }
-  
+
   /**
    * Anthropic (Claude) client
    */
-  private createAnthropicClient(apiKey: string): ProviderClient {
+  private createAnthropicClient(apiKey: string, defaultModel: string | undefined): ProviderClient {
     const client = new Anthropic({ apiKey })
-    
+
     return {
       chat: async (messages, options) => {
+        const model = options?.model ?? defaultModel
+        if (!model) throw new Error('No model specified for anthropic. Pass model in options or ensure the catalog has an entry for this provider.')
         const response = await client.messages.create({
-          model: options?.model || 'claude-3-5-sonnet-20241022',
+          model,
           messages: messages.map(m => ({
             role: m.role as 'user' | 'assistant',
             content: m.content
@@ -213,20 +215,22 @@ export class EyrieClient {
       }
     }
   }
-  
+
   /**
    * OpenAI client
    */
-  private createOpenAIClient(apiKey: string, baseUrl?: string): ProviderClient {
-    const client = new OpenAI({ 
-      apiKey, 
-      baseURL: baseUrl 
+  private createOpenAIClient(apiKey: string, baseUrl: string | undefined, defaultModel: string | undefined): ProviderClient {
+    const client = new OpenAI({
+      apiKey,
+      baseURL: baseUrl,
     })
-    
+
     return {
       chat: async (messages, options) => {
+        const model = options?.model ?? defaultModel
+        if (!model) throw new Error('No model specified for openai. Pass model in options or ensure the catalog has an entry for this provider.')
         const response = await client.chat.completions.create({
-          model: options?.model || 'gpt-4o-mini',
+          model,
           messages: messages as any,
           temperature: options?.temperature,
           max_tokens: options?.maxTokens,
@@ -252,20 +256,22 @@ export class EyrieClient {
       }
     }
   }
-  
+
   /**
-   * OpenAI-compatible client (for all other providers)
+   * OpenAI-compatible client (for all other providers, including groq)
    */
-  private createOpenAICompatibleClient(apiKey: string, baseUrl?: string): ProviderClient {
-    const client = new OpenAI({ 
-      apiKey, 
-      baseURL: baseUrl 
+  private createOpenAICompatibleClient(apiKey: string, baseUrl: string | undefined, defaultModel: string | undefined): ProviderClient {
+    const client = new OpenAI({
+      apiKey,
+      baseURL: baseUrl,
     })
-    
+
     return {
       chat: async (messages, options) => {
+        const model = options?.model ?? defaultModel
+        if (!model) throw new Error(`No model specified for provider at ${baseUrl ?? 'unknown'}. Pass model in options or add this provider to the eyrie catalog.`)
         const response = await client.chat.completions.create({
-          model: options?.model || 'gpt-4o-mini',
+          model,
           messages: messages as any,
           temperature: options?.temperature,
           max_tokens: options?.maxTokens,
@@ -285,160 +291,66 @@ export class EyrieClient {
       }
     }
   }
-  
-  /**
-   * Google Gemini client
-   */
-  private createGoogleClient(apiKey: string): ProviderClient {
-    const client = new GoogleGenerativeAI(apiKey)
-    
-    return {
-      chat: async (messages, options) => {
-        const model = client.getGenerativeModel({ 
-          model: options?.model || 'gemini-1.5-flash' 
-        })
-        
-        const chat = model.startChat({
-          history: messages.slice(0, -1).map(m => ({
-            role: m.role === 'user' ? 'user' : 'model',
-            parts: [{ text: m.content }]
-          })),
-          generationConfig: {
-            temperature: options?.temperature,
-            maxOutputTokens: options?.maxTokens
-          }
-        })
-        
-        const result = await chat.sendMessage(messages[messages.length - 1].content)
-        
-        return {
-          content: result.response.text(),
-          finishReason: 'stop'
-        }
-      }
-    }
-  }
-  
-  /**
-   * Mistral client
-   */
-  private createMistralClient(apiKey: string): ProviderClient {
-    const client = new Mistral({ apiKey })
-    
-    return {
-      chat: async (messages, options) => {
-        const response = await client.chat.complete({
-          model: options?.model || 'mistral-small-latest',
-          messages: messages.map(m => ({
-            role: m.role,
-            content: m.content
-          })) as any,
-          temperature: options?.temperature,
-          maxTokens: options?.maxTokens
-        }) as any
-        
-        const choice = response.choices?.[0]
-        return {
-          content: choice?.message?.content || '',
-          usage: response.usage ? {
-            promptTokens: Number(response.usage.prompt_tokens) || 0,
-            completionTokens: Number(response.usage.completion_tokens) || 0,
-            totalTokens: Number(response.usage.total_tokens) || 0
-          } : undefined,
-          finishReason: (choice?.finish_reason as string) || 'stop'
-        }
-      }
-    }
-  }
-  
-  /**
-   * Groq client
-   */
-  private createGroqClient(apiKey: string): ProviderClient {
-    const client = new Groq({ apiKey })
-    
-    return {
-      chat: async (messages, options) => {
-        const response = await client.chat.completions.create({
-          model: options?.model || 'llama-3.1-70b-versatile',
-          messages: messages as any,
-          temperature: options?.temperature,
-          max_tokens: options?.maxTokens,
-          stream: false
-        })
-        
-        const choice = response.choices[0]
-        return {
-          content: choice?.message?.content || '',
-          usage: response.usage ? {
-            promptTokens: response.usage.prompt_tokens || 0,
-            completionTokens: response.usage.completion_tokens || 0,
-            totalTokens: response.usage.total_tokens || 0
-          } : undefined,
-          finishReason: (choice?.finish_reason as string) || 'unknown'
-        }
-      }
-    }
-  }
-  
+
   // ============================================================================
   // Public API
   // ============================================================================
-  
+
   /**
-   * Send a chat message
+   * Generate content with the specified provider
    */
-  async chat(messages: EyrieMessage[], options?: {
-    provider?: string
-    model?: string
-    temperature?: number
-    maxTokens?: number
-  }): Promise<EyrieResponse> {
-    const provider = options?.provider || this.defaultProvider
-    const client = this.getClient(provider)
-    
-    return client.chat(messages, {
-      model: options?.model,
-      temperature: options?.temperature,
-      maxTokens: options?.maxTokens
-    })
-  }
-  
-  /**
-   * Stream chat response
-   */
-  async *stream(messages: EyrieMessage[], options?: {
-    provider?: string
-    model?: string
-    temperature?: number
-    maxTokens?: number
-  }): AsyncGenerator<EyrieStreamEvent> {
-    const provider = options?.provider || this.defaultProvider
-    const client = this.getClient(provider)
-    
-    if (client.streamChat) {
-      yield* client.streamChat(messages, options)
-    } else {
-      const response = await this.chat(messages, options)
-      yield { type: 'content', content: response.content }
-      yield { type: 'done' }
+  async chat(
+    messages: EyrieMessage[],
+    options?: {
+      provider?: string
+      model?: string
+      temperature?: number
+      maxTokens?: number
+      tools?: EyrieTool[]
+      stream?: boolean
     }
+  ): Promise<EyrieResponse> {
+    const provider = options?.provider || this.defaultProvider
+    const client = this.getClient(provider)
+    
+    return await client.chat(messages, options)
   }
-  
+
+  /**
+   * Stream content with the specified provider
+   */
+  async *streamChat(
+    messages: EyrieMessage[],
+    options?: {
+      provider?: string
+      model?: string
+      temperature?: number
+      maxTokens?: number
+      tools?: EyrieTool[]
+    }
+  ): AsyncGenerator<EyrieStreamEvent> {
+    const provider = options?.provider || this.defaultProvider
+    const client = this.getClient(provider)
+    
+    if (!client.streamChat) {
+      throw new Error('Streaming not supported for this provider')
+    }
+    
+    yield* client.streamChat(messages, options)
+  }
+
   /**
    * List available providers
    */
-  listProviders(): string[] {
-    const coreProviders = Object.keys(CORE_PROVIDERS)
-    const openaiProviders = Object.keys(OPENAI_COMPATIBLE_PROVIDERS)
-    return [...coreProviders, ...openaiProviders]
+  getProviders(): string[] {
+    return Object.keys(CORE_PROVIDERS).concat(Object.keys(OPENAI_COMPATIBLE_PROVIDERS))
   }
-  
+
   /**
    * Get provider info
    */
-  getProviderInfo(provider: string): ProviderConfig {
-    return this.getProviderConfig(provider)
+  getProviderInfo(provider: string): ProviderConfig | undefined {
+    return { ...CORE_PROVIDERS[provider], ...OPENAI_COMPATIBLE_PROVIDERS[provider] }
   }
 }
 
@@ -454,4 +366,4 @@ export function createEyrie(config?: EyrieConfig): EyrieClient {
 // Re-export provider registry
 // ============================================================================
 
-export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, type ProviderConfig, type ProviderType }
+export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, ProviderConfig, ProviderType } from '../providers/registry.js'

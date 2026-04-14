@@ -1,6 +1,6 @@
-export type APIProvider = 'anthropic' | 'openai' | 'canopywave' | 'openrouter' | 'grok' | 'gemini' | 'ollama';
-type RuntimeMode = 'anthropic' | 'openai' | 'openrouter' | 'grok' | 'gemini';
-type ApiKeySource = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'xai' | 'anthropic' | 'canopywave';
+export type APIProvider = 'anthropic' | 'openai' | 'canopywave' | 'openrouter' | 'grok' | 'gemini' | 'ollama' | 'opencodego';
+type RuntimeMode = 'anthropic' | 'openai' | 'openrouter' | 'grok' | 'gemini' | 'opencodego';
+type ApiKeySource = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'xai' | 'anthropic' | 'canopywave' | 'opencodego';
 export type RuntimeProviderProfile = {
     mode: RuntimeMode;
     defaultBaseUrl: string;

@@ -4,6 +4,7 @@ import { GEMINI_RUNTIME_PROFILE } from './providerProfiles/providers/gemini.js';
 import { GROK_RUNTIME_PROFILE } from './providerProfiles/providers/grok.js';
 import { OPENAI_RUNTIME_PROFILE } from './providerProfiles/providers/openai.js';
 import { OPENROUTER_RUNTIME_PROFILE } from './providerProfiles/providers/openrouter.js';
+import { OPENCODEGO_RUNTIME_PROFILE } from './providerProfiles/providers/opencodego.js';
 export const API_PROVIDER_DETECTION_ORDER = [
     'anthropic',
     'openrouter',
@@ -11,6 +12,7 @@ export const API_PROVIDER_DETECTION_ORDER = [
     'gemini',
     'canopywave',
     'openai',
+    'opencodego',
     'ollama',
 ];
 export const PROVIDER_MODEL_ENV_KEYS = {
@@ -21,9 +23,12 @@ export const PROVIDER_MODEL_ENV_KEYS = {
     grok: [...GROK_RUNTIME_PROFILE.modelEnv],
     gemini: [...GEMINI_RUNTIME_PROFILE.modelEnv],
     ollama: ['OLLAMA_MODEL', 'OPENAI_MODEL'],
+    opencodego: [...OPENCODEGO_RUNTIME_PROFILE.modelEnv],
 };
 export const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434/v1';
 export const OLLAMA_DEFAULT_MODEL = 'llama3.1:8b';
+export const OPENCODEGO_DEFAULT_BASE_URL = 'https://api.opencode.ai/v1';
+export const OPENCODEGO_DEFAULT_MODEL = 'opencode-go';
 export const OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER = [
     'openrouter',
     'grok',
@@ -31,6 +36,7 @@ export const OPENAI_COMPATIBLE_RUNTIME_PROFILE_ORDER = [
     'anthropic',
     'canopywave',
     'openai',
+    'opencodego',
 ];
 export const OPENAI_COMPATIBLE_RUNTIME_PROFILES = {
     anthropic: ANTHROPIC_RUNTIME_PROFILE,
@@ -39,4 +45,5 @@ export const OPENAI_COMPATIBLE_RUNTIME_PROFILES = {
     canopywave: CANOPYWAVE_RUNTIME_PROFILE,
     openai: OPENAI_RUNTIME_PROFILE,
     openrouter: OPENROUTER_RUNTIME_PROFILE,
+    opencodego: OPENCODEGO_RUNTIME_PROFILE,
 };

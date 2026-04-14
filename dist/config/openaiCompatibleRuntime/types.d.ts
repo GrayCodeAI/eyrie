@@ -1,6 +1,6 @@
 import type { ResolvedProviderRequest } from '../providers.js';
-export type OpenAICompatibleRuntimeMode = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'anthropic';
-export type OpenAICompatibleApiKeySource = 'openai' | 'canopywave' | 'openrouter' | 'gemini' | 'grok' | 'xai' | 'anthropic' | 'none';
+export type OpenAICompatibleRuntimeMode = 'openai' | 'openrouter' | 'gemini' | 'grok' | 'anthropic' | 'opencodego';
+export type OpenAICompatibleApiKeySource = 'openai' | 'canopywave' | 'openrouter' | 'gemini' | 'grok' | 'xai' | 'anthropic' | 'opencodego' | 'none';
 export type ResolvedOpenAICompatibleRuntime = {
     mode: OpenAICompatibleRuntimeMode;
     request: ResolvedProviderRequest;
