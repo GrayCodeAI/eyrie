@@ -5,6 +5,7 @@ export const DEFAULT_GEMINI_OPENAI_BASE_URL =
   'https://generativelanguage.googleapis.com/v1beta/openai'
 export const DEFAULT_ANTHROPIC_OPENAI_BASE_URL = 'https://api.anthropic.com/v1'
 export const DEFAULT_GROK_OPENAI_BASE_URL = 'https://api.x.ai/v1'
+export const OPENCODEGO_DEFAULT_BASE_URL = 'https://api.opencode.ai/v1'
 type ReasoningEffort = 'low' | 'medium' | 'high'
 
 export type ProviderTransport = 'chat_completions'

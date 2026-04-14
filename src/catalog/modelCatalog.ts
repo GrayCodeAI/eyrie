@@ -4,6 +4,7 @@ import type { APIProvider } from '../config/providerProfiles.js'
 import {
   DEFAULT_CANOPYWAVE_OPENAI_BASE_URL,
   DEFAULT_OPENROUTER_OPENAI_BASE_URL,
+  OPENCODEGO_DEFAULT_BASE_URL,
 } from '../config/providers.js'
 import { DEFAULT_PROVIDER_CATALOGS } from './providers/index.js'
 import type { ModelCatalog, ModelCatalogEntry } from './types.js'
@@ -146,6 +147,35 @@ async function fetchCanopyWaveCatalog(
   return entries.length > 0 ? entries : null
 }
 
+async function fetchOpenCodeGoCatalog(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<ModelCatalogEntry[] | null> {
+  const apiKey = env.OPENCODEGO_API_KEY?.trim()
+  if (!apiKey) return null
+
+  const baseUrl = (env.OPENCODEGO_BASE_URL?.trim() || OPENCODEGO_DEFAULT_BASE_URL).replace(/\/+$/, '')
+  const res = await fetch(`${baseUrl}/models`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+      'User-Agent': 'eyrie-model-catalog/1.0',
+    },
+  })
+  if (!res.ok) {
+    throw new Error(`opencodego model fetch failed (${res.status})`)
+  }
+
+  const payload = (await res.json()) as { data?: OpenAICompatibleModelPayload[] } | unknown
+  if (!payload || typeof payload !== 'object' || !Array.isArray((payload as { data?: unknown }).data)) {
+    return null
+  }
+
+  const entries = parseOpenAICompatibleModelEntries(
+    (payload as { data: OpenAICompatibleModelPayload[] }).data,
+  )
+  return entries.length > 0 ? entries : null
+}
+
 function isCatalog(value: unknown): value is ModelCatalog {
   if (!value || typeof value !== 'object') return false
   const v = value as Partial<ModelCatalog>
@@ -212,6 +242,15 @@ export async function fetchModelCatalog(
     }
   } catch {
     // Keep default or fetched catalog entries on CanopyWave fetch failure.
+  }
+
+  try {
+    const opencodegoModels = await fetchOpenCodeGoCatalog(env)
+    if (opencodegoModels) {
+      normalized.providers.opencodego = opencodegoModels
+    }
+  } catch {
+    // Keep default or fetched catalog entries on OpenCodeGO fetch failure.
   }
 
   if (cachePath) {
