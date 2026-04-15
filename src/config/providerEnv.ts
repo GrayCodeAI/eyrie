@@ -13,6 +13,7 @@ import {
   DEFAULT_GROK_OPENAI_BASE_URL,
   DEFAULT_OPENAI_BASE_URL,
   DEFAULT_OPENROUTER_OPENAI_BASE_URL,
+  OPENCODEGO_DEFAULT_BASE_URL,
 } from './providers.js'
 import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL } from './providerProfiles.js'
 import { getPreferredProviderModel, getProviderDefaultModel } from '../catalog/modelTiers.js'
@@ -259,6 +260,13 @@ function applyOllamaProviderEnv({ env, config, activeModel, overwrite }: Provide
   )
 }
 
+function applyOpenCodeGoProviderEnv({ env, config, activeModel, overwrite, catalog }: ProviderEnvApplyContext): void {
+  const apiKey = asNonEmptyString(config.opencodego_api_key)
+  const baseUrl = asNonEmptyString(config.opencodego_base_url) ?? OPENCODEGO_DEFAULT_BASE_URL
+  const model = activeModel ?? getProviderDefaultModel('opencodego', catalog)
+  applyOpenAICompatibleProvider(env, 'OPENCODEGO', apiKey, model, baseUrl, overwrite)
+}
+
 // ---------------------------------------------------------------------------
 // Single entry point
 // ---------------------------------------------------------------------------
@@ -272,5 +280,6 @@ export function applyProviderEnv(provider: APIProvider, context: ProviderEnvAppl
     case 'canopywave':  return applyCanopyWaveProviderEnv(context)
     case 'openrouter':  return applyOpenRouterProviderEnv(context)
     case 'ollama':      return applyOllamaProviderEnv(context)
+    case 'opencodego':  return applyOpenCodeGoProviderEnv(context)
   }
 }
