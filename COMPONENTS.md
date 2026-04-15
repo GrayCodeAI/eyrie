@@ -53,7 +53,31 @@ flowchart LR
   classDef ghost fill:#fff,stroke:#bbb,color:#666;
 ```
 
-## 5) Contract Boundary
+## 5) Provider Configuration I/O Components
+
+```mermaid
+flowchart TB
+    FILE["~/.hawk/provider.json"] --> LOAD["loadProviderConfig()"]
+    LOAD --> PARSE["Parse ProviderConfig"]
+    PARSE --> DETECT["defaultProviderFromConfig()"]
+    DETECT --> ORDER["PROVIDER_DETECTION_ORDER"]
+    ORDER --> CHECK["isProviderConfigured()"]
+    CHECK --> MODEL["getProviderActiveModel()"]
+    MODEL --> ENV["applyProviderConfigToEnv()"]
+    ENV --> SET["setEnvValue() per provider"]
+    SET --> OUT["process.env populated"]
+    
+    SAVE["saveProviderConfig()"] --> WRITE["Write to ~/.hawk/provider.json"]
+```
+
+### Provider Config Flow
+1. **Load** - `loadProviderConfig()` reads `~/.hawk/provider.json`
+2. **Detect** - `defaultProviderFromConfig()` finds first configured provider by priority
+3. **Resolve** - `getProviderActiveModel()` gets provider-specific model with fallback
+4. **Apply** - `applyProviderConfigToEnv()` sets environment variables for the runtime
+
+## 6) Contract Boundary
 
 - Runtime and provider behavior is exported from `src/index.ts`; consumers should not depend on internal file layout.
 - Provider precedence and catalog strategy are intentionally centralized to keep all consumers consistent.
+- **Provider configuration I/O is now fully centralized in eyrie** - consumers (Hawk, etc.) delegate all config operations to eyrie.
