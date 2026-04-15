@@ -220,7 +220,7 @@ export {
 } from './types/sdk.js'
 
 // Version
-export const EYRIE_VERSION = '1.0.2'
+export const EYRIE_VERSION = '1.1.0'
 
 // Client exports
 export {
