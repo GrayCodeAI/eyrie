@@ -62,4 +62,53 @@ export declare function getProviderBaseUrlKey(provider: APIProvider): keyof Prov
 export declare function validateApiKey(apiKey: string | undefined, providerName: string): string | null;
 export declare function validateBaseUrl(baseUrl: string | undefined): string | null;
 export declare function applyProviderEnv(provider: APIProvider, context: ProviderEnvApplyContext): void;
+/** Provider detection priority order */
+export declare const PROVIDER_DETECTION_ORDER: APIProvider[];
+/**
+ * Gets the default config directory path.
+ * Uses HAWK_CONFIG_DIR env var if set, otherwise ~/.hawk
+ */
+export declare function getProviderConfigDir(): string;
+/**
+ * Gets the full path to the provider config file.
+ */
+export declare function getProviderConfigPath(): string;
+/**
+ * Loads the provider config from disk.
+ * Returns null if the file doesn't exist or is invalid.
+ */
+export declare function loadProviderConfig(path?: string): ProviderConfig | null;
+/**
+ * Saves the provider config to disk.
+ */
+export declare function saveProviderConfig(config: ProviderConfig, path?: string): void;
+/**
+ * Checks if a provider has valid configuration (API key or base URL for Ollama).
+ */
+export declare function isProviderConfigured(config: ProviderConfig, provider: APIProvider): boolean;
+/**
+ * Determines the default provider from config.
+ * First checks explicit active_provider, then falls back to detection order.
+ */
+export declare function defaultProviderFromConfig(config: ProviderConfig | null): APIProvider | null;
+/**
+ * Gets the active model for a specific provider from config.
+ * Handles both provider-specific model keys and legacy active_model.
+ */
+export declare function getProviderActiveModel(config: ProviderConfig, provider: APIProvider): string | undefined;
+/**
+ * Clears all provider-related environment variables.
+ */
+export declare function clearProviderRuntimeEnv(env: NodeJS.ProcessEnv): void;
+/**
+ * Applies the full provider configuration to environment variables.
+ * This is the main entry point for configuring the runtime environment.
+ *
+ * @returns The detected provider, or null if no provider is configured
+ */
+export declare function applyProviderConfigToEnv(env?: NodeJS.ProcessEnv, config?: ProviderConfig | null, options?: {
+    overwrite?: boolean;
+    skipValidation?: boolean;
+    catalog?: ModelCatalog | null;
+}): APIProvider | null;
 //# sourceMappingURL=providerEnv.d.ts.map

@@ -4,7 +4,10 @@
  * Owns the user-facing provider config shape (stored in ~/.hawk/provider.json),
  * the env-var application logic per provider, and all supporting helpers.
  */
-import { DEFAULT_CANOPYWAVE_OPENAI_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, DEFAULT_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, } from './providers.js';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { DEFAULT_CANOPYWAVE_OPENAI_BASE_URL, DEFAULT_GEMINI_OPENAI_BASE_URL, DEFAULT_GROK_OPENAI_BASE_URL, DEFAULT_OPENAI_BASE_URL, DEFAULT_OPENROUTER_OPENAI_BASE_URL, OPENCODEGO_DEFAULT_BASE_URL, } from './providers.js';
 import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL } from './providerProfiles.js';
 import { getPreferredProviderModel, getProviderDefaultModel } from '../catalog/modelTiers.js';
 // ---------------------------------------------------------------------------
@@ -167,6 +170,12 @@ function applyOllamaProviderEnv({ env, config, activeModel, overwrite }) {
     setEnvValue(env, 'OPENAI_MODEL', activeModel ?? OLLAMA_DEFAULT_MODEL, overwrite);
     setEnvValue(env, 'OPENAI_BASE_URL', normalizeOllamaOpenAIBaseUrl(asNonEmptyString(config.ollama_base_url)) ?? OLLAMA_DEFAULT_BASE_URL, overwrite);
 }
+function applyOpenCodeGoProviderEnv({ env, config, activeModel, overwrite, catalog }) {
+    const apiKey = asNonEmptyString(config.opencodego_api_key);
+    const baseUrl = asNonEmptyString(config.opencodego_base_url) ?? OPENCODEGO_DEFAULT_BASE_URL;
+    const model = activeModel ?? getProviderDefaultModel('opencodego', catalog);
+    applyOpenAICompatibleProvider(env, 'OPENCODEGO', apiKey, model, baseUrl, overwrite);
+}
 // ---------------------------------------------------------------------------
 // Single entry point
 // ---------------------------------------------------------------------------
@@ -179,5 +188,180 @@ export function applyProviderEnv(provider, context) {
         case 'canopywave': return applyCanopyWaveProviderEnv(context);
         case 'openrouter': return applyOpenRouterProviderEnv(context);
         case 'ollama': return applyOllamaProviderEnv(context);
+        case 'opencodego': return applyOpenCodeGoProviderEnv(context);
     }
+}
+// ---------------------------------------------------------------------------
+// Provider detection and config file I/O
+// ---------------------------------------------------------------------------
+/** Provider detection priority order */
+export const PROVIDER_DETECTION_ORDER = [
+    'anthropic',
+    'openrouter',
+    'grok',
+    'gemini',
+    'canopywave',
+    'openai',
+    'opencodego',
+    'ollama',
+];
+/**
+ * Gets the default config directory path.
+ * Uses HAWK_CONFIG_DIR env var if set, otherwise ~/.hawk
+ */
+export function getProviderConfigDir() {
+    return (process.env.HAWK_CONFIG_DIR ?? join(homedir(), '.hawk')).normalize('NFC');
+}
+/**
+ * Gets the full path to the provider config file.
+ */
+export function getProviderConfigPath() {
+    return join(getProviderConfigDir(), 'provider.json');
+}
+/**
+ * Loads the provider config from disk.
+ * Returns null if the file doesn't exist or is invalid.
+ */
+export function loadProviderConfig(path = getProviderConfigPath()) {
+    if (!existsSync(path))
+        return null;
+    try {
+        const content = readFileSync(path, 'utf8');
+        const parsed = JSON.parse(content);
+        if (!parsed || typeof parsed !== 'object') {
+            console.warn(`[eyrie] Invalid config format at ${path}: expected object, got ${typeof parsed}`);
+            return null;
+        }
+        return parsed;
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[eyrie] Failed to load config from ${path}: ${message}`);
+        return null;
+    }
+}
+/**
+ * Saves the provider config to disk.
+ */
+export function saveProviderConfig(config, path = getProviderConfigPath()) {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+}
+/**
+ * Checks if a provider has valid configuration (API key or base URL for Ollama).
+ */
+export function isProviderConfigured(config, provider) {
+    const keys = PROVIDER_CONFIG_KEYS[provider];
+    // Ollama only needs base URL
+    if (provider === 'ollama') {
+        return !!asNonEmptyString(config[keys.baseUrl]);
+    }
+    // Check if any API key is configured
+    return keys.apiKey.some(keyField => !!asNonEmptyString(config[keyField]));
+}
+/**
+ * Determines the default provider from config.
+ * First checks explicit active_provider, then falls back to detection order.
+ */
+export function defaultProviderFromConfig(config) {
+    if (!config)
+        return null;
+    const explicitProvider = asNonEmptyString(config.active_provider);
+    if (explicitProvider && isProviderConfigured(config, explicitProvider)) {
+        return explicitProvider;
+    }
+    for (const provider of PROVIDER_DETECTION_ORDER) {
+        if (isProviderConfigured(config, provider))
+            return provider;
+    }
+    return null;
+}
+/**
+ * Checks if any provider-specific model is configured.
+ */
+function hasProviderScopedModel(config) {
+    return PROVIDER_DETECTION_ORDER.some(provider => !!getProviderModel(config, provider));
+}
+/**
+ * Gets the active model for a specific provider from config.
+ * Handles both provider-specific model keys and legacy active_model.
+ */
+export function getProviderActiveModel(config, provider) {
+    const providerSpecificModel = getProviderModel(config, provider);
+    if (providerSpecificModel)
+        return providerSpecificModel;
+    if (hasProviderScopedModel(config))
+        return undefined;
+    const legacyModel = asNonEmptyString(config.active_model);
+    if (!legacyModel)
+        return undefined;
+    // Legacy compatibility: active_model historically represented the default
+    // configured provider only, not all providers.
+    return defaultProviderFromConfig(config) === provider ? legacyModel : undefined;
+}
+/**
+ * Clears all provider-related environment variables.
+ */
+export function clearProviderRuntimeEnv(env) {
+    const keys = [
+        'ANTHROPIC_API_KEY',
+        'ANTHROPIC_MODEL',
+        'ANTHROPIC_BASE_URL',
+        'ANTHROPIC_VERSION',
+        'OPENAI_API_KEY',
+        'OPENAI_MODEL',
+        'OPENAI_BASE_URL',
+        'OPENROUTER_API_KEY',
+        'OPENROUTER_MODEL',
+        'OPENROUTER_BASE_URL',
+        'CANOPYWAVE_API_KEY',
+        'CANOPYWAVE_MODEL',
+        'CANOPYWAVE_BASE_URL',
+        'GROK_API_KEY',
+        'GROK_MODEL',
+        'GROK_BASE_URL',
+        'XAI_API_KEY',
+        'XAI_MODEL',
+        'XAI_BASE_URL',
+        'GEMINI_API_KEY',
+        'GEMINI_MODEL',
+        'GEMINI_BASE_URL',
+        'OLLAMA_BASE_URL',
+        'OPENCODEGO_API_KEY',
+        'OPENCODEGO_MODEL',
+        'OPENCODEGO_BASE_URL',
+    ];
+    for (const key of keys) {
+        delete env[key];
+    }
+}
+/**
+ * Applies the full provider configuration to environment variables.
+ * This is the main entry point for configuring the runtime environment.
+ *
+ * @returns The detected provider, or null if no provider is configured
+ */
+export function applyProviderConfigToEnv(env = process.env, config = loadProviderConfig(), options) {
+    if (!config) {
+        return null;
+    }
+    const provider = defaultProviderFromConfig(config);
+    if (!provider)
+        return null;
+    const overwrite = options?.overwrite === true;
+    const catalog = options?.catalog;
+    if (overwrite) {
+        clearProviderRuntimeEnv(env);
+    }
+    const activeModel = getProviderActiveModel(config, provider);
+    const explorationModel = asNonEmptyString(config.exploration_model);
+    setEnvValue(env, 'GRAYCODE_SMALL_FAST_MODEL', explorationModel, overwrite);
+    applyProviderEnv(provider, {
+        env,
+        config,
+        activeModel,
+        overwrite,
+        catalog,
+    });
+    return provider;
 }

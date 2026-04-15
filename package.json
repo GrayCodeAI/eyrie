@@ -1,6 +1,6 @@
 {
   "name": "@hawk/eyrie",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Eyrie provider runtime and model catalog for Hawk (OpenAI, OpenRouter, Anthropic, Grok/xAI, Gemini, Ollama)",
   "type": "module",
   "main": "./dist/index.js",

@@ -6,5 +6,6 @@ export function isOpenAICompatibleRuntimeEnabled(env = process.env) {
         env.ANTHROPIC_API_KEY ||
         env.CANOPYWAVE_API_KEY ||
         env.OPENAI_API_KEY ||
+        env.OPENCODEGO_API_KEY ||
         env.OLLAMA_BASE_URL);
 }

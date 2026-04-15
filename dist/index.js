@@ -49,7 +49,7 @@ APIError, APIConnectionError, APIConnectionTimeoutError, APIUserAbortError, NotF
 // Client (stub kept for any remaining type references during migration)
 GrayCode, } from './types/sdk.js';
 // Version
-export const EYRIE_VERSION = '1.0.2';
+export const EYRIE_VERSION = '1.1.0';
 // Client exports
 export { EyrieClient, createEyrie, } from './client/index.js';
 // Provider-aware client factory (the main entry point for hawk)
@@ -57,10 +57,14 @@ export { createAnthropicClient, detectProvider, resolveProviderModelEnvOverride,
 export { defaultModelCatalog, loadModelCatalogSync, fetchModelCatalog, modelsForProvider, } from './catalog/modelCatalog.js';
 export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, } from './providers/registry.js';
 // Model tier tables and resolution
-export { ALL_MODEL_CONFIGS, CANONICAL_MODEL_IDS, CANONICAL_ID_TO_KEY, OPENAI_MODEL_DEFAULTS, GEMINI_MODEL_DEFAULTS, MODEL_TIER_ALIASES, getProviderModelCandidates, getPreferredProviderModel, getProviderDefaultModel, } from './catalog/modelTiers.js';
+export { ALL_MODEL_CONFIGS, CANONICAL_MODEL_IDS, CANONICAL_ID_TO_KEY, OPENAI_MODEL_DEFAULTS, GEMINI_MODEL_DEFAULTS, MODEL_TIER_ALIASES, getProviderModelCandidates, getPreferredProviderModel, getProviderDefaultModel, 
+// Individual model configs (for cost tracking and per-model logic in hawk)
+HAWK_3_5_HAIKU_CONFIG, HAWK_3_5_V2_SONNET_CONFIG, HAWK_3_7_SONNET_CONFIG, HAWK_HAIKU_4_5_CONFIG, HAWK_SONNET_4_CONFIG, HAWK_SONNET_4_5_CONFIG, HAWK_SONNET_4_6_CONFIG, HAWK_OPUS_4_CONFIG, HAWK_OPUS_4_1_CONFIG, HAWK_OPUS_4_5_CONFIG, HAWK_OPUS_4_6_CONFIG, } from './catalog/modelTiers.js';
 // Model name canonicalization and marketing display names
 export { anthropicNameToCanonical, getModelMarketingName, } from './catalog/modelNames.js';
 // Model deprecation metadata
 export { DEPRECATED_MODELS, getModelDeprecationWarning, } from './catalog/deprecation.js';
 // Provider env configuration
-export { applyProviderEnv, PROVIDER_CONFIG_KEYS, asNonEmptyString, setEnvValue, normalizeOllamaOpenAIBaseUrl, applyOpenAICompatibleProvider, getProviderModel, getProviderApiKey, getProviderModelKey, getProviderBaseUrlKey, validateApiKey, validateBaseUrl, } from './config/providerEnv.js';
+export { applyProviderEnv, PROVIDER_CONFIG_KEYS, asNonEmptyString, setEnvValue, normalizeOllamaOpenAIBaseUrl, applyOpenAICompatibleProvider, getProviderModel, getProviderApiKey, getProviderModelKey, getProviderBaseUrlKey, validateApiKey, validateBaseUrl, 
+// Config file I/O and detection
+PROVIDER_DETECTION_ORDER, getProviderConfigDir, getProviderConfigPath, loadProviderConfig, saveProviderConfig, isProviderConfigured, defaultProviderFromConfig, getProviderActiveModel, clearProviderRuntimeEnv, applyProviderConfigToEnv, } from './config/providerEnv.js';
