@@ -317,6 +317,17 @@ export {
   getProviderBaseUrlKey,
   validateApiKey,
   validateBaseUrl,
+  // Config file I/O and detection
+  PROVIDER_DETECTION_ORDER,
+  getProviderConfigDir,
+  getProviderConfigPath,
+  loadProviderConfig,
+  saveProviderConfig,
+  isProviderConfigured,
+  defaultProviderFromConfig,
+  getProviderActiveModel,
+  clearProviderRuntimeEnv,
+  applyProviderConfigToEnv,
   type ProviderConfig,
   type ProviderEnvApplyContext,
 } from './config/providerEnv.js'
