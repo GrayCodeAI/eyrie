@@ -4,7 +4,7 @@
 
 **Provider Runtime + Model Catalog Layer**
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/GrayCodeAI/eyrie)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/GrayCodeAI/eyrie)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](./package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
@@ -141,6 +141,37 @@ const blocks: ContentBlock[] = [
   { type: 'text', text: 'Hello' },
   { type: 'tool_use', id: '1', name: 'search', input: { query: 'weather' } }
 ]
+```
+
+### Provider Configuration I/O
+
+```typescript
+import {
+  loadProviderConfig,
+  saveProviderConfig,
+  defaultProviderFromConfig,
+  getProviderActiveModel,
+  applyProviderConfigToEnv,
+} from '@hawk/eyrie'
+
+// Load user's provider configuration
+const config = loadProviderConfig()
+// → { anthropic_api_key: '...', active_provider: 'anthropic', ... }
+
+// Auto-detect provider from configured keys
+const provider = defaultProviderFromConfig(config)
+// → 'anthropic' | 'openai' | 'openrouter' | ...
+
+// Get active model for a provider
+const model = getProviderActiveModel(config, 'anthropic')
+// → 'claude-sonnet-4-6'
+
+// Apply config to environment variables
+applyProviderConfigToEnv(process.env, config)
+// → Sets ANTHROPIC_API_KEY, ANTHROPIC_MODEL, etc.
+
+// Save updated configuration
+saveProviderConfig({ ...config, active_model: 'new-model' })
 ```
 
 ---
