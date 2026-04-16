@@ -258,6 +258,16 @@ npm run typecheck
 
 ---
 
+## Sponsors
+
+Support eyrie's development:
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsor-pink?style=flat-square&logo=github)](https://github.com/sponsors/GrayCodeAI)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=flat-square&logo=ko-fi&logoColor=white)](https://ko-fi.com/GrayCodeAI)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Sponsor-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/GrayCodeAI)
+
+Your sponsorship helps us maintain and improve eyrie.
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
