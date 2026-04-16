@@ -50,4 +50,18 @@ export const OPENCODEGO_MODELS: ModelCatalogEntry[] = [
     context_window: 1000000,
     max_output: 8000,
   },
+  {
+    id: 'qwen3.6-plus',
+    input_price_per_1m: 0.3,
+    output_price_per_1m: 1.7,
+    context_window: 1000000,
+    max_output: 65536,
+  },
+  {
+    id: 'qwen3.5-plus',
+    input_price_per_1m: 0.26,
+    output_price_per_1m: 1.56,
+    context_window: 1000000,
+    max_output: 65536,
+  },
 ]
