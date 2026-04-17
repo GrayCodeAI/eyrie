@@ -13,7 +13,7 @@ import {
   OPENAI_COMPATIBLE_PROVIDERS,
   type ProviderConfig,
   type ProviderType,
-} from '../providers/registry'
+} from '../providers/registry.js'
 import { loadModelCatalogSync, modelsForProvider } from '../catalog/modelCatalog.js'
 import type { APIProvider } from '../config/providerProfiles.js'
 
@@ -366,4 +366,5 @@ export function createEyrie(config?: EyrieConfig): EyrieClient {
 // Re-export provider registry
 // ============================================================================
 
-export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, ProviderConfig, ProviderType } from '../providers/registry.js'
+export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS } from '../providers/registry.js'
+export type { ProviderConfig, ProviderType } from '../providers/registry.js'

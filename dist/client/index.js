@@ -7,7 +7,7 @@
  */
 import OpenAI from 'openai';
 import { Anthropic } from '@anthropic-ai/sdk';
-import { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, } from '../providers/registry';
+import { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, } from '../providers/registry.js';
 import { loadModelCatalogSync, modelsForProvider } from '../catalog/modelCatalog.js';
 // ============================================================================
 // Main Client

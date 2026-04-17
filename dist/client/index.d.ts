@@ -5,7 +5,7 @@
  * Supports 54+ providers via baseUrl config
  * Simple API for hawk to use
  */
-import { type ProviderConfig } from '../providers/registry';
+import { type ProviderConfig } from '../providers/registry.js';
 export interface EyrieConfig {
     provider?: string;
     apiKey?: string;
@@ -118,5 +118,6 @@ export declare class EyrieClient {
     getProviderInfo(provider: string): ProviderConfig | undefined;
 }
 export declare function createEyrie(config?: EyrieConfig): EyrieClient;
-export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS, ProviderConfig, ProviderType } from '../providers/registry.js';
+export { CORE_PROVIDERS, OPENAI_COMPATIBLE_PROVIDERS } from '../providers/registry.js';
+export type { ProviderConfig, ProviderType } from '../providers/registry.js';
 //# sourceMappingURL=index.d.ts.map
