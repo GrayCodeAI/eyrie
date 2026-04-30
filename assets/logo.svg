@@ -1,187 +1,178 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 160" width="480" height="160">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1a1a2e"/>
-      <stop offset="100%" style="stop-color:#0f0f1a"/>
+      <stop offset="0%" style="stop-color:#0d0d1f"/>
+      <stop offset="100%" style="stop-color:#080812"/>
     </linearGradient>
-    <linearGradient id="rockGrad" x1="0%" y1="0%" x2="10%" y2="100%">
-      <stop offset="0%" style="stop-color:#52526a"/>
-      <stop offset="100%" style="stop-color:#252535"/>
-    </linearGradient>
-    <linearGradient id="rockFace" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#2a2a3a"/>
-      <stop offset="100%" style="stop-color:#3a3a4e"/>
-    </linearGradient>
-    <linearGradient id="nestGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#8B6914"/>
-      <stop offset="100%" style="stop-color:#4A3208"/>
-    </linearGradient>
-    <radialGradient id="eggGrad" cx="38%" cy="32%" r="60%">
-      <stop offset="0%" style="stop-color:#7ffff4"/>
-      <stop offset="55%" style="stop-color:#2a9d8f"/>
-      <stop offset="100%" style="stop-color:#1a6b60"/>
+    <radialGradient id="eggG" cx="35%" cy="28%" r="65%">
+      <stop offset="0%" style="stop-color:#ccfff8"/>
+      <stop offset="20%" style="stop-color:#4ecdc4"/>
+      <stop offset="58%" style="stop-color:#1a9d94"/>
+      <stop offset="100%" style="stop-color:#062e2a"/>
     </radialGradient>
-    <radialGradient id="eggDim" cx="38%" cy="32%" r="60%">
-      <stop offset="0%" style="stop-color:#3ab8b0"/>
-      <stop offset="100%" style="stop-color:#1a5a54"/>
+    <radialGradient id="eggAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#4ecdc4" stop-opacity="0.5"/>
+      <stop offset="100%" style="stop-color:#4ecdc4" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="hawkBody" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" style="stop-color:#9a7020"/>
-      <stop offset="50%" style="stop-color:#6B4F10"/>
-      <stop offset="100%" style="stop-color:#3D2B08"/>
-    </linearGradient>
-    <linearGradient id="hawkWing" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#7A5C18"/>
-      <stop offset="100%" style="stop-color:#3D2B08"/>
-    </linearGradient>
-    <linearGradient id="hawkChest" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#ddc880"/>
-      <stop offset="100%" style="stop-color:#b09040"/>
-    </linearGradient>
-    <filter id="eggGlow" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="5" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="bloom" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur stdDeviation="12" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="softGlow">
-      <feGaussianBlur stdDeviation="2.5" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="glow5" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="cliffShadow">
-      <feDropShadow dx="3" dy="5" stdDeviation="4" flood-color="#000" flood-opacity="0.6"/>
+    <filter id="textGlow">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <clipPath id="frame"><rect width="600" height="200" rx="12"/></clipPath>
   </defs>
 
-  <!-- Background -->
-  <rect width="480" height="160" fill="url(#bg)" rx="8"/>
-  <rect width="480" height="160" fill="none" stroke="#e05555" stroke-width="1" rx="8" opacity="0.6"/>
+  <g clip-path="url(#frame)">
+    <rect width="600" height="200" fill="url(#bg)"/>
 
-  <!-- Night sky stars -->
-  <circle cx="155" cy="12" r="1.1" fill="white" opacity="0.7"/>
-  <circle cx="140" cy="22" r="0.7" fill="white" opacity="0.5"/>
-  <circle cx="162" cy="28" r="0.8" fill="white" opacity="0.4"/>
-  <circle cx="130" cy="10" r="1.3" fill="white" opacity="0.6"/>
-  <circle cx="148" cy="38" r="0.6" fill="white" opacity="0.3"/>
-  <circle cx="168" cy="18" r="0.5" fill="white" opacity="0.4"/>
+    <!--
+      ICON: Abstract nest + egg mark
+      Inspired by: the arc of a nest seen from the side,
+      with a glowing egg at center.
+      Clean, geometric, scalable — like Vercel's triangle or Redis's cube.
+      Icon area: 0..165, centered at 82,100
+    -->
 
-  <!-- ═══ CLIFF ═══ -->
-  <!-- Cliff body -->
-  <path d="M 0 160 L 0 55 Q 8 50 18 53 Q 28 46 40 49 Q 52 43 64 47 Q 76 41 88 45 Q 100 39 112 43 Q 120 40 128 43 L 132 160 Z"
-        fill="url(#rockGrad)" filter="url(#cliffShadow)"/>
-  <!-- Cliff face shading (left side darker) -->
-  <path d="M 0 160 L 0 55 Q 8 50 18 53 Q 22 50 26 51 L 28 160 Z" fill="#1e1e2e" opacity="0.5"/>
-  <!-- Rock texture -->
-  <path d="M 12 75 Q 28 70 44 73" stroke="#5a5a6e" stroke-width="0.9" fill="none" opacity="0.5"/>
-  <path d="M 8 92 Q 30 87 55 90" stroke="#5a5a6e" stroke-width="0.8" fill="none" opacity="0.4"/>
-  <path d="M 5 110 Q 35 105 65 108" stroke="#5a5a6e" stroke-width="0.8" fill="none" opacity="0.35"/>
-  <path d="M 10 130 Q 45 125 80 128" stroke="#5a5a6e" stroke-width="0.7" fill="none" opacity="0.3"/>
-  <path d="M 60 60 Q 78 56 96 59" stroke="#5a5a6e" stroke-width="0.7" fill="none" opacity="0.4"/>
-  <path d="M 55 78 Q 78 73 100 76" stroke="#5a5a6e" stroke-width="0.7" fill="none" opacity="0.35"/>
-  <!-- Cliff top edge highlight -->
-  <path d="M 0 55 Q 8 50 18 53 Q 28 46 40 49 Q 52 43 64 47 Q 76 41 88 45 Q 100 39 112 43 Q 120 40 128 43"
-        stroke="#6a6a80" stroke-width="1.3" fill="none" opacity="0.7"/>
+    <!-- Egg outer bloom — only below nest level -->
+    <ellipse cx="82" cy="108" rx="30" ry="14" fill="url(#eggAura)" filter="url(#bloom)"/>
 
-  <!-- ═══ NEST ═══ -->
-  <!-- Nest shadow/base -->
-  <ellipse cx="72" cy="50" rx="40" ry="10" fill="#1a1008" opacity="0.7"/>
-  <!-- Outer twig ring -->
-  <path d="M 36 50 Q 50 42 64 46 Q 72 40 80 44 Q 90 38 104 44 Q 110 40 116 46" stroke="#5A3E0C" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.9"/>
-  <!-- Twig layers -->
-  <path d="M 38 47 Q 52 39 66 43 Q 74 37 82 41 Q 92 35 106 41 Q 112 37 116 43" stroke="#7A5C18" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-  <path d="M 40 44 Q 54 36 68 40 Q 76 34 84 38 Q 94 32 108 38" stroke="#8B6914" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-  <path d="M 42 41 Q 56 33 70 37 Q 78 31 86 35 Q 96 29 106 35" stroke="#9a7820" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <!-- Cross twigs -->
-  <path d="M 46 52 Q 54 38 62 52" stroke="#4A3208" stroke-width="1.8" fill="none" opacity="0.8"/>
-  <path d="M 60 53 Q 68 38 76 53" stroke="#4A3208" stroke-width="1.8" fill="none" opacity="0.8"/>
-  <path d="M 76 52 Q 84 38 92 52" stroke="#4A3208" stroke-width="1.8" fill="none" opacity="0.7"/>
-  <path d="M 90 51 Q 98 38 106 51" stroke="#4A3208" stroke-width="1.6" fill="none" opacity="0.6"/>
-  <!-- Nest inner bowl -->
-  <ellipse cx="74" cy="44" rx="28" ry="7" fill="#1e1208" opacity="0.95"/>
-  <!-- Soft lining -->
-  <ellipse cx="74" cy="43" rx="22" ry="5.5" fill="#2e1e0a" opacity="0.8"/>
+    <!-- NEST arcs -->
+    <path d="M 42 110 A 44 44 0 0 1 122 110" stroke="#1e1004" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+    <path d="M 44 104 A 40 40 0 0 1 120 104" stroke="#3a2208" stroke-width="4"   fill="none" stroke-linecap="round"/>
+    <path d="M 46 98  A 36 36 0 0 1 118 98"  stroke="#5a3810" stroke-width="3"   fill="none" stroke-linecap="round"/>
+    <path d="M 48 93  A 32 32 0 0 1 116 93"  stroke="#7a5018" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M 50 88  A 28 28 0 0 1 114 88"  stroke="#9a6820" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- Nest bowl fill -->
+    <path d="M 50 88 A 28 28 0 0 1 114 88 Q 110 108 82 110 Q 54 108 50 88 Z"
+          fill="#0a0804" opacity="0.96"/>
 
-  <!-- ═══ EGGS ═══ -->
-  <!-- Left egg (dim) -->
-  <ellipse cx="60" cy="39" rx="9" ry="7" fill="url(#eggDim)" opacity="0.6" transform="rotate(-18 60 39)"/>
-  <ellipse cx="58" cy="37" rx="3.5" ry="2.5" fill="#7ffff4" opacity="0.2" transform="rotate(-18 58 37)"/>
+    <!-- EGGS in nest -->
+    <ellipse cx="66" cy="103" rx="10" ry="8" fill="#1a7a74" opacity="0.38" transform="rotate(-22 66 103)"/>
+    <ellipse cx="98" cy="103" rx="10" ry="8" fill="#1a7a74" opacity="0.38" transform="rotate(22 98 103)"/>
+    <!-- Center egg -->
+    <ellipse cx="82" cy="98" rx="13" ry="10" fill="url(#eggG)" filter="url(#glow5)"/>
+    <ellipse cx="78" cy="93" rx="5" ry="3.5" fill="white" opacity="0.25"/>
+    <ellipse cx="77" cy="92" rx="2.5" ry="1.8" fill="white" opacity="0.45"/>
+    <path d="M 82 89 L 80 94 L 84 96 L 81 103" stroke="#062e2a" stroke-width="1.1" fill="none" opacity="0.5"/>
+    <ellipse cx="82" cy="107" rx="14" ry="3.5" fill="#4ecdc4" opacity="0.1"/>
 
-  <!-- Right egg (dim) -->
-  <ellipse cx="89" cy="39" rx="9" ry="7" fill="url(#eggDim)" opacity="0.6" transform="rotate(18 89 39)"/>
-  <ellipse cx="87" cy="37" rx="3.5" ry="2.5" fill="#7ffff4" opacity="0.2" transform="rotate(18 87 37)"/>
+    <!-- HAWK SILHOUETTE — pure flat shape, no detail -->
+    <!-- Perched hawk as a single clean path: head+beak right, body oval, tail down, wings as side bumps -->
+    <!-- This is the approach used by professional icon designers -->
 
-  <!-- Center egg — glowing bright -->
-  <ellipse cx="74" cy="34" rx="14" ry="11" fill="#4ECDC4" opacity="0.12" filter="url(#eggGlow)"/>
-  <ellipse cx="74" cy="34" rx="11" ry="8.5" fill="url(#eggGrad)" filter="url(#eggGlow)"/>
-  <ellipse cx="71" cy="31" rx="4.5" ry="3" fill="#b0fff8" opacity="0.45"/>
-  <!-- Crack -->
-  <path d="M 74 27 L 72 31 L 76 33 L 73 39" stroke="#1a6b60" stroke-width="0.9" fill="none" opacity="0.7"/>
-  <path d="M 77 29 L 75 32" stroke="#1a6b60" stroke-width="0.7" fill="none" opacity="0.5"/>
+    <!-- Shadow -->
+    <ellipse cx="82" cy="92" rx="20" ry="3.5" fill="#000" opacity="0.4"/>
 
-  <!-- ═══ HAWK perched on cliff top, above nest ═══ -->
-  <!-- Tail feathers -->
-  <path d="M 74 10 Q 68 14 66 20 Q 70 18 74 16 Q 78 18 82 20 Q 80 14 74 10 Z" fill="#4A3208" opacity="0.9"/>
-  <path d="M 74 10 Q 70 15 69 21" stroke="#3D2B08" stroke-width="1" fill="none"/>
-  <path d="M 74 10 Q 78 15 79 21" stroke="#3D2B08" stroke-width="1" fill="none"/>
+    <!-- Tail -->
+    <path d="M 77 90 Q 73 96 70 104 Q 76 100 80 95 Q 82 97 82 98 Q 82 97 84 95 Q 88 100 94 104 Q 91 96 87 90 Z"
+          fill="#2e1c06"/>
+    <path d="M 72 101 Q 77 98 82 99 Q 87 98 92 101"
+          stroke="#b82c10" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.65"/>
 
-  <!-- Body -->
-  <ellipse cx="74" cy="22" rx="12" ry="14" fill="url(#hawkBody)"/>
+    <!-- Body — tall slim oval -->
+    <ellipse cx="82" cy="76" rx="11" ry="16" fill="#8a6014"/>
+    <!-- Belly -->
+    <ellipse cx="83" cy="77" rx="7"  ry="11" fill="#e8d080" opacity="0.8"/>
+    <!-- Streaks -->
+    <line x1="81" y1="68" x2="82" y2="86" stroke="#9a7020" stroke-width="1" opacity="0.4"/>
+    <line x1="84" y1="67" x2="85" y2="87" stroke="#9a7020" stroke-width="1" opacity="0.4"/>
+    <!-- Belly band -->
+    <path d="M 77 76 Q 82 79 87 76 Q 88 81 87 84 Q 82 87 77 84 Q 76 81 77 76 Z" fill="#a07020" opacity="0.22"/>
 
-  <!-- Chest -->
-  <ellipse cx="76" cy="25" rx="7" ry="9" fill="url(#hawkChest)" opacity="0.85"/>
-  <!-- Chest streaks -->
-  <line x1="73" y1="19" x2="74" y2="31" stroke="#8B6914" stroke-width="1" opacity="0.45"/>
-  <line x1="76" y1="18" x2="77" y2="32" stroke="#8B6914" stroke-width="1" opacity="0.45"/>
-  <line x1="79" y1="19" x2="80" y2="30" stroke="#8B6914" stroke-width="1" opacity="0.4"/>
+    <!-- Left wing — very tight fold, barely wider than body -->
+    <path d="M 71 88 Q 66 84 65 76 Q 65 68 68 66 Q 71 65 72 70 Q 72 79 71 88 Z"
+          fill="#6a4c10"/>
+    <line x1="66" y1="68" x2="67" y2="84" stroke="#2a1c04" stroke-width="1.1" opacity="0.6"/>
+    <line x1="69" y1="66" x2="70" y2="83" stroke="#2a1c04" stroke-width="1.1" opacity="0.6"/>
 
-  <!-- Left wing (folded) -->
-  <path d="M 63 20 Q 56 16 53 26 Q 56 34 65 32 Q 68 27 66 22 Z" fill="url(#hawkWing)"/>
-  <path d="M 56 18 Q 54 25 57 31" stroke="#2D1F08" stroke-width="0.9" fill="none" opacity="0.6"/>
-  <path d="M 60 16 Q 58 23 61 30" stroke="#2D1F08" stroke-width="0.9" fill="none" opacity="0.6"/>
+    <!-- Right wing — very tight fold -->
+    <path d="M 93 88 Q 98 84 99 76 Q 99 68 96 66 Q 93 65 92 70 Q 92 79 93 88 Z"
+          fill="#6a4c10"/>
+    <line x1="98" y1="68" x2="97" y2="84" stroke="#2a1c04" stroke-width="1.1" opacity="0.6"/>
+    <line x1="95" y1="66" x2="94" y2="83" stroke="#2a1c04" stroke-width="1.1" opacity="0.6"/>
 
-  <!-- Right wing (folded) -->
-  <path d="M 84 20 Q 91 16 94 26 Q 91 34 82 32 Q 79 27 81 22 Z" fill="url(#hawkWing)"/>
-  <path d="M 91 18 Q 93 25 90 31" stroke="#2D1F08" stroke-width="0.9" fill="none" opacity="0.6"/>
-  <path d="M 87 16 Q 89 23 86 30" stroke="#2D1F08" stroke-width="0.9" fill="none" opacity="0.6"/>
+    <!-- Neck -->
+    <path d="M 78 62 Q 76 54 79 49 Q 82 46 85 49 Q 88 54 86 62 Q 84 64 82 64 Q 80 64 78 62 Z"
+          fill="#9a7018"/>
 
-  <!-- Neck -->
-  <ellipse cx="74" cy="11" rx="7" ry="6" fill="#7A5C18"/>
+    <!-- Head -->
+    <ellipse cx="83" cy="38" rx="13" ry="12" fill="#8a6014"/>
+    <!-- Dark cap -->
+    <path d="M 73 36 Q 76 27 83 26 Q 90 27 93 36 Q 89 31 83 31 Q 77 31 73 36 Z" fill="#1e1204"/>
+    <!-- Crest feathers -->
+    <path d="M 80 26 Q 79 21 80 18" stroke="#2e1c06" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M 83 25 Q 83 20 83 17" stroke="#2e1c06" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M 86 26 Q 87 21 87 18" stroke="#2e1c06" stroke-width="1.8" fill="none" stroke-linecap="round"/>
 
-  <!-- Head -->
-  <ellipse cx="76" cy="5" rx="8" ry="7" fill="#6B4F10"/>
-  <!-- Dark cap -->
-  <ellipse cx="76" cy="1" rx="6.5" ry="5" fill="#3D2B08"/>
+    <!-- Cheek -->
+    <path d="M 86 39 Q 92 37 95 41 Q 94 47 89 48 Q 85 47 84 43 Q 84 40 86 39 Z"
+          fill="#d4a030" opacity="0.58"/>
 
-  <!-- Cheek patch -->
-  <ellipse cx="80" cy="6" rx="4.5" ry="4" fill="#C4A860" opacity="0.65"/>
+    <!-- Beak -->
+    <path d="M 93 35 Q 106 36 104 43 Q 100 48 93 45 Q 90 41 93 35 Z" fill="#d8aa18"/>
+    <path d="M 93 35 Q 102 36 104 41" stroke="#a88010" stroke-width="1.2" fill="none"/>
+    <path d="M 102 42 Q 106 45 103 49 Q 99 49 100 45 Z" fill="#9a7808"/>
+    <ellipse cx="93" cy="36" rx="3.8" ry="2.2" fill="#e8c030" opacity="0.85"/>
 
-  <!-- Beak -->
-  <path d="M 84 3 Q 91 5 89 9 Q 86 12 82 9 Q 80 6 84 3 Z" fill="#D4A820"/>
-  <path d="M 88 8 Q 91 10 88 12 Q 85 11 87 9 Z" fill="#B8901A"/>
+    <!-- Eye -->
+    <circle cx="91" cy="37" r="5.5" fill="#0a0800"/>
+    <circle cx="91" cy="37" r="4.2" fill="#e88000"/>
+    <circle cx="91" cy="37" r="3"   fill="#c05800"/>
+    <circle cx="91" cy="37" r="1.9" fill="#060400"/>
+    <circle cx="92.8" cy="35.2" r="1.3" fill="white" opacity="0.92"/>
+    <circle cx="89.5" cy="38.5" r="0.55" fill="white" opacity="0.35"/>
+    <!-- Eyebrow -->
+    <path d="M 83 31 Q 88 29 95 31.5" stroke="#f0e8c0" stroke-width="2.2" fill="none" opacity="0.88"/>
 
-  <!-- Eye -->
-  <circle cx="82" cy="4" r="3.5" fill="#111"/>
-  <circle cx="82" cy="4" r="2.5" fill="#FF8C00"/>
-  <circle cx="82" cy="4" r="1.5" fill="#111"/>
-  <circle cx="83" cy="3" r="0.8" fill="white" opacity="0.9"/>
-  <!-- Eyebrow stripe -->
-  <path d="M 77 1 Q 81 -0.5 86 1.5" stroke="#E8D4A0" stroke-width="1.2" fill="none" opacity="0.75"/>
+    <!-- Feet — 3 clean toes, no back toe, simple perch -->
+    <line x1="79" y1="91" x2="77" y2="97" stroke="#c09030" stroke-width="2.8" stroke-linecap="round"/>
+    <line x1="85" y1="91" x2="87" y2="97" stroke="#c09030" stroke-width="2.8" stroke-linecap="round"/>
+    <!-- Left 3 toes -->
+    <path d="M 77 97 Q 71 100 68 105" stroke="#a07820" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M 77 97 Q 76 102 75 107" stroke="#a07820" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M 77 97 Q 81 100 84 105" stroke="#a07820" stroke-width="2"   fill="none" stroke-linecap="round"/>
+    <path d="M 68 105 Q 65 108 66 111" stroke="#3a2408" stroke-width="2"   fill="none" stroke-linecap="round"/>
+    <path d="M 75 107 Q 73 110 74 113" stroke="#3a2408" stroke-width="2"   fill="none" stroke-linecap="round"/>
+    <path d="M 84 105 Q 87 108 86 111" stroke="#3a2408" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <!-- Right 3 toes -->
+    <path d="M 87 97 Q 81 100 78 105" stroke="#a07820" stroke-width="2"   fill="none" stroke-linecap="round"/>
+    <path d="M 87 97 Q 87 102 87 107" stroke="#a07820" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M 87 97 Q 91 100 94 105" stroke="#a07820" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M 78 105 Q 75 108 76 111" stroke="#3a2408" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M 87 107 Q 86 110 87 113" stroke="#3a2408" stroke-width="2"   fill="none" stroke-linecap="round"/>
+    <path d="M 94 105 Q 97 108 96 111" stroke="#3a2408" stroke-width="2"   fill="none" stroke-linecap="round"/>
 
-  <!-- Talons gripping cliff edge -->
-  <line x1="69" y1="34" x2="65" y2="41" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
-  <line x1="73" y1="35" x2="70" y2="43" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
-  <line x1="77" y1="35" x2="76" y2="44" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
-  <line x1="81" y1="34" x2="85" y2="41" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
-  <!-- Talon hooks -->
-  <path d="M 65 41 Q 62 44 63 46" stroke="#5A3E0C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 70 43 Q 68 46 69 48" stroke="#5A3E0C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 76 44 Q 75 47 76 49" stroke="#5A3E0C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 85 41 Q 88 44 87 46" stroke="#5A3E0C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- Divider -->
+    <line x1="168" y1="24" x2="168" y2="176" stroke="#4ecdc4" stroke-width="0.8" opacity="0.18"/>
 
-  <!-- ═══ TEXT ═══ -->
-  <text x="175" y="75" font-family="'SF Mono','Fira Code','Cascadia Code',monospace" font-size="52" font-weight="700" fill="#4ECDC4" filter="url(#softGlow)" letter-spacing="-1">Eyrie</text>
-  <text x="176" y="100" font-family="'SF Mono','Fira Code',monospace" font-size="13" fill="#8892a4" letter-spacing="0.5">Universal LLM provider library</text>
-  <line x1="176" y1="110" x2="440" y2="110" stroke="#e05555" stroke-width="0.8" opacity="0.6"/>
-  <text x="176" y="128" font-family="'SF Mono','Fira Code',monospace" font-size="11" fill="#4ECDC4" opacity="0.7" letter-spacing="1">the foundation layer for hawk</text>
-  <rect x="176" y="138" width="52" height="16" rx="3" fill="#e05555" opacity="0.15"/>
-  <rect x="176" y="138" width="52" height="16" rx="3" fill="none" stroke="#e05555" stroke-width="0.8" opacity="0.5"/>
-  <text x="202" y="150" font-family="'SF Mono',monospace" font-size="9" fill="#e05555" text-anchor="middle" opacity="0.9">v0.0.1</text>
+    <!-- TEXT -->
+    <text x="196" y="96"
+          font-family="'SF Mono','Fira Code','Cascadia Code','Courier New',monospace"
+          font-size="72" font-weight="800"
+          fill="#4ECDC4" filter="url(#textGlow)" letter-spacing="-3">Eyrie</text>
+
+    <text x="198" y="126"
+          font-family="'SF Mono','Fira Code',monospace"
+          font-size="14.5" fill="#6a7490" letter-spacing="0.5">Universal LLM provider library</text>
+
+    <line x1="198" y1="138" x2="568" y2="138" stroke="#e05555" stroke-width="0.8" opacity="0.5"/>
+
+    <text x="198" y="157"
+          font-family="'SF Mono','Fira Code',monospace"
+          font-size="12" fill="#4ECDC4" opacity="0.65" letter-spacing="1.5">the foundation layer for hawk</text>
+
+    <rect x="198" y="168" width="62" height="20" rx="4" fill="#e05555" opacity="0.1"/>
+    <rect x="198" y="168" width="62" height="20" rx="4" fill="none" stroke="#e05555" stroke-width="0.9" opacity="0.5"/>
+    <text x="229" y="182" font-family="'SF Mono',monospace" font-size="10.5"
+          fill="#e05555" text-anchor="middle" opacity="0.85">v0.0.1</text>
+  </g>
+
+  <rect width="600" height="200" fill="none" stroke="#e05555" stroke-width="1" rx="12" opacity="0.6"/>
 </svg>
