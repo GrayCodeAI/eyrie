@@ -1,7 +1,6 @@
 <div align="center">
-  <h1>🦅 Eyrie</h1>
-  <p><strong>The provider layer that powers hawk</strong></p>
-  <p>Every model. Every provider. One interface.</p>
+  <img src="assets/logo.svg" alt="Eyrie" width="480"/>
+  <br/><br/>
 
   <p>
     <a href="https://golang.org/"><img src="https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go"></a>

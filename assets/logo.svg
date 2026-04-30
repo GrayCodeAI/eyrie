@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 160" width="480" height="160">
+  <defs>
+    <!-- Dark terminal background gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#0f0f1a"/>
+    </linearGradient>
+    <!-- Hawk body gradient - realistic feather tones -->
+    <linearGradient id="hawkBody" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B6914"/>
+      <stop offset="40%" style="stop-color:#6B4F10"/>
+      <stop offset="100%" style="stop-color:#3D2B08"/>
+    </linearGradient>
+    <!-- Wing gradient -->
+    <linearGradient id="wingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A07820"/>
+      <stop offset="50%" style="stop-color:#7A5C18"/>
+      <stop offset="100%" style="stop-color:#4A3810"/>
+    </linearGradient>
+    <!-- Chest/belly - lighter -->
+    <linearGradient id="chestGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8D4A0"/>
+      <stop offset="100%" style="stop-color:#C4A860"/>
+    </linearGradient>
+    <!-- Teal glow for GrayCode brand -->
+    <filter id="tealGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="480" height="160" fill="url(#bg)" rx="8"/>
+
+  <!-- Subtle border matching hawk's terminal red -->
+  <rect width="480" height="160" fill="none" stroke="#e05555" stroke-width="1" rx="8" opacity="0.6"/>
+
+  <!-- ═══ REALISTIC HAWK ═══ -->
+  <!-- Perched hawk facing right, ~90x110px, positioned left-center -->
+
+  <!-- Tail feathers -->
+  <ellipse cx="82" cy="118" rx="18" ry="6" fill="#5A3E0C" transform="rotate(-15 82 118)"/>
+  <ellipse cx="78" cy="120" rx="16" ry="5" fill="#4A3208" transform="rotate(-20 78 120)"/>
+  <ellipse cx="86" cy="116" rx="16" ry="5" fill="#6B4F10" transform="rotate(-10 86 116)"/>
+
+  <!-- Body -->
+  <ellipse cx="95" cy="95" rx="28" ry="35" fill="url(#hawkBody)"/>
+
+  <!-- Chest/belly - lighter streaked pattern -->
+  <ellipse cx="98" cy="100" rx="16" ry="22" fill="url(#chestGrad)" opacity="0.9"/>
+  <!-- Chest streaks (realistic hawk markings) -->
+  <line x1="94" y1="88" x2="96" y2="108" stroke="#8B6914" stroke-width="1.2" opacity="0.5"/>
+  <line x1="98" y1="86" x2="100" y2="110" stroke="#8B6914" stroke-width="1.2" opacity="0.5"/>
+  <line x1="102" y1="88" x2="104" y2="108" stroke="#8B6914" stroke-width="1.2" opacity="0.5"/>
+  <line x1="90" y1="92" x2="92" y2="106" stroke="#8B6914" stroke-width="1" opacity="0.4"/>
+
+  <!-- Left wing (folded, tucked) -->
+  <path d="M 70 85 Q 55 75 50 95 Q 55 110 75 108 Q 80 100 78 90 Z" fill="url(#wingGrad)"/>
+  <!-- Wing feather detail -->
+  <path d="M 55 80 Q 52 90 56 100" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
+  <path d="M 60 77 Q 57 88 61 99" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
+  <path d="M 65 75 Q 62 86 66 98" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
+
+  <!-- Right wing (folded) -->
+  <path d="M 118 85 Q 132 75 137 95 Q 132 110 112 108 Q 108 100 110 90 Z" fill="url(#wingGrad)"/>
+  <path d="M 132 80 Q 135 90 131 100" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
+  <path d="M 127 77 Q 130 88 126 99" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
+
+  <!-- Neck -->
+  <ellipse cx="95" cy="68" rx="14" ry="12" fill="#7A5C18"/>
+
+  <!-- Head -->
+  <ellipse cx="100" cy="52" rx="18" ry="16" fill="#6B4F10"/>
+  <!-- Crown/cap - darker top -->
+  <ellipse cx="100" cy="42" rx="14" ry="10" fill="#4A3208"/>
+
+  <!-- Facial disc / cheek patch -->
+  <ellipse cx="106" cy="54" rx="9" ry="8" fill="#C4A860" opacity="0.7"/>
+
+  <!-- Beak - hooked, realistic -->
+  <path d="M 116 50 Q 126 52 124 58 Q 120 62 114 58 Q 112 54 116 50 Z" fill="#D4A820"/>
+  <!-- Beak hook -->
+  <path d="M 122 57 Q 126 60 122 63 Q 118 62 120 58 Z" fill="#B8901A"/>
+  <!-- Beak ridge -->
+  <line x1="116" y1="51" x2="123" y2="55" stroke="#A07820" stroke-width="0.8"/>
+
+  <!-- Eye - fierce, realistic -->
+  <circle cx="112" cy="50" r="5.5" fill="#1a1a1a"/>
+  <circle cx="112" cy="50" r="4" fill="#FF8C00"/>
+  <circle cx="112" cy="50" r="2.5" fill="#1a1a1a"/>
+  <!-- Eye highlight -->
+  <circle cx="113.5" cy="48.5" r="1" fill="white" opacity="0.9"/>
+  <!-- Superciliary stripe (eyebrow) - white/cream -->
+  <path d="M 105 45 Q 112 43 118 46" stroke="#E8D4A0" stroke-width="1.5" fill="none" opacity="0.8"/>
+
+  <!-- Talons / feet on perch -->
+  <line x1="88" y1="128" x2="82" y2="140" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="95" y1="130" x2="90" y2="142" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="102" y1="130" x2="100" y2="143" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="108" y1="128" x2="114" y2="140" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Talon tips -->
+  <path d="M 82 140 Q 79 143 80 145" stroke="#5A3E0C" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M 90 142 Q 87 145 88 147" stroke="#5A3E0C" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M 100 143 Q 98 146 99 148" stroke="#5A3E0C" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M 114 140 Q 117 143 116 145" stroke="#5A3E0C" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- Perch branch -->
+  <rect x="60" y="140" width="90" height="8" rx="4" fill="#2D1F08"/>
+  <rect x="60" y="140" width="90" height="3" rx="2" fill="#3D2B10" opacity="0.5"/>
+
+  <!-- ═══ TEXT ═══ -->
+  <!-- "Eyrie" - large, GrayCode teal -->
+  <text x="175" y="75" font-family="'SF Mono', 'Fira Code', 'Cascadia Code', monospace" font-size="52" font-weight="700" fill="#4ECDC4" filter="url(#softGlow)" letter-spacing="-1">Eyrie</text>
+
+  <!-- Tagline -->
+  <text x="176" y="100" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" fill="#8892a4" letter-spacing="0.5">Universal LLM provider library</text>
+
+  <!-- Divider line - red like hawk's terminal border -->
+  <line x1="176" y1="110" x2="440" y2="110" stroke="#e05555" stroke-width="0.8" opacity="0.6"/>
+
+  <!-- Sub-tagline -->
+  <text x="176" y="128" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" fill="#4ECDC4" opacity="0.7" letter-spacing="1">the foundation layer for hawk</text>
+
+  <!-- Version badge -->
+  <rect x="176" y="138" width="52" height="16" rx="3" fill="#e05555" opacity="0.15"/>
+  <rect x="176" y="138" width="52" height="16" rx="3" fill="none" stroke="#e05555" stroke-width="0.8" opacity="0.5"/>
+  <text x="202" y="150" font-family="'SF Mono', monospace" font-size="9" fill="#e05555" text-anchor="middle" opacity="0.9">v0.0.1</text>
+</svg>
