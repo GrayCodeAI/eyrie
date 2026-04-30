@@ -59,6 +59,13 @@ type anthropicRequest struct {
 	System      string                   `json:"system,omitempty"`
 	Temperature *float64                 `json:"temperature,omitempty"`
 	Stream      bool                     `json:"stream,omitempty"`
+	Tools       []anthropicTool          `json:"tools,omitempty"`
+}
+
+type anthropicTool struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	InputSchema map[string]interface{} `json:"input_schema"`
 }
 
 type anthropicResponse struct {
@@ -104,6 +111,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	reqBody := anthropicRequest{
 		Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
 		System: system, Temperature: opts.Temperature,
+		Tools: convertToAnthropicTools(opts.Tools),
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -170,6 +178,7 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 	reqBody := anthropicRequest{
 		Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
 		System: system, Temperature: opts.Temperature, Stream: true,
+		Tools: convertToAnthropicTools(opts.Tools),
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -218,4 +227,15 @@ func (c *AnthropicClient) Ping(ctx context.Context) error {
 		return fmt.Errorf("eyrie: anthropic: invalid API key")
 	}
 	return nil
+}
+
+func convertToAnthropicTools(tools []EyrieTool) []anthropicTool {
+	if len(tools) == 0 {
+		return nil
+	}
+	out := make([]anthropicTool, len(tools))
+	for i, t := range tools {
+		out[i] = anthropicTool{Name: t.Name, Description: t.Description, InputSchema: t.Parameters}
+	}
+	return out
 }
