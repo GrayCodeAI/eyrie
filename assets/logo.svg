@@ -1,125 +1,113 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 160" width="480" height="160">
   <defs>
-    <!-- Dark terminal background gradient -->
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#1a1a2e"/>
       <stop offset="100%" style="stop-color:#0f0f1a"/>
     </linearGradient>
-    <!-- Hawk body gradient - realistic feather tones -->
-    <linearGradient id="hawkBody" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Rock/cliff gradient -->
+    <linearGradient id="rockGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a4a5a"/>
+      <stop offset="100%" style="stop-color:#2a2a38"/>
+    </linearGradient>
+    <!-- Nest gradient - warm browns -->
+    <linearGradient id="nestGrad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" style="stop-color:#8B6914"/>
-      <stop offset="40%" style="stop-color:#6B4F10"/>
-      <stop offset="100%" style="stop-color:#3D2B08"/>
+      <stop offset="100%" style="stop-color:#5A3E0C"/>
     </linearGradient>
-    <!-- Wing gradient -->
-    <linearGradient id="wingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#A07820"/>
-      <stop offset="50%" style="stop-color:#7A5C18"/>
-      <stop offset="100%" style="stop-color:#4A3810"/>
-    </linearGradient>
-    <!-- Chest/belly - lighter -->
-    <linearGradient id="chestGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#E8D4A0"/>
-      <stop offset="100%" style="stop-color:#C4A860"/>
-    </linearGradient>
-    <!-- Teal glow for GrayCode brand -->
-    <filter id="tealGlow">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    <!-- Egg glow -->
+    <radialGradient id="eggGrad" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" style="stop-color:#4ECDC4" stop-opacity="0.9"/>
+      <stop offset="60%" style="stop-color:#2a9d8f"/>
+      <stop offset="100%" style="stop-color:#1a6b60"/>
+    </radialGradient>
+    <!-- Teal glow filter -->
+    <filter id="tealGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="eggGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
     <filter id="softGlow">
       <feGaussianBlur stdDeviation="2" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <!-- Cliff edge shadow -->
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
   </defs>
 
   <!-- Background -->
   <rect width="480" height="160" fill="url(#bg)" rx="8"/>
-
-  <!-- Subtle border matching hawk's terminal red -->
+  <!-- Border -->
   <rect width="480" height="160" fill="none" stroke="#e05555" stroke-width="1" rx="8" opacity="0.6"/>
 
-  <!-- ═══ REALISTIC HAWK ═══ -->
-  <!-- Perched hawk facing right, ~90x110px, positioned left-center -->
+  <!-- ═══ CLIFF / ROCK LEDGE ═══ -->
+  <!-- Main cliff face -->
+  <path d="M 0 160 L 0 90 Q 10 85 20 88 Q 30 80 40 82 Q 55 75 65 78 Q 75 72 85 76 Q 95 70 105 74 Q 115 68 125 72 L 130 160 Z" fill="url(#rockGrad)" filter="url(#shadow)"/>
+  <!-- Rock texture lines -->
+  <path d="M 15 100 Q 25 95 35 98" stroke="#5a5a6a" stroke-width="0.8" fill="none" opacity="0.5"/>
+  <path d="M 20 112 Q 35 108 50 110" stroke="#5a5a6a" stroke-width="0.8" fill="none" opacity="0.4"/>
+  <path d="M 10 125 Q 30 120 55 123" stroke="#5a5a6a" stroke-width="0.8" fill="none" opacity="0.4"/>
+  <path d="M 60 90 Q 75 86 90 89" stroke="#5a5a6a" stroke-width="0.7" fill="none" opacity="0.4"/>
+  <path d="M 70 105 Q 85 101 100 104" stroke="#5a5a6a" stroke-width="0.7" fill="none" opacity="0.3"/>
+  <!-- Cliff highlight edge -->
+  <path d="M 0 90 Q 10 85 20 88 Q 30 80 40 82 Q 55 75 65 78 Q 75 72 85 76 Q 95 70 105 74 Q 115 68 125 72" stroke="#6a6a7a" stroke-width="1.2" fill="none" opacity="0.6"/>
 
-  <!-- Tail feathers -->
-  <ellipse cx="82" cy="118" rx="18" ry="6" fill="#5A3E0C" transform="rotate(-15 82 118)"/>
-  <ellipse cx="78" cy="120" rx="16" ry="5" fill="#4A3208" transform="rotate(-20 78 120)"/>
-  <ellipse cx="86" cy="116" rx="16" ry="5" fill="#6B4F10" transform="rotate(-10 86 116)"/>
+  <!-- ═══ NEST ═══ -->
+  <!-- Nest base - woven twigs -->
+  <ellipse cx="80" cy="74" rx="42" ry="12" fill="#3D2B08" opacity="0.8"/>
+  <!-- Twig layers -->
+  <path d="M 42 74 Q 55 68 68 72 Q 80 66 92 70 Q 104 66 118 72" stroke="#6B4F10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M 44 70 Q 58 64 72 68 Q 84 62 96 66 Q 108 62 116 68" stroke="#8B6914" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M 46 66 Q 60 60 74 64 Q 86 58 98 62 Q 110 58 118 64" stroke="#7A5C18" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- Cross twigs -->
+  <path d="M 50 78 Q 60 62 70 78" stroke="#5A3E0C" stroke-width="1.5" fill="none" opacity="0.7"/>
+  <path d="M 65 80 Q 75 63 85 80" stroke="#5A3E0C" stroke-width="1.5" fill="none" opacity="0.7"/>
+  <path d="M 82 79 Q 92 63 102 79" stroke="#5A3E0C" stroke-width="1.5" fill="none" opacity="0.7"/>
+  <path d="M 96 78 Q 106 64 116 78" stroke="#5A3E0C" stroke-width="1.5" fill="none" opacity="0.6"/>
+  <!-- Nest inner bowl -->
+  <ellipse cx="80" cy="68" rx="30" ry="8" fill="#2D1F08" opacity="0.9"/>
+  <!-- Soft lining -->
+  <ellipse cx="80" cy="67" rx="24" ry="6" fill="#3D2B10" opacity="0.6"/>
 
-  <!-- Body -->
-  <ellipse cx="95" cy="95" rx="28" ry="35" fill="url(#hawkBody)"/>
+  <!-- ═══ GLOWING EGGS ═══ -->
+  <!-- Three eggs in nest, center one glowing teal (the "active" one) -->
+  <!-- Left egg -->
+  <ellipse cx="65" cy="63" rx="9" ry="7" fill="#2a9d8f" opacity="0.5" transform="rotate(-15 65 63)"/>
+  <ellipse cx="65" cy="63" rx="8" ry="6" fill="#1a6b60" opacity="0.7" transform="rotate(-15 65 63)"/>
+  <ellipse cx="63" cy="61" rx="3" ry="2" fill="#4ECDC4" opacity="0.3" transform="rotate(-15 63 61)"/>
 
-  <!-- Chest/belly - lighter streaked pattern -->
-  <ellipse cx="98" cy="100" rx="16" ry="22" fill="url(#chestGrad)" opacity="0.9"/>
-  <!-- Chest streaks (realistic hawk markings) -->
-  <line x1="94" y1="88" x2="96" y2="108" stroke="#8B6914" stroke-width="1.2" opacity="0.5"/>
-  <line x1="98" y1="86" x2="100" y2="110" stroke="#8B6914" stroke-width="1.2" opacity="0.5"/>
-  <line x1="102" y1="88" x2="104" y2="108" stroke="#8B6914" stroke-width="1.2" opacity="0.5"/>
-  <line x1="90" y1="92" x2="92" y2="106" stroke="#8B6914" stroke-width="1" opacity="0.4"/>
+  <!-- Right egg -->
+  <ellipse cx="96" cy="63" rx="9" ry="7" fill="#2a9d8f" opacity="0.5" transform="rotate(15 96 63)"/>
+  <ellipse cx="96" cy="63" rx="8" ry="6" fill="#1a6b60" opacity="0.7" transform="rotate(15 96 63)"/>
+  <ellipse cx="94" cy="61" rx="3" ry="2" fill="#4ECDC4" opacity="0.3" transform="rotate(15 94 61)"/>
 
-  <!-- Left wing (folded, tucked) -->
-  <path d="M 70 85 Q 55 75 50 95 Q 55 110 75 108 Q 80 100 78 90 Z" fill="url(#wingGrad)"/>
-  <!-- Wing feather detail -->
-  <path d="M 55 80 Q 52 90 56 100" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
-  <path d="M 60 77 Q 57 88 61 99" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
-  <path d="M 65 75 Q 62 86 66 98" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
+  <!-- Center egg - glowing bright teal (the special one) -->
+  <ellipse cx="80" cy="58" rx="12" ry="9" fill="#4ECDC4" opacity="0.15" filter="url(#eggGlow)"/>
+  <ellipse cx="80" cy="58" rx="11" ry="8.5" fill="url(#eggGrad)" filter="url(#eggGlow)"/>
+  <ellipse cx="77" cy="55" rx="4" ry="3" fill="#a0f0ea" opacity="0.4"/>
+  <!-- Egg crack lines - hatching -->
+  <path d="M 80 51 L 78 55 L 82 57 L 79 62" stroke="#1a6b60" stroke-width="0.8" fill="none" opacity="0.6"/>
+  <path d="M 83 53 L 81 56" stroke="#1a6b60" stroke-width="0.7" fill="none" opacity="0.5"/>
 
-  <!-- Right wing (folded) -->
-  <path d="M 118 85 Q 132 75 137 95 Q 132 110 112 108 Q 108 100 110 90 Z" fill="url(#wingGrad)"/>
-  <path d="M 132 80 Q 135 90 131 100" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
-  <path d="M 127 77 Q 130 88 126 99" stroke="#3D2B08" stroke-width="1" fill="none" opacity="0.6"/>
-
-  <!-- Neck -->
-  <ellipse cx="95" cy="68" rx="14" ry="12" fill="#7A5C18"/>
-
-  <!-- Head -->
-  <ellipse cx="100" cy="52" rx="18" ry="16" fill="#6B4F10"/>
-  <!-- Crown/cap - darker top -->
-  <ellipse cx="100" cy="42" rx="14" ry="10" fill="#4A3208"/>
-
-  <!-- Facial disc / cheek patch -->
-  <ellipse cx="106" cy="54" rx="9" ry="8" fill="#C4A860" opacity="0.7"/>
-
-  <!-- Beak - hooked, realistic -->
-  <path d="M 116 50 Q 126 52 124 58 Q 120 62 114 58 Q 112 54 116 50 Z" fill="#D4A820"/>
-  <!-- Beak hook -->
-  <path d="M 122 57 Q 126 60 122 63 Q 118 62 120 58 Z" fill="#B8901A"/>
-  <!-- Beak ridge -->
-  <line x1="116" y1="51" x2="123" y2="55" stroke="#A07820" stroke-width="0.8"/>
-
-  <!-- Eye - fierce, realistic -->
-  <circle cx="112" cy="50" r="5.5" fill="#1a1a1a"/>
-  <circle cx="112" cy="50" r="4" fill="#FF8C00"/>
-  <circle cx="112" cy="50" r="2.5" fill="#1a1a1a"/>
-  <!-- Eye highlight -->
-  <circle cx="113.5" cy="48.5" r="1" fill="white" opacity="0.9"/>
-  <!-- Superciliary stripe (eyebrow) - white/cream -->
-  <path d="M 105 45 Q 112 43 118 46" stroke="#E8D4A0" stroke-width="1.5" fill="none" opacity="0.8"/>
-
-  <!-- Talons / feet on perch -->
-  <line x1="88" y1="128" x2="82" y2="140" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="95" y1="130" x2="90" y2="142" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="102" y1="130" x2="100" y2="143" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="108" y1="128" x2="114" y2="140" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/>
-  <!-- Talon tips -->
-  <path d="M 82 140 Q 79 143 80 145" stroke="#5A3E0C" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M 90 142 Q 87 145 88 147" stroke="#5A3E0C" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M 100 143 Q 98 146 99 148" stroke="#5A3E0C" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M 114 140 Q 117 143 116 145" stroke="#5A3E0C" stroke-width="2" fill="none" stroke-linecap="round"/>
-
-  <!-- Perch branch -->
-  <rect x="60" y="140" width="90" height="8" rx="4" fill="#2D1F08"/>
-  <rect x="60" y="140" width="90" height="3" rx="2" fill="#3D2B10" opacity="0.5"/>
+  <!-- ═══ STARS / NIGHT SKY ═══ -->
+  <circle cx="160" cy="15" r="1" fill="white" opacity="0.6"/>
+  <circle cx="145" cy="25" r="0.8" fill="white" opacity="0.4"/>
+  <circle cx="170" cy="30" r="0.7" fill="white" opacity="0.5"/>
+  <circle cx="135" cy="12" r="1.2" fill="white" opacity="0.5"/>
+  <circle cx="155" cy="40" r="0.6" fill="white" opacity="0.3"/>
 
   <!-- ═══ TEXT ═══ -->
-  <!-- "Eyrie" - large, GrayCode teal -->
+  <!-- "Eyrie" wordmark -->
   <text x="175" y="75" font-family="'SF Mono', 'Fira Code', 'Cascadia Code', monospace" font-size="52" font-weight="700" fill="#4ECDC4" filter="url(#softGlow)" letter-spacing="-1">Eyrie</text>
 
   <!-- Tagline -->
   <text x="176" y="100" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" fill="#8892a4" letter-spacing="0.5">Universal LLM provider library</text>
 
-  <!-- Divider line - red like hawk's terminal border -->
+  <!-- Divider -->
   <line x1="176" y1="110" x2="440" y2="110" stroke="#e05555" stroke-width="0.8" opacity="0.6"/>
 
   <!-- Sub-tagline -->
