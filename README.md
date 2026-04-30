@@ -1,60 +1,121 @@
 <div align="center">
   <h1>eyrie</h1>
-  <p><strong>Universal LLM provider library for Go</strong></p>
-  <p>The foundation layer powering <a href="https://github.com/hawk/hawk">hawk</a></p>
+  <p><strong>The provider layer that powers hawk</strong></p>
+  <p>Every model. Every provider. One interface.</p>
 
   <p>
     <a href="https://golang.org/"><img src="https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
-    <a href="https://github.com/hawk/eyrie/actions"><img src="https://img.shields.io/github/actions/workflow/status/hawk/eyrie/ci.yml?style=flat-square&label=tests" alt="Tests"></a>
+    <a href="https://github.com/GrayCodeAI/eyrie/actions"><img src="https://img.shields.io/github/actions/workflow/status/GrayCodeAI/eyrie/ci.yml?style=flat-square&label=tests" alt="Tests"></a>
     <a href="https://pkg.go.dev/github.com/hawk/eyrie"><img src="https://img.shields.io/badge/godoc-reference-00ADD8?style=flat-square&logo=go" alt="GoDoc"></a>
   </p>
 </div>
 
 ---
 
-## Overview
+## What is eyrie?
 
-eyrie abstracts 8+ LLM providers behind a single clean `Provider` interface — no external dependencies, pure Go stdlib.
+eyrie is the provider runtime that hawk sits on top of. It handles everything between hawk and the LLM APIs — authentication, model resolution, streaming, retries, rate limiting, and caching — so hawk can focus on being a great coding agent.
+
+When hawk calls a model, eyrie figures out which provider to use, how to talk to it, and how to stream the response back. When hawk switches from Anthropic to Ollama, eyrie handles the translation. When an API returns a 529, eyrie retries with backoff. When a response hits `max_tokens`, eyrie continues automatically.
+
+hawk never talks to an LLM API directly. eyrie does.
+
+## What eyrie handles for hawk
+
+| Concern | What eyrie does |
+|---------|----------------|
+| **Provider routing** | Detects active provider from env vars, config file, or explicit key |
+| **Model resolution** | Maps abstract tiers (opus/sonnet/haiku) to concrete model IDs per provider |
+| **Streaming** | Parses SSE for Anthropic and OpenAI formats — text, tool calls, thinking blocks |
+| **Reliability** | Retries on 429/500/529 with exponential backoff and `Retry-After` support |
+| **Long outputs** | Auto-continues when `stop_reason == max_tokens` |
+| **Cost control** | Anthropic prompt caching breakpoints on system prompt and conversation prefix |
+| **Rate limiting** | Token bucket per provider — prevents hitting API limits |
+| **Config** | Reads/writes `~/.hawk/provider.json`, applies to env vars |
+| **Model catalog** | Embedded pricing + context windows for all providers, live-fetched from OpenRouter |
+| **Testing** | Mock provider — hawk's tests never need real API keys |
+
+## Supported providers
+
+| Provider | Set this | Notes |
+|----------|----------|-------|
+| **Anthropic** | `ANTHROPIC_API_KEY` | Default for hawk · supports thinking, caching |
+| **OpenAI** | `OPENAI_API_KEY` | Full tool use + reasoning effort |
+| **OpenRouter** | `OPENROUTER_API_KEY` | 200+ models via one key |
+| **Grok (xAI)** | `XAI_API_KEY` | |
+| **Gemini** | `GEMINI_API_KEY` | |
+| **CanopyWave** | `CANOPYWAVE_API_KEY` | |
+| **Ollama** | `OLLAMA_BASE_URL` | Local models, no key needed |
+| **OpenCodeGo** | `OPENCODEGO_API_KEY` | |
+
+eyrie detects which provider to use automatically — in the order above.
+
+## How hawk uses eyrie
 
 ```go
+// hawk creates a client once at startup
 c := client.NewEyrieClient(&client.EyrieConfig{
-    Provider: "anthropic",
-    APIKey:   os.Getenv("ANTHROPIC_API_KEY"),
+    Provider: client.DetectProvider(), // reads from env / config file
 })
 
-resp, err := c.Chat(ctx, []client.EyrieMessage{
-    {Role: "user", Content: "Hello!"},
-}, client.ChatOptions{Model: "claude-sonnet-4-6"})
+// hawk streams a response
+sr, err := c.StreamChat(ctx, conversation, client.ChatOptions{
+    Model: catalog.GetProviderDefaultModel(provider, &cat),
+})
+defer sr.Close()
+
+for evt := range sr.Events {
+    switch evt.Type {
+    case "content":   // stream text to terminal
+    case "tool_call": // execute tool, append result
+    case "thinking":  // show thinking indicator
+    case "done":      // response complete
+    }
+}
+
+// When a response hits max_tokens, eyrie continues automatically
+resp, err := client.ChatWithContinuation(ctx, provider, messages,
+    client.ChatOptions{Model: model},
+    client.DefaultContinuationConfig(),
+)
 ```
 
-## Features
+## Provider config file
 
-| | |
-|---|---|
-| 🔌 **8 providers** | Anthropic, OpenAI, OpenRouter, Grok, Gemini, CanopyWave, Ollama, OpenCodeGo |
-| 🌊 **Streaming** | SSE with tool calls, thinking blocks, accumulation by index |
-| 🔁 **Retry** | Exponential backoff, jitter, `Retry-After` header |
-| 💾 **Prompt caching** | Anthropic `cache_control` breakpoints |
-| ♾️ **Continuation** | Auto-retry on `max_tokens` stop reason |
-| 🚦 **Rate limiting** | Token bucket per provider via `WithRateLimit` decorator |
-| 🧪 **Mock provider** | Test without API keys — echo, fixed, tool_use, error modes |
-| 📦 **Model catalog** | Embedded pricing + live fetch from OpenRouter & CanopyWave |
-| 🔍 **Auto-detection** | Provider detected from env vars in priority order |
-| 🔒 **Zero deps** | Pure Go stdlib |
+hawk stores provider config at `~/.hawk/provider.json`. eyrie owns this file.
 
-## Supported Providers
+```go
+cfg := config.LoadProviderConfig("")        // load
+config.ApplyProviderConfigToEnv(cfg, false, nil) // apply to env
+config.SaveProviderConfig(cfg, "")          // save
+```
 
-| Provider | Env Key | Type |
-|----------|---------|------|
-| Anthropic | `ANTHROPIC_API_KEY` | Native |
-| OpenAI | `OPENAI_API_KEY` | Native |
-| OpenRouter | `OPENROUTER_API_KEY` | OpenAI-compatible |
-| Grok (xAI) | `XAI_API_KEY` | OpenAI-compatible |
-| Gemini | `GEMINI_API_KEY` | OpenAI-compatible |
-| CanopyWave | `CANOPYWAVE_API_KEY` | OpenAI-compatible |
-| Ollama | `OLLAMA_BASE_URL` | OpenAI-compatible |
-| OpenCodeGo | `OPENCODEGO_API_KEY` | OpenAI-compatible |
+## Model catalog
+
+eyrie ships with an embedded catalog of every supported model — pricing, context windows, max output. hawk uses this for cost tracking and model selection.
+
+```go
+cat := catalog.DefaultModelCatalog()
+
+// Get the best model for a tier
+model := catalog.GetPreferredProviderModel("anthropic", catalog.TierSonnet, &cat)
+// → "claude-sonnet-4-6"
+
+// Check if a model is deprecated
+warn := catalog.GetModelDeprecationWarning("claude-3-7-sonnet", "anthropic")
+// → "⚠ Claude 3.7 Sonnet will be retired on February 19, 2026..."
+```
+
+## Testing hawk without API keys
+
+```go
+mock := client.NewMockProvider(client.MockModeFixed)
+mock.Response = "Here is the code you asked for..."
+
+// Inject into hawk's test suite — no real API calls
+resp, _ := mock.Chat(ctx, messages, opts)
+```
 
 ## Install
 
@@ -62,145 +123,8 @@ resp, err := c.Chat(ctx, []client.EyrieMessage{
 go get github.com/hawk/eyrie
 ```
 
-Requires Go 1.26+.
-
-## Usage
-
-### Chat
-
-```go
-import "github.com/hawk/eyrie/client"
-
-c := client.NewEyrieClient(&client.EyrieConfig{
-    Provider: "anthropic",
-    APIKey:   os.Getenv("ANTHROPIC_API_KEY"),
-})
-
-resp, err := c.Chat(ctx, []client.EyrieMessage{
-    {Role: "system", Content: "You are a helpful assistant."},
-    {Role: "user",   Content: "What is Go?"},
-}, client.ChatOptions{Model: "claude-sonnet-4-6"})
-
-fmt.Println(resp.Content)
-fmt.Println(resp.Usage.TotalTokens)
-```
-
-### Streaming
-
-```go
-sr, err := c.StreamChat(ctx, messages, client.ChatOptions{Model: "claude-sonnet-4-6"})
-if err != nil {
-    panic(err)
-}
-defer sr.Close()
-
-for evt := range sr.Events {
-    switch evt.Type {
-    case "content":
-        fmt.Print(evt.Content)
-    case "tool_call":
-        fmt.Printf("\n[tool: %s %v]\n", evt.ToolCall.Name, evt.ToolCall.Arguments)
-    case "thinking":
-        fmt.Printf("\n[thinking: %s]\n", evt.Thinking)
-    case "done":
-        fmt.Println()
-    case "error":
-        log.Printf("stream error: %s", evt.Error)
-    }
-}
-```
-
-### Provider auto-detection
-
-```go
-// Detects from env vars: anthropic → openrouter → grok → gemini → canopywave → openai → opencodego → ollama
-provider := client.DetectProvider()
-```
-
-### Prompt caching (Anthropic)
-
-```go
-// Sets cache_control on the conversation prefix — up to 5 min cache, significant cost savings
-cachedMsgs := client.AddCacheBreakpoints(messages)
-```
-
-### Output continuation
-
-```go
-// Automatically continues when stop_reason == "max_tokens" (up to 3 continuations by default)
-resp, err := client.ChatWithContinuation(ctx, provider, messages,
-    client.ChatOptions{Model: "claude-sonnet-4-6"},
-    client.DefaultContinuationConfig(),
-)
-```
-
-### Rate limiting
-
-```go
-limiter := client.NewRateLimiter(client.RateLimitConfig{RequestsPerMinute: 60})
-
-// Wrap any Provider — composes cleanly
-rateLimited := client.WithRateLimit(myProvider, limiter)
-```
-
-### Testing with mock provider
-
-```go
-mock := client.NewMockProvider(client.MockModeFixed)
-mock.Response = "mocked response"
-
-resp, _ := mock.Chat(ctx, messages, opts)
-fmt.Println(resp.Content)   // "mocked response"
-fmt.Println(mock.CallCount()) // 1
-fmt.Println(mock.LastCall().Options.Model)
-```
-
-### Model catalog
-
-```go
-import "github.com/hawk/eyrie/catalog"
-
-cat := catalog.DefaultModelCatalog()                          // embedded
-cat = catalog.LoadModelCatalogSync("/tmp/eyrie-catalog.json") // from cache
-
-// Live fetch from OpenRouter + CanopyWave
-cat, err := catalog.FetchModelCatalog("/tmp/eyrie-catalog.json", map[string]string{
-    "OPENROUTER_API_KEY": os.Getenv("OPENROUTER_API_KEY"),
-})
-
-models := catalog.ModelsForProvider(&cat, "anthropic")
-model  := catalog.GetProviderDefaultModel("anthropic", &cat)
-warn   := catalog.GetModelDeprecationWarning("claude-3-7-sonnet", "anthropic")
-```
-
-### Provider config file
-
-```go
-import "github.com/hawk/eyrie/config"
-
-cfg      := config.LoadProviderConfig("")           // reads ~/.hawk/provider.json
-provider := config.DefaultProviderFromConfig(cfg)
-config.ApplyProviderConfigToEnv(cfg, false, nil)    // applies to os.Environ
-```
-
-## Architecture
-
-```
-eyrie/
-├── client/      Provider interface, Anthropic + OpenAI clients, mock,
-│                streaming, retry, cache, continuation, rate limit
-├── catalog/     Model catalog, tiers, names, deprecation, provider data
-├── config/      Provider profiles, env config, OpenAI-compatible runtime
-├── types/       Message types, content blocks, SDK types, usage, IDs
-├── errors/      Error message constants and parsing utilities
-├── constants/   API limits (image, PDF, media)
-└── utils/       SSL error detection, API error sanitization
-```
-
-## Contributing
-
-PRs welcome. Please run `go test ./... -race` before submitting.
+Requires Go 1.26+. Zero external dependencies.
 
 ## License
 
-[MIT](LICENSE) © 2026 Hawk Contributors
+[MIT](LICENSE) © 2026 GrayCode AI
