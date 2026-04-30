@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>eyrie</h1>
+  <h1>🦅 Eyrie</h1>
   <p><strong>The provider layer that powers hawk</strong></p>
   <p>Every model. Every provider. One interface.</p>
 
