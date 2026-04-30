@@ -10,11 +10,12 @@ const defaultTimeout = 10 * time.Minute
 
 // ChatOptions holds options for a chat request.
 type ChatOptions struct {
-	Provider    string   `json:"provider,omitempty"`
-	Model       string   `json:"model,omitempty"`
-	Temperature *float64 `json:"temperature,omitempty"`
-	MaxTokens   int      `json:"max_tokens,omitempty"`
-	Stream      bool     `json:"stream,omitempty"`
+	Provider    string       `json:"provider,omitempty"`
+	Model       string       `json:"model,omitempty"`
+	Temperature *float64     `json:"temperature,omitempty"`
+	MaxTokens   int          `json:"max_tokens,omitempty"`
+	Stream      bool         `json:"stream,omitempty"`
+	Tools       []EyrieTool  `json:"tools,omitempty"`
 }
 
 // ClientOption configures clients.
