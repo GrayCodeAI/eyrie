@@ -81,12 +81,14 @@ type ToolCall struct {
 
 // EyrieStreamEvent is a streaming event.
 type EyrieStreamEvent struct {
-	Type      string    `json:"type"` // content, tool_call, tool_input_delta, thinking, done, error
-	Content   string    `json:"content,omitempty"`
-	ToolCall  *ToolCall `json:"tool_call,omitempty"`
-	Thinking  string    `json:"thinking,omitempty"`
-	Error     string    `json:"error,omitempty"`
-	RequestID string    `json:"request_id,omitempty"`
+	Type       string      `json:"type"` // content, tool_call, tool_input_delta, thinking, done, error
+	Content    string      `json:"content,omitempty"`
+	ToolCall   *ToolCall   `json:"tool_call,omitempty"`
+	Thinking   string      `json:"thinking,omitempty"`
+	Error      string      `json:"error,omitempty"`
+	RequestID  string      `json:"request_id,omitempty"`
+	Usage      *EyrieUsage `json:"usage,omitempty"`
+	StopReason string      `json:"stop_reason,omitempty"`
 }
 
 // StreamResult wraps a streaming response with cleanup.

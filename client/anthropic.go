@@ -108,6 +108,13 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	}
 
 	msgs, system := buildAnthropicMessages(messages)
+	if opts.System != "" {
+		if system != "" {
+			system = opts.System + "\n\n" + system
+		} else {
+			system = opts.System
+		}
+	}
 	reqBody := anthropicRequest{
 		Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
 		System: system, Temperature: opts.Temperature,
@@ -175,6 +182,13 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 	}
 
 	msgs, system := buildAnthropicMessages(messages)
+	if opts.System != "" {
+		if system != "" {
+			system = opts.System + "\n\n" + system
+		} else {
+			system = opts.System
+		}
+	}
 	reqBody := anthropicRequest{
 		Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
 		System: system, Temperature: opts.Temperature, Stream: true,
