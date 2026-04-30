@@ -4,117 +4,184 @@
       <stop offset="0%" style="stop-color:#1a1a2e"/>
       <stop offset="100%" style="stop-color:#0f0f1a"/>
     </linearGradient>
-    <!-- Rock/cliff gradient -->
-    <linearGradient id="rockGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#4a4a5a"/>
-      <stop offset="100%" style="stop-color:#2a2a38"/>
+    <linearGradient id="rockGrad" x1="0%" y1="0%" x2="10%" y2="100%">
+      <stop offset="0%" style="stop-color:#52526a"/>
+      <stop offset="100%" style="stop-color:#252535"/>
     </linearGradient>
-    <!-- Nest gradient - warm browns -->
+    <linearGradient id="rockFace" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2a2a3a"/>
+      <stop offset="100%" style="stop-color:#3a3a4e"/>
+    </linearGradient>
     <linearGradient id="nestGrad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" style="stop-color:#8B6914"/>
-      <stop offset="100%" style="stop-color:#5A3E0C"/>
+      <stop offset="100%" style="stop-color:#4A3208"/>
     </linearGradient>
-    <!-- Egg glow -->
-    <radialGradient id="eggGrad" cx="40%" cy="35%" r="60%">
-      <stop offset="0%" style="stop-color:#4ECDC4" stop-opacity="0.9"/>
-      <stop offset="60%" style="stop-color:#2a9d8f"/>
+    <radialGradient id="eggGrad" cx="38%" cy="32%" r="60%">
+      <stop offset="0%" style="stop-color:#7ffff4"/>
+      <stop offset="55%" style="stop-color:#2a9d8f"/>
       <stop offset="100%" style="stop-color:#1a6b60"/>
     </radialGradient>
-    <!-- Teal glow filter -->
-    <filter id="tealGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="eggGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <radialGradient id="eggDim" cx="38%" cy="32%" r="60%">
+      <stop offset="0%" style="stop-color:#3ab8b0"/>
+      <stop offset="100%" style="stop-color:#1a5a54"/>
+    </radialGradient>
+    <linearGradient id="hawkBody" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" style="stop-color:#9a7020"/>
+      <stop offset="50%" style="stop-color:#6B4F10"/>
+      <stop offset="100%" style="stop-color:#3D2B08"/>
+    </linearGradient>
+    <linearGradient id="hawkWing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7A5C18"/>
+      <stop offset="100%" style="stop-color:#3D2B08"/>
+    </linearGradient>
+    <linearGradient id="hawkChest" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ddc880"/>
+      <stop offset="100%" style="stop-color:#b09040"/>
+    </linearGradient>
+    <filter id="eggGlow" x="-60%" y="-60%" width="220%" height="220%">
       <feGaussianBlur stdDeviation="5" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
     <filter id="softGlow">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <!-- Cliff edge shadow -->
-    <filter id="shadow">
-      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/>
+    <filter id="cliffShadow">
+      <feDropShadow dx="3" dy="5" stdDeviation="4" flood-color="#000" flood-opacity="0.6"/>
     </filter>
   </defs>
 
   <!-- Background -->
   <rect width="480" height="160" fill="url(#bg)" rx="8"/>
-  <!-- Border -->
   <rect width="480" height="160" fill="none" stroke="#e05555" stroke-width="1" rx="8" opacity="0.6"/>
 
-  <!-- ═══ CLIFF / ROCK LEDGE ═══ -->
-  <!-- Main cliff face -->
-  <path d="M 0 160 L 0 90 Q 10 85 20 88 Q 30 80 40 82 Q 55 75 65 78 Q 75 72 85 76 Q 95 70 105 74 Q 115 68 125 72 L 130 160 Z" fill="url(#rockGrad)" filter="url(#shadow)"/>
-  <!-- Rock texture lines -->
-  <path d="M 15 100 Q 25 95 35 98" stroke="#5a5a6a" stroke-width="0.8" fill="none" opacity="0.5"/>
-  <path d="M 20 112 Q 35 108 50 110" stroke="#5a5a6a" stroke-width="0.8" fill="none" opacity="0.4"/>
-  <path d="M 10 125 Q 30 120 55 123" stroke="#5a5a6a" stroke-width="0.8" fill="none" opacity="0.4"/>
-  <path d="M 60 90 Q 75 86 90 89" stroke="#5a5a6a" stroke-width="0.7" fill="none" opacity="0.4"/>
-  <path d="M 70 105 Q 85 101 100 104" stroke="#5a5a6a" stroke-width="0.7" fill="none" opacity="0.3"/>
-  <!-- Cliff highlight edge -->
-  <path d="M 0 90 Q 10 85 20 88 Q 30 80 40 82 Q 55 75 65 78 Q 75 72 85 76 Q 95 70 105 74 Q 115 68 125 72" stroke="#6a6a7a" stroke-width="1.2" fill="none" opacity="0.6"/>
+  <!-- Night sky stars -->
+  <circle cx="155" cy="12" r="1.1" fill="white" opacity="0.7"/>
+  <circle cx="140" cy="22" r="0.7" fill="white" opacity="0.5"/>
+  <circle cx="162" cy="28" r="0.8" fill="white" opacity="0.4"/>
+  <circle cx="130" cy="10" r="1.3" fill="white" opacity="0.6"/>
+  <circle cx="148" cy="38" r="0.6" fill="white" opacity="0.3"/>
+  <circle cx="168" cy="18" r="0.5" fill="white" opacity="0.4"/>
+
+  <!-- ═══ CLIFF ═══ -->
+  <!-- Cliff body -->
+  <path d="M 0 160 L 0 55 Q 8 50 18 53 Q 28 46 40 49 Q 52 43 64 47 Q 76 41 88 45 Q 100 39 112 43 Q 120 40 128 43 L 132 160 Z"
+        fill="url(#rockGrad)" filter="url(#cliffShadow)"/>
+  <!-- Cliff face shading (left side darker) -->
+  <path d="M 0 160 L 0 55 Q 8 50 18 53 Q 22 50 26 51 L 28 160 Z" fill="#1e1e2e" opacity="0.5"/>
+  <!-- Rock texture -->
+  <path d="M 12 75 Q 28 70 44 73" stroke="#5a5a6e" stroke-width="0.9" fill="none" opacity="0.5"/>
+  <path d="M 8 92 Q 30 87 55 90" stroke="#5a5a6e" stroke-width="0.8" fill="none" opacity="0.4"/>
+  <path d="M 5 110 Q 35 105 65 108" stroke="#5a5a6e" stroke-width="0.8" fill="none" opacity="0.35"/>
+  <path d="M 10 130 Q 45 125 80 128" stroke="#5a5a6e" stroke-width="0.7" fill="none" opacity="0.3"/>
+  <path d="M 60 60 Q 78 56 96 59" stroke="#5a5a6e" stroke-width="0.7" fill="none" opacity="0.4"/>
+  <path d="M 55 78 Q 78 73 100 76" stroke="#5a5a6e" stroke-width="0.7" fill="none" opacity="0.35"/>
+  <!-- Cliff top edge highlight -->
+  <path d="M 0 55 Q 8 50 18 53 Q 28 46 40 49 Q 52 43 64 47 Q 76 41 88 45 Q 100 39 112 43 Q 120 40 128 43"
+        stroke="#6a6a80" stroke-width="1.3" fill="none" opacity="0.7"/>
 
   <!-- ═══ NEST ═══ -->
-  <!-- Nest base - woven twigs -->
-  <ellipse cx="80" cy="74" rx="42" ry="12" fill="#3D2B08" opacity="0.8"/>
+  <!-- Nest shadow/base -->
+  <ellipse cx="72" cy="50" rx="40" ry="10" fill="#1a1008" opacity="0.7"/>
+  <!-- Outer twig ring -->
+  <path d="M 36 50 Q 50 42 64 46 Q 72 40 80 44 Q 90 38 104 44 Q 110 40 116 46" stroke="#5A3E0C" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.9"/>
   <!-- Twig layers -->
-  <path d="M 42 74 Q 55 68 68 72 Q 80 66 92 70 Q 104 66 118 72" stroke="#6B4F10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <path d="M 44 70 Q 58 64 72 68 Q 84 62 96 66 Q 108 62 116 68" stroke="#8B6914" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M 46 66 Q 60 60 74 64 Q 86 58 98 62 Q 110 58 118 64" stroke="#7A5C18" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M 38 47 Q 52 39 66 43 Q 74 37 82 41 Q 92 35 106 41 Q 112 37 116 43" stroke="#7A5C18" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M 40 44 Q 54 36 68 40 Q 76 34 84 38 Q 94 32 108 38" stroke="#8B6914" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M 42 41 Q 56 33 70 37 Q 78 31 86 35 Q 96 29 106 35" stroke="#9a7820" stroke-width="1.5" fill="none" stroke-linecap="round"/>
   <!-- Cross twigs -->
-  <path d="M 50 78 Q 60 62 70 78" stroke="#5A3E0C" stroke-width="1.5" fill="none" opacity="0.7"/>
-  <path d="M 65 80 Q 75 63 85 80" stroke="#5A3E0C" stroke-width="1.5" fill="none" opacity="0.7"/>
-  <path d="M 82 79 Q 92 63 102 79" stroke="#5A3E0C" stroke-width="1.5" fill="none" opacity="0.7"/>
-  <path d="M 96 78 Q 106 64 116 78" stroke="#5A3E0C" stroke-width="1.5" fill="none" opacity="0.6"/>
+  <path d="M 46 52 Q 54 38 62 52" stroke="#4A3208" stroke-width="1.8" fill="none" opacity="0.8"/>
+  <path d="M 60 53 Q 68 38 76 53" stroke="#4A3208" stroke-width="1.8" fill="none" opacity="0.8"/>
+  <path d="M 76 52 Q 84 38 92 52" stroke="#4A3208" stroke-width="1.8" fill="none" opacity="0.7"/>
+  <path d="M 90 51 Q 98 38 106 51" stroke="#4A3208" stroke-width="1.6" fill="none" opacity="0.6"/>
   <!-- Nest inner bowl -->
-  <ellipse cx="80" cy="68" rx="30" ry="8" fill="#2D1F08" opacity="0.9"/>
+  <ellipse cx="74" cy="44" rx="28" ry="7" fill="#1e1208" opacity="0.95"/>
   <!-- Soft lining -->
-  <ellipse cx="80" cy="67" rx="24" ry="6" fill="#3D2B10" opacity="0.6"/>
+  <ellipse cx="74" cy="43" rx="22" ry="5.5" fill="#2e1e0a" opacity="0.8"/>
 
-  <!-- ═══ GLOWING EGGS ═══ -->
-  <!-- Three eggs in nest, center one glowing teal (the "active" one) -->
-  <!-- Left egg -->
-  <ellipse cx="65" cy="63" rx="9" ry="7" fill="#2a9d8f" opacity="0.5" transform="rotate(-15 65 63)"/>
-  <ellipse cx="65" cy="63" rx="8" ry="6" fill="#1a6b60" opacity="0.7" transform="rotate(-15 65 63)"/>
-  <ellipse cx="63" cy="61" rx="3" ry="2" fill="#4ECDC4" opacity="0.3" transform="rotate(-15 63 61)"/>
+  <!-- ═══ EGGS ═══ -->
+  <!-- Left egg (dim) -->
+  <ellipse cx="60" cy="39" rx="9" ry="7" fill="url(#eggDim)" opacity="0.6" transform="rotate(-18 60 39)"/>
+  <ellipse cx="58" cy="37" rx="3.5" ry="2.5" fill="#7ffff4" opacity="0.2" transform="rotate(-18 58 37)"/>
 
-  <!-- Right egg -->
-  <ellipse cx="96" cy="63" rx="9" ry="7" fill="#2a9d8f" opacity="0.5" transform="rotate(15 96 63)"/>
-  <ellipse cx="96" cy="63" rx="8" ry="6" fill="#1a6b60" opacity="0.7" transform="rotate(15 96 63)"/>
-  <ellipse cx="94" cy="61" rx="3" ry="2" fill="#4ECDC4" opacity="0.3" transform="rotate(15 94 61)"/>
+  <!-- Right egg (dim) -->
+  <ellipse cx="89" cy="39" rx="9" ry="7" fill="url(#eggDim)" opacity="0.6" transform="rotate(18 89 39)"/>
+  <ellipse cx="87" cy="37" rx="3.5" ry="2.5" fill="#7ffff4" opacity="0.2" transform="rotate(18 87 37)"/>
 
-  <!-- Center egg - glowing bright teal (the special one) -->
-  <ellipse cx="80" cy="58" rx="12" ry="9" fill="#4ECDC4" opacity="0.15" filter="url(#eggGlow)"/>
-  <ellipse cx="80" cy="58" rx="11" ry="8.5" fill="url(#eggGrad)" filter="url(#eggGlow)"/>
-  <ellipse cx="77" cy="55" rx="4" ry="3" fill="#a0f0ea" opacity="0.4"/>
-  <!-- Egg crack lines - hatching -->
-  <path d="M 80 51 L 78 55 L 82 57 L 79 62" stroke="#1a6b60" stroke-width="0.8" fill="none" opacity="0.6"/>
-  <path d="M 83 53 L 81 56" stroke="#1a6b60" stroke-width="0.7" fill="none" opacity="0.5"/>
+  <!-- Center egg — glowing bright -->
+  <ellipse cx="74" cy="34" rx="14" ry="11" fill="#4ECDC4" opacity="0.12" filter="url(#eggGlow)"/>
+  <ellipse cx="74" cy="34" rx="11" ry="8.5" fill="url(#eggGrad)" filter="url(#eggGlow)"/>
+  <ellipse cx="71" cy="31" rx="4.5" ry="3" fill="#b0fff8" opacity="0.45"/>
+  <!-- Crack -->
+  <path d="M 74 27 L 72 31 L 76 33 L 73 39" stroke="#1a6b60" stroke-width="0.9" fill="none" opacity="0.7"/>
+  <path d="M 77 29 L 75 32" stroke="#1a6b60" stroke-width="0.7" fill="none" opacity="0.5"/>
 
-  <!-- ═══ STARS / NIGHT SKY ═══ -->
-  <circle cx="160" cy="15" r="1" fill="white" opacity="0.6"/>
-  <circle cx="145" cy="25" r="0.8" fill="white" opacity="0.4"/>
-  <circle cx="170" cy="30" r="0.7" fill="white" opacity="0.5"/>
-  <circle cx="135" cy="12" r="1.2" fill="white" opacity="0.5"/>
-  <circle cx="155" cy="40" r="0.6" fill="white" opacity="0.3"/>
+  <!-- ═══ HAWK perched on cliff top, above nest ═══ -->
+  <!-- Tail feathers -->
+  <path d="M 74 10 Q 68 14 66 20 Q 70 18 74 16 Q 78 18 82 20 Q 80 14 74 10 Z" fill="#4A3208" opacity="0.9"/>
+  <path d="M 74 10 Q 70 15 69 21" stroke="#3D2B08" stroke-width="1" fill="none"/>
+  <path d="M 74 10 Q 78 15 79 21" stroke="#3D2B08" stroke-width="1" fill="none"/>
+
+  <!-- Body -->
+  <ellipse cx="74" cy="22" rx="12" ry="14" fill="url(#hawkBody)"/>
+
+  <!-- Chest -->
+  <ellipse cx="76" cy="25" rx="7" ry="9" fill="url(#hawkChest)" opacity="0.85"/>
+  <!-- Chest streaks -->
+  <line x1="73" y1="19" x2="74" y2="31" stroke="#8B6914" stroke-width="1" opacity="0.45"/>
+  <line x1="76" y1="18" x2="77" y2="32" stroke="#8B6914" stroke-width="1" opacity="0.45"/>
+  <line x1="79" y1="19" x2="80" y2="30" stroke="#8B6914" stroke-width="1" opacity="0.4"/>
+
+  <!-- Left wing (folded) -->
+  <path d="M 63 20 Q 56 16 53 26 Q 56 34 65 32 Q 68 27 66 22 Z" fill="url(#hawkWing)"/>
+  <path d="M 56 18 Q 54 25 57 31" stroke="#2D1F08" stroke-width="0.9" fill="none" opacity="0.6"/>
+  <path d="M 60 16 Q 58 23 61 30" stroke="#2D1F08" stroke-width="0.9" fill="none" opacity="0.6"/>
+
+  <!-- Right wing (folded) -->
+  <path d="M 84 20 Q 91 16 94 26 Q 91 34 82 32 Q 79 27 81 22 Z" fill="url(#hawkWing)"/>
+  <path d="M 91 18 Q 93 25 90 31" stroke="#2D1F08" stroke-width="0.9" fill="none" opacity="0.6"/>
+  <path d="M 87 16 Q 89 23 86 30" stroke="#2D1F08" stroke-width="0.9" fill="none" opacity="0.6"/>
+
+  <!-- Neck -->
+  <ellipse cx="74" cy="11" rx="7" ry="6" fill="#7A5C18"/>
+
+  <!-- Head -->
+  <ellipse cx="76" cy="5" rx="8" ry="7" fill="#6B4F10"/>
+  <!-- Dark cap -->
+  <ellipse cx="76" cy="1" rx="6.5" ry="5" fill="#3D2B08"/>
+
+  <!-- Cheek patch -->
+  <ellipse cx="80" cy="6" rx="4.5" ry="4" fill="#C4A860" opacity="0.65"/>
+
+  <!-- Beak -->
+  <path d="M 84 3 Q 91 5 89 9 Q 86 12 82 9 Q 80 6 84 3 Z" fill="#D4A820"/>
+  <path d="M 88 8 Q 91 10 88 12 Q 85 11 87 9 Z" fill="#B8901A"/>
+
+  <!-- Eye -->
+  <circle cx="82" cy="4" r="3.5" fill="#111"/>
+  <circle cx="82" cy="4" r="2.5" fill="#FF8C00"/>
+  <circle cx="82" cy="4" r="1.5" fill="#111"/>
+  <circle cx="83" cy="3" r="0.8" fill="white" opacity="0.9"/>
+  <!-- Eyebrow stripe -->
+  <path d="M 77 1 Q 81 -0.5 86 1.5" stroke="#E8D4A0" stroke-width="1.2" fill="none" opacity="0.75"/>
+
+  <!-- Talons gripping cliff edge -->
+  <line x1="69" y1="34" x2="65" y2="41" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
+  <line x1="73" y1="35" x2="70" y2="43" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
+  <line x1="77" y1="35" x2="76" y2="44" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
+  <line x1="81" y1="34" x2="85" y2="41" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
+  <!-- Talon hooks -->
+  <path d="M 65 41 Q 62 44 63 46" stroke="#5A3E0C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 70 43 Q 68 46 69 48" stroke="#5A3E0C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 76 44 Q 75 47 76 49" stroke="#5A3E0C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 85 41 Q 88 44 87 46" stroke="#5A3E0C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
 
   <!-- ═══ TEXT ═══ -->
-  <!-- "Eyrie" wordmark -->
-  <text x="175" y="75" font-family="'SF Mono', 'Fira Code', 'Cascadia Code', monospace" font-size="52" font-weight="700" fill="#4ECDC4" filter="url(#softGlow)" letter-spacing="-1">Eyrie</text>
-
-  <!-- Tagline -->
-  <text x="176" y="100" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" fill="#8892a4" letter-spacing="0.5">Universal LLM provider library</text>
-
-  <!-- Divider -->
+  <text x="175" y="75" font-family="'SF Mono','Fira Code','Cascadia Code',monospace" font-size="52" font-weight="700" fill="#4ECDC4" filter="url(#softGlow)" letter-spacing="-1">Eyrie</text>
+  <text x="176" y="100" font-family="'SF Mono','Fira Code',monospace" font-size="13" fill="#8892a4" letter-spacing="0.5">Universal LLM provider library</text>
   <line x1="176" y1="110" x2="440" y2="110" stroke="#e05555" stroke-width="0.8" opacity="0.6"/>
-
-  <!-- Sub-tagline -->
-  <text x="176" y="128" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" fill="#4ECDC4" opacity="0.7" letter-spacing="1">the foundation layer for hawk</text>
-
-  <!-- Version badge -->
+  <text x="176" y="128" font-family="'SF Mono','Fira Code',monospace" font-size="11" fill="#4ECDC4" opacity="0.7" letter-spacing="1">the foundation layer for hawk</text>
   <rect x="176" y="138" width="52" height="16" rx="3" fill="#e05555" opacity="0.15"/>
   <rect x="176" y="138" width="52" height="16" rx="3" fill="none" stroke="#e05555" stroke-width="0.8" opacity="0.5"/>
-  <text x="202" y="150" font-family="'SF Mono', monospace" font-size="9" fill="#e05555" text-anchor="middle" opacity="0.9">v0.0.1</text>
+  <text x="202" y="150" font-family="'SF Mono',monospace" font-size="9" fill="#e05555" text-anchor="middle" opacity="0.9">v0.0.1</text>
 </svg>
