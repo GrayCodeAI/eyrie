@@ -16,6 +16,7 @@ type ChatOptions struct {
 	MaxTokens   int          `json:"max_tokens,omitempty"`
 	Stream      bool         `json:"stream,omitempty"`
 	Tools       []EyrieTool  `json:"tools,omitempty"`
+	System      string       `json:"system,omitempty"`
 }
 
 // ClientOption configures clients.
