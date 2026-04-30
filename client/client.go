@@ -44,9 +44,18 @@ type EyrieConfig struct {
 
 // EyrieMessage represents a chat message.
 type EyrieMessage struct {
-	Role    string   `json:"role"`
-	Content string   `json:"content"`
-	Images  []string `json:"images,omitempty"`
+	Role       string      `json:"role"`
+	Content    string      `json:"content,omitempty"`
+	Images     []string    `json:"images,omitempty"`
+	ToolUse    []ToolCall  `json:"tool_use,omitempty"`    // assistant message with tool calls
+	ToolResult *ToolResult `json:"tool_result,omitempty"` // user message with tool result
+}
+
+// ToolResult represents the result of a tool execution.
+type ToolResult struct {
+	ToolUseID string `json:"tool_use_id"`
+	Content   string `json:"content"`
+	IsError   bool   `json:"is_error,omitempty"`
 }
 
 // EyrieTool represents a tool definition.
