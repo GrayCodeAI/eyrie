@@ -8,15 +8,23 @@ import (
 
 const defaultTimeout = 10 * time.Minute
 
+// ResponseFormat specifies the desired output format for the model response.
+type ResponseFormat struct {
+	Type   string `json:"type"`             // "json_object" or "json_schema"
+	Schema string `json:"schema,omitempty"` // optional JSON schema for structured output
+}
+
 // ChatOptions holds options for a chat request.
 type ChatOptions struct {
-	Provider    string       `json:"provider,omitempty"`
-	Model       string       `json:"model,omitempty"`
-	Temperature *float64     `json:"temperature,omitempty"`
-	MaxTokens   int          `json:"max_tokens,omitempty"`
-	Stream      bool         `json:"stream,omitempty"`
-	Tools       []EyrieTool  `json:"tools,omitempty"`
-	System      string       `json:"system,omitempty"`
+	Provider       string          `json:"provider,omitempty"`
+	Model          string          `json:"model,omitempty"`
+	Temperature    *float64        `json:"temperature,omitempty"`
+	MaxTokens      int             `json:"max_tokens,omitempty"`
+	Stream         bool            `json:"stream,omitempty"`
+	Tools          []EyrieTool     `json:"tools,omitempty"`
+	System         string          `json:"system,omitempty"`
+	EnableCaching  bool            `json:"enable_caching,omitempty"`
+	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
 }
 
 // ClientOption configures clients.

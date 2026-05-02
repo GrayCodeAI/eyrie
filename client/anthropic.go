@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 )
 
 // AnthropicClient implements Provider for the Anthropic Messages API.
@@ -122,12 +123,64 @@ func buildAnthropicMessages(messages []EyrieMessage) ([]map[string]interface{}, 
 			msgs = append(msgs, map[string]interface{}{"role": "user", "content": content})
 			continue
 		}
+		// Handle messages with images: build multi-part content array
+		if len(m.Images) > 0 {
+			content := make([]map[string]interface{}, 0, 1+len(m.Images))
+			if m.Content != "" {
+				content = append(content, map[string]interface{}{"type": "text", "text": m.Content})
+			}
+			for _, img := range m.Images {
+				mediaType, data, isBase64 := parseImageString(img)
+				if isBase64 {
+					content = append(content, map[string]interface{}{
+						"type": "image",
+						"source": map[string]interface{}{
+							"type":       "base64",
+							"media_type": mediaType,
+							"data":       data,
+						},
+					})
+				} else {
+					// URL-based image
+					content = append(content, map[string]interface{}{
+						"type": "image",
+						"source": map[string]interface{}{
+							"type": "url",
+							"url":  img,
+						},
+					})
+				}
+			}
+			msgs = append(msgs, map[string]interface{}{"role": m.Role, "content": content})
+			continue
+		}
 		msgs = append(msgs, map[string]interface{}{"role": m.Role, "content": m.Content})
 	}
 	return msgs, system
 }
 
+// parseImageString parses an image string into media type, data, and whether it is base64.
+// Accepts "data:<mediaType>;base64,<data>" or a plain URL (http/https).
+func parseImageString(img string) (mediaType, data string, isBase64 bool) {
+	if strings.HasPrefix(img, "data:") {
+		// Format: data:<mediaType>;base64,<data>
+		rest := strings.TrimPrefix(img, "data:")
+		if semiIdx := strings.Index(rest, ";base64,"); semiIdx >= 0 {
+			mediaType = rest[:semiIdx]
+			data = rest[semiIdx+len(";base64,"):]
+			return mediaType, data, true
+		}
+	}
+	// Treat as URL
+	return "", img, false
+}
+
 // Chat sends a non-streaming message to Anthropic.
+// NOTE: Anthropic does not support a native JSON mode (response_format).
+// Structured output with Anthropic is achieved via the tool-use pattern
+// (defining a tool whose input_schema is your desired output schema).
+// This is not implemented here; opts.ResponseFormat is ignored for Anthropic.
+// Future work: implement tool-use-based structured output for Anthropic.
 func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for anthropic")
@@ -137,21 +190,45 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 		maxTokens = 4096
 	}
 
-	msgs, system := buildAnthropicMessages(messages)
-	if opts.System != "" {
-		if system != "" {
-			system = opts.System + "\n\n" + system
-		} else {
-			system = opts.System
+	var body []byte
+	if opts.EnableCaching {
+		// Use cached request builder for Anthropic prompt caching support
+		cachedReq := buildAnthropicCachedRequest(messages, opts.Model, maxTokens, opts.Temperature, false)
+		if opts.System != "" {
+			if existing, ok := cachedReq["system"]; ok && existing != nil {
+				// System already set as cached array; prepend the opts.System
+				_ = existing // already handled by buildAnthropicCachedRequest
+			} else {
+				cachedReq["system"] = []map[string]interface{}{
+					{
+						"type": "text",
+						"text": opts.System,
+						"cache_control": map[string]string{"type": "ephemeral"},
+					},
+				}
+			}
 		}
-	}
-	reqBody := anthropicRequest{
-		Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
-		System: system, Temperature: opts.Temperature,
-		Tools: convertToAnthropicTools(opts.Tools),
+		if tools := convertToAnthropicTools(opts.Tools); len(tools) > 0 {
+			cachedReq["tools"] = tools
+		}
+		body, _ = json.Marshal(cachedReq)
+	} else {
+		msgs, system := buildAnthropicMessages(messages)
+		if opts.System != "" {
+			if system != "" {
+				system = opts.System + "\n\n" + system
+			} else {
+				system = opts.System
+			}
+		}
+		reqBody := anthropicRequest{
+			Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
+			System: system, Temperature: opts.Temperature,
+			Tools: convertToAnthropicTools(opts.Tools),
+		}
+		body, _ = json.Marshal(reqBody)
 	}
 
-	body, _ := json.Marshal(reqBody)
 	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/messages", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: failed to create request: %w", err)
@@ -159,7 +236,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	c.setHeaders(req)
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
-	c.logger.Debug("anthropic chat", "model", opts.Model, "messages", len(msgs))
+	c.logger.Debug("anthropic chat", "model", opts.Model, "caching", opts.EnableCaching)
 
 	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
@@ -211,21 +288,42 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 		maxTokens = 4096
 	}
 
-	msgs, system := buildAnthropicMessages(messages)
-	if opts.System != "" {
-		if system != "" {
-			system = opts.System + "\n\n" + system
-		} else {
-			system = opts.System
+	var body []byte
+	if opts.EnableCaching {
+		// Use cached request builder for Anthropic prompt caching support
+		cachedReq := buildAnthropicCachedRequest(messages, opts.Model, maxTokens, opts.Temperature, true)
+		if opts.System != "" {
+			if _, ok := cachedReq["system"]; !ok {
+				cachedReq["system"] = []map[string]interface{}{
+					{
+						"type": "text",
+						"text": opts.System,
+						"cache_control": map[string]string{"type": "ephemeral"},
+					},
+				}
+			}
 		}
-	}
-	reqBody := anthropicRequest{
-		Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
-		System: system, Temperature: opts.Temperature, Stream: true,
-		Tools: convertToAnthropicTools(opts.Tools),
+		if tools := convertToAnthropicTools(opts.Tools); len(tools) > 0 {
+			cachedReq["tools"] = tools
+		}
+		body, _ = json.Marshal(cachedReq)
+	} else {
+		msgs, system := buildAnthropicMessages(messages)
+		if opts.System != "" {
+			if system != "" {
+				system = opts.System + "\n\n" + system
+			} else {
+				system = opts.System
+			}
+		}
+		reqBody := anthropicRequest{
+			Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
+			System: system, Temperature: opts.Temperature, Stream: true,
+			Tools: convertToAnthropicTools(opts.Tools),
+		}
+		body, _ = json.Marshal(reqBody)
 	}
 
-	body, _ := json.Marshal(reqBody)
 	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/messages", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: failed to create request: %w", err)

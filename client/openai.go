@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 )
 
 // OpenAIClient implements Provider for OpenAI and OpenAI-compatible APIs.
@@ -65,6 +66,7 @@ type openaiRequest struct {
 	Stream              bool                     `json:"stream,omitempty"`
 	StreamOptions       *streamOptions           `json:"stream_options,omitempty"`
 	Tools               []map[string]interface{} `json:"tools,omitempty"`
+	ResponseFormat      map[string]interface{}   `json:"response_format,omitempty"`
 }
 
 type streamOptions struct {
@@ -105,6 +107,35 @@ func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, s
 			continue
 		}
 		msg := map[string]interface{}{"role": m.Role, "content": m.Content}
+		// Handle messages with images: build multi-part content array
+		if len(m.Images) > 0 {
+			content := make([]map[string]interface{}, 0, 1+len(m.Images))
+			if m.Content != "" {
+				content = append(content, map[string]interface{}{"type": "text", "text": m.Content})
+			}
+			for _, img := range m.Images {
+				if strings.HasPrefix(img, "data:") {
+					// Already a data URI, pass directly
+					content = append(content, map[string]interface{}{
+						"type":      "image_url",
+						"image_url": map[string]interface{}{"url": img},
+					})
+				} else if strings.HasPrefix(img, "http") {
+					// Plain URL
+					content = append(content, map[string]interface{}{
+						"type":      "image_url",
+						"image_url": map[string]interface{}{"url": img},
+					})
+				} else {
+					// Assume raw base64 data, default to image/png
+					content = append(content, map[string]interface{}{
+						"type":      "image_url",
+						"image_url": map[string]interface{}{"url": "data:image/png;base64," + img},
+					})
+				}
+			}
+			msg["content"] = content
+		}
 		if len(m.ToolUse) > 0 {
 			toolCalls := make([]map[string]interface{}, len(m.ToolUse))
 			for i, tc := range m.ToolUse {
@@ -148,6 +179,16 @@ func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, s
 	}
 	if stream && c.compat.SupportsUsageInStreaming {
 		req.StreamOptions = &streamOptions{IncludeUsage: true}
+	}
+	if opts.ResponseFormat != nil {
+		rf := map[string]interface{}{"type": opts.ResponseFormat.Type}
+		if opts.ResponseFormat.Schema != "" && opts.ResponseFormat.Type == "json_schema" {
+			var schema map[string]interface{}
+			if json.Unmarshal([]byte(opts.ResponseFormat.Schema), &schema) == nil {
+				rf["json_schema"] = schema
+			}
+		}
+		req.ResponseFormat = rf
 	}
 	return req
 }
