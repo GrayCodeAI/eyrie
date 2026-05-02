@@ -21,14 +21,18 @@ type RateLimitConfig struct {
 	RequestsPerMinute int
 	// BurstSize is the maximum burst above the steady rate (default = RequestsPerMinute/10, min 1).
 	BurstSize int
+	// MinInterval is the minimum time between requests (e.g., 5ms for cloud, 0 for local).
+	MinInterval time.Duration
 }
 
 type tokenBucket struct {
-	tokens     float64
-	maxTokens  float64
-	refillRate float64 // tokens per nanosecond
-	lastRefill time.Time
-	mu         sync.Mutex
+	tokens      float64
+	maxTokens   float64
+	refillRate  float64 // tokens per nanosecond
+	lastRefill  time.Time
+	minInterval time.Duration
+	lastRequest time.Time
+	mu          sync.Mutex
 }
 
 func newTokenBucket(cfg RateLimitConfig) *tokenBucket {
@@ -44,10 +48,11 @@ func newTokenBucket(cfg RateLimitConfig) *tokenBucket {
 	}
 	rate := float64(cfg.RequestsPerMinute) / float64(time.Minute)
 	return &tokenBucket{
-		tokens:     float64(burst),
-		maxTokens:  float64(burst),
-		refillRate: rate,
-		lastRefill: time.Now(),
+		tokens:      float64(burst),
+		maxTokens:   float64(burst),
+		refillRate:  rate,
+		lastRefill:  time.Now(),
+		minInterval: cfg.MinInterval,
 	}
 }
 
@@ -64,6 +69,21 @@ func (b *tokenBucket) wait(ctx context.Context) error {
 
 		if b.tokens >= 1 {
 			b.tokens--
+			// Enforce minimum interval between requests
+			if b.minInterval > 0 {
+				since := time.Since(b.lastRequest)
+				if since < b.minInterval {
+					wait := b.minInterval - since
+					b.mu.Unlock()
+					select {
+					case <-ctx.Done():
+						return fmt.Errorf("eyrie: rate limiter: %w", ctx.Err())
+					case <-time.After(wait):
+					}
+					b.mu.Lock()
+				}
+				b.lastRequest = time.Now()
+			}
 			b.mu.Unlock()
 			return nil
 		}

@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -73,6 +74,26 @@ func (rc RetryConfig) backoffDelay(attempt int, resp *http.Response) time.Durati
 	return jitter
 }
 
+var retryDelayRe = regexp.MustCompile(`(?i)(?:retry|try again)\s+(?:in|after)\s+(\d+(?:\.\d+)?)\s*(ms|milliseconds?|s|seconds?)`)
+
+// parseRetryDelay extracts a delay hint from an error message.
+func parseRetryDelay(errMsg string) time.Duration {
+	m := retryDelayRe.FindStringSubmatch(errMsg)
+	if m == nil {
+		return 0
+	}
+	val, err := strconv.ParseFloat(m[1], 64)
+	if err != nil {
+		return 0
+	}
+	switch {
+	case len(m[2]) > 0 && m[2][0] == 'm':
+		return time.Duration(val * float64(time.Millisecond))
+	default:
+		return time.Duration(val * float64(time.Second))
+	}
+}
+
 // doWithRetry executes an HTTP request with retry logic.
 func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request, rc RetryConfig, logger *slog.Logger) (*http.Response, error) {
 	var lastErr error
@@ -81,6 +102,11 @@ func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request
 	for attempt := 0; attempt <= rc.MaxRetries; attempt++ {
 		if attempt > 0 {
 			delay := rc.backoffDelay(attempt-1, lastResp)
+			if lastErr != nil {
+				if parsed := parseRetryDelay(lastErr.Error()); parsed > delay {
+					delay = parsed
+				}
+			}
 			logger.Debug("retrying request",
 				"attempt", attempt, "max", rc.MaxRetries,
 				"delay", delay, "url", req.URL.String(),
