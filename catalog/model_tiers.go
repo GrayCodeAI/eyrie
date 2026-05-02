@@ -212,10 +212,6 @@ func GetPreferredProviderModel(provider string, tier ModelTier, catalog *ModelCa
 		catalog = &c
 	}
 
-	if provider != "anthropic" {
-		return GetProviderDefaultModel(provider, catalog)
-	}
-
 	ids := catalogModelIDs(catalog, provider)
 	if len(ids) > 0 {
 		candidates := GetProviderModelCandidates(provider, tier)

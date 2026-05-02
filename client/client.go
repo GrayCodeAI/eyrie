@@ -152,6 +152,7 @@ var OpenAICompatibleProviders = map[string]ProviderRegistryConfig{
 	"canopywave": {Name: "canopywave", Type: ProviderTypeOpenAICompatible, BaseURL: "https://inference.canopywave.io/v1", EnvKey: "CANOPYWAVE_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"gemini":     {Name: "gemini", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.gemini.google.com/v1/forward", EnvKey: "GEMINI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"ollama":     {Name: "ollama", Type: ProviderTypeOpenAICompatible, BaseURL: "http://localhost:11434/v1", EnvKey: "OLLAMA_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: false},
+	"opencodego": {Name: "opencodego", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultOpenCodeGoBaseURL, EnvKey: "OPENCODEGO_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 }
 
 // EyrieClient is the universal LLM client.
@@ -195,9 +196,11 @@ func (c *EyrieClient) GetProviders() []string {
 	for k := range CoreProviders {
 		providers = append(providers, k)
 	}
+	dynamicMu.RLock()
 	for k := range OpenAICompatibleProviders {
 		providers = append(providers, k)
 	}
+	dynamicMu.RUnlock()
 	return providers
 }
 
@@ -206,7 +209,10 @@ func (c *EyrieClient) GetProviderInfo(provider string) *ProviderRegistryConfig {
 	if p, ok := CoreProviders[provider]; ok {
 		return &p
 	}
-	if p, ok := OpenAICompatibleProviders[provider]; ok {
+	dynamicMu.RLock()
+	p, ok := OpenAICompatibleProviders[provider]
+	dynamicMu.RUnlock()
+	if ok {
 		return &p
 	}
 	return nil
@@ -231,6 +237,17 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 	apiKey := c.apiKeys[providerName]
 	if apiKey == "" {
 		info := c.GetProviderInfo(providerName)
+		if info == nil {
+			// Fallback: if OPENAI_API_BASE or OPENAI_BASE_URL is set, register
+			// an ad-hoc OpenAI-compatible provider so unknown names still work.
+			if fallbackURL := openaiBaseFallbackURL(); fallbackURL != "" {
+				RegisterDynamicProvider(providerName, fallbackURL, "OPENAI_API_KEY")
+			} else {
+				return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
+			}
+		}
+		// Re-check after potential dynamic registration.
+		info = c.GetProviderInfo(providerName)
 		if info == nil {
 			return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
 		}

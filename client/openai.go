@@ -64,6 +64,7 @@ type openaiRequest struct {
 	Temperature         *float64                 `json:"temperature,omitempty"`
 	Stream              bool                     `json:"stream,omitempty"`
 	StreamOptions       *streamOptions           `json:"stream_options,omitempty"`
+	Tools               []map[string]interface{} `json:"tools,omitempty"`
 }
 
 type streamOptions struct {
@@ -93,11 +94,49 @@ type openaiResponse struct {
 }
 
 func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, stream bool) openaiRequest {
-	msgs := make([]map[string]interface{}, len(messages))
-	for i, m := range messages {
-		msgs[i] = map[string]interface{}{"role": m.Role, "content": m.Content}
+	var msgs []map[string]interface{}
+	for _, m := range messages {
+		if m.ToolResult != nil {
+			msgs = append(msgs, map[string]interface{}{
+				"role":         "tool",
+				"content":      m.ToolResult.Content,
+				"tool_call_id": m.ToolResult.ToolUseID,
+			})
+			continue
+		}
+		msg := map[string]interface{}{"role": m.Role, "content": m.Content}
+		if len(m.ToolUse) > 0 {
+			toolCalls := make([]map[string]interface{}, len(m.ToolUse))
+			for i, tc := range m.ToolUse {
+				args, _ := json.Marshal(tc.Arguments)
+				toolCalls[i] = map[string]interface{}{
+					"id":   tc.ID,
+					"type": "function",
+					"function": map[string]interface{}{
+						"name":      tc.Name,
+						"arguments": string(args),
+					},
+				}
+			}
+			msg["tool_calls"] = toolCalls
+		}
+		msgs = append(msgs, msg)
 	}
 	req := openaiRequest{Model: opts.Model, Messages: msgs, Temperature: opts.Temperature, Stream: stream}
+	if len(opts.Tools) > 0 {
+		tools := make([]map[string]interface{}, len(opts.Tools))
+		for i, t := range opts.Tools {
+			tools[i] = map[string]interface{}{
+				"type": "function",
+				"function": map[string]interface{}{
+					"name":        t.Name,
+					"description": t.Description,
+					"parameters":  t.Parameters,
+				},
+			}
+		}
+		req.Tools = tools
+	}
 	maxTok := opts.MaxTokens
 	if maxTok == 0 {
 		maxTok = 4096

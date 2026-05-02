@@ -65,6 +65,10 @@ func init() {
 		p.Compat = &OllamaCompat
 		OpenAICompatibleProviders["ollama"] = p
 	}
+	if p, ok := OpenAICompatibleProviders["opencodego"]; ok {
+		p.Compat = &OpenCodeGoCompat
+		OpenAICompatibleProviders["opencodego"] = p
+	}
 	if p, ok := CoreProviders["openai"]; ok {
 		p.Compat = &OpenAICompat
 		CoreProviders["openai"] = p

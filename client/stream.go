@@ -226,6 +226,11 @@ type openaiStreamChoice struct {
 
 type openaiStreamPayload struct {
 	Choices []openaiStreamChoice `json:"choices"`
+	Usage   *struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
+	} `json:"usage,omitempty"`
 }
 
 // processOpenAIStream converts OpenAI SSE events to EyrieStreamEvents.
@@ -241,6 +246,22 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 			argsBuf  strings.Builder
 		}
 		tools := make(map[int]*toolAccum)
+		toolsEmitted := false
+
+		emitTools := func() {
+			if toolsEmitted {
+				return
+			}
+			toolsEmitted = true
+			for _, t := range tools {
+				var args map[string]interface{}
+				_ = json.Unmarshal([]byte(t.argsBuf.String()), &args)
+				emit(ctx, ch, EyrieStreamEvent{
+					Type:     "tool_call",
+					ToolCall: &ToolCall{ID: t.id, Name: t.name, Arguments: args},
+				})
+			}
+		}
 
 		for {
 			select {
@@ -248,29 +269,13 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 				return
 			case evt, ok := <-sseEvents:
 				if !ok {
-					// Emit accumulated tool calls
-					for _, t := range tools {
-						var args map[string]interface{}
-						_ = json.Unmarshal([]byte(t.argsBuf.String()), &args)
-						emit(ctx, ch, EyrieStreamEvent{
-							Type:     "tool_call",
-							ToolCall: &ToolCall{ID: t.id, Name: t.name, Arguments: args},
-						})
-					}
+					emitTools()
 					emit(ctx, ch, EyrieStreamEvent{Type: "done"})
 					return
 				}
 				data := strings.TrimSpace(evt.Data)
 				if data == "" || data == "[DONE]" {
-					// Emit accumulated tool calls
-					for _, t := range tools {
-						var args map[string]interface{}
-						_ = json.Unmarshal([]byte(t.argsBuf.String()), &args)
-						emit(ctx, ch, EyrieStreamEvent{
-							Type:     "tool_call",
-							ToolCall: &ToolCall{ID: t.id, Name: t.name, Arguments: args},
-						})
-					}
+					emitTools()
 					emit(ctx, ch, EyrieStreamEvent{Type: "done"})
 					return
 				}
@@ -280,6 +285,19 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 					logger.Debug("failed to parse openai event", "error", err)
 					continue
 				}
+
+				// Emit usage if present (final chunk with stream_options.include_usage)
+				if oe.Usage != nil {
+					emit(ctx, ch, EyrieStreamEvent{
+						Type: "usage",
+						Usage: &EyrieUsage{
+							PromptTokens:     oe.Usage.PromptTokens,
+							CompletionTokens: oe.Usage.CompletionTokens,
+							TotalTokens:      oe.Usage.TotalTokens,
+						},
+					})
+				}
+
 				if len(oe.Choices) == 0 {
 					continue
 				}
@@ -309,15 +327,7 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 				}
 
 				if choice.FinishReason != nil {
-					// Emit accumulated tool calls before done
-					for _, t := range tools {
-						var args map[string]interface{}
-						_ = json.Unmarshal([]byte(t.argsBuf.String()), &args)
-						emit(ctx, ch, EyrieStreamEvent{
-							Type:     "tool_call",
-							ToolCall: &ToolCall{ID: t.id, Name: t.name, Arguments: args},
-						})
-					}
+					emitTools()
 					emit(ctx, ch, EyrieStreamEvent{Type: "done"})
 					return
 				}
@@ -332,6 +342,62 @@ func emit(ctx context.Context, ch chan<- EyrieStreamEvent, evt EyrieStreamEvent)
 	case ch <- evt:
 	case <-ctx.Done():
 	}
+}
+
+// ParseInlineToolCalls detects and extracts tool calls embedded in text content.
+// Some providers (e.g., canopywave/kimi) return tool calls in a text format:
+// <|tool_calls_section_begin|> <|tool_call_begin|> functions.ToolName:0 <|tool_call_argument_begin|> {"arg":"val"} <|tool_call_end|> <|tool_calls_section_end|>
+func ParseInlineToolCalls(text string) (cleanText string, toolCalls []ToolCall) {
+	const marker = "<|tool_calls_section_begin|>"
+	idx := strings.Index(text, marker)
+	if idx < 0 {
+		return text, nil
+	}
+
+	cleanText = strings.TrimSpace(text[:idx])
+	section := text[idx:]
+
+	// Extract individual tool calls
+	calls := strings.Split(section, "<|tool_call_begin|>")
+	for _, call := range calls[1:] { // skip first empty part
+		endIdx := strings.Index(call, "<|tool_call_end|>")
+		if endIdx < 0 {
+			continue
+		}
+		call = call[:endIdx]
+
+		// Parse function name: "functions.ToolName:0"
+		nameStart := strings.TrimSpace(call)
+		argStart := strings.Index(nameStart, "<|tool_call_argument_begin|>")
+		if argStart < 0 {
+			continue
+		}
+		funcLine := strings.TrimSpace(nameStart[:argStart])
+		argJSON := strings.TrimSpace(nameStart[argStart+len("<|tool_call_argument_begin|>"):])
+
+		// Extract tool name from "functions.ToolName:0"
+		toolName := funcLine
+		if dotIdx := strings.Index(funcLine, "."); dotIdx >= 0 {
+			toolName = funcLine[dotIdx+1:]
+		}
+		if colonIdx := strings.Index(toolName, ":"); colonIdx >= 0 {
+			toolName = toolName[:colonIdx]
+		}
+
+		// Parse arguments JSON
+		var args map[string]interface{}
+		if err := json.Unmarshal([]byte(argJSON), &args); err != nil {
+			args = map[string]interface{}{"_raw": argJSON}
+		}
+
+		toolCalls = append(toolCalls, ToolCall{
+			ID:        fmt.Sprintf("inline_%s_%d", toolName, len(toolCalls)),
+			Name:      toolName,
+			Arguments: args,
+		})
+	}
+
+	return cleanText, toolCalls
 }
 
 // parseErrorBody reads and parses an error response body (capped at 4KB).

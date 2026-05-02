@@ -305,30 +305,54 @@ func ClearProviderRuntimeEnv() {
 	}
 }
 
-// ApplyProviderEnv applies env vars for a specific provider.
-func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel string, overwrite bool, cat *catalog.ModelCatalog) {
+// collectEnvValue adds a key/value to the env map if value is non-empty and
+// overwrite is allowed (or the key is not already set in the process env).
+func collectEnvValue(env map[string]string, key, value string, overwrite bool) {
+	if value == "" {
+		return
+	}
+	if !overwrite && os.Getenv(key) != "" {
+		return
+	}
+	env[key] = value
+}
+
+// collectOpenAICompatibleProvider adds env vars for an OpenAI-compatible provider to the map.
+func collectOpenAICompatibleProvider(env map[string]string, prefix, apiKey, model, baseURL string, overwrite bool) {
+	collectEnvValue(env, prefix+"_API_KEY", apiKey, overwrite)
+	collectEnvValue(env, prefix+"_MODEL", model, overwrite)
+	collectEnvValue(env, prefix+"_BASE_URL", baseURL, overwrite)
+	collectEnvValue(env, "OPENAI_API_KEY", apiKey, overwrite)
+	collectEnvValue(env, "OPENAI_MODEL", model, overwrite)
+	collectEnvValue(env, "OPENAI_BASE_URL", baseURL, overwrite)
+}
+
+// ApplyProviderEnv computes the env vars for a specific provider and returns
+// them as a map without modifying the process environment.
+func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel string, overwrite bool, cat *catalog.ModelCatalog) map[string]string {
+	env := make(map[string]string)
 	switch provider {
 	case ProviderAnthropic:
-		SetEnvValue("ANTHROPIC_API_KEY", AsNonEmptyString(config.AnthropicAPIKey), overwrite)
+		collectEnvValue(env, "ANTHROPIC_API_KEY", AsNonEmptyString(config.AnthropicAPIKey), overwrite)
 		m := activeModel
 		if m == "" {
 			m = catalog.GetPreferredProviderModel("anthropic", catalog.TierSonnet, cat)
 		}
-		SetEnvValue("ANTHROPIC_MODEL", m, overwrite)
-		SetEnvValue("ANTHROPIC_BASE_URL", AsNonEmptyString(config.AnthropicBaseURL), overwrite)
-		SetEnvValue("ANTHROPIC_VERSION", AsNonEmptyString(config.AnthropicVersion), overwrite)
+		collectEnvValue(env, "ANTHROPIC_MODEL", m, overwrite)
+		collectEnvValue(env, "ANTHROPIC_BASE_URL", AsNonEmptyString(config.AnthropicBaseURL), overwrite)
+		collectEnvValue(env, "ANTHROPIC_VERSION", AsNonEmptyString(config.AnthropicVersion), overwrite)
 	case ProviderOpenAI:
-		SetEnvValue("OPENAI_API_KEY", AsNonEmptyString(config.OpenAIAPIKey), overwrite)
+		collectEnvValue(env, "OPENAI_API_KEY", AsNonEmptyString(config.OpenAIAPIKey), overwrite)
 		m := activeModel
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("openai", cat)
 		}
-		SetEnvValue("OPENAI_MODEL", m, overwrite)
+		collectEnvValue(env, "OPENAI_MODEL", m, overwrite)
 		base := AsNonEmptyString(config.OpenAIBaseURL)
 		if base == "" {
 			base = DefaultOpenAIBaseURL
 		}
-		SetEnvValue("OPENAI_BASE_URL", base, overwrite)
+		collectEnvValue(env, "OPENAI_BASE_URL", base, overwrite)
 	case ProviderGemini:
 		apiKey := AsNonEmptyString(config.GeminiAPIKey)
 		base := firstNonEmpty(config.GeminiBaseURL, DefaultGeminiOpenAIBaseURL)
@@ -336,7 +360,7 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("gemini", cat)
 		}
-		ApplyOpenAICompatibleProvider("GEMINI", apiKey, m, base, overwrite)
+		collectOpenAICompatibleProvider(env, "GEMINI", apiKey, m, base, overwrite)
 	case ProviderGrok:
 		apiKey := firstNonEmpty(config.GrokAPIKey, config.XAIAPIKey)
 		base := firstNonEmpty(config.GrokBaseURL, config.XAIBaseURL, DefaultGrokOpenAIBaseURL)
@@ -344,9 +368,9 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("grok", cat)
 		}
-		SetEnvValue("GROK_API_KEY", AsNonEmptyString(config.GrokAPIKey), overwrite)
-		SetEnvValue("XAI_API_KEY", AsNonEmptyString(config.XAIAPIKey), overwrite)
-		ApplyOpenAICompatibleProvider("GROK", apiKey, m, base, overwrite)
+		collectEnvValue(env, "GROK_API_KEY", AsNonEmptyString(config.GrokAPIKey), overwrite)
+		collectEnvValue(env, "XAI_API_KEY", AsNonEmptyString(config.XAIAPIKey), overwrite)
+		collectOpenAICompatibleProvider(env, "GROK", apiKey, m, base, overwrite)
 	case ProviderCanopyWave:
 		apiKey := AsNonEmptyString(config.CanopyWaveAPIKey)
 		base := firstNonEmpty(config.CanopyWaveBaseURL, DefaultCanopyWaveOpenAIBaseURL)
@@ -354,7 +378,7 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("canopywave", cat)
 		}
-		ApplyOpenAICompatibleProvider("CANOPYWAVE", apiKey, m, base, overwrite)
+		collectOpenAICompatibleProvider(env, "CANOPYWAVE", apiKey, m, base, overwrite)
 	case ProviderOpenRouter:
 		apiKey := AsNonEmptyString(config.OpenRouterAPIKey)
 		base := firstNonEmpty(config.OpenRouterBaseURL, DefaultOpenRouterOpenAIBaseURL)
@@ -362,18 +386,18 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("openrouter", cat)
 		}
-		ApplyOpenAICompatibleProvider("OPENROUTER", apiKey, m, base, overwrite)
+		collectOpenAICompatibleProvider(env, "OPENROUTER", apiKey, m, base, overwrite)
 	case ProviderOllama:
 		m := activeModel
 		if m == "" {
 			m = OllamaDefaultModel
 		}
-		SetEnvValue("OPENAI_MODEL", m, overwrite)
+		collectEnvValue(env, "OPENAI_MODEL", m, overwrite)
 		base := NormalizeOllamaOpenAIBaseURL(AsNonEmptyString(config.OllamaBaseURL))
 		if base == "" {
 			base = OllamaDefaultBaseURL
 		}
-		SetEnvValue("OPENAI_BASE_URL", base, overwrite)
+		collectEnvValue(env, "OPENAI_BASE_URL", base, overwrite)
 	case ProviderOpenCodeGo:
 		apiKey := AsNonEmptyString(config.OpenCodeGoAPIKey)
 		base := firstNonEmpty(config.OpenCodeGoBaseURL, DefaultOpenCodeGoBaseURL)
@@ -381,7 +405,16 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("opencodego", cat)
 		}
-		ApplyOpenAICompatibleProvider("OPENCODEGO", apiKey, m, base, overwrite)
+		collectOpenAICompatibleProvider(env, "OPENCODEGO", apiKey, m, base, overwrite)
+	}
+	return env
+}
+
+// ApplyProviderEnvToProcess applies the env vars for a specific provider
+// directly to the process environment via os.Setenv.
+func ApplyProviderEnvToProcess(provider string, config *ProviderConfig, activeModel string, overwrite bool, cat *catalog.ModelCatalog) {
+	for k, v := range ApplyProviderEnv(provider, config, activeModel, overwrite, cat) {
+		os.Setenv(k, v)
 	}
 }
 
@@ -403,6 +436,6 @@ func ApplyProviderConfigToEnv(config *ProviderConfig, overwrite bool, cat *catal
 	}
 	activeModel := GetProviderActiveModel(config, provider)
 	SetEnvValue("GRAYCODE_SMALL_FAST_MODEL", AsNonEmptyString(config.ExplorationModel), overwrite)
-	ApplyProviderEnv(provider, config, activeModel, overwrite, cat)
+	ApplyProviderEnvToProcess(provider, config, activeModel, overwrite, cat)
 	return provider
 }
