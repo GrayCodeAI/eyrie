@@ -160,21 +160,24 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 					return
 
 				case "message_delta":
-					// Contains usage and stop_reason
-					if ae.Delta != nil {
-						var delta struct {
+					// Contains usage (output_tokens) and stop_reason
+					var md struct {
+						Delta *struct {
 							StopReason string `json:"stop_reason"`
-						}
-						_ = json.Unmarshal([]byte(data), &struct {
-							Delta *struct {
-								StopReason string `json:"stop_reason"`
-							} `json:"delta"`
-							Usage *struct {
-								OutputTokens int `json:"output_tokens"`
-							} `json:"usage"`
-						}{Delta: &delta})
+						} `json:"delta"`
+						Usage *struct {
+							OutputTokens int `json:"output_tokens"`
+						} `json:"usage"`
 					}
-					// Usage is captured on message_stop via done event
+					_ = json.Unmarshal([]byte(data), &md)
+					if md.Usage != nil && md.Usage.OutputTokens > 0 {
+						emit(ctx, ch, EyrieStreamEvent{
+							Type: "usage",
+							Usage: &EyrieUsage{
+								CompletionTokens: md.Usage.OutputTokens,
+							},
+						})
+					}
 
 				case "message_start":
 					// Contains input token count
