@@ -1,3 +1,3 @@
-module github.com/hawk/eyrie
+module github.com/GrayCodeAI/eyrie
 
 go 1.26

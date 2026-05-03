@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hawk/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
 // ProviderConfig mirrors ~/.hawk/provider.json.
