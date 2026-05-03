@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hawk/eyrie/catalog"
-	"github.com/hawk/eyrie/config"
+	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/config"
 )
 
 // Version is set by the root package and used in User-Agent headers.
