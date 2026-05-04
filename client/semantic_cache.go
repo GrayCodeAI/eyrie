@@ -335,7 +335,7 @@ func buildCacheKey(messages []EyrieMessage, opts ChatOptions) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// copyResponse returns a shallow copy of an EyrieResponse so that callers
+// copyResponse returns a deep copy of an EyrieResponse so that callers
 // cannot mutate the cached version.
 func copyResponse(resp *EyrieResponse) *EyrieResponse {
 	if resp == nil {
@@ -348,7 +348,43 @@ func copyResponse(resp *EyrieResponse) *EyrieResponse {
 	}
 	if len(resp.ToolCalls) > 0 {
 		cp.ToolCalls = make([]ToolCall, len(resp.ToolCalls))
-		copy(cp.ToolCalls, resp.ToolCalls)
+		for i, tc := range resp.ToolCalls {
+			cp.ToolCalls[i] = tc
+			if tc.Arguments != nil {
+				cp.ToolCalls[i].Arguments = deepCopyMap(tc.Arguments)
+			}
+		}
 	}
 	return &cp
+}
+
+// deepCopyMap returns a deep copy of a map[string]interface{}.
+func deepCopyMap(m map[string]interface{}) map[string]interface{} {
+	cp := make(map[string]interface{}, len(m))
+	for k, v := range m {
+		switch val := v.(type) {
+		case map[string]interface{}:
+			cp[k] = deepCopyMap(val)
+		case []interface{}:
+			cp[k] = deepCopySlice(val)
+		default:
+			cp[k] = v
+		}
+	}
+	return cp
+}
+
+func deepCopySlice(s []interface{}) []interface{} {
+	cp := make([]interface{}, len(s))
+	for i, v := range s {
+		switch val := v.(type) {
+		case map[string]interface{}:
+			cp[i] = deepCopyMap(val)
+		case []interface{}:
+			cp[i] = deepCopySlice(val)
+		default:
+			cp[i] = v
+		}
+	}
+	return cp
 }
