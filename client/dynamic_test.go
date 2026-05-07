@@ -10,7 +10,7 @@ func TestRegisterDynamicProvider(t *testing.T) {
 	name := "test-dynamic-provider"
 	delete(OpenAICompatibleProviders, name)
 
-	RegisterDynamicProvider(name, "http://localhost:9999/v1", "TEST_DYN_API_KEY")
+	_ = RegisterDynamicProvider(name, "http://localhost:9999/v1", "TEST_DYN_API_KEY")
 
 	info, ok := OpenAICompatibleProviders[name]
 	if !ok {
@@ -43,7 +43,7 @@ func TestRegisterDynamicProviderNoKey(t *testing.T) {
 	name := "test-no-key-provider"
 	delete(OpenAICompatibleProviders, name)
 
-	RegisterDynamicProvider(name, "http://localhost:11434/v1", "")
+	_ = RegisterDynamicProvider(name, "http://localhost:11434/v1", "")
 
 	info, ok := OpenAICompatibleProviders[name]
 	if !ok {
@@ -99,7 +99,7 @@ func TestGetProviderInfoDynamic(t *testing.T) {
 		t.Error("expected nil for unregistered provider")
 	}
 
-	RegisterDynamicProvider(name, "http://localhost:5000/v1", "MY_KEY")
+	_ = RegisterDynamicProvider(name, "http://localhost:5000/v1", "MY_KEY")
 
 	info := c.GetProviderInfo(name)
 	if info == nil {

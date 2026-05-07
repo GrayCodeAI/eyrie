@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -211,6 +212,7 @@ func GetProviderConfigPath() string {
 }
 
 // LoadProviderConfig loads provider config from disk.
+// Returns nil if file doesn't exist. Returns error for corrupt JSON or permission issues.
 func LoadProviderConfig(path string) *ProviderConfig {
 	if path == "" {
 		path = GetProviderConfigPath()
@@ -224,6 +226,30 @@ func LoadProviderConfig(path string) *ProviderConfig {
 		return nil
 	}
 	return &cfg
+}
+
+// LoadProviderConfigWithError loads provider config from disk with detailed error reporting.
+// Returns (nil, nil) if file doesn't exist.
+// Returns (nil, error) for corrupt JSON or permission issues.
+func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
+	if path == "" {
+		path = GetProviderConfigPath()
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("eyrie: failed to read provider config at %s: %w", path, err)
+	}
+	var cfg ProviderConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("eyrie: corrupt provider config at %s: %w", path, err)
+	}
+	if cfg.Version != "" && cfg.Version != "1" {
+		return nil, fmt.Errorf("eyrie: unsupported provider config version %q at %s", cfg.Version, path)
+	}
+	return &cfg, nil
 }
 
 // SaveProviderConfig saves provider config to disk.

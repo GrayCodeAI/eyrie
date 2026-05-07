@@ -241,7 +241,7 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 			// Fallback: if OPENAI_API_BASE or OPENAI_BASE_URL is set, register
 			// an ad-hoc OpenAI-compatible provider so unknown names still work.
 			if fallbackURL := openaiBaseFallbackURL(); fallbackURL != "" {
-				RegisterDynamicProvider(providerName, fallbackURL, "OPENAI_API_KEY")
+				_ = RegisterDynamicProvider(providerName, fallbackURL, "OPENAI_API_KEY")
 			} else {
 				return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
 			}

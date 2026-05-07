@@ -42,8 +42,8 @@ func ChatWithContinuation(ctx context.Context, p Provider, messages []EyrieMessa
 		accumulated.WriteString(resp.Content)
 		finalToolCalls = append(finalToolCalls, resp.ToolCalls...)
 
-		// Merge usage
-		if resp.Usage != nil {
+		// Merge usage (nil-safe)
+		if resp != nil && resp.Usage != nil {
 			if finalUsage == nil {
 				finalUsage = &EyrieUsage{}
 			}
@@ -57,6 +57,14 @@ func ChatWithContinuation(ctx context.Context, p Provider, messages []EyrieMessa
 			return &EyrieResponse{
 				Content: accumulated.String(), FinishReason: "max_tokens",
 				ToolCalls: finalToolCalls, Usage: finalUsage,
+			}, nil
+		}
+
+		// If response ended with tool calls, don't continue — tool results needed
+		if len(resp.ToolCalls) > 0 {
+			return &EyrieResponse{
+				Content: accumulated.String(), FinishReason: resp.FinishReason,
+				ToolCalls: finalToolCalls, Usage: finalUsage, RequestID: resp.RequestID,
 			}, nil
 		}
 

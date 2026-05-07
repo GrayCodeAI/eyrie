@@ -16,16 +16,25 @@ type SSEEvent struct {
 	Data  string
 }
 
+// SSE stream constants.
+const (
+	sseChannelBuffer    = 128
+	sseScannerInitBuf   = 64 * 1024
+	sseScannerMaxBuf    = 2 * 1024 * 1024
+	streamChannelBuffer = 128
+)
+
 // parseSSEStream reads an SSE stream and sends events to a channel.
 // The goroutine closes the channel and body when done or context is cancelled.
+// Scanner errors are emitted as SSEEvent with Event="error" so callers can detect truncation.
 func parseSSEStream(ctx context.Context, body io.ReadCloser, logger *slog.Logger) <-chan SSEEvent {
-	ch := make(chan SSEEvent, 64)
+	ch := make(chan SSEEvent, sseChannelBuffer)
 	go func() {
 		defer close(ch)
 		defer body.Close()
 
 		scanner := bufio.NewScanner(body)
-		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+		scanner.Buffer(make([]byte, 0, sseScannerInitBuf), sseScannerMaxBuf)
 
 		var event, data strings.Builder
 		for scanner.Scan() {
@@ -59,6 +68,10 @@ func parseSSEStream(ctx context.Context, body io.ReadCloser, logger *slog.Logger
 		}
 		if err := scanner.Err(); err != nil {
 			logger.Warn("SSE stream read error", "error", err)
+			select {
+			case ch <- SSEEvent{Event: "error", Data: fmt.Sprintf("stream read error: %v", err)}:
+			case <-ctx.Done():
+			}
 		}
 	}()
 	return ch
@@ -85,7 +98,7 @@ type anthropicStreamEvent struct {
 // processAnthropicStream converts Anthropic SSE events to EyrieStreamEvents.
 // Handles text, tool_use (with input_json_delta), and thinking blocks.
 func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
-	ch := make(chan EyrieStreamEvent, 64)
+	ch := make(chan EyrieStreamEvent, streamChannelBuffer)
 	go func() {
 		defer close(ch)
 
@@ -102,6 +115,19 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 				return
 			case evt, ok := <-sseEvents:
 				if !ok {
+					// Stream closed — emit partial tool call as error if incomplete
+					if currentTool != nil {
+						emit(ctx, ch, EyrieStreamEvent{
+							Type:  "error",
+							Error: fmt.Sprintf("stream closed with incomplete tool call: %s", currentTool.name),
+						})
+						currentTool = nil
+					}
+					return
+				}
+				// Propagate SSE-level errors
+				if evt.Event == "error" {
+					emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: evt.Data})
 					return
 				}
 				data := strings.TrimSpace(evt.Data)
@@ -146,12 +172,20 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 
 				case "content_block_stop":
 					if currentTool != nil {
+						rawJSON := currentTool.jsonBuf.String()
 						var args map[string]interface{}
-						_ = json.Unmarshal([]byte(currentTool.jsonBuf.String()), &args)
-						emit(ctx, ch, EyrieStreamEvent{
-							Type:     "tool_call",
-							ToolCall: &ToolCall{ID: currentTool.id, Name: currentTool.name, Arguments: args},
-						})
+						if err := json.Unmarshal([]byte(rawJSON), &args); err != nil {
+							logger.Warn("invalid tool call JSON accumulated", "tool", currentTool.name, "error", err)
+							emit(ctx, ch, EyrieStreamEvent{
+								Type:  "error",
+								Error: fmt.Sprintf("invalid tool call JSON for %s: %v", currentTool.name, err),
+							})
+						} else {
+							emit(ctx, ch, EyrieStreamEvent{
+								Type:     "tool_call",
+								ToolCall: &ToolCall{ID: currentTool.id, Name: currentTool.name, Arguments: args},
+							})
+						}
 						currentTool = nil
 					}
 
@@ -239,7 +273,7 @@ type openaiStreamPayload struct {
 // processOpenAIStream converts OpenAI SSE events to EyrieStreamEvents.
 // Handles text deltas and tool call streaming by index.
 func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
-	ch := make(chan EyrieStreamEvent, 64)
+	ch := make(chan EyrieStreamEvent, streamChannelBuffer)
 	go func() {
 		defer close(ch)
 
@@ -274,6 +308,11 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 				if !ok {
 					emitTools()
 					emit(ctx, ch, EyrieStreamEvent{Type: "done"})
+					return
+				}
+				// Propagate SSE-level errors
+				if evt.Event == "error" {
+					emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: evt.Data})
 					return
 				}
 				data := strings.TrimSpace(evt.Data)
