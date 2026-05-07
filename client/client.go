@@ -313,6 +313,26 @@ func (c *EyrieClient) StreamChat(ctx context.Context, messages []EyrieMessage, o
 	return p.StreamChat(ctx, messages, opts)
 }
 
+// StreamChatContinue is like StreamChat but automatically continues if the response
+// hits max_tokens with text-only content. Continuations are transparent to the caller.
+func (c *EyrieClient) StreamChatContinue(ctx context.Context, messages []EyrieMessage, opts ChatOptions, cfg ContinuationConfig) (*StreamResult, error) {
+	if len(messages) == 0 {
+		return nil, fmt.Errorf("eyrie: messages must not be empty")
+	}
+	provider := opts.Provider
+	if provider == "" {
+		provider = c.defaultProvider
+	}
+	p, err := c.getOrCreateProvider(provider)
+	if err != nil {
+		return nil, err
+	}
+	if opts.Model == "" {
+		opts.Model = ResolveDefaultModel(provider)
+	}
+	return StreamChatWithContinuation(ctx, p, messages, opts, cfg)
+}
+
 // Ping checks connectivity to the specified (or default) provider.
 func (c *EyrieClient) Ping(ctx context.Context, provider string) error {
 	if provider == "" {

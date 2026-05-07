@@ -182,6 +182,7 @@ func parseImageString(img string) (mediaType, data string, isBase64 bool) {
 // This is not implemented here; opts.ResponseFormat is ignored for Anthropic.
 // Future work: implement tool-use-based structured output for Anthropic.
 func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for anthropic")
 	}
@@ -280,6 +281,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 
 // StreamChat sends a streaming message to Anthropic.
 func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for anthropic")
 	}
