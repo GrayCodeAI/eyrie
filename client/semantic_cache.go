@@ -210,8 +210,10 @@ func (cp *CachedProvider) put(key string, resp *EyrieResponse) {
 		return
 	}
 
-	// Evict expired entries opportunistically.
-	cp.evictExpiredLocked()
+	// Evict expired entries only when approaching capacity (80% threshold).
+	if len(cp.cache) >= cp.maxSize*4/5 {
+		cp.evictExpiredLocked()
+	}
 
 	// Evict LRU entries until we have room.
 	for len(cp.cache) >= cp.maxSize {

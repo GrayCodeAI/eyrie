@@ -58,6 +58,13 @@ func newTokenBucket(cfg RateLimitConfig) *tokenBucket {
 
 func (b *tokenBucket) wait(ctx context.Context) error {
 	for {
+		// Check context before attempting to acquire token
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("eyrie: rate limiter: %w", ctx.Err())
+		default:
+		}
+
 		b.mu.Lock()
 		now := time.Now()
 		elapsed := now.Sub(b.lastRefill)
@@ -88,7 +95,7 @@ func (b *tokenBucket) wait(ctx context.Context) error {
 			return nil
 		}
 
-		// Calculate wait time for next token
+		// Calculate wait time for next token — release lock before sleeping
 		needed := 1 - b.tokens
 		waitDur := time.Duration(needed / b.refillRate)
 		b.mu.Unlock()

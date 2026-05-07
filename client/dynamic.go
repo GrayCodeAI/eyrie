@@ -1,19 +1,34 @@
 package client
 
 import (
+	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
 )
 
 // dynamicMu protects the OpenAICompatibleProviders map from concurrent access.
 var dynamicMu sync.RWMutex
+
+// registryFrozen prevents new provider registrations after first use.
+var registryFrozen atomic.Bool
+
+// FreezeRegistry prevents further provider registrations.
+// Called automatically after first provider lookup.
+func FreezeRegistry() {
+	registryFrozen.Store(true)
+}
 
 // RegisterDynamicProvider adds a user-defined OpenAI-compatible provider at runtime.
 // name is the provider key (e.g. "my-local-llm"), baseURL is the API base
 // (e.g. "http://localhost:8080/v1"), and envKey is the environment variable
 // that holds the API key (e.g. "MY_LLM_API_KEY"). If envKey is empty, the
 // provider is treated like ollama (no key required).
-func RegisterDynamicProvider(name, baseURL, envKey string) {
+// Returns error if registry is frozen (after first provider lookup).
+func RegisterDynamicProvider(name, baseURL, envKey string) error {
+	if registryFrozen.Load() {
+		return fmt.Errorf("eyrie: provider registry is frozen; register providers before first use")
+	}
 	dynamicMu.Lock()
 	defer dynamicMu.Unlock()
 
@@ -29,6 +44,7 @@ func RegisterDynamicProvider(name, baseURL, envKey string) {
 			MaxTokensField: "max_tokens",
 		},
 	}
+	return nil
 }
 
 // getOrCreateProviderWithFallback extends getOrCreateProvider with a fallback:
