@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // ContinuationConfig controls output continuation behavior.
@@ -87,4 +88,96 @@ func ChatWithContinuation(ctx context.Context, p Provider, messages []EyrieMessa
 		Content: accumulated.String(), FinishReason: "max_tokens",
 		ToolCalls: finalToolCalls, Usage: finalUsage,
 	}, nil
+}
+
+// StreamChatWithContinuation wraps StreamChat with automatic continuation when
+// the response stops with "max_tokens" and contains only text (no tool calls).
+// It returns a StreamResult whose Events channel transparently continues across
+// multiple LLM calls, emitting a "continuation" event at each boundary.
+func StreamChatWithContinuation(ctx context.Context, p Provider, messages []EyrieMessage, opts ChatOptions, cfg ContinuationConfig) (*StreamResult, error) {
+	if cfg.MaxContinuations <= 0 {
+		cfg.MaxContinuations = 3
+	}
+	if cfg.MaxTotalTokens <= 0 {
+		cfg.MaxTotalTokens = 32000
+	}
+
+	groupID := fmt.Sprintf("cont_%d", time.Now().UnixNano())
+	outCh := make(chan EyrieStreamEvent, streamChannelBuffer)
+	cancelCtx, cancel := context.WithCancel(ctx)
+
+	go func() {
+		defer close(outCh)
+
+		var accumulated strings.Builder
+		var totalCompletionTokens int64
+		var hadToolCalls bool
+		msgs := make([]EyrieMessage, len(messages))
+		copy(msgs, messages)
+
+		for attempt := 0; attempt <= cfg.MaxContinuations; attempt++ {
+			stream, err := p.StreamChat(cancelCtx, msgs, opts)
+			if err != nil {
+				emit(cancelCtx, outCh, EyrieStreamEvent{Type: "error", Error: err.Error()})
+				return
+			}
+
+			var stopReason string
+			for evt := range stream.Events {
+				switch evt.Type {
+				case "content":
+					accumulated.WriteString(evt.Content)
+					emit(cancelCtx, outCh, evt)
+				case "tool_call":
+					hadToolCalls = true
+					emit(cancelCtx, outCh, evt)
+				case "usage":
+					if evt.Usage != nil {
+						totalCompletionTokens += int64(evt.Usage.CompletionTokens)
+					}
+					emit(cancelCtx, outCh, evt)
+				case "done":
+					stopReason = evt.StopReason
+				case "error":
+					emit(cancelCtx, outCh, evt)
+					return
+				default:
+					emit(cancelCtx, outCh, evt)
+				}
+			}
+
+			// Don't continue if: not max_tokens, had tool calls, or hit token cap
+			if stopReason != "max_tokens" && stopReason != "length" {
+				emit(cancelCtx, outCh, EyrieStreamEvent{Type: "done", StopReason: stopReason})
+				return
+			}
+			if hadToolCalls {
+				emit(cancelCtx, outCh, EyrieStreamEvent{Type: "done", StopReason: stopReason})
+				return
+			}
+			if cfg.MaxTotalTokens > 0 && int(totalCompletionTokens) >= cfg.MaxTotalTokens {
+				emit(cancelCtx, outCh, EyrieStreamEvent{Type: "done", StopReason: "max_tokens"})
+				return
+			}
+			if attempt >= cfg.MaxContinuations {
+				emit(cancelCtx, outCh, EyrieStreamEvent{Type: "done", StopReason: "max_tokens"})
+				return
+			}
+
+			// Emit continuation boundary event
+			emit(cancelCtx, outCh, EyrieStreamEvent{
+				Type:       "continuation",
+				Content:    groupID,
+				StopReason: fmt.Sprintf("%d", attempt+1),
+			})
+
+			// Build continuation messages
+			msgs = append(msgs, EyrieMessage{Role: "assistant", Content: accumulated.String()})
+			msgs = append(msgs, EyrieMessage{Role: "user", Content: "Continue."})
+		}
+
+		emit(cancelCtx, outCh, EyrieStreamEvent{Type: "done", StopReason: "max_tokens"})
+	}()
+
+	return &StreamResult{Events: outCh, cancel: cancel}, nil
 }
