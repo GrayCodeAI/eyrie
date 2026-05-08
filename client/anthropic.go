@@ -79,9 +79,11 @@ type anthropicResponse struct {
 		Input json.RawMessage `json:"input,omitempty"`
 	} `json:"content"`
 	StopReason string `json:"stop_reason"`
-	Usage      struct {
-		InputTokens  int `json:"input_tokens"`
-		OutputTokens int `json:"output_tokens"`
+	Usage struct {
+		InputTokens              int `json:"input_tokens"`
+		OutputTokens             int `json:"output_tokens"`
+		CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+		CacheReadInputTokens     int `json:"cache_read_input_tokens"`
 	} `json:"usage"`
 }
 
@@ -182,6 +184,7 @@ func parseImageString(img string) (mediaType, data string, isBase64 bool) {
 // This is not implemented here; opts.ResponseFormat is ignored for Anthropic.
 // Future work: implement tool-use-based structured output for Anthropic.
 func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for anthropic")
 	}
@@ -192,25 +195,12 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 
 	var body []byte
 	if opts.EnableCaching {
-		// Use cached request builder for Anthropic prompt caching support
-		cachedReq := buildAnthropicCachedRequest(messages, opts.Model, maxTokens, opts.Temperature, false)
+		allMessages := messages
 		if opts.System != "" {
-			if existing, ok := cachedReq["system"]; ok && existing != nil {
-				// System already set as cached array; prepend the opts.System
-				_ = existing // already handled by buildAnthropicCachedRequest
-			} else {
-				cachedReq["system"] = []map[string]interface{}{
-					{
-						"type": "text",
-						"text": opts.System,
-						"cache_control": map[string]string{"type": "ephemeral"},
-					},
-				}
-			}
+			allMessages = append([]EyrieMessage{{Role: "system", Content: opts.System}}, allMessages...)
 		}
-		if tools := convertToAnthropicTools(opts.Tools); len(tools) > 0 {
-			cachedReq["tools"] = tools
-		}
+		tools := convertToAnthropicTools(opts.Tools)
+		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, false, tools)
 		body, _ = json.Marshal(cachedReq)
 	} else {
 		msgs, system := buildAnthropicMessages(messages)
@@ -272,14 +262,18 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 		Content: content, FinishReason: ar.StopReason, ToolCalls: toolCalls,
 		RequestID: requestID,
 		Usage: &EyrieUsage{
-			PromptTokens: ar.Usage.InputTokens, CompletionTokens: ar.Usage.OutputTokens,
-			TotalTokens: ar.Usage.InputTokens + ar.Usage.OutputTokens,
+			PromptTokens:        ar.Usage.InputTokens,
+			CompletionTokens:    ar.Usage.OutputTokens,
+			TotalTokens:         ar.Usage.InputTokens + ar.Usage.OutputTokens,
+			CacheCreationTokens: ar.Usage.CacheCreationInputTokens,
+			CacheReadTokens:     ar.Usage.CacheReadInputTokens,
 		},
 	}, nil
 }
 
 // StreamChat sends a streaming message to Anthropic.
 func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for anthropic")
 	}
@@ -290,22 +284,12 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 
 	var body []byte
 	if opts.EnableCaching {
-		// Use cached request builder for Anthropic prompt caching support
-		cachedReq := buildAnthropicCachedRequest(messages, opts.Model, maxTokens, opts.Temperature, true)
+		allMessages := messages
 		if opts.System != "" {
-			if _, ok := cachedReq["system"]; !ok {
-				cachedReq["system"] = []map[string]interface{}{
-					{
-						"type": "text",
-						"text": opts.System,
-						"cache_control": map[string]string{"type": "ephemeral"},
-					},
-				}
-			}
+			allMessages = append([]EyrieMessage{{Role: "system", Content: opts.System}}, allMessages...)
 		}
-		if tools := convertToAnthropicTools(opts.Tools); len(tools) > 0 {
-			cachedReq["tools"] = tools
-		}
+		tools := convertToAnthropicTools(opts.Tools)
+		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, true, tools)
 		body, _ = json.Marshal(cachedReq)
 	} else {
 		msgs, system := buildAnthropicMessages(messages)
