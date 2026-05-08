@@ -108,6 +108,7 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 			jsonBuf  strings.Builder
 		}
 		var currentTool *toolAccum
+		var stopReason string
 
 		for {
 			select {
@@ -190,7 +191,7 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 					}
 
 				case "message_stop":
-					emit(ctx, ch, EyrieStreamEvent{Type: "done"})
+					emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason})
 					return
 
 				case "message_delta":
@@ -204,6 +205,9 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 						} `json:"usage"`
 					}
 					_ = json.Unmarshal([]byte(data), &md)
+					if md.Delta != nil && md.Delta.StopReason != "" {
+						stopReason = md.Delta.StopReason
+					}
 					if md.Usage != nil && md.Usage.OutputTokens > 0 {
 						emit(ctx, ch, EyrieStreamEvent{
 							Type: "usage",
@@ -370,7 +374,7 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 
 				if choice.FinishReason != nil {
 					emitTools()
-					emit(ctx, ch, EyrieStreamEvent{Type: "done"})
+					emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: *choice.FinishReason})
 					return
 				}
 			}

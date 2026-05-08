@@ -67,9 +67,11 @@ type EyrieTool struct {
 
 // EyrieUsage tracks token usage.
 type EyrieUsage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
-	TotalTokens      int `json:"total_tokens"`
+	PromptTokens        int `json:"prompt_tokens"`
+	CompletionTokens    int `json:"completion_tokens"`
+	TotalTokens         int `json:"total_tokens"`
+	CacheCreationTokens int `json:"cache_creation_tokens,omitempty"`
+	CacheReadTokens     int `json:"cache_read_tokens,omitempty"`
 }
 
 // EyrieResponse is the response from a chat call.
@@ -311,6 +313,26 @@ func (c *EyrieClient) StreamChat(ctx context.Context, messages []EyrieMessage, o
 		opts.Model = ResolveDefaultModel(provider)
 	}
 	return p.StreamChat(ctx, messages, opts)
+}
+
+// StreamChatContinue is like StreamChat but automatically continues if the response
+// hits max_tokens with text-only content. Continuations are transparent to the caller.
+func (c *EyrieClient) StreamChatContinue(ctx context.Context, messages []EyrieMessage, opts ChatOptions, cfg ContinuationConfig) (*StreamResult, error) {
+	if len(messages) == 0 {
+		return nil, fmt.Errorf("eyrie: messages must not be empty")
+	}
+	provider := opts.Provider
+	if provider == "" {
+		provider = c.defaultProvider
+	}
+	p, err := c.getOrCreateProvider(provider)
+	if err != nil {
+		return nil, err
+	}
+	if opts.Model == "" {
+		opts.Model = ResolveDefaultModel(provider)
+	}
+	return StreamChatWithContinuation(ctx, p, messages, opts, cfg)
 }
 
 // Ping checks connectivity to the specified (or default) provider.
