@@ -92,6 +92,9 @@ type openaiResponse struct {
 		PromptTokens     int `json:"prompt_tokens"`
 		CompletionTokens int `json:"completion_tokens"`
 		TotalTokens      int `json:"total_tokens"`
+		PromptTokensDetails *struct {
+			CachedTokens int `json:"cached_tokens"`
+		} `json:"prompt_tokens_details,omitempty"`
 	} `json:"usage"`
 }
 
@@ -241,8 +244,12 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	}
 	if or.Usage != nil {
 		result.Usage = &EyrieUsage{
-			PromptTokens: or.Usage.PromptTokens, CompletionTokens: or.Usage.CompletionTokens,
-			TotalTokens: or.Usage.TotalTokens,
+			PromptTokens:     or.Usage.PromptTokens,
+			CompletionTokens: or.Usage.CompletionTokens,
+			TotalTokens:      or.Usage.TotalTokens,
+		}
+		if or.Usage.PromptTokensDetails != nil {
+			result.Usage.CacheReadTokens = or.Usage.PromptTokensDetails.CachedTokens
 		}
 	}
 	return result, nil

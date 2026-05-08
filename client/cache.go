@@ -65,32 +65,18 @@ type anthropicCachedMessage struct {
 }
 
 // buildAnthropicCachedRequest builds an Anthropic request body with cache_control.
-// Use this instead of the standard request builder when prompt caching is desired.
-func buildAnthropicCachedRequest(messages []EyrieMessage, model string, maxTokens int, temperature *float64, stream bool) map[string]interface{} {
-	var system string
-	var msgs []interface{}
+// It reuses buildAnthropicMessages for proper tool_use/tool_result handling,
+// then applies cache_control breakpoints following Anthropic's best practices:
+//   - System prompt gets cache_control (cached for all turns)
+//   - Second-to-last message gets cache_control (caches conversation prefix)
+//   - Last tool definition gets cache_control (caches tool schema)
+func buildAnthropicCachedRequest(messages []EyrieMessage, model string, maxTokens int, temperature *float64, stream bool, tools []anthropicTool) map[string]interface{} {
+	msgs, system := buildAnthropicMessages(messages)
 
-	for _, m := range messages {
-		if m.Role == "system" {
-			system = m.Content
-			continue
-		}
-		msgs = append(msgs, map[string]interface{}{"role": m.Role, "content": m.Content})
-	}
-
-	// Apply cache breakpoint to second-to-last message
+	// Apply cache breakpoint to second-to-last non-system message
 	if len(msgs) >= 2 {
 		idx := len(msgs) - 2
-		if msg, ok := msgs[idx].(map[string]interface{}); ok {
-			content := msg["content"].(string)
-			msg["content"] = []map[string]interface{}{
-				{
-					"type": "text",
-					"text": content,
-					"cache_control": map[string]string{"type": "ephemeral"},
-				},
-			}
-		}
+		applyCacheBreakpointToMessage(msgs[idx])
 	}
 
 	req := map[string]interface{}{
@@ -102,14 +88,47 @@ func buildAnthropicCachedRequest(messages []EyrieMessage, model string, maxToken
 	if system != "" {
 		req["system"] = []map[string]interface{}{
 			{
-				"type": "text",
-				"text": system,
+				"type":          "text",
+				"text":          system,
 				"cache_control": map[string]string{"type": "ephemeral"},
 			},
 		}
+	}
+	if len(tools) > 0 {
+		toolMaps := make([]map[string]interface{}, len(tools))
+		for i, t := range tools {
+			toolMaps[i] = map[string]interface{}{
+				"name":         t.Name,
+				"description":  t.Description,
+				"input_schema": t.InputSchema,
+			}
+		}
+		// Annotate last tool with cache_control
+		toolMaps[len(toolMaps)-1]["cache_control"] = map[string]string{"type": "ephemeral"}
+		req["tools"] = toolMaps
 	}
 	if temperature != nil {
 		req["temperature"] = *temperature
 	}
 	return req
+}
+
+// applyCacheBreakpointToMessage adds cache_control to a message's content.
+// Handles both string content and array content (tool_use/tool_result blocks).
+func applyCacheBreakpointToMessage(msg map[string]interface{}) {
+	content := msg["content"]
+	switch c := content.(type) {
+	case string:
+		msg["content"] = []map[string]interface{}{
+			{
+				"type":          "text",
+				"text":          c,
+				"cache_control": map[string]string{"type": "ephemeral"},
+			},
+		}
+	case []map[string]interface{}:
+		if len(c) > 0 {
+			c[len(c)-1]["cache_control"] = map[string]string{"type": "ephemeral"}
+		}
+	}
 }
