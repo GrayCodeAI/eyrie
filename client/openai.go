@@ -92,6 +92,9 @@ type openaiResponse struct {
 		PromptTokens     int `json:"prompt_tokens"`
 		CompletionTokens int `json:"completion_tokens"`
 		TotalTokens      int `json:"total_tokens"`
+		PromptTokensDetails *struct {
+			CachedTokens int `json:"cached_tokens"`
+		} `json:"prompt_tokens_details,omitempty"`
 	} `json:"usage"`
 }
 
@@ -195,6 +198,7 @@ func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, s
 
 // Chat sends a non-streaming request.
 func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for %s", c.providerName)
 	}
@@ -240,8 +244,12 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	}
 	if or.Usage != nil {
 		result.Usage = &EyrieUsage{
-			PromptTokens: or.Usage.PromptTokens, CompletionTokens: or.Usage.CompletionTokens,
-			TotalTokens: or.Usage.TotalTokens,
+			PromptTokens:     or.Usage.PromptTokens,
+			CompletionTokens: or.Usage.CompletionTokens,
+			TotalTokens:      or.Usage.TotalTokens,
+		}
+		if or.Usage.PromptTokensDetails != nil {
+			result.Usage.CacheReadTokens = or.Usage.PromptTokensDetails.CachedTokens
 		}
 	}
 	return result, nil
@@ -249,6 +257,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 
 // StreamChat sends a streaming request.
 func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for %s", c.providerName)
 	}
