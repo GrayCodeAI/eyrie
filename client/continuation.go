@@ -39,12 +39,15 @@ func ChatWithContinuation(ctx context.Context, p Provider, messages []EyrieMessa
 		if err != nil {
 			return nil, fmt.Errorf("eyrie: continuation call %d failed: %w", i, err)
 		}
+		if resp == nil {
+			return nil, fmt.Errorf("eyrie: continuation call %d returned nil response", i)
+		}
 
 		accumulated.WriteString(resp.Content)
 		finalToolCalls = append(finalToolCalls, resp.ToolCalls...)
 
 		// Merge usage (nil-safe)
-		if resp != nil && resp.Usage != nil {
+		if resp.Usage != nil {
 			if finalUsage == nil {
 				finalUsage = &EyrieUsage{}
 			}
