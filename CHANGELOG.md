@@ -5,6 +5,45 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ---
 
+## [0.4.0] — 2026-05-08
+
+### Added
+- Call metrics collector for provider usage tracking
+- Role merge utility for message optimization
+- Dynamic provider registration with registry freezing
+- Semantic caching for repeated queries
+- Weighted provider selection for load balancing
+- Batch API support (Anthropic Message Batches, 50% cost discount)
+
+### Changed
+- CI triggers on both main and dev branches
+
+---
+
+## [0.3.0] — 2026-04-30
+
+### Added
+- Fallback provider chains with automatic failover on retriable errors
+- Provider health checking and success/failure stat tracking
+- OpenAI-compatible provider runtime detection
+
+### Fixed
+- Stream parsing edge cases for multiline data fields
+- Context cancellation handling in retry loops
+
+---
+
+## [0.2.0] — 2026-04-30
+
+### Added
+- Full model catalog with pricing and context windows for all 8 providers
+- Live catalog fetch from OpenRouter and CanopyWave APIs
+- Model deprecation warning system
+- Provider profile management
+- Connection pooling improvements
+
+---
+
 ## [0.0.1] — 2026-04-30
 
 > Initial release.

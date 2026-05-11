@@ -3,10 +3,10 @@
   <br/><br/>
 
   <p>
-    <a href="https://golang.org/"><img src="https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go"></a>
+    <a href="https://golang.org/"><img src="https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
     <a href="https://github.com/GrayCodeAI/eyrie/actions"><img src="https://img.shields.io/github/actions/workflow/status/GrayCodeAI/eyrie/ci.yml?style=flat-square&label=tests" alt="Tests"></a>
-    <a href="https://pkg.go.dev/github.com/hawk/eyrie"><img src="https://img.shields.io/badge/godoc-reference-00ADD8?style=flat-square&logo=go" alt="GoDoc"></a>
+    <a href="https://pkg.go.dev/github.com/GrayCodeAI/eyrie"><img src="https://img.shields.io/badge/godoc-reference-00ADD8?style=flat-square&logo=go" alt="GoDoc"></a>
   </p>
 </div>
 
@@ -119,7 +119,7 @@ resp, _ := mock.Chat(ctx, messages, opts)
 ## Install
 
 ```bash
-go get github.com/hawk/eyrie
+go get github.com/GrayCodeAI/eyrie
 ```
 
 Requires Go 1.26+. Zero external dependencies.
