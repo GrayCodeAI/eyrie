@@ -14,7 +14,7 @@ import (
 )
 
 // Version is set by the root package and used in User-Agent headers.
-var Version = "0.5.0"
+var Version = "0.1.0"
 
 // userAgent returns the User-Agent string for HTTP requests.
 func userAgent() string { return "eyrie/" + Version }
