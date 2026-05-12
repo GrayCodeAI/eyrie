@@ -5,46 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ---
 
-## [0.4.0] — 2026-05-08
-
-### Added
-- Call metrics collector for provider usage tracking
-- Role merge utility for message optimization
-- Dynamic provider registration with registry freezing
-- Semantic caching for repeated queries
-- Weighted provider selection for load balancing
-- Batch API support (Anthropic Message Batches, 50% cost discount)
-
-### Changed
-- CI triggers on both main and dev branches
-
----
-
-## [0.3.0] — 2026-04-30
-
-### Added
-- Fallback provider chains with automatic failover on retriable errors
-- Provider health checking and success/failure stat tracking
-- OpenAI-compatible provider runtime detection
-
-### Fixed
-- Stream parsing edge cases for multiline data fields
-- Context cancellation handling in retry loops
-
----
-
-## [0.2.0] — 2026-04-30
-
-### Added
-- Full model catalog with pricing and context windows for all 8 providers
-- Live catalog fetch from OpenRouter and CanopyWave APIs
-- Model deprecation warning system
-- Provider profile management
-- Connection pooling improvements
-
----
-
-## [0.0.1] — 2026-04-30
+## [0.1.0] — 2026-05-12
 
 > Initial release.
 
@@ -68,9 +29,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 - Retry — exponential backoff, full jitter, `Retry-After` header support
 - `ChatWithContinuation` — auto-retry on `max_tokens` (up to 3 continuations)
 - `WithRateLimit` — token bucket rate limiter decorator
+- Fallback provider chains with automatic failover on retriable errors
+- Provider health checking and success/failure stat tracking
 
 **Caching**
 - `AddCacheBreakpoints` — Anthropic `cache_control` on system prompt and conversation prefix
+- Semantic caching for repeated queries
+- Cache analytics (hit/miss stats)
 
 **Catalog**
 - Embedded model catalog — pricing, context windows, max output for 8 providers
@@ -84,10 +49,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 - `~/.hawk/provider.json` config file I/O
 - `ApplyProviderConfigToEnv` — applies config to `os.Environ`
 - OpenAI-compatible runtime resolution
+- Provider profile management
+
+**Advanced**
+- Call metrics collector for provider usage tracking
+- Role merge utility for message optimization
+- Dynamic provider registration with registry freezing
+- Weighted provider selection for load balancing
+- Batch API support (Anthropic Message Batches)
+- Cost estimator for pre-call cost prediction
+- Embedding support
 
 **Quality**
-- `User-Agent: eyrie/0.0.1` on all HTTP requests
+- `User-Agent: eyrie/0.1.0` on all HTTP requests
 - Request ID captured from response headers
 - 4 KB error body cap — prevents OOM on large error responses
 - `"eyrie: "` prefix on all errors with `%w` wrapping
-- 43 tests · zero external dependencies · Go 1.26
+- Zero external dependencies · Go 1.26
