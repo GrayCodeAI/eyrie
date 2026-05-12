@@ -1,0 +1,192 @@
+package client
+
+import (
+	"fmt"
+	"strings"
+)
+
+// CostEstimator estimates the cost of an API call BEFORE sending it.
+// Helps developers set budgets and avoid surprise charges.
+type CostEstimator struct{}
+
+// CostEstimate is the pre-call cost prediction.
+type CostEstimate struct {
+	InputTokens    int     `json:"input_tokens"`
+	OutputTokens   int     `json:"estimated_output_tokens"`
+	InputCostUSD   float64 `json:"input_cost_usd"`
+	OutputCostUSD  float64 `json:"estimated_output_cost_usd"`
+	TotalCostUSD   float64 `json:"estimated_total_cost_usd"`
+	Model          string  `json:"model"`
+	CacheDiscount  float64 `json:"cache_discount_usd"` // potential savings if cached
+}
+
+// NewCostEstimator creates an estimator.
+func NewCostEstimator() *CostEstimator {
+	return &CostEstimator{}
+}
+
+// Estimate predicts cost for a set of messages + expected output.
+func (ce *CostEstimator) Estimate(messages []EyrieMessage, model string, maxOutputTokens int) CostEstimate {
+	inputTokens := ce.countInputTokens(messages)
+	if maxOutputTokens <= 0 {
+		maxOutputTokens = 4096 // default estimate
+	}
+
+	inPrice := pricePerToken(model, true)
+	outPrice := pricePerToken(model, false)
+
+	est := CostEstimate{
+		InputTokens:   inputTokens,
+		OutputTokens:  maxOutputTokens,
+		InputCostUSD:  float64(inputTokens) * inPrice,
+		OutputCostUSD: float64(maxOutputTokens) * outPrice,
+		Model:         model,
+	}
+	est.TotalCostUSD = est.InputCostUSD + est.OutputCostUSD
+	est.CacheDiscount = est.InputCostUSD * 0.9 // 90% savings if fully cached
+
+	return est
+}
+
+// FormatEstimate returns a human-readable cost estimate.
+func (ce *CostEstimator) FormatEstimate(est CostEstimate) string {
+	return fmt.Sprintf("Estimated cost: $%.4f (%d input + ~%d output tokens, %s)",
+		est.TotalCostUSD, est.InputTokens, est.OutputTokens, est.Model)
+}
+
+// IsExpensive returns true if the estimated cost exceeds a threshold.
+func (ce *CostEstimator) IsExpensive(est CostEstimate, threshold float64) bool {
+	return est.TotalCostUSD > threshold
+}
+
+func (ce *CostEstimator) countInputTokens(messages []EyrieMessage) int {
+	total := 0
+	for _, m := range messages {
+		// ~4 chars per token (rough estimate for fast pre-call estimation)
+		total += len(m.Content) / 4
+		if m.ToolResult != nil {
+			total += len(m.ToolResult.Content) / 4
+		}
+		for _, tc := range m.ToolUse {
+			total += 50 // tool call overhead
+			for _, v := range tc.Arguments {
+				total += len(fmt.Sprintf("%v", v)) / 4
+			}
+		}
+	}
+	return total
+}
+
+// StreamingTokenCounter counts tokens as they stream in real-time.
+// Provides running cost estimate during generation.
+type StreamingTokenCounter struct {
+	model         string
+	inputTokens   int
+	outputTokens  int
+	cachedTokens  int
+}
+
+// NewStreamingTokenCounter creates a counter for a specific model.
+func NewStreamingTokenCounter(model string, inputTokens int) *StreamingTokenCounter {
+	return &StreamingTokenCounter{
+		model:       model,
+		inputTokens: inputTokens,
+	}
+}
+
+// AddOutput records streamed output tokens.
+func (stc *StreamingTokenCounter) AddOutput(text string) {
+	stc.outputTokens += len(text) / 4
+}
+
+// AddCached records cached input tokens.
+func (stc *StreamingTokenCounter) AddCached(tokens int) {
+	stc.cachedTokens = tokens
+}
+
+// CurrentCost returns the running cost so far.
+func (stc *StreamingTokenCounter) CurrentCost() float64 {
+	inPrice := pricePerToken(stc.model, true)
+	outPrice := pricePerToken(stc.model, false)
+	// Cached tokens cost 10% of normal
+	regularIn := stc.inputTokens - stc.cachedTokens
+	if regularIn < 0 {
+		regularIn = 0
+	}
+	return float64(regularIn)*inPrice + float64(stc.cachedTokens)*inPrice*0.1 + float64(stc.outputTokens)*outPrice
+}
+
+// Summary returns current token counts and cost.
+func (stc *StreamingTokenCounter) Summary() string {
+	return fmt.Sprintf("Tokens: %d in + %d out ($%.4f so far)",
+		stc.inputTokens, stc.outputTokens, stc.CurrentCost())
+}
+
+// PromptOptimizer compresses conversation history to reduce input tokens.
+// Keeps the most recent messages intact but summarizes older ones.
+type PromptOptimizer struct {
+	maxInputTokens int
+}
+
+// NewPromptOptimizer creates an optimizer with a token budget.
+func NewPromptOptimizer(maxInputTokens int) *PromptOptimizer {
+	if maxInputTokens <= 0 {
+		maxInputTokens = 100000
+	}
+	return &PromptOptimizer{maxInputTokens: maxInputTokens}
+}
+
+// Optimize compresses messages to fit within the token budget.
+// Preserves: system message, first user message, last N messages.
+// Summarizes: middle messages.
+func (po *PromptOptimizer) Optimize(messages []EyrieMessage) []EyrieMessage {
+	totalTokens := 0
+	for _, m := range messages {
+		totalTokens += len(m.Content)/4 + 10 // +10 for overhead
+	}
+
+	if totalTokens <= po.maxInputTokens {
+		return messages // no optimization needed
+	}
+
+	// Keep first message (system/context) and last 6 messages
+	keepEnd := 6
+	if keepEnd > len(messages) {
+		keepEnd = len(messages)
+	}
+
+	if len(messages) <= keepEnd+1 {
+		return messages
+	}
+
+	// Compress middle messages into a summary
+	middle := messages[1 : len(messages)-keepEnd]
+	summary := compressMessages(middle)
+
+	result := make([]EyrieMessage, 0, keepEnd+2)
+	result = append(result, messages[0]) // first message
+	result = append(result, EyrieMessage{
+		Role:    "user",
+		Content: "[Earlier conversation summary: " + summary + "]",
+	})
+	result = append(result, messages[len(messages)-keepEnd:]...)
+	return result
+}
+
+func compressMessages(messages []EyrieMessage) string {
+	var parts []string
+	for _, m := range messages {
+		content := m.Content
+		if len(content) > 100 {
+			content = content[:100] + "..."
+		}
+		if content != "" {
+			parts = append(parts, m.Role+": "+content)
+		}
+	}
+	summary := strings.Join(parts, " | ")
+	if len(summary) > 500 {
+		summary = summary[:500]
+	}
+	return summary
+}
