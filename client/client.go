@@ -14,7 +14,7 @@ import (
 )
 
 // Version is set by the root package and used in User-Agent headers.
-var Version = "0.1.0"
+var Version = "0.2.0"
 
 // userAgent returns the User-Agent string for HTTP requests.
 func userAgent() string { return "eyrie/" + Version }
@@ -183,7 +183,6 @@ func Client(cfg *EyrieConfig) *EyrieClient {
 	}
 	return c
 }
-
 
 // SetAPIKey sets an API key for a provider.
 func (c *EyrieClient) SetAPIKey(provider, apiKey string) {
