@@ -3,11 +3,42 @@ version: "2"
 linters:
   default: none
   enable:
+    - errcheck
     - govet
     - ineffassign
-    - nilerr
+    - staticcheck
+    - unused
     - misspell
+    - gocritic
+    - unconvert
+    - whitespace
+    - bodyclose
+    - noctx
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+    disabled-checks:
+      - hugeParam
+      - rangeValCopy
+      - appendAssign
+  staticcheck:
+    checks: ["all", "-SA1019"]
 
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-dirs:
+    - .gomodcache
+    - vendor
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gocritic
+        - noctx

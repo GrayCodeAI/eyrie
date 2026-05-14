@@ -232,7 +232,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: anthropic request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	requestID := resp.Header.Get("Request-Id")
 
@@ -348,7 +348,7 @@ func (c *AnthropicClient) Ping(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("eyrie: anthropic ping failed: %w", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode == 401 {
 		return fmt.Errorf("eyrie: anthropic: invalid API key")
 	}
