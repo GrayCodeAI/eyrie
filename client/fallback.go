@@ -54,7 +54,9 @@ func NewFallbackProvider(providers ...Provider) *FallbackProvider {
 
 // SetLogger sets a custom logger for the FallbackProvider.
 func (fp *FallbackProvider) SetLogger(l *slog.Logger) {
+	fp.mu.Lock()
 	fp.logger = l
+	fp.mu.Unlock()
 }
 
 // Name returns a composite name listing all providers in the chain.

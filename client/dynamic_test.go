@@ -92,7 +92,7 @@ func TestGetProviderInfoDynamic(t *testing.T) {
 	name := "test-info-dyn"
 	delete(OpenAICompatibleProviders, name)
 
-	c := NewEyrieClient(nil)
+	c := Client(nil)
 
 	// Before registration, should return nil
 	if info := c.GetProviderInfo(name); info != nil {

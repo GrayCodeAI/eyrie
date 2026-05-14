@@ -37,8 +37,8 @@ func TestParseCustomHeaders(t *testing.T) {
 	}
 }
 
-func TestNewEyrieClient(t *testing.T) {
-	c := NewEyrieClient(&EyrieConfig{Provider: "openai", APIKey: "test-key"})
+func TestClient(t *testing.T) {
+	c := Client(&EyrieConfig{Provider: "openai", APIKey: "test-key"})
 	if c.defaultProvider != "openai" {
 		t.Errorf("expected openai, got %s", c.defaultProvider)
 	}
@@ -213,7 +213,7 @@ func TestStreamParsing(t *testing.T) {
 }
 
 func TestEyrieClientEmptyMessages(t *testing.T) {
-	c := NewEyrieClient(&EyrieConfig{Provider: "openai", APIKey: "test"})
+	c := Client(&EyrieConfig{Provider: "openai", APIKey: "test"})
 	_, err := c.Chat(context.Background(), nil, ChatOptions{Model: "gpt-4o"})
 	if err == nil {
 		t.Error("expected error for empty messages")
