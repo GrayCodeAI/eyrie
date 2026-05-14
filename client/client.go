@@ -152,7 +152,7 @@ var OpenAICompatibleProviders = map[string]ProviderRegistryConfig{
 	"grok":       {Name: "grok", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.x.ai/v1", EnvKey: "XAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"openrouter": {Name: "openrouter", Type: ProviderTypeOpenAICompatible, BaseURL: "https://openrouter.ai/api/v1", EnvKey: "OPENROUTER_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"canopywave": {Name: "canopywave", Type: ProviderTypeOpenAICompatible, BaseURL: "https://inference.canopywave.io/v1", EnvKey: "CANOPYWAVE_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"gemini":     {Name: "gemini", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.gemini.google.com/v1/forward", EnvKey: "GEMINI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"gemini":     {Name: "gemini", Type: ProviderTypeOpenAICompatible, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", EnvKey: "GEMINI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"ollama":     {Name: "ollama", Type: ProviderTypeOpenAICompatible, BaseURL: "http://localhost:11434/v1", EnvKey: "OLLAMA_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: false},
 	"opencodego": {Name: "opencodego", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultOpenCodeGoBaseURL, EnvKey: "OPENCODEGO_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 }
@@ -166,8 +166,8 @@ type EyrieClient struct {
 	providers       map[string]Provider // cached provider clients
 }
 
-// NewEyrieClient creates a new EyrieClient.
-func NewEyrieClient(cfg *EyrieConfig) *EyrieClient {
+// Client creates an EyrieClient.
+func Client(cfg *EyrieConfig) *EyrieClient {
 	c := &EyrieClient{
 		defaultProvider: "openai",
 		apiKeys:         make(map[string]string),
@@ -183,6 +183,7 @@ func NewEyrieClient(cfg *EyrieConfig) *EyrieClient {
 	}
 	return c
 }
+
 
 // SetAPIKey sets an API key for a provider.
 func (c *EyrieClient) SetAPIKey(provider, apiKey string) {
@@ -254,6 +255,9 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 			return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
 		}
 		apiKey = os.Getenv(info.EnvKey)
+		if apiKey == "" && providerName == "grok" {
+			apiKey = os.Getenv("GROK_API_KEY")
+		}
 	}
 
 	info := c.GetProviderInfo(providerName)
