@@ -13,8 +13,15 @@ import (
 	"github.com/GrayCodeAI/eyrie/config"
 )
 
-// Version is set by the root package and used in User-Agent headers.
-var Version = "0.2.0"
+// Version is exported here for backwards compatibility. Callers should prefer
+// the canonical eyrie.Version (which is sourced from the repo-root VERSION
+// file). This variable is initialised by the root package via SetVersion to
+// avoid a circular import.
+var Version = "dev"
+
+// SetVersion is called by the root eyrie package's init to wire the canonical
+// version into this sub-package without creating an import cycle.
+func SetVersion(v string) { Version = v }
 
 // userAgent returns the User-Agent string for HTTP requests.
 func userAgent() string { return "eyrie/" + Version }

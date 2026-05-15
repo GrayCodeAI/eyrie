@@ -13,5 +13,27 @@
 //   - utils: Error utilities (SSL detection, API error sanitization)
 package eyrie
 
-// Version of the eyrie library.
-const Version = "0.2.0"
+import (
+	_ "embed"
+	"strings"
+
+	"github.com/GrayCodeAI/eyrie/client"
+)
+
+// versionFile is the canonical version, embedded at compile time from the
+// VERSION file at the repo root. The VERSION file is the single source of
+// truth used by release tooling, CI, and the runtime Version variable.
+//
+//go:embed VERSION
+var versionFile string
+
+// Version of the eyrie library. Sourced from the VERSION file at the repo
+// root — do not edit this variable directly. Bump VERSION instead, or let
+// release-please/goreleaser do it.
+var Version = strings.TrimSpace(versionFile)
+
+func init() {
+	// Propagate the canonical version into the client sub-package without
+	// creating an import cycle (client cannot import eyrie).
+	client.SetVersion(Version)
+}

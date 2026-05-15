@@ -1,80 +1,114 @@
 # Contributing to eyrie
 
-Thanks for considering a contribution. eyrie is the LLM client + skill router
-that powers the hawk-eco ecosystem. It is built for **solo developers** —
-small surface area, zero magic, fast feedback.
+Thanks for your interest! This guide covers the conventions used across the
+hawk-eco. The eco-wide standards (versioning, release tooling, repo layout)
+are defined in <https://github.com/GrayCodeAI/hawk/blob/main/VERSIONING.md>.
 
 ## Quick start
 
-```bash
-git clone https://github.com/GrayCodeAI/eyrie.git
-cd eyrie
-make build      # CGO_ENABLED=0 go build to bin/eyrie
-make test       # race detector, -count=1, -timeout=120s
-make lint       # golangci-lint v2
+1. Fork the repo and create a feature branch off `main`:
+   ```bash
+   git checkout -b feat/short-description
+   ```
+2. Make your changes in small, focused commits.
+3. Run the full local check before pushing:
+   ```bash
+   make ci
+   ```
+4. Open a pull request. CI will re-run the same checks plus security
+   scanning, race-detector tests, and (where applicable) integration tests.
+
+## Build & test
+
+This repo uses the standardised hawk-eco Makefile targets. Run `make help`
+for the full list. The most common targets:
+
+| Target              | What it does                                     |
+| ------------------- | ------------------------------------------------ |
+| `make build`        | Build the binary / verify the library compiles  |
+| `make test`         | Run unit tests                                   |
+| `make test-race`    | Run unit tests with the race detector            |
+| `make cover`        | Generate a coverage report                       |
+| `make lint`         | Run the linter (`golangci-lint` / `ruff`)        |
+| `make fmt`          | Format source files                              |
+| `make vet`          | Run `go vet` / `mypy`                            |
+| `make security`     | Run `govulncheck` / `pip-audit`                  |
+| `make ci`           | Run everything CI runs (the gate before pushing) |
+
+## Commit message convention
+
+We use [Conventional Commits](https://www.conventionalcommits.org/). This
+isn't cosmetic — release-please reads commit messages to bump the `VERSION`
+file and generate the CHANGELOG, so getting them right matters.
+
+```
+<type>(<optional scope>): <short summary>
+
+<optional body>
+
+<optional footer(s)>
 ```
 
-Go 1.26.1 is the targeted toolchain.
+**Types:**
 
-## Branch flow
+- `feat:` — a new feature (triggers a minor version bump)
+- `fix:` — a bug fix (triggers a patch version bump)
+- `perf:` — performance improvement
+- `refactor:` — code restructure with no behaviour change
+- `docs:` — documentation only
+- `test:` — adding or fixing tests
+- `build:` — build system or dependencies
+- `ci:` — CI configuration
+- `chore:` — anything else (no release effect)
+- `revert:` — reverts a previous commit
 
-- The default branch is `dev`. `main` is reserved for tagged releases.
-- Branch from `dev`: `git checkout -b feat/<scope>-<short-description>`.
-- Open the PR against `dev`. Do **not** push directly to `dev` or `main`.
-- One PR per logical change. Do not mix unrelated changes in a single PR.
+**Breaking changes:** add `!` after the type/scope or include `BREAKING
+CHANGE:` in the footer. This triggers a major version bump.
 
-## Commit messages
-
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+Examples:
 
 ```
-feat(client): add Vertex AI streaming support
-fix(router): correct fallback selection under context cancellation
-perf(catalog): cache embedded model lookup
-docs(readme): document EYRIE_PROFILE env var
-test(client): add OpenAI batch reconnect coverage
+feat(client): add streaming retry with exponential backoff
+fix: handle empty response body in chat handler
+refactor!: rename ClientV1 to Client (BREAKING CHANGE)
 ```
 
-Allowed types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `chore`,
-`build`, `ci`, `style`. Add a scope when it clarifies the change. Do not add
-`Co-authored-by:` trailers — this is solo-developer work.
+## Pull request checklist
 
-## Code standards
+Before requesting review:
 
-- `gofmt -l .` must be empty for files you touch.
-- `go vet ./...` must be clean.
-- `golangci-lint run ./...` must surface no new findings. The repo enables
-  `errcheck`, `staticcheck`, `gocritic`, `unused`, `ineffassign`, `misspell`,
-  `noctx`, `bodyclose`, `unconvert`, `whitespace`. Use `//nolint:<linter>`
-  only with a one-line justification.
-- Public APIs must have godoc comments.
-- Prefer table-driven tests with `t.Parallel()` where independent.
-- Wrap errors with context: `fmt.Errorf("loading config from %s: %w", path, err)`.
-- Propagate `context.Context` everywhere; never call out to a network without it.
-- Keep packages small and feature-named (`client`, `router`, `catalog`).
-  Banned package names: `util`, `helpers`, `common`, `misc`.
+- [ ] `make ci` passes locally.
+- [ ] New behaviour has tests; bug fixes have a regression test.
+- [ ] `CHANGELOG.md` entries are **not** edited manually — release-please
+      generates them from your commit messages.
+- [ ] The `VERSION` file is **not** edited manually — release-please bumps
+      it on release.
+- [ ] Public API changes have updated doc comments.
+- [ ] No secrets, API keys, or PII in code, comments, tests, or fixtures.
 
-## Testing
+## Code review etiquette
 
-```bash
-make test          # full suite with race detector
-make test-coverage # generates coverage.out and prints the totals
-make bench         # benchmarks
-```
+- Reviewers focus on correctness, design, and tests; formatting is
+  enforced by tooling, not humans.
+- Authors respond to every comment (resolved, addressed, or politely
+  declined with rationale) — no silent dismissals.
+- Squash-merge by default; the PR title becomes the commit (so it must
+  be a valid Conventional Commit message).
+- One approving review from a CODEOWNERS-listed reviewer is required.
 
-When adding a new provider client, add tests for: success, retry on 429/5xx,
-non-retriable error pass-through, context cancellation, and (where it
-applies) streaming.
+## Reporting bugs
 
-## Updating CHANGELOG
+Open an issue using the bug-report template. Include the `eyrie`
+version (`eyrie --version` for binaries, `eyrie.Version` for
+libraries — see this repo's `VERSION` file), reproduction steps, expected
+behaviour, and actual behaviour.
 
-User-visible changes go under `## [Unreleased]` in `CHANGELOG.md`. Group by
-`Added` / `Changed` / `Fixed` / `Removed` / `Security`. Keep entries
-short and actionable.
+## Reporting security issues
 
-## Reporting bugs / requesting features
+**Do not open a public issue.** See [SECURITY.md](./SECURITY.md) for
+private reporting channels.
 
-- Bug: open an issue using the bug report template.
-- Feature: open an issue using the feature request template.
-- Security: do **not** file a public issue. Use a GitHub Security Advisory
-  per `SECURITY.md`.
+## License
+
+By contributing, you agree that your contributions will be licensed under
+the same license as this repo (see [LICENSE](./LICENSE)).
