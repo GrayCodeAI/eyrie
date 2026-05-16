@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -68,7 +69,7 @@ func fetchOpenRouterCatalog(env map[string]string) ([]ModelCatalogEntry, error) 
 	}
 	baseURL = strings.TrimRight(baseURL, "/")
 
-	req, _ := http.NewRequest("GET", baseURL+"/models", nil)
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", baseURL+"/models", nil)
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
@@ -129,7 +130,7 @@ func fetchCanopyWaveCatalog(env map[string]string) ([]ModelCatalogEntry, error) 
 	}
 	baseURL = strings.TrimRight(baseURL, "/")
 
-	req, _ := http.NewRequest("GET", baseURL+"/models", nil)
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", baseURL+"/models", nil)
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
