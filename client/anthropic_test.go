@@ -341,7 +341,7 @@ func TestAnthropicChat_Success(t *testing.T) {
 
 		// Decode request body
 		var req anthropicRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		_ = _ = json.NewDecoder(r.Body).Decode(&req)
 		if req.Model != "claude-sonnet-4-6" {
 			t.Errorf("expected model claude-sonnet-4-6, got %s", req.Model)
 		}
@@ -353,7 +353,7 @@ func TestAnthropicChat_Success(t *testing.T) {
 		}
 
 		w.Header().Set("Request-Id", "req-abc-123")
-		_ = json.NewEncoder(w).Encode(anthropicResponse{
+		_ = _ = json.NewEncoder(w).Encode(anthropicResponse{
 			ID: "msg_001",
 			Content: []struct {
 				Type  string          `json:"type"`
@@ -417,7 +417,7 @@ func TestAnthropicChat_WithToolCallResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-tool-1")
 		// Return a response with tool_use blocks
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = _ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":   "msg_002",
 			"type": "message",
 			"content": []map[string]interface{}{
@@ -469,7 +469,7 @@ func TestAnthropicChat_WithToolCallResponse(t *testing.T) {
 func TestAnthropicChat_MultipleToolCalls(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-multi")
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = _ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":   "msg_003",
 			"type": "message",
 			"content": []map[string]interface{}{
@@ -513,9 +513,9 @@ func TestAnthropicChat_MultipleToolCalls(t *testing.T) {
 func TestAnthropicChat_DefaultMaxTokens(t *testing.T) {
 	var capturedBody anthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewDecoder(r.Body).Decode(&capturedBody)
+		_ = _ = json.NewDecoder(r.Body).Decode(&capturedBody)
 		w.Header().Set("Request-Id", "req-default")
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = _ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":          "msg_004",
 			"content":     []map[string]interface{}{{"type": "text", "text": "ok"}},
 			"stop_reason": "end_turn",
@@ -552,9 +552,9 @@ func TestAnthropicChat_ModelRequired(t *testing.T) {
 func TestAnthropicChat_SystemMerge(t *testing.T) {
 	var capturedBody anthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewDecoder(r.Body).Decode(&capturedBody)
+		_ = _ = json.NewDecoder(r.Body).Decode(&capturedBody)
 		w.Header().Set("Request-Id", "req-sys")
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = _ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":          "msg_005",
 			"content":     []map[string]interface{}{{"type": "text", "text": "ok"}},
 			"stop_reason": "end_turn",
@@ -583,9 +583,9 @@ func TestAnthropicChat_SystemMerge(t *testing.T) {
 func TestAnthropicChat_WithTools(t *testing.T) {
 	var capturedBody anthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewDecoder(r.Body).Decode(&capturedBody)
+		_ = json.NewDecoder(r.Body).Decode(&capturedBody)
 		w.Header().Set("Request-Id", "req-tools")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":          "msg_006",
 			"content":     []map[string]interface{}{{"type": "text", "text": "done"}},
 			"stop_reason": "end_turn",
@@ -617,7 +617,7 @@ func TestAnthropicChat_WithTools(t *testing.T) {
 func TestAnthropicChat_CacheUsage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-cache")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":          "msg_007",
 			"content":     []map[string]interface{}{{"type": "text", "text": "cached!"}},
 			"stop_reason": "end_turn",
@@ -658,29 +658,29 @@ func TestAnthropicStreamChat_TextContent(t *testing.T) {
 		flusher, _ := w.(http.Flusher)
 
 		// message_start with usage
-		fmt.Fprintf(w, "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":15,\"output_tokens\":0}}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":15,\"output_tokens\":0}}}\n\n")
 		flusher.Flush()
 
 		// content_block_start
-		fmt.Fprintf(w, "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n")
 		flusher.Flush()
 
 		// text deltas
-		fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}\n\n")
 		flusher.Flush()
-		fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" world\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" world\"}}\n\n")
 		flusher.Flush()
 
 		// content_block_stop
-		fmt.Fprintf(w, "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n")
 		flusher.Flush()
 
 		// message_delta with stop_reason
-		fmt.Fprintf(w, "event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":8}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":8}}\n\n")
 		flusher.Flush()
 
 		// message_stop
-		fmt.Fprintf(w, "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n")
+		_, _ = fmt.Fprintf(w, "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n")
 		flusher.Flush()
 	}))
 	defer server.Close()
@@ -734,37 +734,37 @@ func TestAnthropicStreamChat_ToolUse(t *testing.T) {
 		flusher, _ := w.(http.Flusher)
 
 		// message_start
-		fmt.Fprintf(w, "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":20,\"output_tokens\":0}}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":20,\"output_tokens\":0}}}\n\n")
 		flusher.Flush()
 
 		// Text block
-		fmt.Fprintf(w, "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n")
 		flusher.Flush()
-		fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Let me check.\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Let me check.\"}}\n\n")
 		flusher.Flush()
-		fmt.Fprintf(w, "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n")
 		flusher.Flush()
 
 		// Tool use block
-		fmt.Fprintf(w, "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_stream1\",\"name\":\"get_weather\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_stream1\",\"name\":\"get_weather\"}}\n\n")
 		flusher.Flush()
 
 		// Tool input deltas (streamed JSON)
-		fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"city\\\"\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"city\\\"\"}}\n\n")
 		flusher.Flush()
-		fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\": \\\"NYC\\\"}\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\": \\\"NYC\\\"}\"}}\n\n")
 		flusher.Flush()
 
 		// Tool block stop
-		fmt.Fprintf(w, "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1}\n\n")
 		flusher.Flush()
 
 		// message_delta
-		fmt.Fprintf(w, "event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\"},\"usage\":{\"output_tokens\":25}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\"},\"usage\":{\"output_tokens\":25}}\n\n")
 		flusher.Flush()
 
 		// message_stop
-		fmt.Fprintf(w, "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n")
+		_, _ = fmt.Fprintf(w, "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n")
 		flusher.Flush()
 	}))
 	defer server.Close()
@@ -833,11 +833,11 @@ func TestAnthropicStreamChat_ContextCancel(t *testing.T) {
 		flusher, _ := w.(http.Flusher)
 
 		// Send a few events then hang
-		fmt.Fprintf(w, "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\n")
 		flusher.Flush()
-		fmt.Fprintf(w, "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n")
 		flusher.Flush()
-		fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"partial\"}}\n\n")
+		_, _ = fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"partial\"}}\n\n")
 		flusher.Flush()
 
 		// Hang to simulate slow response
@@ -880,7 +880,7 @@ func TestAnthropicPing_Success(t *testing.T) {
 			t.Errorf("expected valid-key, got %q", r.Header.Get("X-Api-Key"))
 		}
 		w.WriteHeader(200)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id": "msg_ping", "content": []map[string]interface{}{{"type": "text", "text": "hi"}},
 			"usage": map[string]int{"input_tokens": 1, "output_tokens": 1},
 		})
@@ -897,7 +897,7 @@ func TestAnthropicPing_Success(t *testing.T) {
 func TestAnthropicPing_InvalidKey(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"error": map[string]string{"type": "authentication_error", "message": "invalid x-api-key"},
 		})
 	}))
@@ -934,7 +934,7 @@ func TestAnthropicChat_Error401(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-401")
 		w.WriteHeader(401)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"error": map[string]string{
 				"type":    "authentication_error",
 				"message": "invalid x-api-key",
@@ -964,13 +964,13 @@ func TestAnthropicChat_Error429_Retry(t *testing.T) {
 		attempts++
 		if attempts <= 2 {
 			w.WriteHeader(429)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"error": map[string]string{"type": "rate_limit_error", "message": "Too many requests"},
 			})
 			return
 		}
 		w.Header().Set("Request-Id", "req-retry-ok")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":          "msg_retry",
 			"content":     []map[string]interface{}{{"type": "text", "text": "finally!"}},
 			"stop_reason": "end_turn",
@@ -1007,7 +1007,7 @@ func TestAnthropicChat_Error500_ExhaustedRetries(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
 		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"error": map[string]string{"type": "server_error", "message": "Internal error"},
 		})
 	}))
@@ -1061,7 +1061,7 @@ func TestAnthropicStreamChat_ErrorResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-stream-err")
 		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"error": map[string]string{
 				"type":    "invalid_request_error",
 				"message": "messages: roles must alternate",
@@ -1210,9 +1210,9 @@ func TestAnthropicParseImageString_DataURIWithoutBase64(t *testing.T) {
 func TestAnthropicChat_WithTemperature(t *testing.T) {
 	var capturedBody map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewDecoder(r.Body).Decode(&capturedBody)
+		_ = json.NewDecoder(r.Body).Decode(&capturedBody)
 		w.Header().Set("Request-Id", "req-temp")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":          "msg_temp",
 			"content":     []map[string]interface{}{{"type": "text", "text": "warm"}},
 			"stop_reason": "end_turn",
@@ -1239,9 +1239,9 @@ func TestAnthropicChat_WithTemperature(t *testing.T) {
 func TestAnthropicChat_RequestBodyStructure(t *testing.T) {
 	var capturedBody map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewDecoder(r.Body).Decode(&capturedBody)
+		_ = json.NewDecoder(r.Body).Decode(&capturedBody)
 		w.Header().Set("Request-Id", "req-body")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":          "msg_body",
 			"content":     []map[string]interface{}{{"type": "text", "text": "ok"}},
 			"stop_reason": "end_turn",
@@ -1276,13 +1276,13 @@ func TestAnthropicChat_FullToolRoundTrip(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callNum++
 		var reqBody map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&reqBody)
+		_ = json.NewDecoder(r.Body).Decode(&reqBody)
 
 		w.Header().Set("Request-Id", fmt.Sprintf("req-rt-%d", callNum))
 
 		if callNum == 1 {
 			// First call: model wants to use a tool
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"id": "msg_rt1",
 				"content": []map[string]interface{}{
 					{"type": "tool_use", "id": "toolu_rt", "name": "get_time", "input": map[string]interface{}{}},
@@ -1297,7 +1297,7 @@ func TestAnthropicChat_FullToolRoundTrip(t *testing.T) {
 			if len(msgs) < 3 {
 				t.Errorf("expected at least 3 messages in second call, got %d", len(msgs))
 			}
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"id":          "msg_rt2",
 				"content":     []map[string]interface{}{{"type": "text", "text": "It is 3pm."}},
 				"stop_reason": "end_turn",
