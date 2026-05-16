@@ -5,6 +5,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ---
 
+## [0.2.1](https://github.com/GrayCodeAI/eyrie/compare/v0.2.0...v0.2.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* flaky test TestOpenAIStreamChat_MultipleToolCalls order assertion ([f5e7f3b](https://github.com/GrayCodeAI/eyrie/commit/f5e7f3b21d092886971b092027a8184c6fd8a385))
+* gofumpt formatting ([7de54e3](https://github.com/GrayCodeAI/eyrie/commit/7de54e352170e456bbfe9bfee9b79e244210db72))
+* gofumpt formatting + go mod tidy ([8bd58dc](https://github.com/GrayCodeAI/eyrie/commit/8bd58dcea346eb9df8d13d9020d936df2ceba1b5))
+* remaining errcheck issues ([a0a746a](https://github.com/GrayCodeAI/eyrie/commit/a0a746aa95cd9acdf5d29ef836985e13ab864ba1))
+* resolve all lint errors (bodyclose, errcheck, gocritic, noctx, unlambda) ([566980f](https://github.com/GrayCodeAI/eyrie/commit/566980f39bdd7ebba072ce4c17bc19bc0f3cf2a0))
+* syntax errors in test files ([51809bc](https://github.com/GrayCodeAI/eyrie/commit/51809bcb181a27eb344a1493501f59c593b3065b))
+* upgrade Go from 1.26.1 to 1.26.3 to patch stdlib vulnerabilities ([f4a6594](https://github.com/GrayCodeAI/eyrie/commit/f4a65944a6f777947071c9b870a6f2c4f74891be))
+
+
+### Tests
+
+* fix flaky TestBackoffDelay by accounting for jitter ([5fa573f](https://github.com/GrayCodeAI/eyrie/commit/5fa573fe3ec8074a84bf81d10ea59837bf40b7bc))
+
 ## [Unreleased]
 
 ### Changed
