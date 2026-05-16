@@ -3,7 +3,10 @@ package errors
 import "testing"
 
 func TestStartsWithApiErrorPrefix(t *testing.T) {
-	tests := []struct{ input string; want bool }{
+	tests := []struct {
+		input string
+		want  bool
+	}{
 		{"API Error: something", true},
 		{"Please run /login · API Error: auth", true},
 		{"some other error", false},
@@ -32,7 +35,10 @@ func TestParsePromptTooLongTokenCounts(t *testing.T) {
 }
 
 func TestIsMediaSizeError(t *testing.T) {
-	tests := []struct{ input string; want bool }{
+	tests := []struct {
+		input string
+		want  bool
+	}{
 		{"image is too large", true},
 		{"pdf is too large", true},
 		{"file is too large", true},

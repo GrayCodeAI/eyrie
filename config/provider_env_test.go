@@ -243,10 +243,10 @@ func TestSaveProviderConfig(t *testing.T) {
 	path := filepath.Join(dir, "subdir", "provider.json")
 
 	cfg := &ProviderConfig{
-		Version:         "1",
-		ActiveProvider:  "openai",
-		OpenAIAPIKey:    "sk-openai-1234567890",
-		OpenAIModel:     "gpt-4o",
+		Version:        "1",
+		ActiveProvider: "openai",
+		OpenAIAPIKey:   "sk-openai-1234567890",
+		OpenAIModel:    "gpt-4o",
 	}
 
 	err := SaveProviderConfig(cfg, path)

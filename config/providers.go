@@ -8,13 +8,13 @@ import (
 
 // Default base URLs for each provider.
 const (
-	DefaultOpenAIBaseURL          = "https://api.openai.com/v1"
+	DefaultOpenAIBaseURL           = "https://api.openai.com/v1"
 	DefaultOpenRouterOpenAIBaseURL = "https://openrouter.ai/api/v1"
 	DefaultCanopyWaveOpenAIBaseURL = "https://inference.canopywave.io/v1"
-	DefaultGeminiOpenAIBaseURL    = "https://generativelanguage.googleapis.com/v1beta/openai"
-	DefaultAnthropicOpenAIBaseURL = "https://api.anthropic.com/v1"
-	DefaultGrokOpenAIBaseURL      = "https://api.x.ai/v1"
-	DefaultOpenCodeGoBaseURL      = "https://opencode.ai/zen/go/v1"
+	DefaultGeminiOpenAIBaseURL     = "https://generativelanguage.googleapis.com/v1beta/openai"
+	DefaultAnthropicOpenAIBaseURL  = "https://api.anthropic.com/v1"
+	DefaultGrokOpenAIBaseURL       = "https://api.x.ai/v1"
+	DefaultOpenCodeGoBaseURL       = "https://opencode.ai/zen/go/v1"
 )
 
 // ProviderTransport is the transport type for provider requests.

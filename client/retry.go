@@ -14,10 +14,10 @@ import (
 
 // RetryConfig controls retry behavior.
 type RetryConfig struct {
-	MaxRetries  int
-	BaseDelay   time.Duration
-	MaxDelay    time.Duration
-	RetryOn     []int // HTTP status codes to retry on
+	MaxRetries int
+	BaseDelay  time.Duration
+	MaxDelay   time.Duration
+	RetryOn    []int // HTTP status codes to retry on
 }
 
 // DefaultRetryConfig returns sensible defaults.
@@ -107,7 +107,8 @@ func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request
 					delay = parsed
 				}
 			}
-			logger.Debug("retrying request",
+			logger.Debug(
+				"retrying request",
 				"attempt", attempt, "max", rc.MaxRetries,
 				"delay", delay, "url", req.URL.String(),
 			)

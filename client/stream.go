@@ -80,12 +80,12 @@ func parseSSEStream(ctx context.Context, body io.ReadCloser, logger *slog.Logger
 // --- Anthropic streaming ---
 
 type anthropicStreamEvent struct {
-	Type         string `json:"type"`
-	Index        int    `json:"index,omitempty"`
-	Delta        *struct {
-		Type         string `json:"type"`
-		Text         string `json:"text,omitempty"`
-		PartialJSON  string `json:"partial_json,omitempty"`
+	Type  string `json:"type"`
+	Index int    `json:"index,omitempty"`
+	Delta *struct {
+		Type        string `json:"type"`
+		Text        string `json:"text,omitempty"`
+		PartialJSON string `json:"partial_json,omitempty"`
 	} `json:"delta,omitempty"`
 	ContentBlock *struct {
 		Type string `json:"type"`

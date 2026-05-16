@@ -29,7 +29,10 @@ func TestResolveProviderRequestWithReasoning(t *testing.T) {
 }
 
 func TestIsLocalProviderURL(t *testing.T) {
-	tests := []struct{ url string; want bool }{
+	tests := []struct {
+		url  string
+		want bool
+	}{
 		{"http://localhost:11434/v1", true},
 		{"http://127.0.0.1:8080", true},
 		{"https://api.openai.com/v1", false},

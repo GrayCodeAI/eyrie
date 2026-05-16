@@ -172,10 +172,10 @@ func (c *VertexClient) buildBody(messages []EyrieMessage, opts ChatOptions, stre
 	}
 	reqBody := map[string]interface{}{
 		"anthropic_version": "vertex-2023-10-16",
-		"model":            opts.Model,
-		"max_tokens":       maxTokens,
-		"messages":         msgs,
-		"stream":           stream,
+		"model":             opts.Model,
+		"max_tokens":        maxTokens,
+		"messages":          msgs,
+		"stream":            stream,
 	}
 	if system != "" {
 		reqBody["system"] = system
@@ -188,4 +188,3 @@ func (c *VertexClient) buildBody(messages []EyrieMessage, opts ChatOptions, stre
 	}
 	return json.Marshal(reqBody)
 }
-
