@@ -1,0 +1,7 @@
+go 1.26.3
+
+use .
+
+// Local development overrides for unpublished modules.
+// go.work is gitignored — each developer creates their own.
+replace github.com/GrayCodeAI/hawk => ../hawk
