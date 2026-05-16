@@ -101,10 +101,10 @@ func TestFetchModelCatalog_MockCanopyWave(t *testing.T) {
 					ContextLength:       &ctx,
 					MaxCompletionTokens: &maxComp,
 				},
-			},
+		},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 
@@ -229,7 +229,7 @@ func TestLoadModelCatalogSync_ValidCache(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(cat)
-	os.WriteFile(cachePath, data, 0o644)
+	_ = os.WriteFile(cachePath, data, 0o644)
 
 	loaded := LoadModelCatalogSync(cachePath)
 	if loaded.Source != "test" {
@@ -244,7 +244,7 @@ func TestLoadModelCatalogSync_InvalidCache(t *testing.T) {
 	dir := t.TempDir()
 	cachePath := filepath.Join(dir, "cache.json")
 
-	os.WriteFile(cachePath, []byte("invalid json!!!"), 0o644)
+	_ = os.WriteFile(cachePath, []byte("invalid json!!!"), 0o644)
 
 	loaded := LoadModelCatalogSync(cachePath)
 	// Should fall back to default
@@ -271,7 +271,7 @@ func TestFetchOpenRouterCatalog_EmptyModels(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 

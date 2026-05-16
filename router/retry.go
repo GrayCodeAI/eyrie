@@ -58,6 +58,4 @@ func BackoffDelay(attempt int, cfg RetryConfig) time.Duration {
 	return time.Duration(float64(base) * jitter)
 }
 
-var afterFunc = func(d time.Duration) <-chan time.Time {
-	return time.After(d)
-}
+var afterFunc = time.After
