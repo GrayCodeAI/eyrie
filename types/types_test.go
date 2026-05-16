@@ -16,7 +16,10 @@ func TestSessionIdAndAgentId(t *testing.T) {
 }
 
 func TestToAgentId(t *testing.T) {
-	tests := []struct{ input string; valid bool }{
+	tests := []struct {
+		input string
+		valid bool
+	}{
 		{"a1234567890abcdef", true},
 		{"alabel-1234567890abcdef", true},
 		{"invalid", false},

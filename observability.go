@@ -457,16 +457,16 @@ func (mc *MetricsCollector) RecordCustom(name string, value float64, attrs map[s
 
 // metricsSnapshot captures all metrics for serialization.
 type metricsSnapshot struct {
-	RequestCounts map[string]int64            `json:"request_counts"`
-	InputTokens   map[string]int64            `json:"input_tokens"`
-	OutputTokens  map[string]int64            `json:"output_tokens"`
-	Latency       map[string]latencySnapshot  `json:"latency_histograms"`
-	ErrorRates    map[string]float64          `json:"error_rates"`
-	Costs         map[string]float64          `json:"costs_usd"`
-	CacheHitRate  float64                     `json:"cache_hit_rate"`
-	TotalRequests int64                       `json:"total_requests"`
-	TotalCostUSD  float64                     `json:"total_cost_usd"`
-	CustomMetrics map[string][]customSample   `json:"custom_metrics,omitempty"`
+	RequestCounts map[string]int64           `json:"request_counts"`
+	InputTokens   map[string]int64           `json:"input_tokens"`
+	OutputTokens  map[string]int64           `json:"output_tokens"`
+	Latency       map[string]latencySnapshot `json:"latency_histograms"`
+	ErrorRates    map[string]float64         `json:"error_rates"`
+	Costs         map[string]float64         `json:"costs_usd"`
+	CacheHitRate  float64                    `json:"cache_hit_rate"`
+	TotalRequests int64                      `json:"total_requests"`
+	TotalCostUSD  float64                    `json:"total_cost_usd"`
+	CustomMetrics map[string][]customSample  `json:"custom_metrics,omitempty"`
 }
 
 type latencySnapshot struct {

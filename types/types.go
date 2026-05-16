@@ -4,13 +4,15 @@ import "regexp"
 
 // --- Branded string types ---
 
-type SessionId string
-type AgentId string
+type (
+	SessionId string
+	AgentId   string
+)
 
 var agentIdPattern = regexp.MustCompile(`^a(?:.+-)?[0-9a-f]{16}$`)
 
 func AsSessionId(s string) SessionId { return SessionId(s) }
-func AsAgentId(s string) AgentId    { return AgentId(s) }
+func AsAgentId(s string) AgentId     { return AgentId(s) }
 
 func ToAgentId(s string) (*AgentId, error) {
 	if !agentIdPattern.MatchString(s) {
@@ -57,7 +59,7 @@ type Base64ImageSource struct {
 
 type ImageBlockParam struct {
 	Type   string            `json:"type"`
-	Source Base64ImageSource  `json:"source"`
+	Source Base64ImageSource `json:"source"`
 }
 
 type ToolUseBlock struct {
@@ -103,8 +105,10 @@ type RedactedThinkingBlockParam struct {
 	Data string `json:"data"`
 }
 
-type ContentBlock = interface{}
-type ContentBlockParam = interface{}
+type (
+	ContentBlock      = interface{}
+	ContentBlockParam = interface{}
+)
 
 // --- Message types ---
 
@@ -225,17 +229,17 @@ type ToolChoice struct {
 }
 
 type MessageCreateParams struct {
-	Model         string        `json:"model"`
-	MaxTokens     int           `json:"max_tokens"`
+	Model         string         `json:"model"`
+	MaxTokens     int            `json:"max_tokens"`
 	Messages      []MessageParam `json:"messages"`
-	Tools         []Tool        `json:"tools,omitempty"`
-	ToolChoice    *ToolChoice   `json:"tool_choice,omitempty"`
-	System        *string       `json:"system,omitempty"`
-	Temperature   *float64      `json:"temperature,omitempty"`
-	TopP          *float64      `json:"top_p,omitempty"`
-	TopK          *int          `json:"top_k,omitempty"`
-	StopSequences []string      `json:"stop_sequences,omitempty"`
-	Stream        bool          `json:"stream"`
+	Tools         []Tool         `json:"tools,omitempty"`
+	ToolChoice    *ToolChoice    `json:"tool_choice,omitempty"`
+	System        *string        `json:"system,omitempty"`
+	Temperature   *float64       `json:"temperature,omitempty"`
+	TopP          *float64       `json:"top_p,omitempty"`
+	TopK          *int           `json:"top_k,omitempty"`
+	StopSequences []string       `json:"stop_sequences,omitempty"`
+	Stream        bool           `json:"stream"`
 }
 
 type MessageStreamEvent struct {

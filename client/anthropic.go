@@ -79,7 +79,7 @@ type anthropicResponse struct {
 		Input json.RawMessage `json:"input,omitempty"`
 	} `json:"content"`
 	StopReason string `json:"stop_reason"`
-	Usage struct {
+	Usage      struct {
 		InputTokens              int `json:"input_tokens"`
 		OutputTokens             int `json:"output_tokens"`
 		CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
@@ -115,9 +115,9 @@ func buildAnthropicMessages(messages []EyrieMessage) ([]map[string]interface{}, 
 		// User message with tool_result
 		if m.Role == "user" && m.ToolResult != nil {
 			content := []map[string]interface{}{{
-				"type":       "tool_result",
+				"type":        "tool_result",
 				"tool_use_id": m.ToolResult.ToolUseID,
-				"content":    m.ToolResult.Content,
+				"content":     m.ToolResult.Content,
 			}}
 			if m.ToolResult.IsError {
 				content[0]["is_error"] = true

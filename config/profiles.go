@@ -16,13 +16,13 @@ const (
 
 // RuntimeProviderProfile defines how a provider is detected and configured at runtime.
 type RuntimeProviderProfile struct {
-	Mode           string       `json:"mode"`
-	DefaultBaseURL string       `json:"default_base_url"`
-	DefaultModel   string       `json:"default_model"`
-	DetectionEnv   []string     `json:"detection_env"`
-	ModelEnv       []string     `json:"model_env"`
-	BaseURLEnv     []string     `json:"base_url_env"`
-	APIKeys        []APIKeyDef  `json:"api_keys"`
+	Mode           string      `json:"mode"`
+	DefaultBaseURL string      `json:"default_base_url"`
+	DefaultModel   string      `json:"default_model"`
+	DetectionEnv   []string    `json:"detection_env"`
+	ModelEnv       []string    `json:"model_env"`
+	BaseURLEnv     []string    `json:"base_url_env"`
+	APIKeys        []APIKeyDef `json:"api_keys"`
 }
 
 // APIKeyDef maps an env var to a key source name.
@@ -103,8 +103,8 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 }
 
 const (
-	OllamaDefaultBaseURL  = "http://localhost:11434/v1"
-	OllamaDefaultModel    = "llama3.1:8b"
+	OllamaDefaultBaseURL     = "http://localhost:11434/v1"
+	OllamaDefaultModel       = "llama3.1:8b"
 	OpenCodeGoDefaultBaseURL = "https://opencode.ai/zen/go/v1"
 	OpenCodeGoDefaultModel   = "kimi-k2.5"
 )

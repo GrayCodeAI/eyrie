@@ -12,44 +12,44 @@ import (
 
 // ProviderConfig mirrors ~/.hawk/provider.json.
 type ProviderConfig struct {
-	Version          string `json:"_version,omitempty"`
-	ActiveProvider   string `json:"active_provider,omitempty"`
-	AnthropicAPIKey  string `json:"anthropic_api_key,omitempty"`
-	GrokAPIKey       string `json:"grok_api_key,omitempty"`
-	XAIAPIKey        string `json:"xai_api_key,omitempty"`
-	OpenAIAPIKey     string `json:"openai_api_key,omitempty"`
-	CanopyWaveAPIKey string `json:"canopywave_api_key,omitempty"`
-	OpenRouterAPIKey string `json:"openrouter_api_key,omitempty"`
-	GeminiAPIKey     string `json:"gemini_api_key,omitempty"`
-	OllamaBaseURL    string `json:"ollama_base_url,omitempty"`
-	OpenCodeGoAPIKey string `json:"opencodego_api_key,omitempty"`
-	AnthropicBaseURL string `json:"anthropic_base_url,omitempty"`
+	Version           string `json:"_version,omitempty"`
+	ActiveProvider    string `json:"active_provider,omitempty"`
+	AnthropicAPIKey   string `json:"anthropic_api_key,omitempty"`
+	GrokAPIKey        string `json:"grok_api_key,omitempty"`
+	XAIAPIKey         string `json:"xai_api_key,omitempty"`
+	OpenAIAPIKey      string `json:"openai_api_key,omitempty"`
+	CanopyWaveAPIKey  string `json:"canopywave_api_key,omitempty"`
+	OpenRouterAPIKey  string `json:"openrouter_api_key,omitempty"`
+	GeminiAPIKey      string `json:"gemini_api_key,omitempty"`
+	OllamaBaseURL     string `json:"ollama_base_url,omitempty"`
+	OpenCodeGoAPIKey  string `json:"opencodego_api_key,omitempty"`
+	AnthropicBaseURL  string `json:"anthropic_base_url,omitempty"`
 	CanopyWaveBaseURL string `json:"canopywave_base_url,omitempty"`
-	GrokBaseURL      string `json:"grok_base_url,omitempty"`
-	XAIBaseURL       string `json:"xai_base_url,omitempty"`
-	OpenAIBaseURL    string `json:"openai_base_url,omitempty"`
+	GrokBaseURL       string `json:"grok_base_url,omitempty"`
+	XAIBaseURL        string `json:"xai_base_url,omitempty"`
+	OpenAIBaseURL     string `json:"openai_base_url,omitempty"`
 	OpenRouterBaseURL string `json:"openrouter_base_url,omitempty"`
-	GeminiBaseURL    string `json:"gemini_base_url,omitempty"`
+	GeminiBaseURL     string `json:"gemini_base_url,omitempty"`
 	OpenCodeGoBaseURL string `json:"opencodego_base_url,omitempty"`
-	AnthropicModel   string `json:"anthropic_model,omitempty"`
-	OpenAIModel      string `json:"openai_model,omitempty"`
-	CanopyWaveModel  string `json:"canopywave_model,omitempty"`
-	GrokModel        string `json:"grok_model,omitempty"`
-	XAIModel         string `json:"xai_model,omitempty"`
-	OpenRouterModel  string `json:"openrouter_model,omitempty"`
-	GeminiModel      string `json:"gemini_model,omitempty"`
-	OllamaModel      string `json:"ollama_model,omitempty"`
-	OpenCodeGoModel  string `json:"opencodego_model,omitempty"`
-	ActiveModel      string `json:"active_model,omitempty"`
-	ExplorationModel string `json:"exploration_model,omitempty"`
-	AnthropicVersion string `json:"anthropic_version,omitempty"`
+	AnthropicModel    string `json:"anthropic_model,omitempty"`
+	OpenAIModel       string `json:"openai_model,omitempty"`
+	CanopyWaveModel   string `json:"canopywave_model,omitempty"`
+	GrokModel         string `json:"grok_model,omitempty"`
+	XAIModel          string `json:"xai_model,omitempty"`
+	OpenRouterModel   string `json:"openrouter_model,omitempty"`
+	GeminiModel       string `json:"gemini_model,omitempty"`
+	OllamaModel       string `json:"ollama_model,omitempty"`
+	OpenCodeGoModel   string `json:"opencodego_model,omitempty"`
+	ActiveModel       string `json:"active_model,omitempty"`
+	ExplorationModel  string `json:"exploration_model,omitempty"`
+	AnthropicVersion  string `json:"anthropic_version,omitempty"`
 }
 
 // providerFieldMap defines which config fields map to each provider.
 type providerFieldMap struct {
-	APIKeys  func(c *ProviderConfig) []string
-	Models   func(c *ProviderConfig) []string
-	BaseURL  func(c *ProviderConfig) string
+	APIKeys func(c *ProviderConfig) []string
+	Models  func(c *ProviderConfig) []string
+	BaseURL func(c *ProviderConfig) string
 }
 
 var providerFields = map[string]providerFieldMap{

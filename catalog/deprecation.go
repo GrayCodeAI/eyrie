@@ -14,15 +14,15 @@ type DeprecationEntry struct {
 // DeprecatedModels lists deprecated models and their per-provider retirement dates.
 var DeprecatedModels = map[string]DeprecationEntry{
 	"claude-3-opus": {
-		ModelName: "Claude 3 Opus",
+		ModelName:       "Claude 3 Opus",
 		RetirementDates: map[string]string{"anthropic": "January 5, 2026"},
 	},
 	"claude-3-7-sonnet": {
-		ModelName: "Claude 3.7 Sonnet",
+		ModelName:       "Claude 3.7 Sonnet",
 		RetirementDates: map[string]string{"anthropic": "February 19, 2026"},
 	},
 	"claude-3-5-haiku": {
-		ModelName: "Claude 3.5 Haiku",
+		ModelName:       "Claude 3.5 Haiku",
 		RetirementDates: map[string]string{"anthropic": "February 19, 2026"},
 	},
 }
