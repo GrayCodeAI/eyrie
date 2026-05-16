@@ -218,7 +218,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: %s request failed: %w", c.providerName, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	requestID := resp.Header.Get("X-Request-Id")
 
@@ -302,7 +302,7 @@ func (c *OpenAIClient) Ping(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("eyrie: %s ping failed: %w", c.providerName, err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode == 401 {
 		return fmt.Errorf("eyrie: %s: invalid API key", c.providerName)
 	}
