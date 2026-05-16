@@ -31,7 +31,7 @@ func parseSSEStream(ctx context.Context, body io.ReadCloser, logger *slog.Logger
 	ch := make(chan SSEEvent, sseChannelBuffer)
 	go func() {
 		defer close(ch)
-		defer body.Close()
+		defer func() { _ = body.Close() }()
 
 		scanner := bufio.NewScanner(body)
 		scanner.Buffer(make([]byte, 0, sseScannerInitBuf), sseScannerMaxBuf)
@@ -448,7 +448,7 @@ func ParseInlineToolCalls(text string) (cleanText string, toolCalls []ToolCall) 
 
 // parseErrorBody reads and parses an error response body (capped at 4KB).
 func parseErrorBody(body io.ReadCloser) string {
-	defer body.Close()
+	defer func() { _ = body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(body, 4096))
 	if err != nil {
 		return "failed to read error body"

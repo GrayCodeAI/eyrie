@@ -236,7 +236,7 @@ func (s *Server) streamResponse(w http.ResponseWriter, ctx context.Context, star
 
 	for ev := range events {
 		data, _ := json.Marshal(ev)
-		fmt.Fprintf(w, "data: %s\n\n", data)
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 		flusher.Flush()
 	}
 }
@@ -268,5 +268,5 @@ func (s *Server) collectAndRespond(w http.ResponseWriter, events <-chan conversa
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v)
 }

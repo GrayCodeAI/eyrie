@@ -309,7 +309,7 @@ func buildCacheKey(messages []EyrieMessage, opts ChatOptions) string {
 	// Temperature (serialized as string for determinism).
 	h.Write([]byte("temp:"))
 	if opts.Temperature != nil {
-		fmt.Fprintf(h, "%.6f", *opts.Temperature)
+		_, _ = fmt.Fprintf(h, "%.6f", *opts.Temperature)
 	} else {
 		h.Write([]byte("nil"))
 	}

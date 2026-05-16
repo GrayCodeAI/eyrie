@@ -106,7 +106,7 @@ func (bc *BatchClient) Submit(ctx context.Context, requests []BatchRequest) (str
 	if err != nil {
 		return "", fmt.Errorf("eyrie: batch submit failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
 		errBody, _ := io.ReadAll(resp.Body)
@@ -136,7 +136,7 @@ func (bc *BatchClient) Poll(ctx context.Context, batchID string) (*BatchResult, 
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: batch poll failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result BatchResult
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {

@@ -1,0 +1,114 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly.
+title: "bug: <one-line summary>"
+labels: ["bug", "triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill in as much
+        of the form as you can — the more we know, the faster we can fix it.
+
+        Before submitting:
+        - Search [existing issues](https://github.com/GrayCodeAI/eyrie/issues) to avoid duplicates.
+        - If this is a security issue, please **do not** file a public issue. See `SECURITY.md`.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear, concise description of the bug.
+      placeholder: When I call `eyrieClient.Chat(...)` against <provider>, I expected X but got Y.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal Go snippet (or curl/CLI invocation) that reliably reproduces the problem.
+      render: go
+      placeholder: |
+        client := eyrie.New(...)
+        resp, err := client.Chat(ctx, msgs, eyrie.ChatOptions{Model: "..."})
+        // ^ panics / returns wrong shape / hangs / etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      description: Which LLM provider triggers the bug? (Choose `n/a` if not provider-specific.)
+      options:
+        - Anthropic
+        - OpenAI
+        - Azure OpenAI
+        - Vertex AI
+        - OpenAI-compatible (other)
+        - Mock / local
+        - n/a
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model ID
+      description: Exact model identifier you sent (e.g. `claude-opus-4-20250514`, `gpt-4o-2024-08-06`).
+      placeholder: "claude-opus-4-20250514"
+
+  - type: input
+    id: eyrie-version
+    attributes:
+      label: eyrie version
+      description: Output of `eyrie version` or the `eyrie.Version` constant / git SHA you built from.
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      description: Output of `go version`.
+      placeholder: "go version go1.26.1 darwin/arm64"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: e.g. macOS 14.5 (arm64), Ubuntu 24.04 (amd64), Windows 11 (amd64).
+      placeholder: "macOS 14.5 (arm64)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / output
+      description: |
+        Paste relevant logs (request/response excerpts, stack traces, error wrapping chains).
+        **Redact API keys, account identifiers, and any private data first.**
+      render: shell
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I redacted any secrets, API keys, or private data from logs.
+          required: true
