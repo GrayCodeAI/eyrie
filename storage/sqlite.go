@@ -22,7 +22,7 @@ func Open(path string) (*SQLiteStore, error) {
 	db.SetMaxOpenConns(1)
 	s := &SQLiteStore{db: db}
 	if err := s.migrate(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 	return s, nil
@@ -105,7 +105,7 @@ func (s *SQLiteStore) GetNodeChildren(ctx context.Context, id string) ([]*Node, 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return s.scanNodes(rows)
 }
 
@@ -119,7 +119,7 @@ func (s *SQLiteStore) GetSubtree(ctx context.Context, id string) ([]*Node, error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return s.scanNodes(rows)
 }
 
@@ -133,7 +133,7 @@ func (s *SQLiteStore) GetAncestors(ctx context.Context, id string) ([]*Node, err
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return s.scanNodes(rows)
 }
 
@@ -142,7 +142,7 @@ func (s *SQLiteStore) ListRootNodes(ctx context.Context) ([]*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return s.scanNodes(rows)
 }
 
@@ -186,7 +186,7 @@ func (s *SQLiteStore) ListAliases(ctx context.Context, nodeID string) ([]Alias, 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var aliases []Alias
 	for rows.Next() {
 		var a Alias
@@ -203,12 +203,12 @@ func (s *SQLiteStore) IndexToolIDs(ctx context.Context, nodeID string, toolIDs [
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	stmt, err := tx.PrepareContext(ctx, `INSERT INTO node_tool_ids (node_id, tool_id, role) VALUES (?, ?, ?)`)
 	if err != nil {
 		return err
 	}
-	defer stmt.Close()
+	defer func() { _ = stmt.Close() }()
 	for _, tid := range toolIDs {
 		if _, err := stmt.ExecContext(ctx, nodeID, tid, role); err != nil {
 			return err
@@ -230,7 +230,7 @@ func (s *SQLiteStore) GetOrphanedToolUses(ctx context.Context, rootID string) ([
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var ids []string
 	for rows.Next() {
 		var id string

@@ -5,6 +5,35 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **Version re-baselined to `0.2.0`** in `eyrie.go` (`const Version`) and
+  `client/client.go` (`var Version`, used in the `User-Agent` header).
+  Aligns eyrie with the rest of the hawk-eco ecosystem (`hawk`, `tok`,
+  `yaad`, `sight`, `inspect`).
+
+### Added — Production Hardening (top-50 OSS parity)
+- Same-style hardening pass already on this branch:
+  strict `golangci-lint` v2 config, unchecked-error fixes across
+  `observability.go`, `sdk/go/client.go`, `storage/dag.go`,
+  `storage/sqlite.go`, dead-code removal, and gofmt cleanup of the
+  residual blank-line drift in `client/client.go`.
+- `CONTRIBUTING.md` — development setup, branch flow, conventional
+  commits, test/lint requirements.
+- `CODE_OF_CONDUCT.md` — Contributor Covenant 2.1.
+- `.gitattributes` — LF line-ending normalization, binary detection,
+  GitHub linguist hints.
+- `.github/dependabot.yml` — weekly `gomod` + `github-actions` updates.
+- `.github/PULL_REQUEST_TEMPLATE.md` — Summary / Changes / Testing /
+  Checklist.
+- `.github/ISSUE_TEMPLATE/bug_report.yml` — structured bug report.
+- `.github/ISSUE_TEMPLATE/feature_request.yml` — feature request with
+  solo-developer fit checks.
+- `.github/ISSUE_TEMPLATE/config.yml` — routes security reports to
+  GitHub Security Advisories, questions to Discussions, blocks blank
+  issues.
+
 ## [0.1.0] — 2026-05-12
 
 > Initial release.

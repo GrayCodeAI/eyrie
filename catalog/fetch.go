@@ -44,7 +44,7 @@ func asFloat(v interface{}) float64 {
 		return n
 	case string:
 		var f float64
-		fmt.Sscanf(n, "%f", &f)
+		_, _ = fmt.Sscanf(n, "%f", &f)
 		return f
 	}
 	return 0
@@ -77,7 +77,7 @@ func fetchOpenRouterCatalog(env map[string]string) ([]ModelCatalogEntry, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("openrouter model fetch failed (%d)", resp.StatusCode)
 	}
@@ -138,7 +138,7 @@ func fetchCanopyWaveCatalog(env map[string]string) ([]ModelCatalogEntry, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("canopywave model fetch failed (%d)", resp.StatusCode)
 	}

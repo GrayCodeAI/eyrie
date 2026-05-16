@@ -52,7 +52,7 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: vertex request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("eyrie: vertex API error (status %d): %s", resp.StatusCode, parseErrorBody(resp.Body))
@@ -84,7 +84,7 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 			content += block.Text
 		case "tool_use":
 			var args map[string]interface{}
-			json.Unmarshal(block.Input, &args)
+			_ = json.Unmarshal(block.Input, &args)
 			toolCalls = append(toolCalls, ToolCall{ID: block.ID, Name: block.Name, Arguments: args})
 		}
 	}
@@ -144,7 +144,7 @@ func (c *VertexClient) Ping(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("eyrie: vertex ping failed: %w", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode == 401 || resp.StatusCode == 403 {
 		return fmt.Errorf("eyrie: vertex: invalid credentials")
 	}

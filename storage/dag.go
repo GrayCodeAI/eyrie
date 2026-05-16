@@ -210,7 +210,7 @@ func dagNodeToStorage(n *DAGNode, sessionID string, seq int) *Node {
 func storageToDagNode(sn *Node) *DAGNode {
 	meta := make(map[string]string)
 	if sn.Metadata != nil {
-		json.Unmarshal(sn.Metadata, &meta)
+		_ = json.Unmarshal(sn.Metadata, &meta)
 	}
 	return &DAGNode{
 		ID:        sn.ID,
@@ -225,6 +225,6 @@ func storageToDagNode(sn *Node) *DAGNode {
 
 func dagID() string {
 	b := make([]byte, 4)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return fmt.Sprintf("%x", b)
 }

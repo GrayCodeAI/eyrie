@@ -56,7 +56,7 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: azure request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("eyrie: azure API error (status %d): %s", resp.StatusCode, parseErrorBody(resp.Body))
@@ -99,7 +99,7 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 		result.FinishReason = choice.FinishReason
 		for _, tc := range choice.Message.ToolCalls {
 			var args map[string]interface{}
-			json.Unmarshal([]byte(tc.Function.Arguments), &args)
+			_ = json.Unmarshal([]byte(tc.Function.Arguments), &args)
 			result.ToolCalls = append(result.ToolCalls, ToolCall{ID: tc.ID, Name: tc.Function.Name, Arguments: args})
 		}
 	}
@@ -152,7 +152,7 @@ func (c *AzureClient) Ping(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("eyrie: azure ping failed: %w", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode == 401 {
 		return fmt.Errorf("eyrie: azure: invalid API key")
 	}

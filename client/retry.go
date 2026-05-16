@@ -142,7 +142,7 @@ func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request
 		lastResp = resp
 		lastErr = fmt.Errorf("HTTP %d from %s", resp.StatusCode, req.URL.String())
 		logger.Warn("retryable status", "attempt", attempt, "status", resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 
 	return nil, fmt.Errorf("max retries (%d) exceeded: %w", rc.MaxRetries, lastErr)
