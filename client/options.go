@@ -38,6 +38,7 @@ func (o ClientOption) apply(c *AnthropicClient) {
 		o.applyFn(c)
 	}
 }
+
 func (o ClientOption) applyOpenAI(c *OpenAIClient) {
 	if o.applyOpenAIFn != nil {
 		o.applyOpenAIFn(c)
