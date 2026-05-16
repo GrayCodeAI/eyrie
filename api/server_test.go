@@ -43,7 +43,7 @@ func testServer(t *testing.T) *httptest.Server {
 
 func drainBody(t *testing.T, resp *http.Response) {
 	t.Helper()
-	defer _ = resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	_, _ = io.Copy(io.Discard, resp.Body)
 }
 
