@@ -9,19 +9,57 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": false,
       "changelog-sections": [
-        { "type": "feat",     "section": "Features" },
-        { "type": "fix",      "section": "Bug Fixes" },
-        { "type": "perf",     "section": "Performance" },
-        { "type": "refactor", "section": "Refactoring" },
-        { "type": "revert",   "section": "Reverts" },
-        { "type": "docs",     "section": "Documentation", "hidden": false },
-        { "type": "test",     "section": "Tests",         "hidden": false },
-        { "type": "build",    "section": "Build",         "hidden": true },
-        { "type": "ci",       "section": "CI",            "hidden": true },
-        { "type": "chore",    "section": "Chores",        "hidden": true },
-        { "type": "style",    "section": "Style",         "hidden": true }
-      ],
-      "extra-files": [{"type":"version-txt","path":"VERSION"}]
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance"
+        },
+        {
+          "type": "refactor",
+          "section": "Refactoring"
+        },
+        {
+          "type": "revert",
+          "section": "Reverts"
+        },
+        {
+          "type": "docs",
+          "section": "Documentation",
+          "hidden": false
+        },
+        {
+          "type": "test",
+          "section": "Tests",
+          "hidden": false
+        },
+        {
+          "type": "build",
+          "section": "Build",
+          "hidden": true
+        },
+        {
+          "type": "ci",
+          "section": "CI",
+          "hidden": true
+        },
+        {
+          "type": "chore",
+          "section": "Chores",
+          "hidden": true
+        },
+        {
+          "type": "style",
+          "section": "Style",
+          "hidden": true
+        }
+      ]
     }
   }
 }
