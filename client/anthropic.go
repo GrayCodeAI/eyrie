@@ -325,6 +325,7 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 
 	if resp.StatusCode != 200 {
 		errMsg := parseErrorBody(resp.Body)
+		_ = resp.Body.Close()
 		return nil, fmt.Errorf("eyrie: anthropic API error (request_id=%s): %s", requestID, errMsg)
 	}
 
