@@ -275,4 +275,3 @@ func generateTitle(msg string) string {
 	}
 	return msg
 }
-

@@ -12,9 +12,9 @@ import (
 
 // BatchRequest represents a single request in a batch.
 type BatchRequest struct {
-	CustomID string       `json:"custom_id"`
+	CustomID string         `json:"custom_id"`
 	Messages []EyrieMessage `json:"messages"`
-	Options  ChatOptions  `json:"options"`
+	Options  ChatOptions    `json:"options"`
 }
 
 // BatchResponse represents a single response from a batch.

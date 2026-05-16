@@ -94,7 +94,8 @@ func (fp *FallbackProvider) Chat(ctx context.Context, messages []EyrieMessage, o
 			return nil, err
 		}
 
-		fp.logger.Debug("fallback: trying provider",
+		fp.logger.Debug(
+			"fallback: trying provider",
 			"provider", p.Name(),
 			"index", i,
 			"total", len(fp.providers),
@@ -103,7 +104,8 @@ func (fp *FallbackProvider) Chat(ctx context.Context, messages []EyrieMessage, o
 		resp, err := p.Chat(ctx, messages, opts)
 		if err == nil {
 			fp.recordSuccess(p.Name())
-			fp.logger.Debug("fallback: provider succeeded",
+			fp.logger.Debug(
+				"fallback: provider succeeded",
 				"provider", p.Name(),
 				"index", i,
 			)
@@ -112,14 +114,16 @@ func (fp *FallbackProvider) Chat(ctx context.Context, messages []EyrieMessage, o
 
 		// Check if the error is retriable; if not, return immediately.
 		if !isRetriableError(err) {
-			fp.logger.Warn("fallback: non-retriable error, not falling back",
+			fp.logger.Warn(
+				"fallback: non-retriable error, not falling back",
 				"provider", p.Name(),
 				"error", err,
 			)
 			return nil, err
 		}
 
-		fp.logger.Warn("fallback: provider failed, trying next",
+		fp.logger.Warn(
+			"fallback: provider failed, trying next",
 			"provider", p.Name(),
 			"index", i,
 			"error", err,
@@ -140,7 +144,8 @@ func (fp *FallbackProvider) StreamChat(ctx context.Context, messages []EyrieMess
 			return nil, err
 		}
 
-		fp.logger.Debug("fallback: trying provider for stream",
+		fp.logger.Debug(
+			"fallback: trying provider for stream",
 			"provider", p.Name(),
 			"index", i,
 			"total", len(fp.providers),
@@ -149,7 +154,8 @@ func (fp *FallbackProvider) StreamChat(ctx context.Context, messages []EyrieMess
 		sr, err := p.StreamChat(ctx, messages, opts)
 		if err == nil {
 			fp.recordSuccess(p.Name())
-			fp.logger.Debug("fallback: provider stream succeeded",
+			fp.logger.Debug(
+				"fallback: provider stream succeeded",
 				"provider", p.Name(),
 				"index", i,
 			)
@@ -157,14 +163,16 @@ func (fp *FallbackProvider) StreamChat(ctx context.Context, messages []EyrieMess
 		}
 
 		if !isRetriableError(err) {
-			fp.logger.Warn("fallback: non-retriable stream error, not falling back",
+			fp.logger.Warn(
+				"fallback: non-retriable stream error, not falling back",
 				"provider", p.Name(),
 				"error", err,
 			)
 			return nil, err
 		}
 
-		fp.logger.Warn("fallback: provider stream failed, trying next",
+		fp.logger.Warn(
+			"fallback: provider stream failed, trying next",
 			"provider", p.Name(),
 			"index", i,
 			"error", err,

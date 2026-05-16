@@ -33,8 +33,16 @@ type ClientOption struct {
 	applyOpenAIFn func(*OpenAIClient)
 }
 
-func (o ClientOption) apply(c *AnthropicClient)    { if o.applyFn != nil { o.applyFn(c) } }
-func (o ClientOption) applyOpenAI(c *OpenAIClient)  { if o.applyOpenAIFn != nil { o.applyOpenAIFn(c) } }
+func (o ClientOption) apply(c *AnthropicClient) {
+	if o.applyFn != nil {
+		o.applyFn(c)
+	}
+}
+func (o ClientOption) applyOpenAI(c *OpenAIClient) {
+	if o.applyOpenAIFn != nil {
+		o.applyOpenAIFn(c)
+	}
+}
 
 // WithTimeout sets the HTTP client timeout.
 func WithTimeout(d time.Duration) ClientOption {

@@ -15,11 +15,12 @@ import (
 
 type mockProv struct{}
 
-func (m *mockProv) Name() string { return "mock" }
+func (m *mockProv) Name() string                 { return "mock" }
 func (m *mockProv) Ping(_ context.Context) error { return nil }
 func (m *mockProv) Chat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.EyrieResponse, error) {
 	return &client.EyrieResponse{Content: "hi", FinishReason: "end_turn", Usage: &client.EyrieUsage{CompletionTokens: 2}}, nil
 }
+
 func (m *mockProv) StreamChat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
 	ch := make(chan client.EyrieStreamEvent, 2)
 	ch <- client.EyrieStreamEvent{Type: "content", Content: "hi"}

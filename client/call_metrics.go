@@ -23,8 +23,8 @@ const metricsBufferSize = 100
 type MetricsCollector struct {
 	mu    sync.Mutex
 	buf   [metricsBufferSize]CallMetrics
-	pos   int  // next write position
-	count int  // total items written (for knowing how many are valid)
+	pos   int // next write position
+	count int // total items written (for knowing how many are valid)
 }
 
 // NewMetricsCollector creates a new MetricsCollector.

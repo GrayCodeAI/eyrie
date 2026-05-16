@@ -84,7 +84,7 @@ func TestWeightedProviderFailoverOnRetriableError(t *testing.T) {
 	secondary.mock.Response = "fallback success"
 
 	wp := NewWeightedProvider([]WeightedProviderConfig{
-		{Provider: primary, Weight: 1.0},   // will always be selected
+		{Provider: primary, Weight: 1.0},    // will always be selected
 		{Provider: secondary, Weight: 0.01}, // extremely low weight
 	})
 
@@ -107,7 +107,7 @@ func TestWeightedProviderNoFailoverOnNonRetriableError(t *testing.T) {
 	secondary.mock.Response = "should not reach"
 
 	wp := NewWeightedProvider([]WeightedProviderConfig{
-		{Provider: primary, Weight: 1.0},   // always selected
+		{Provider: primary, Weight: 1.0}, // always selected
 		{Provider: secondary, Weight: 0.01},
 	})
 

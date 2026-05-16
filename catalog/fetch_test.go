@@ -266,8 +266,8 @@ func TestFetchOpenRouterCatalog_EmptyModels(t *testing.T) {
 			Data []openRouterModel `json:"data"`
 		}{
 			Data: []openRouterModel{
-				{ID: ""},             // empty ID should be skipped
-				{ID: "valid-model"},  // valid entry
+				{ID: ""},            // empty ID should be skipped
+				{ID: "valid-model"}, // valid entry
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")

@@ -5,12 +5,12 @@ import "fmt"
 // EyrieError is a structured error that preserves provider context,
 // HTTP metadata, and request identification for debugging.
 type EyrieError struct {
-	Provider  string
-	Op        string // operation that failed (e.g. "chat", "stream", "ping")
+	Provider   string
+	Op         string // operation that failed (e.g. "chat", "stream", "ping")
 	StatusCode int
-	RequestID string
-	Message   string
-	Err       error
+	RequestID  string
+	Message    string
+	Err        error
 }
 
 func (e *EyrieError) Error() string {

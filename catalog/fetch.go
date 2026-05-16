@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	DefaultOpenRouterBaseURL  = "https://openrouter.ai/api/v1"
-	DefaultCanopyWaveBaseURL  = "https://inference.canopywave.io/v1"
+	DefaultOpenRouterBaseURL = "https://openrouter.ai/api/v1"
+	DefaultCanopyWaveBaseURL = "https://inference.canopywave.io/v1"
 )
 
 var catalogHTTPClient = &http.Client{Timeout: 30 * time.Second}
@@ -19,7 +19,7 @@ type openRouterModel struct {
 	ID            string `json:"id"`
 	ContextLength *int   `json:"context_length"`
 	TopProvider   *struct {
-		ContextLength      *int `json:"context_length"`
+		ContextLength       *int `json:"context_length"`
 		MaxCompletionTokens *int `json:"max_completion_tokens"`
 	} `json:"top_provider"`
 	Pricing *struct {

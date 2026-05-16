@@ -18,12 +18,12 @@ type RouteEntry struct {
 }
 
 type Router struct {
-	entries       []RouteEntry
-	fallback      []client.Provider
-	totalWeight   int
-	defaultRetry  RetryConfig
-	mu            sync.RWMutex
-	stats         map[string]*atomic.Int64
+	entries      []RouteEntry
+	fallback     []client.Provider
+	totalWeight  int
+	defaultRetry RetryConfig
+	mu           sync.RWMutex
+	stats        map[string]*atomic.Int64
 }
 
 var _ client.Provider = (*Router)(nil)

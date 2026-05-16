@@ -87,9 +87,9 @@ func TestOpenAIChat_Success(t *testing.T) {
 				},
 			},
 			Usage: &struct {
-				PromptTokens     int `json:"prompt_tokens"`
-				CompletionTokens int `json:"completion_tokens"`
-				TotalTokens      int `json:"total_tokens"`
+				PromptTokens        int `json:"prompt_tokens"`
+				CompletionTokens    int `json:"completion_tokens"`
+				TotalTokens         int `json:"total_tokens"`
 				PromptTokensDetails *struct {
 					CachedTokens int `json:"cached_tokens"`
 				} `json:"prompt_tokens_details,omitempty"`
@@ -758,9 +758,9 @@ func TestOpenAIPing_ServerError(t *testing.T) {
 
 func TestOpenAICompat_MaxTokensField(t *testing.T) {
 	tests := []struct {
-		name     string
-		compat   *OpenAICompatConfig
-		wantKey  string
+		name       string
+		compat     *OpenAICompatConfig
+		wantKey    string
 		notWantKey string
 	}{
 		{

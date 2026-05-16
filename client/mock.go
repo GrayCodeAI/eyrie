@@ -30,8 +30,8 @@ const (
 type MockProvider struct {
 	mu       sync.Mutex
 	Mode     MockMode
-	Response string   // used in MockModeFixed
-	ToolName string   // used in MockModeToolUse
+	Response string // used in MockModeFixed
+	ToolName string // used in MockModeToolUse
 	ToolArgs map[string]interface{}
 	Delay    time.Duration // simulate latency
 	Calls    []MockCall    // recorded calls for assertions

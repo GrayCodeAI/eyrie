@@ -36,7 +36,7 @@ func (h HealthState) String() string {
 // HealthStatus holds the current health status for a provider, including
 // measured latency and the time of the last health check.
 type HealthStatus struct {
-	State       HealthState `json:"state"`
+	State       HealthState   `json:"state"`
 	Latency     time.Duration `json:"latency"`
 	LastChecked time.Time     `json:"last_checked"`
 	Error       string        `json:"error,omitempty"`
@@ -93,7 +93,7 @@ type HealthChecker struct {
 }
 
 type healthEntry struct {
-	status             HealthStatus
+	status              HealthStatus
 	consecutiveFailures int
 }
 
