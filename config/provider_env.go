@@ -132,7 +132,7 @@ func SetEnvValue(key, value string, overwrite bool) {
 	if !overwrite && os.Getenv(key) != "" {
 		return
 	}
-	os.Setenv(key, value)
+	_ = os.Setenv(key, value)
 }
 
 // ApplyOpenAICompatibleProvider sets env vars for an OpenAI-compatible provider.
@@ -327,7 +327,7 @@ func ClearProviderRuntimeEnv() {
 		"OPENCODEGO_API_KEY", "OPENCODEGO_MODEL", "OPENCODEGO_BASE_URL",
 	}
 	for _, k := range keys {
-		os.Unsetenv(k)
+		_ = os.Unsetenv(k)
 	}
 }
 
@@ -440,7 +440,7 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 // directly to the process environment via os.Setenv.
 func ApplyProviderEnvToProcess(provider string, config *ProviderConfig, activeModel string, overwrite bool, cat *catalog.ModelCatalog) {
 	for k, v := range ApplyProviderEnv(provider, config, activeModel, overwrite, cat) {
-		os.Setenv(k, v)
+		_ = os.Setenv(k, v)
 	}
 }
 

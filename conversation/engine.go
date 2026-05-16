@@ -2,7 +2,6 @@ package conversation
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -277,23 +276,3 @@ func generateTitle(msg string) string {
 	return msg
 }
 
-func extractToolResultIDs(content string) []string {
-	trimmed := strings.TrimSpace(content)
-	if len(trimmed) == 0 || trimmed[0] != '[' || !json.Valid([]byte(trimmed)) {
-		return nil
-	}
-	var blocks []struct {
-		Type      string `json:"type"`
-		ToolUseID string `json:"tool_use_id"`
-	}
-	if json.Unmarshal([]byte(trimmed), &blocks) != nil {
-		return nil
-	}
-	var ids []string
-	for _, b := range blocks {
-		if b.Type == "tool_result" && b.ToolUseID != "" {
-			ids = append(ids, b.ToolUseID)
-		}
-	}
-	return ids
-}
