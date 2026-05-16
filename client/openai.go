@@ -116,27 +116,28 @@ func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, s
 			if m.Content != "" {
 				content = append(content, map[string]interface{}{"type": "text", "text": m.Content})
 			}
-			for _, img := range m.Images {
-				if strings.HasPrefix(img, "data:") {
-					// Already a data URI, pass directly
-					content = append(content, map[string]interface{}{
-						"type":      "image_url",
-						"image_url": map[string]interface{}{"url": img},
-					})
-				} else if strings.HasPrefix(img, "http") {
-					// Plain URL
-					content = append(content, map[string]interface{}{
-						"type":      "image_url",
-						"image_url": map[string]interface{}{"url": img},
-					})
-				} else {
-					// Assume raw base64 data, default to image/png
-					content = append(content, map[string]interface{}{
-						"type":      "image_url",
-						"image_url": map[string]interface{}{"url": "data:image/png;base64," + img},
-					})
-				}
+		for _, img := range m.Images {
+			switch {
+			case strings.HasPrefix(img, "data:"):
+				// Already a data URI, pass directly
+				content = append(content, map[string]interface{}{
+					"type":      "image_url",
+					"image_url": map[string]interface{}{"url": img},
+				})
+			case strings.HasPrefix(img, "http"):
+				// Plain URL
+				content = append(content, map[string]interface{}{
+					"type":      "image_url",
+					"image_url": map[string]interface{}{"url": img},
+				})
+			default:
+				// Assume raw base64 data, default to image/png
+				content = append(content, map[string]interface{}{
+					"type":      "image_url",
+					"image_url": map[string]interface{}{"url": "data:image/png;base64," + img},
+				})
 			}
+		}
 			msg["content"] = content
 		}
 		if len(m.ToolUse) > 0 {
@@ -281,6 +282,7 @@ func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 
 	if resp.StatusCode != 200 {
 		errMsg := parseErrorBody(resp.Body)
+		_ = resp.Body.Close()
 		return nil, fmt.Errorf("eyrie: %s API error (request_id=%s): %s", c.providerName, requestID, errMsg)
 	}
 

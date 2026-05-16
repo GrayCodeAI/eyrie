@@ -123,6 +123,7 @@ func (c *VertexClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 
 	if resp.StatusCode != 200 {
 		errMsg := parseErrorBody(resp.Body)
+		_ = resp.Body.Close()
 		return nil, fmt.Errorf("eyrie: vertex API error (status %d): %s", resp.StatusCode, errMsg)
 	}
 

@@ -341,7 +341,7 @@ func TestAnthropicChat_Success(t *testing.T) {
 
 		// Decode request body
 		var req anthropicRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		if req.Model != "claude-sonnet-4-6" {
 			t.Errorf("expected model claude-sonnet-4-6, got %s", req.Model)
 		}
@@ -353,7 +353,7 @@ func TestAnthropicChat_Success(t *testing.T) {
 		}
 
 		w.Header().Set("Request-Id", "req-abc-123")
-		json.NewEncoder(w).Encode(anthropicResponse{
+		_ = json.NewEncoder(w).Encode(anthropicResponse{
 			ID: "msg_001",
 			Content: []struct {
 				Type  string          `json:"type"`
@@ -417,7 +417,7 @@ func TestAnthropicChat_WithToolCallResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-tool-1")
 		// Return a response with tool_use blocks
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":   "msg_002",
 			"type": "message",
 			"content": []map[string]interface{}{
@@ -469,7 +469,7 @@ func TestAnthropicChat_WithToolCallResponse(t *testing.T) {
 func TestAnthropicChat_MultipleToolCalls(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-multi")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":   "msg_003",
 			"type": "message",
 			"content": []map[string]interface{}{
@@ -513,9 +513,9 @@ func TestAnthropicChat_MultipleToolCalls(t *testing.T) {
 func TestAnthropicChat_DefaultMaxTokens(t *testing.T) {
 	var capturedBody anthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewDecoder(r.Body).Decode(&capturedBody)
+		_ = json.NewDecoder(r.Body).Decode(&capturedBody)
 		w.Header().Set("Request-Id", "req-default")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":          "msg_004",
 			"content":     []map[string]interface{}{{"type": "text", "text": "ok"}},
 			"stop_reason": "end_turn",
@@ -552,9 +552,9 @@ func TestAnthropicChat_ModelRequired(t *testing.T) {
 func TestAnthropicChat_SystemMerge(t *testing.T) {
 	var capturedBody anthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewDecoder(r.Body).Decode(&capturedBody)
+		_ = json.NewDecoder(r.Body).Decode(&capturedBody)
 		w.Header().Set("Request-Id", "req-sys")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":          "msg_005",
 			"content":     []map[string]interface{}{{"type": "text", "text": "ok"}},
 			"stop_reason": "end_turn",
