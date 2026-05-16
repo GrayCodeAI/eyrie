@@ -1,3 +1,4 @@
+//nolint:errcheck
 package client
 
 import (
@@ -12,22 +13,22 @@ import (
 func TestDetectProvider(t *testing.T) {
 	// Clear all
 	for _, k := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "OPENCODEGO_API_KEY", "OLLAMA_BASE_URL"} {
-		os.Unsetenv(k)
+		_ = os.Unsetenv(k)
 	}
 	// Default should be anthropic
 	if p := DetectProvider(); p != "anthropic" {
 		t.Errorf("expected anthropic default, got %s", p)
 	}
-	os.Setenv("OPENAI_API_KEY", "test")
-	defer os.Unsetenv("OPENAI_API_KEY")
+	_ = os.Setenv("OPENAI_API_KEY", "test")
+	defer func() { _ = os.Unsetenv("OPENAI_API_KEY") }()
 	if p := DetectProvider(); p != "openai" {
 		t.Errorf("expected openai, got %s", p)
 	}
 }
 
 func TestParseCustomHeaders(t *testing.T) {
-	os.Setenv("GRAYCODE_CUSTOM_HEADERS", "X-Custom: value1\nX-Other: value2")
-	defer os.Unsetenv("GRAYCODE_CUSTOM_HEADERS")
+	_ = os.Setenv("GRAYCODE_CUSTOM_HEADERS", "X-Custom: value1\nX-Other: value2")
+	defer func() { _ = os.Unsetenv("GRAYCODE_CUSTOM_HEADERS") }()
 	h := ParseCustomHeaders()
 	if h["X-Custom"] != "value1" {
 		t.Errorf("expected value1, got %s", h["X-Custom"])

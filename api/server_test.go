@@ -1,3 +1,4 @@
+//nolint:bodyclose,noctx
 package api
 
 import (
