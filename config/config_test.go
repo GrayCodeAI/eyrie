@@ -7,6 +7,9 @@ import (
 )
 
 func TestResolveProviderRequest(t *testing.T) {
+	// Clear provider env vars to test default resolution
+	os.Unsetenv("OPENAI_BASE_URL")
+	os.Unsetenv("OPENAI_API_BASE")
 	r := ResolveProviderRequest("gpt-4o", "", "")
 	if r.ResolvedModel != "gpt-4o" {
 		t.Errorf("expected gpt-4o, got %s", r.ResolvedModel)
