@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -35,9 +36,15 @@ func testServer(t *testing.T) *httptest.Server {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { store.Close() })
+	t.Cleanup(func() { _ = store.Close() })
 	srv := NewServer(Config{Store: store, Provider: &mockProv{}})
 	return httptest.NewServer(srv)
+}
+
+func drainBody(t *testing.T, resp *http.Response) {
+	t.Helper()
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
 }
 
 func TestHealth(t *testing.T) {
@@ -47,6 +54,7 @@ func TestHealth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer drainBody(t, resp)
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -65,7 +73,10 @@ func TestPromptAndList(t *testing.T) {
 		t.Fatalf("prompt: expected 200, got %d", resp.StatusCode)
 	}
 	var result map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
 	if result["content"] != "hi" {
 		t.Errorf("expected 'hi', got %v", result["content"])
 	}
@@ -74,12 +85,18 @@ func TestPromptAndList(t *testing.T) {
 		t.Error("expected node_id")
 	}
 
-	resp, _ = http.Get(ts.URL + "/nodes")
+	resp, err = http.Get(ts.URL + "/nodes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer drainBody(t, resp)
 	if resp.StatusCode != 200 {
 		t.Fatalf("list: expected 200, got %d", resp.StatusCode)
 	}
 	var nodes []map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&nodes)
+	if err := json.NewDecoder(resp.Body).Decode(&nodes); err != nil {
+		t.Fatal(err)
+	}
 	if len(nodes) != 1 {
 		t.Errorf("expected 1 root, got %d", len(nodes))
 	}
@@ -90,17 +107,31 @@ func TestGetNodeAndTree(t *testing.T) {
 	defer ts.Close()
 
 	body := `{"message":"test","model":"m"}`
-	resp, _ := http.Post(ts.URL+"/prompt", "application/json", strings.NewReader(body))
+	resp, err := http.Post(ts.URL+"/prompt", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
 	var result map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
 	nodeID := result["node_id"].(string)
 
-	resp, _ = http.Get(ts.URL + "/nodes/" + nodeID)
+	resp, err = http.Get(ts.URL + "/nodes/" + nodeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer drainBody(t, resp)
 	if resp.StatusCode != 200 {
 		t.Fatalf("get node: %d", resp.StatusCode)
 	}
 
-	resp, _ = http.Get(ts.URL + "/nodes/" + nodeID + "/tree")
+	resp, err = http.Get(ts.URL + "/nodes/" + nodeID + "/tree")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer drainBody(t, resp)
 	if resp.StatusCode != 200 {
 		t.Fatalf("get tree: %d", resp.StatusCode)
 	}
@@ -111,13 +142,26 @@ func TestDeleteNode(t *testing.T) {
 	defer ts.Close()
 
 	body := `{"message":"del","model":"m"}`
-	resp, _ := http.Post(ts.URL+"/prompt", "application/json", strings.NewReader(body))
+	resp, err := http.Post(ts.URL+"/prompt", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
 	var result map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
 	nodeID := result["node_id"].(string)
 
-	req, _ := http.NewRequest("DELETE", ts.URL+"/nodes/"+nodeID, nil)
-	resp, _ = http.DefaultClient.Do(req)
+	req, err := http.NewRequestWithContext(context.Background(), "DELETE", ts.URL+"/nodes/"+nodeID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer drainBody(t, resp)
 	if resp.StatusCode != 200 {
 		t.Fatalf("delete: %d", resp.StatusCode)
 	}
@@ -125,20 +169,31 @@ func TestDeleteNode(t *testing.T) {
 
 func TestAuthRequired(t *testing.T) {
 	store, _ := storage.Open(filepath.Join(t.TempDir(), "test.db"))
-	defer store.Close()
+	t.Cleanup(func() { _ = store.Close() })
 	srv := NewServer(Config{Store: store, Provider: &mockProv{}, APIKey: "secret"})
 	ts := httptest.NewServer(srv)
 	defer ts.Close()
 
-	resp, _ := http.Post(ts.URL+"/prompt", "application/json", strings.NewReader(`{"message":"hi"}`))
+	resp, err := http.Post(ts.URL+"/prompt", "application/json", strings.NewReader(`{"message":"hi"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer drainBody(t, resp)
 	if resp.StatusCode != 401 {
 		t.Fatalf("expected 401 without key, got %d", resp.StatusCode)
 	}
 
-	req, _ := http.NewRequest("POST", ts.URL+"/prompt", strings.NewReader(`{"message":"hi","model":"m"}`))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", ts.URL+"/prompt", strings.NewReader(`{"message":"hi","model":"m"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer secret")
-	resp, _ = http.DefaultClient.Do(req)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer drainBody(t, resp)
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200 with key, got %d", resp.StatusCode)
 	}

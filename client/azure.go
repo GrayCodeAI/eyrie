@@ -131,6 +131,7 @@ func (c *AzureClient) StreamChat(ctx context.Context, messages []EyrieMessage, o
 
 	if resp.StatusCode != 200 {
 		errMsg := parseErrorBody(resp.Body)
+		_ = resp.Body.Close()
 		return nil, fmt.Errorf("eyrie: azure API error (status %d): %s", resp.StatusCode, errMsg)
 	}
 

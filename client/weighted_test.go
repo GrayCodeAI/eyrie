@@ -55,11 +55,12 @@ func TestWeightedProviderDistribution(t *testing.T) {
 		if err != nil {
 			t.Fatalf("call %d: unexpected error: %v", i, err)
 		}
-		if resp.Content == "from primary" {
+		switch resp.Content {
+		case "from primary":
 			counts["primary"]++
-		} else if resp.Content == "from secondary" {
+		case "from secondary":
 			counts["secondary"]++
-		} else {
+		default:
 			t.Fatalf("unexpected response: %q", resp.Content)
 		}
 	}

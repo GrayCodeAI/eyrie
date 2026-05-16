@@ -273,7 +273,8 @@ func (hc *HealthChecker) checkProvider(p ProviderPinger) HealthStatus {
 		LastChecked: time.Now(),
 	}
 
-	if err != nil {
+	switch {
+	case err != nil:
 		status.Error = err.Error()
 		// Determine if degraded or unhealthy based on consecutive failures.
 		hc.mu.RLock()
@@ -284,20 +285,21 @@ func (hc *HealthChecker) checkProvider(p ProviderPinger) HealthStatus {
 		if ok {
 			failures = entry.consecutiveFailures + 1
 		}
-		if failures >= hc.config.UnhealthyAfter {
+		switch {
+		case failures >= hc.config.UnhealthyAfter:
 			status.State = Unhealthy
 			status.Message = fmt.Sprintf("unhealthy after %d consecutive failures", failures)
-		} else if failures >= hc.config.DegradedAfter {
+		case failures >= hc.config.DegradedAfter:
 			status.State = Degraded
 			status.Message = fmt.Sprintf("degraded after %d consecutive failures", failures)
-		} else {
+		default:
 			status.State = Degraded
 			status.Message = "single failure"
 		}
-	} else if latency > hc.config.DegradedThreshold {
+	case latency > hc.config.DegradedThreshold:
 		status.State = Degraded
 		status.Message = fmt.Sprintf("high latency: %v", latency)
-	} else {
+	default:
 		status.State = Healthy
 		status.Message = "ok"
 	}
