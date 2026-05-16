@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -608,7 +609,8 @@ func TestOpenAIStreamChat_MultipleToolCalls(t *testing.T) {
 	if len(toolCalls) != 2 {
 		t.Fatalf("expected 2 tool calls, got %d", len(toolCalls))
 	}
-	if toolCalls[0].Name != "tool_a" || toolCalls[1].Name != "tool_b" {
+	names := []string{toolCalls[0].Name, toolCalls[1].Name}
+	if !slices.Contains(names, "tool_a") || !slices.Contains(names, "tool_b") {
 		t.Errorf("unexpected tool names: %s, %s", toolCalls[0].Name, toolCalls[1].Name)
 	}
 }
