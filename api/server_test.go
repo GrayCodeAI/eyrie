@@ -43,7 +43,7 @@ func testServer(t *testing.T) *httptest.Server {
 
 func drainBody(t *testing.T, resp *http.Response) {
 	t.Helper()
-	defer resp.Body.Close()
+	defer _ = resp.Body.Close()
 	_, _ = io.Copy(io.Discard, resp.Body)
 }
 
@@ -76,7 +76,7 @@ func TestPromptAndList(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatal(err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if result["content"] != "hi" {
 		t.Errorf("expected 'hi', got %v", result["content"])
 	}
@@ -115,7 +115,7 @@ func TestGetNodeAndTree(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatal(err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	nodeID := result["node_id"].(string)
 
 	resp, err = http.Get(ts.URL + "/nodes/" + nodeID)
@@ -150,7 +150,7 @@ func TestDeleteNode(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatal(err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	nodeID := result["node_id"].(string)
 
 	req, err := http.NewRequestWithContext(context.Background(), "DELETE", ts.URL+"/nodes/"+nodeID, nil)
