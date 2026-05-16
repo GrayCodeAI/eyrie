@@ -16,9 +16,9 @@ func TestBatchSubmitSendsCorrectFormat(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header
 		body, _ := io.ReadAll(r.Body)
-		json.Unmarshal(body, &receivedBody)
+		_ = json.Unmarshal(body, &receivedBody)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"id": "batch_123"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "batch_123"})
 	}))
 	defer srv.Close()
 
@@ -77,7 +77,7 @@ func TestBatchPollReturnsBatchStatus(t *testing.T) {
 			t.Errorf("Poll method = %s, want GET", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(BatchResult{
+		_ = json.NewEncoder(w).Encode(BatchResult{
 			ID:     "batch_456",
 			Status: "ended",
 		})
@@ -100,7 +100,7 @@ func TestBatchPollReturnsBatchStatus(t *testing.T) {
 func TestBatchSubmitHandlesErrors(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(422)
-		w.Write([]byte(`{"error": "invalid request"}`))
+		_, _ = w.Write([]byte(`{"error": "invalid request"}`))
 	}))
 	defer srv.Close()
 

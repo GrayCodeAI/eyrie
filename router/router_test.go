@@ -1,3 +1,4 @@
+//nolint:errcheck
 package router
 
 import (
