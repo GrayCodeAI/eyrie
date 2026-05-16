@@ -101,7 +101,7 @@ func TestFetchModelCatalog_MockCanopyWave(t *testing.T) {
 					ContextLength:       &ctx,
 					MaxCompletionTokens: &maxComp,
 				},
-		},
+			},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(resp)
