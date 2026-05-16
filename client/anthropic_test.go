@@ -375,7 +375,8 @@ func TestAnthropicChat_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewAnthropicClient("sk-test-123", server.URL,
+	client := NewAnthropicClient(
+		"sk-test-123", server.URL,
 		WithRetry(RetryConfig{MaxRetries: 0}),
 	)
 
@@ -434,7 +435,8 @@ func TestAnthropicChat_WithToolCallResponse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewAnthropicClient("sk-test", server.URL,
+	client := NewAnthropicClient(
+		"sk-test", server.URL,
 		WithRetry(RetryConfig{MaxRetries: 0}),
 	)
 	resp, err := client.Chat(context.Background(), []EyrieMessage{
@@ -977,7 +979,8 @@ func TestAnthropicChat_Error429_Retry(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewAnthropicClient("key", server.URL,
+	client := NewAnthropicClient(
+		"key", server.URL,
 		WithRetry(RetryConfig{
 			MaxRetries: 3,
 			BaseDelay:  1 * time.Millisecond, // Fast retries for test
@@ -1010,7 +1013,8 @@ func TestAnthropicChat_Error500_ExhaustedRetries(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewAnthropicClient("key", server.URL,
+	client := NewAnthropicClient(
+		"key", server.URL,
 		WithRetry(RetryConfig{
 			MaxRetries: 2,
 			BaseDelay:  1 * time.Millisecond,
@@ -1108,7 +1112,8 @@ func TestAnthropicClient_WithOptions(t *testing.T) {
 	customHTTP := &http.Client{Timeout: 30 * time.Second}
 	retryConfig := RetryConfig{MaxRetries: 5, BaseDelay: 2 * time.Second, MaxDelay: 60 * time.Second, RetryOn: []int{429}}
 
-	client := NewAnthropicClient("key", "",
+	client := NewAnthropicClient(
+		"key", "",
 		WithHTTPClient(customHTTP),
 		WithRetry(retryConfig),
 	)

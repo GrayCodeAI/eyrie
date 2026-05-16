@@ -20,6 +20,7 @@ func (m *mockProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ client
 	}
 	return &client.EyrieResponse{Content: "from " + m.name}, nil
 }
+
 func (m *mockProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
 	if m.err != nil {
 		return nil, m.err

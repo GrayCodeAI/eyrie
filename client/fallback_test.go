@@ -225,6 +225,7 @@ type errorProvider struct {
 func (e *errorProvider) Chat(_ context.Context, _ []EyrieMessage, _ ChatOptions) (*EyrieResponse, error) {
 	return nil, e.err
 }
+
 func (e *errorProvider) StreamChat(_ context.Context, _ []EyrieMessage, _ ChatOptions) (*StreamResult, error) {
 	return nil, e.err
 }

@@ -154,7 +154,7 @@ func WithRateLimit(p Provider, limiter *RateLimiter) Provider {
 	return &RateLimitedProvider{inner: p, limiter: limiter}
 }
 
-func (r *RateLimitedProvider) Name() string { return r.inner.Name() }
+func (r *RateLimitedProvider) Name() string                   { return r.inner.Name() }
 func (r *RateLimitedProvider) Ping(ctx context.Context) error { return r.inner.Ping(ctx) }
 
 func (r *RateLimitedProvider) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {

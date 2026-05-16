@@ -165,10 +165,10 @@ func (c *AzureClient) buildRequest(messages []EyrieMessage, opts ChatOptions, st
 		Content string `json:"content"`
 	}
 	type reqBody struct {
-		Messages    []msg  `json:"messages"`
-		MaxTokens   int    `json:"max_tokens,omitempty"`
+		Messages    []msg    `json:"messages"`
+		MaxTokens   int      `json:"max_tokens,omitempty"`
 		Temperature *float64 `json:"temperature,omitempty"`
-		Stream      bool   `json:"stream,omitempty"`
+		Stream      bool     `json:"stream,omitempty"`
 	}
 	msgs := make([]msg, 0, len(messages)+1)
 	if opts.System != "" {
@@ -184,4 +184,3 @@ func (c *AzureClient) buildRequest(messages []EyrieMessage, opts ChatOptions, st
 	body := reqBody{Messages: msgs, MaxTokens: maxTok, Temperature: opts.Temperature, Stream: stream}
 	return json.Marshal(body)
 }
-

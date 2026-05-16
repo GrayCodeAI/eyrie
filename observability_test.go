@@ -466,9 +466,9 @@ func TestPercentileEdgeCases(t *testing.T) {
 
 func TestSplitKey(t *testing.T) {
 	tests := []struct {
-		key            string
-		wantProvider   string
-		wantModel      string
+		key          string
+		wantProvider string
+		wantModel    string
 	}{
 		{"openai/gpt-4", "openai", "gpt-4"},
 		{"anthropic/claude-3-opus-20240229", "anthropic", "claude-3-opus-20240229"},

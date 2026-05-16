@@ -47,7 +47,7 @@ type ChatOptions struct {
 
 // CacheStats tracks cache warming statistics.
 type CacheStats struct {
-	WarmingRequests      int64
+	WarmingRequests     int64
 	CacheHits           int64
 	CacheMisses         int64
 	EstimatedSavingsUSD float64
@@ -64,8 +64,8 @@ type CacheWarmer struct {
 	Interval     time.Duration
 	Enabled      bool
 
-	done chan struct{}
-	mu   sync.Mutex
+	done  chan struct{}
+	mu    sync.Mutex
 	Stats CacheStats
 
 	// ChatFn is the function used to send warming requests.

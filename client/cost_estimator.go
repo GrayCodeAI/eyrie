@@ -11,13 +11,13 @@ type CostEstimator struct{}
 
 // CostEstimate is the pre-call cost prediction.
 type CostEstimate struct {
-	InputTokens    int     `json:"input_tokens"`
-	OutputTokens   int     `json:"estimated_output_tokens"`
-	InputCostUSD   float64 `json:"input_cost_usd"`
-	OutputCostUSD  float64 `json:"estimated_output_cost_usd"`
-	TotalCostUSD   float64 `json:"estimated_total_cost_usd"`
-	Model          string  `json:"model"`
-	CacheDiscount  float64 `json:"cache_discount_usd"` // potential savings if cached
+	InputTokens   int     `json:"input_tokens"`
+	OutputTokens  int     `json:"estimated_output_tokens"`
+	InputCostUSD  float64 `json:"input_cost_usd"`
+	OutputCostUSD float64 `json:"estimated_output_cost_usd"`
+	TotalCostUSD  float64 `json:"estimated_total_cost_usd"`
+	Model         string  `json:"model"`
+	CacheDiscount float64 `json:"cache_discount_usd"` // potential savings if cached
 }
 
 // NewCostEstimator creates an estimator.
@@ -80,10 +80,10 @@ func (ce *CostEstimator) countInputTokens(messages []EyrieMessage) int {
 // StreamingTokenCounter counts tokens as they stream in real-time.
 // Provides running cost estimate during generation.
 type StreamingTokenCounter struct {
-	model         string
-	inputTokens   int
-	outputTokens  int
-	cachedTokens  int
+	model        string
+	inputTokens  int
+	outputTokens int
+	cachedTokens int
 }
 
 // NewStreamingTokenCounter creates a counter for a specific model.

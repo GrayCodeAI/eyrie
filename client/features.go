@@ -18,14 +18,14 @@ type ProviderFeatures struct {
 
 // FeatureSet describes what a provider supports.
 type FeatureSet struct {
-	Thinking     bool `json:"thinking"`
-	ToolUse      bool `json:"tool_use"`
-	Images       bool `json:"images"`
-	Streaming    bool `json:"streaming"`
-	Caching      bool `json:"caching"`
-	JSON         bool `json:"json_mode"`
-	Embeddings   bool `json:"embeddings"`
-	MaxContext   int  `json:"max_context"`
+	Thinking   bool `json:"thinking"`
+	ToolUse    bool `json:"tool_use"`
+	Images     bool `json:"images"`
+	Streaming  bool `json:"streaming"`
+	Caching    bool `json:"caching"`
+	JSON       bool `json:"json_mode"`
+	Embeddings bool `json:"embeddings"`
+	MaxContext int  `json:"max_context"`
 }
 
 // NewProviderFeatures creates a feature registry with known provider capabilities.

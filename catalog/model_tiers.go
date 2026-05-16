@@ -131,13 +131,13 @@ func CanonicalIDToKey() map[string]ModelKey {
 
 // Preferred model keys by provider and tier.
 var preferredKeys = map[string]map[ModelTier]ModelKey{
-	"anthropic": {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
-	"openai":    {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
+	"anthropic":  {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
+	"openai":     {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
 	"canopywave": {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
 	"openrouter": {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
-	"grok":      {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
-	"gemini":    {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
-	"ollama":    {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
+	"grok":       {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
+	"gemini":     {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
+	"ollama":     {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
 	"opencodego": {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
 }
 

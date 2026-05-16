@@ -25,7 +25,7 @@ type providerStats struct {
 // ProviderScore represents a provider's health score.
 type ProviderScore struct {
 	Name         string  `json:"name"`
-	Score        float64 `json:"score"`          // 0-1 (1 = perfect health)
+	Score        float64 `json:"score"` // 0-1 (1 = perfect health)
 	AvgLatencyMs int64   `json:"avg_latency_ms"`
 	ErrorRate    float64 `json:"error_rate"`
 	IsHealthy    bool    `json:"is_healthy"`
