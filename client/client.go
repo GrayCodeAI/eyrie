@@ -11,7 +11,6 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/config"
-	"github.com/GrayCodeAI/hawk/shared/types"
 )
 
 // Version is exported here for backwards compatibility. Callers should prefer
@@ -60,7 +59,11 @@ type EyrieMessage struct {
 }
 
 // ToolResult represents the result of a tool execution.
-type ToolResult = types.ToolResult
+type ToolResult struct {
+	ToolUseID string `json:"tool_use_id"`
+	Content   string `json:"content"`
+	IsError   bool   `json:"is_error,omitempty"`
+}
 
 // EyrieTool represents a tool definition.
 type EyrieTool struct {
@@ -88,7 +91,11 @@ type EyrieResponse struct {
 }
 
 // ToolCall represents a tool invocation.
-type ToolCall = types.ToolCall
+type ToolCall struct {
+	ID        string                 `json:"id,omitempty"`
+	Name      string                 `json:"name"`
+	Arguments map[string]interface{} `json:"arguments"`
+}
 
 // EyrieStreamEvent is a streaming event.
 type EyrieStreamEvent struct {
