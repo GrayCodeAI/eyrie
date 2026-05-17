@@ -47,8 +47,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: Remove go.work
-        run: rm -f go.work go.work.sum      - name: gofumpt diff
+      - name: gofumpt diff
         run: |
           go install mvdan.cc/gofumpt@latest
           out=$(gofumpt -l .)
@@ -73,12 +72,15 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
       - name: Remove go.work (local dev only)
-        run: rm -f go.work go.work.sum      - uses: golangci/golangci-lint-action@v7
+        run: rm -f go.work go.work.sum
+      - uses: golangci/golangci-lint-action@v7
         with:
           version: v2.1.0
           install-mode: goinstall
           verify: false
           args: --timeout=5m
+        env:
+          GOWORK: "off"
 
   # -------------------------------------------------------------------------
   # Tests with race detector + coverage upload.
@@ -122,13 +124,10 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: Remove go.work
-        run: rm -f go.work go.work.sum      - name: govulncheck
+      - name: govulncheck
         run: |
-      - name: Remove go.work
-        run: rm -f go.work go.work.sum          go install golang.org/x/vuln/cmd/govulncheck@latest
-      - name: Remove go.work
-        run: rm -f go.work go.work.sum          govulncheck ./...
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
       - name: gosec (advisory)
         continue-on-error: true
         run: |
