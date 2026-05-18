@@ -24,3 +24,5 @@ Thumbs.db
 
 # Go
 vendor/
+go.work
+go.work.sum
