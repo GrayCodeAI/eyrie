@@ -428,7 +428,7 @@ func CompileCatalogV1(c *CatalogV1) (*CompiledCatalogV1, error) {
 }
 
 func LoadCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CompiledCatalogV1, error) {
-	if opts.CachePath != "" {
+	if opts.CachePath != "" && !opts.RefreshRemote {
 		if data, err := os.ReadFile(opts.CachePath); err == nil {
 			c, err := ParseCatalogV1(data)
 			if err == nil {
@@ -452,6 +452,17 @@ func LoadCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CompiledCat
 			return CompileCatalogV1(remote)
 		}
 		compiled.Diagnostics = append(compiled.Diagnostics, CatalogDiagnosticV1{Code: "remote_refresh_failed", Message: err.Error()})
+	}
+	if opts.CachePath != "" {
+		if data, err := os.ReadFile(opts.CachePath); err == nil {
+			c, err := ParseCatalogV1(data)
+			if err == nil {
+				if cached, compileErr := CompileCatalogV1(c); compileErr == nil {
+					cached.Diagnostics = append(cached.Diagnostics, compiled.Diagnostics...)
+					return cached, nil
+				}
+			}
+		}
 	}
 	return compiled, nil
 }

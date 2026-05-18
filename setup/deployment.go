@@ -104,6 +104,15 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 			return nil, false
 		}
 		return client.NewVertexClient(projectID, region, token), true
+	case "anthropic-bedrock":
+		region := FirstNonEmpty(deployment.Region, os.Getenv("AWS_REGION"), os.Getenv("AWS_DEFAULT_REGION"))
+		accessKeyID := FirstNonEmpty(deployment.AccessKeyID, deployment.APIKey, os.Getenv("AWS_ACCESS_KEY_ID"))
+		secretAccessKey := FirstNonEmpty(deployment.SecretAccessKey, deployment.Token, os.Getenv("AWS_SECRET_ACCESS_KEY"))
+		sessionToken := FirstNonEmpty(deployment.SessionToken, os.Getenv("AWS_SESSION_TOKEN"))
+		if region == "" || accessKeyID == "" || secretAccessKey == "" {
+			return nil, false
+		}
+		return client.NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region), true
 	case "openai-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, os.Getenv("OPENAI_API_KEY"))
 		if apiKey == "" {

@@ -166,6 +166,34 @@ func TestDeploymentRouterMaterializesAzureModelMapping(t *testing.T) {
 	}
 }
 
+func TestDeploymentRouterModelMappingOverridesCatalogOffering(t *testing.T) {
+	bedrock := &deploymentMockProvider{name: "bedrock"}
+	r, err := NewDeploymentRouter(DeploymentRouterOptions{
+		Catalog: testCompiledCatalog(t),
+		Deployments: map[string]DeploymentAdapter{
+			"anthropic-bedrock": {
+				Provider: bedrock,
+				ModelMappings: map[string]string{
+					"anthropic/claude-sonnet-4-6": "anthropic.claude-sonnet-4-6-bedrock",
+				},
+			},
+		},
+		Routing: RoutingPolicy{Models: map[string][]RoutingStage{
+			"anthropic/claude-sonnet-4-6": {{Deployments: []DeploymentChoice{{DeploymentID: "anthropic-bedrock", Weight: 100}}}},
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{Model: "anthropic/claude-sonnet-4-6"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bedrock.lastModel != "anthropic.claude-sonnet-4-6-bedrock" {
+		t.Fatalf("bedrock native model = %q, want mapping override", bedrock.lastModel)
+	}
+}
+
 func TestDeploymentRouterStreamFallbackBeforeOutput(t *testing.T) {
 	primary := &deploymentMockProvider{name: "direct", streamErr: fmt.Errorf("HTTP 503")}
 	fallback := &deploymentMockProvider{name: "vertex"}

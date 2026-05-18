@@ -354,6 +354,10 @@ func (r *DeploymentRouter) resolveOffering(target deploymentTarget, deploymentID
 		return catalog.ModelOfferingV1{}, DeploymentAdapter{}, fmt.Errorf("deployment %q is not configured", deploymentID)
 	}
 	if offering, ok := r.catalog.OfferingForDeployment(target.canonicalModelID, deploymentID); ok {
+		if nativeID := adapter.ModelMappings[target.canonicalModelID]; nativeID != "" {
+			offering.NativeModelID = nativeID
+			offering.ID = deploymentID + ":" + nativeID
+		}
 		return offering, adapter, nil
 	}
 	for _, tmpl := range r.catalog.TemplatesByCanonicalModel[target.canonicalModelID] {

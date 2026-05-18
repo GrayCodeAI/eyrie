@@ -61,9 +61,8 @@ func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
 	}))
 	defer srv.Close()
 	compiled, err := LoadCatalogV1(context.Background(), LoadCatalogV1Options{
-		CachePath:     cachePath,
-		RemoteURL:     srv.URL,
-		RefreshRemote: true,
+		CachePath: cachePath,
+		RemoteURL: srv.URL,
 	})
 	if err != nil {
 		t.Fatalf("LoadCatalogV1 failed: %v", err)
@@ -73,6 +72,43 @@ func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
 	}
 	if calls != 0 {
 		t.Fatalf("remote called despite valid cache")
+	}
+}
+
+func TestLoadCatalogV1RefreshRemoteOverridesValidCache(t *testing.T) {
+	dir := t.TempDir()
+	cachePath := filepath.Join(dir, "catalog.json")
+	cached := DefaultCatalogV1()
+	cached.SourceForTest("cache")
+	if err := WriteCatalogV1Cache(cachePath, &cached); err != nil {
+		t.Fatalf("write cache: %v", err)
+	}
+	remote := DefaultCatalogV1()
+	remote.SourceForTest("remote")
+	data, err := json.Marshal(remote)
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(data)
+	}))
+	defer srv.Close()
+	compiled, err := LoadCatalogV1(context.Background(), LoadCatalogV1Options{
+		CachePath:     cachePath,
+		RemoteURL:     srv.URL,
+		RefreshRemote: true,
+	})
+	if err != nil {
+		t.Fatalf("LoadCatalogV1 failed: %v", err)
+	}
+	if compiled.Catalog.Provenance == nil || compiled.Catalog.Provenance.Source != "remote" {
+		t.Fatalf("expected remote catalog, got %#v", compiled.Catalog.Provenance)
+	}
+	if calls != 1 {
+		t.Fatalf("remote calls = %d, want 1", calls)
 	}
 }
 

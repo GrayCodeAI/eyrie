@@ -49,14 +49,17 @@ type ProviderConfig struct {
 }
 
 type DeploymentConfig struct {
-	APIKey        string            `json:"api_key,omitempty"`
-	BaseURL       string            `json:"base_url,omitempty"`
-	Endpoint      string            `json:"endpoint,omitempty"`
-	APIVersion    string            `json:"api_version,omitempty"`
-	ProjectID     string            `json:"project_id,omitempty"`
-	Region        string            `json:"region,omitempty"`
-	Token         string            `json:"token,omitempty"`
-	ModelMappings map[string]string `json:"model_mappings,omitempty"`
+	APIKey          string            `json:"api_key,omitempty"`
+	BaseURL         string            `json:"base_url,omitempty"`
+	Endpoint        string            `json:"endpoint,omitempty"`
+	APIVersion      string            `json:"api_version,omitempty"`
+	ProjectID       string            `json:"project_id,omitempty"`
+	Region          string            `json:"region,omitempty"`
+	Token           string            `json:"token,omitempty"`
+	AccessKeyID     string            `json:"access_key_id,omitempty"`
+	SecretAccessKey string            `json:"secret_access_key,omitempty"`
+	SessionToken    string            `json:"session_token,omitempty"`
+	ModelMappings   map[string]string `json:"model_mappings,omitempty"`
 }
 
 type RoutingPolicy struct {
