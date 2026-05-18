@@ -277,6 +277,13 @@ func TestSaveProviderConfig(t *testing.T) {
 	if data[len(data)-1] != '\n' {
 		t.Error("expected trailing newline")
 	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat saved config: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Errorf("provider config permissions = %o, want 600", got)
+	}
 }
 
 func TestSaveProviderConfig_CreatesDirectory(t *testing.T) {
