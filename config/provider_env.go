@@ -262,7 +262,7 @@ func SaveProviderConfig(config *ProviderConfig, path string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(data, '\n'), 0o644)
+	return os.WriteFile(path, append(data, '\n'), 0o600)
 }
 
 // IsProviderConfigured checks if a provider has valid configuration.

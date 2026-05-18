@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +14,8 @@ import (
 	"github.com/GrayCodeAI/eyrie/conversation"
 	"github.com/GrayCodeAI/eyrie/storage"
 )
+
+const maxRequestBodyBytes = 1 << 20
 
 type Server struct {
 	engine *conversation.Engine
@@ -70,12 +74,34 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 		if token == "" {
 			token = r.Header.Get("X-API-Key")
 		}
-		if token != s.apiKey {
+		if !constantTimeEqual(token, s.apiKey) {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
 		}
 		next(w, r)
 	}
+}
+
+func constantTimeEqual(a, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+}
+
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(dst); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return false
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "request body must contain a single JSON object"})
+		return false
+	}
+	return true
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -93,8 +119,7 @@ type promptRequest struct {
 
 func (s *Server) handlePrompt(w http.ResponseWriter, r *http.Request) {
 	var req promptRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	if !decodeJSONBody(w, r, &req) {
 		return
 	}
 	if req.Message == "" {
@@ -127,8 +152,7 @@ func (s *Server) handlePrompt(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handlePromptFrom(w http.ResponseWriter, r *http.Request) {
 	nodeID := r.PathValue("id")
 	var req promptRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	if !decodeJSONBody(w, r, &req) {
 		return
 	}
 	if req.Message == "" {

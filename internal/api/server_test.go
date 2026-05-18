@@ -199,3 +199,55 @@ func TestAuthRequired(t *testing.T) {
 		t.Fatalf("expected 200 with key, got %d", resp.StatusCode)
 	}
 }
+
+func TestAuthAcceptsXAPIKey(t *testing.T) {
+	store, _ := storage.Open(filepath.Join(t.TempDir(), "test.db"))
+	t.Cleanup(func() { _ = store.Close() })
+	srv := NewServer(Config{Store: store, Provider: &mockProv{}, APIKey: "secret"})
+	ts := httptest.NewServer(srv)
+	defer ts.Close()
+
+	req, err := http.NewRequestWithContext(context.Background(), "POST", ts.URL+"/prompt", strings.NewReader(`{"message":"hi","model":"m"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", "secret")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer drainBody(t, resp)
+	if resp.StatusCode != 200 {
+		t.Fatalf("expected 200 with X-API-Key, got %d", resp.StatusCode)
+	}
+}
+
+func TestPromptRejectsOversizedBody(t *testing.T) {
+	ts := testServer(t)
+	defer ts.Close()
+
+	body := `{"message":"` + strings.Repeat("x", maxRequestBodyBytes+1) + `"}`
+	resp, err := http.Post(ts.URL+"/prompt", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer drainBody(t, resp)
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 for oversized body, got %d", resp.StatusCode)
+	}
+}
+
+func TestPromptRejectsUnknownFields(t *testing.T) {
+	ts := testServer(t)
+	defer ts.Close()
+
+	resp, err := http.Post(ts.URL+"/prompt", "application/json", strings.NewReader(`{"message":"hi","unexpected":true}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer drainBody(t, resp)
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 for unknown field, got %d", resp.StatusCode)
+	}
+}
