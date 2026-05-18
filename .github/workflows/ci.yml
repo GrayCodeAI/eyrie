@@ -242,7 +242,7 @@ jobs:
       - name: Binary size check (linux/amd64 only)
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         run: |
-          size=$(go build -trimpath -o /tmp/eyrie-bin . && wc -c < /tmp/eyrie-bin)
+          size=$(go build -trimpath -o /tmp/eyrie-bin ./cmd/eyrie && wc -c < /tmp/eyrie-bin)
           size_mb=$((size / 1024 / 1024))
           echo "Binary size: ${size_mb}MB"
           if [ "$size_mb" -gt 100 ]; then
