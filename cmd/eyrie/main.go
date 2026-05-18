@@ -10,8 +10,10 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/client"
+	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/conversation"
 	"github.com/GrayCodeAI/eyrie/internal/api"
+	"github.com/GrayCodeAI/eyrie/setup"
 	"github.com/GrayCodeAI/eyrie/storage"
 )
 
@@ -81,11 +83,16 @@ func openStore() storage.Store {
 }
 
 func getProvider() client.Provider {
+	cfg := config.LoadProviderConfig("")
+	if setup.UseDeploymentRouting(cfg) {
+		provider, err := setup.DeploymentProvider(context.Background(), cfg)
+		if err == nil {
+			return provider
+		}
+		_, _ = fmt.Fprintf(os.Stderr, "warning: deployment routing unavailable, using legacy provider: %v\n", err)
+	}
 	detected := client.DetectProvider()
 	c := client.Client(&client.EyrieConfig{Provider: detected})
-	p, err := c.Chat(context.Background(), nil, client.ChatOptions{})
-	_ = p
-	_ = err
 	return &clientProviderAdapter{c: c, provider: detected}
 }
 
@@ -197,12 +204,21 @@ func runDelete(id string) {
 }
 
 func runServe(port string) {
+	apiKey := strings.TrimSpace(os.Getenv("EYRIE_API_KEY"))
+	if apiKey == "" {
+		if strings.EqualFold(strings.TrimSpace(os.Getenv("EYRIE_ALLOW_INSECURE_PUBLIC_API")), "true") {
+			_, _ = fmt.Fprintf(os.Stderr, "warning: EYRIE_ALLOW_INSECURE_PUBLIC_API=true — HTTP API is unauthenticated (not recommended)\n")
+		} else {
+			_, _ = fmt.Fprintf(os.Stderr, "error: set EYRIE_API_KEY (Bearer / X-API-Key) before starting the HTTP API, or set EYRIE_ALLOW_INSECURE_PUBLIC_API=true for explicit insecure local use\n")
+			os.Exit(1)
+		}
+	}
 	store := openStore()
 	provider := getProvider()
 	srv := api.NewServer(api.Config{
 		Store:    store,
 		Provider: provider,
-		APIKey:   os.Getenv("EYRIE_API_KEY"),
+		APIKey:   apiKey,
 	})
 	fmt.Printf("eyrie server listening on :%s\n", port)
 	if err := srv.ListenAndServe(":" + port); err != nil {
