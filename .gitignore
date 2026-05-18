@@ -1,5 +1,5 @@
 # Binaries
-eyrie
+/eyrie
 *.exe
 
 # Test artifacts
