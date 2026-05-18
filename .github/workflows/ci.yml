@@ -231,6 +231,8 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+      - name: Remove go.work (local dev only)
+        run: rm -f go.work go.work.sum
       - name: Build
         env:
           GOOS: ${{ matrix.goos }}
