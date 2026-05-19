@@ -1,0 +1,156 @@
+package setup
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/config"
+	"github.com/GrayCodeAI/eyrie/router"
+)
+
+// StatusReport summarizes deployment routing readiness (eyrie provider status).
+type StatusReport struct {
+	DeploymentRouting bool
+	ProviderConfig    string
+	ConfigVersion     int
+	Configured        []string
+	CatalogCache      string
+	CatalogExists     bool
+	CatalogModified   time.Time
+	CatalogStale      bool
+	CatalogModels     int
+	CatalogDeployments int
+	CatalogOfferings  int
+	ActiveModel       string
+	RoutingSource     string
+	RoutingStages     int
+}
+
+// DeploymentStatus builds a status report for CLI and agent diagnostics.
+func DeploymentStatus(ctx context.Context, activeModel string) (StatusReport, error) {
+	cfg := config.LoadProviderConfig("")
+	cfg = config.EnsureDeploymentConfigV2(cfg)
+	report := StatusReport{
+		ProviderConfig: config.GetProviderConfigPath(),
+		ActiveModel:    strings.TrimSpace(activeModel),
+	}
+	if cfg != nil {
+		report.ConfigVersion = cfg.ConfigVersion
+	}
+	report.DeploymentRouting = UseDeploymentRouting(cfg)
+
+	for id := range ConfiguredDeployments(cfg) {
+		report.Configured = append(report.Configured, id)
+	}
+	sortStrings(report.Configured)
+
+	report.CatalogCache = catalog.DefaultCachePath()
+	if exists, mod, _, err := catalog.CacheInfo(report.CatalogCache); err == nil && exists {
+		report.CatalogExists = true
+		report.CatalogModified = mod
+	}
+
+	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+		CachePath: report.CatalogCache,
+	})
+	if err != nil {
+		return report, err
+	}
+	report.CatalogModels = len(compiled.ModelsByID)
+	report.CatalogDeployments = len(compiled.DeploymentsByID)
+	report.CatalogOfferings = len(compiled.OfferingsByID)
+	report.CatalogStale = time.Now().UTC().After(compiled.Catalog.StaleAfter)
+
+	if report.ActiveModel != "" && cfg != nil {
+		policy := RouterRoutingPolicy(cfg.Routing)
+		res := router.ResolveRouting(report.ActiveModel, compiled, policy)
+		report.RoutingSource = res.Source
+		report.RoutingStages = len(res.Stages)
+		if res.CanonicalModelID != "" {
+			report.ActiveModel = res.CanonicalModelID
+		}
+	}
+	return report, nil
+}
+
+// FormatStatus renders StatusReport for terminal output.
+func FormatStatus(report StatusReport) string {
+	var b strings.Builder
+	b.WriteString("Deployment routing: ")
+	if report.DeploymentRouting {
+		b.WriteString("enabled\n")
+	} else {
+		b.WriteString("disabled (legacy provider client)\n")
+	}
+	b.WriteString(fmt.Sprintf("Provider config: %s", report.ProviderConfig))
+	if report.ConfigVersion > 0 {
+		b.WriteString(fmt.Sprintf(" (v%d)", report.ConfigVersion))
+	}
+	b.WriteString("\n")
+	if len(report.Configured) > 0 {
+		b.WriteString("Configured deployments: " + strings.Join(report.Configured, ", ") + "\n")
+	} else {
+		b.WriteString("Configured deployments: none (set API keys or deployments in provider.json)\n")
+	}
+	b.WriteString(fmt.Sprintf("Catalog cache: %s\n", report.CatalogCache))
+	if report.CatalogExists {
+		age := time.Since(report.CatalogModified).Truncate(time.Second)
+		b.WriteString(fmt.Sprintf("  cached: yes (modified %s ago, %d models, %d deployments, %d offerings)\n",
+			age, report.CatalogModels, report.CatalogDeployments, report.CatalogOfferings))
+	} else {
+		b.WriteString(fmt.Sprintf("  cached: no (using embedded catalog: %d models)\n", report.CatalogModels))
+	}
+	if report.CatalogStale {
+		b.WriteString("  stale: yes — hawk refreshes automatically; use `hawk models refresh` or `/refresh-model-catalog` for a manual run\n")
+	}
+	if report.ActiveModel != "" {
+		b.WriteString(fmt.Sprintf("Active canonical model: %s\n", report.ActiveModel))
+		if report.RoutingSource != "" {
+			b.WriteString(fmt.Sprintf("Routing: %s (%d stages)\n", report.RoutingSource, report.RoutingStages))
+		}
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
+// RoutingPreview returns JSON describing effective routing for a model ID.
+func RoutingPreview(ctx context.Context, model string) (string, error) {
+	cfg := config.LoadProviderConfig("")
+	cfg = config.EnsureDeploymentConfigV2(cfg)
+	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+		CachePath: catalog.DefaultCachePath(),
+	})
+	if err != nil {
+		return "", err
+	}
+	policy := RouterRoutingPolicy(nil)
+	if cfg != nil {
+		policy = RouterRoutingPolicy(cfg.Routing)
+	}
+	return router.RoutingPreviewJSON(model, compiled, policy)
+}
+
+// SaveProviderConfigV2 writes migrated provider config when upgraded in memory.
+func SaveProviderConfigV2(cfg *config.ProviderConfig) error {
+	if cfg == nil {
+		return nil
+	}
+	path := config.GetProviderConfigPath()
+	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+		return nil
+	}
+	return config.SaveProviderConfig(cfg, path)
+}
+
+func sortStrings(values []string) {
+	for i := 0; i < len(values); i++ {
+		for j := i + 1; j < len(values); j++ {
+			if values[j] < values[i] {
+				values[i], values[j] = values[j], values[i]
+			}
+		}
+	}
+}

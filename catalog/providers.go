@@ -48,16 +48,7 @@ var OpenCodeGoModels = []ModelCatalogEntry{
 	{ID: "qwen3.5-plus", InputPricePer1M: 0.26, OutputPricePer1M: 1.56, ContextWindow: 1000000, MaxOutput: 65536, DisplayName: "Qwen3.5 Plus", Description: "Alibaba Qwen3.5 Plus · Strong coding capabilities"},
 }
 
-// DefaultProviderCatalogs returns the embedded catalog data for all providers.
+// DefaultProviderCatalogs returns empty — production models come from cache/discovery only.
 func DefaultProviderCatalogs() map[string][]ModelCatalogEntry {
-	return map[string][]ModelCatalogEntry{
-		"anthropic":  AnthropicModels,
-		"openai":     OpenAIModels,
-		"grok":       GrokModels,
-		"gemini":     GeminiModels,
-		"openrouter": OpenRouterModels,
-		"canopywave": CanopyWaveModels,
-		"ollama":     OllamaModels,
-		"opencodego": OpenCodeGoModels,
-	}
+	return map[string][]ModelCatalogEntry{}
 }

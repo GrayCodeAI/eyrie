@@ -49,8 +49,7 @@ func (m *deploymentMockProvider) Name() string                 { return m.name }
 
 func testCompiledCatalog(t *testing.T) *catalog.CompiledCatalogV1 {
 	t.Helper()
-	c := catalog.DefaultCatalogV1()
-	compiled, err := catalog.CompileCatalogV1(&c)
+	compiled, err := catalog.CompileTestCatalog()
 	if err != nil {
 		t.Fatalf("compile catalog: %v", err)
 	}
@@ -64,6 +63,9 @@ func TestDeploymentRouterRewritesCanonicalModelToNativeModel(t *testing.T) {
 		Deployments: map[string]DeploymentAdapter{
 			"anthropic-direct": {Provider: p},
 		},
+		Routing: RoutingPolicy{Providers: map[string][]RoutingStage{
+			"anthropic": {{Deployments: []DeploymentChoice{{DeploymentID: "anthropic-direct", Weight: 100}}}},
+		}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -103,7 +105,7 @@ func TestDeploymentRouterFallsBackAcrossStages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp, err := r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{Model: "claude-sonnet-4-6"})
+	resp, err := r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{Model: "anthropic/claude-sonnet-4-6"})
 	if err != nil {
 		t.Fatal(err)
 	}

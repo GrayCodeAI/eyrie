@@ -172,37 +172,39 @@ func TestFetchModelCatalog_NoAPIKey(t *testing.T) {
 }
 
 func TestFetchModelCatalog_CacheFileWritten(t *testing.T) {
+	orServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-key" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		_, _ = w.Write([]byte(`{"data":[{"id":"vendor/live-model","context_length":32000}]}`))
+	}))
+	defer orServer.Close()
+
 	dir := t.TempDir()
 	cachePath := filepath.Join(dir, "catalog_cache.json")
-
-	// FetchModelCatalog with no API keys still writes the embedded catalog to cache
-	env := map[string]string{}
+	env := map[string]string{
+		"OPENROUTER_API_KEY":  "test-key",
+		"OPENROUTER_BASE_URL": orServer.URL,
+	}
 	cat, err := FetchModelCatalog(cachePath, env)
 	if err != nil {
 		t.Fatalf("FetchModelCatalog failed: %v", err)
 	}
 
-	// Verify the cache file exists
 	data, err := os.ReadFile(cachePath)
 	if err != nil {
 		t.Fatalf("expected cache file to be written, got error: %v", err)
 	}
-
-	// Verify it's valid JSON and contains expected data
 	var cached ModelCatalog
 	if err := json.Unmarshal(data, &cached); err != nil {
 		t.Fatalf("cache file contains invalid JSON: %v", err)
 	}
-	if cached.Providers == nil {
-		t.Fatal("cached catalog has nil providers")
+	if len(cached.Providers["openrouter"]) == 0 {
+		t.Error("cached catalog missing openrouter models")
 	}
-	if len(cached.Providers["anthropic"]) == 0 {
-		t.Error("cached catalog missing anthropic models")
-	}
-
-	// Verify returned catalog has providers
-	if cat.Providers == nil || len(cat.Providers["anthropic"]) == 0 {
-		t.Error("returned catalog missing anthropic models")
+	if cat.Providers == nil || len(cat.Providers["openrouter"]) == 0 {
+		t.Error("returned catalog missing openrouter models")
 	}
 }
 
@@ -248,15 +250,15 @@ func TestLoadModelCatalogSync_InvalidCache(t *testing.T) {
 
 	loaded := LoadModelCatalogSync(cachePath)
 	// Should fall back to default
-	if loaded.Source != "embedded" {
-		t.Errorf("expected fallback to embedded, got source %q", loaded.Source)
+	if loaded.Source != "bootstrap" {
+		t.Errorf("expected fallback to bootstrap, got source %q", loaded.Source)
 	}
 }
 
 func TestLoadModelCatalogSync_MissingFile(t *testing.T) {
 	loaded := LoadModelCatalogSync("/nonexistent/path/cache.json")
-	if loaded.Source != "embedded" {
-		t.Errorf("expected fallback to embedded, got source %q", loaded.Source)
+	if loaded.Source != "bootstrap" {
+		t.Errorf("expected fallback to bootstrap, got source %q", loaded.Source)
 	}
 }
 

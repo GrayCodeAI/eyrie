@@ -8,8 +8,8 @@ import (
 
 var defaultModelCatalog = ModelCatalog{
 	UpdatedAt: "2026-04-09T00:00:00.000Z",
-	Source:    "embedded",
-	Providers: DefaultProviderCatalogs(),
+	Source:    "bootstrap",
+	Providers: map[string][]ModelCatalogEntry{},
 }
 
 // DefaultModelCatalog returns the embedded default catalog.
@@ -31,29 +31,23 @@ func LoadModelCatalogSync(cachePath string) ModelCatalog {
 	return DefaultModelCatalog()
 }
 
+// LiveProviderEnrichment records a live provider API fetch during catalog discovery.
+type LiveProviderEnrichment struct {
+	Provider   string `json:"provider"`
+	ModelCount int    `json:"model_count"`
+	Error      string `json:"error,omitempty"`
+}
+
 // FetchModelCatalog fetches catalog from remote APIs (OpenRouter, CanopyWave)
 // and merges with embedded data. Writes result to cachePath if provided.
 func FetchModelCatalog(cachePath string, env map[string]string) (ModelCatalog, error) {
-	cat := ModelCatalog{
-		UpdatedAt: defaultModelCatalog.UpdatedAt,
-		Source:    defaultModelCatalog.Source,
-		Providers: make(map[string][]ModelCatalogEntry),
-	}
-	for k, v := range defaultModelCatalog.Providers {
-		cat.Providers[k] = v
-	}
+	cat, _ := FetchModelCatalogWithEnrichment(cachePath, env)
+	return cat, nil
+}
 
-	// Fetch OpenRouter models
-	orModels, err := fetchOpenRouterCatalog(env)
-	if err == nil && len(orModels) > 0 {
-		cat.Providers["openrouter"] = orModels
-	}
-
-	// Fetch CanopyWave models
-	cwModels, err := fetchCanopyWaveCatalog(env)
-	if err == nil && len(cwModels) > 0 {
-		cat.Providers["canopywave"] = cwModels
-	}
+// FetchModelCatalogWithEnrichment returns live provider catalog data and per-provider fetch status.
+func FetchModelCatalogWithEnrichment(cachePath string, env map[string]string) (ModelCatalog, []LiveProviderEnrichment) {
+	cat, enrichment := fetchLiveProviderCatalog(env)
 
 	if cachePath != "" {
 		data, err := json.MarshalIndent(cat, "", "  ")
@@ -63,7 +57,7 @@ func FetchModelCatalog(cachePath string, env map[string]string) (ModelCatalog, e
 		}
 	}
 
-	return cat, nil
+	return cat, enrichment
 }
 
 // ModelsForProvider returns catalog entries for a given provider.

@@ -15,7 +15,10 @@ import (
 
 const (
 	CatalogV1SchemaVersion = "model-catalog/v1"
-	DefaultCatalogV1URL    = "https://langdag.com/model-catalog/v1/catalog.json"
+	// DefaultCatalogV1URL is the published model-catalog/v1 document (same schema langdag hosts).
+	// Override with EYRIE_MODEL_CATALOG_URL or LoadCatalogV1Options.RemoteURL.
+	DefaultCatalogV1URL = "https://langdag.com/model-catalog/v1/catalog.json"
+	EnvModelCatalogURL  = "EYRIE_MODEL_CATALOG_URL"
 )
 
 type CapabilityState string
@@ -177,12 +180,15 @@ type LoadCatalogV1Options struct {
 	CachePath     string
 	RemoteURL     string
 	RefreshRemote bool
-	HTTPClient    *http.Client
-	Timeout       time.Duration
+	// RequireCache fails when no valid cache file exists (production hawk/eyrie path).
+	RequireCache bool
+	HTTPClient   *http.Client
+	Timeout      time.Duration
 }
 
+// DefaultCatalogV1 returns the bootstrap catalog (deployments only, no models).
 func DefaultCatalogV1() CatalogV1 {
-	return CatalogV1FromLegacy(DefaultModelCatalog())
+	return BootstrapCatalogV1()
 }
 
 func CatalogV1FromLegacy(legacy ModelCatalog) CatalogV1 {
@@ -303,10 +309,10 @@ func ValidateCatalogV1(c *CatalogV1) error {
 	if len(c.Deployments) == 0 {
 		add("deployments is required")
 	}
-	if len(c.Models) == 0 {
+	if len(c.Models) == 0 && !IsBootstrapCatalog(c) {
 		add("models is required")
 	}
-	if len(c.Offerings) == 0 {
+	if len(c.Offerings) == 0 && !IsBootstrapCatalog(c) {
 		add("offerings is required")
 	}
 	for id, provider := range c.Providers {
@@ -376,7 +382,7 @@ func ValidateCatalogV1(c *CatalogV1) error {
 			add("offering_template missing id")
 			continue
 		}
-		if c.Models[tmpl.CanonicalModelID].ID == "" {
+		if !IsBootstrapCatalog(c) && c.Models[tmpl.CanonicalModelID].ID == "" {
 			add("offering_template %q references unknown model %q", tmpl.ID, tmpl.CanonicalModelID)
 		}
 		deployment := c.Deployments[tmpl.DeploymentID]
@@ -399,6 +405,7 @@ func ValidateCatalogV1(c *CatalogV1) error {
 }
 
 func CompileCatalogV1(c *CatalogV1) (*CompiledCatalogV1, error) {
+	EnsureDeploymentEnvFallbacks(c)
 	if err := ValidateCatalogV1(c); err != nil {
 		return nil, err
 	}
@@ -428,50 +435,72 @@ func CompileCatalogV1(c *CatalogV1) (*CompiledCatalogV1, error) {
 }
 
 func LoadCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CompiledCatalogV1, error) {
-	if opts.CachePath != "" && !opts.RefreshRemote {
-		if data, err := os.ReadFile(opts.CachePath); err == nil {
-			c, err := ParseCatalogV1(data)
-			if err == nil {
-				if compiled, compileErr := CompileCatalogV1(c); compileErr == nil {
-					return compiled, nil
-				}
-			}
-		}
-	}
-	embedded := DefaultCatalogV1()
-	compiled, err := CompileCatalogV1(&embedded)
-	if err != nil {
-		return nil, err
+	if opts.CachePath == "" {
+		opts.CachePath = DefaultCachePath()
 	}
 	if opts.RefreshRemote {
 		remote, err := FetchRemoteCatalogV1(ctx, opts)
-		if err == nil {
-			if opts.CachePath != "" {
-				_ = WriteCatalogV1Cache(opts.CachePath, remote)
-			}
-			return CompileCatalogV1(remote)
+		if err != nil {
+			return nil, fmt.Errorf("catalog remote: %w", err)
 		}
-		compiled.Diagnostics = append(compiled.Diagnostics, CatalogDiagnosticV1{Code: "remote_refresh_failed", Message: err.Error()})
-	}
-	if opts.CachePath != "" {
-		if data, err := os.ReadFile(opts.CachePath); err == nil {
-			c, err := ParseCatalogV1(data)
-			if err == nil {
-				if cached, compileErr := CompileCatalogV1(c); compileErr == nil {
-					cached.Diagnostics = append(cached.Diagnostics, compiled.Diagnostics...)
-					return cached, nil
-				}
-			}
+		if opts.CachePath != "" {
+			_ = WriteCatalogV1Cache(opts.CachePath, remote)
 		}
+		return CompileCatalogV1(remote)
 	}
+	if compiled, ok := loadValidCatalogCache(opts.CachePath); ok {
+		return compiled, nil
+	}
+	if opts.RequireCache {
+		return nil, fmt.Errorf("%w (%s missing or invalid; run: hawk models refresh)", ErrCatalogCacheRequired, opts.CachePath)
+	}
+	bootstrap := BootstrapCatalogV1()
+	compiled, err := CompileCatalogV1(&bootstrap)
+	if err != nil {
+		return nil, err
+	}
+	compiled.Diagnostics = append(compiled.Diagnostics, CatalogDiagnosticV1{
+		Code:    "bootstrap_only",
+		Message: "no model catalog cache; run hawk models refresh or eyrie catalog discover",
+	})
 	return compiled, nil
 }
 
-func FetchRemoteCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CatalogV1, error) {
-	url := opts.RemoteURL
-	if url == "" {
-		url = DefaultCatalogV1URL
+func loadValidCatalogCache(cachePath string) (*CompiledCatalogV1, bool) {
+	if cachePath == "" {
+		return nil, false
 	}
+	data, err := os.ReadFile(cachePath)
+	if err != nil {
+		return nil, false
+	}
+	c, err := ParseCatalogV1(data)
+	if err != nil {
+		return nil, false
+	}
+	if IsBootstrapCatalog(c) || len(c.Models) == 0 {
+		return nil, false
+	}
+	compiled, err := CompileCatalogV1(c)
+	if err != nil {
+		return nil, false
+	}
+	return compiled, true
+}
+
+// ResolvedRemoteCatalogURL returns explicit URL, else EYRIE_MODEL_CATALOG_URL, else DefaultCatalogV1URL.
+func ResolvedRemoteCatalogURL(explicit string) string {
+	if u := strings.TrimSpace(explicit); u != "" {
+		return u
+	}
+	if u := strings.TrimSpace(os.Getenv(EnvModelCatalogURL)); u != "" {
+		return u
+	}
+	return DefaultCatalogV1URL
+}
+
+func FetchRemoteCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CatalogV1, error) {
+	url := ResolvedRemoteCatalogURL(opts.RemoteURL)
 	timeout := opts.Timeout
 	if timeout == 0 {
 		timeout = 5 * time.Second
@@ -688,6 +717,11 @@ func canonicalModelID(ownerProviderID, nativeID string) string {
 		return "z-ai/" + strings.TrimPrefix(nativeID, "zai/")
 	}
 	return ownerProviderID + "/" + nativeID
+}
+
+// CanonicalProviderID normalizes legacy provider aliases (e.g. gemini -> google).
+func CanonicalProviderID(providerID string) string {
+	return canonicalProviderID(providerID)
 }
 
 func canonicalProviderID(providerID string) string {
