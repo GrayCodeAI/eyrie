@@ -1,173 +1,76 @@
 package catalog
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"strings"
-	"time"
+	"github.com/GrayCodeAI/eyrie/catalog/live"
 )
 
-const (
-	DefaultOpenRouterBaseURL = "https://openrouter.ai/api/v1"
-	DefaultCanopyWaveBaseURL = "https://inference.canopywave.io/v1"
-)
-
-var catalogHTTPClient = &http.Client{Timeout: 30 * time.Second}
-
-type openRouterModel struct {
-	ID            string `json:"id"`
-	ContextLength *int   `json:"context_length"`
-	TopProvider   *struct {
-		ContextLength       *int `json:"context_length"`
-		MaxCompletionTokens *int `json:"max_completion_tokens"`
-	} `json:"top_provider"`
-	Pricing *struct {
-		Prompt     interface{} `json:"prompt"`
-		Completion interface{} `json:"completion"`
-	} `json:"pricing"`
+func liveEntriesToCatalog(in []live.Entry) []ModelCatalogEntry {
+	return LiveEntriesToCatalog(in)
 }
 
-type openAICompatModel struct {
-	ID                  string `json:"id"`
-	ContextLength       *int   `json:"context_length"`
-	MaxCompletionTokens *int   `json:"max_completion_tokens"`
-	Pricing             *struct {
-		Prompt     interface{} `json:"prompt"`
-		Completion interface{} `json:"completion"`
-	} `json:"pricing"`
-}
-
-func asFloat(v interface{}) float64 {
-	switch n := v.(type) {
-	case float64:
-		return n
-	case string:
-		var f float64
-		_, _ = fmt.Sscanf(n, "%f", &f)
-		return f
+// LiveEntriesToCatalog converts live fetch rows to catalog entries.
+func LiveEntriesToCatalog(in []live.Entry) []ModelCatalogEntry {
+	if len(in) == 0 {
+		return nil
 	}
-	return 0
+	out := make([]ModelCatalogEntry, len(in))
+	for i, e := range in {
+		out[i] = ModelCatalogEntry{
+			ID:                e.ID,
+			DisplayName:       e.DisplayName,
+			ContextWindow:     e.ContextWindow,
+			MaxOutput:         e.MaxOutput,
+			InputPricePer1M:   e.InputPricePer1M,
+			OutputPricePer1M:  e.OutputPricePer1M,
+		}
+	}
+	return out
 }
 
-func intOr(p *int, def int) int {
-	if p != nil {
-		return *p
+// FetchOllamaModels lists models installed on a running Ollama instance.
+func FetchOllamaModels(env map[string]string) ([]ModelCatalogEntry, error) {
+	entries, err := live.FetchOllama(env)
+	if err != nil {
+		return nil, err
 	}
-	return def
+	return liveEntriesToCatalog(entries), nil
 }
 
 func fetchOpenRouterCatalog(env map[string]string) ([]ModelCatalogEntry, error) {
-	apiKey := strings.TrimSpace(env["OPENROUTER_API_KEY"])
-	if apiKey == "" {
-		return nil, nil
-	}
-	baseURL := strings.TrimSpace(env["OPENROUTER_BASE_URL"])
-	if baseURL == "" {
-		baseURL = DefaultOpenRouterBaseURL
-	}
-	baseURL = strings.TrimRight(baseURL, "/")
-
-	req, _ := http.NewRequestWithContext(context.Background(), "GET", baseURL+"/models", nil)
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
-
-	resp, err := catalogHTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("openrouter model fetch failed (%d)", resp.StatusCode)
-	}
-
-	var payload struct {
-		Data []openRouterModel `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return nil, err
-	}
-
-	var entries []ModelCatalogEntry
-	for _, raw := range payload.Data {
-		id := strings.TrimSpace(raw.ID)
-		if id == "" {
-			continue
-		}
-		ctx := 128000
-		if raw.ContextLength != nil {
-			ctx = *raw.ContextLength
-		} else if raw.TopProvider != nil && raw.TopProvider.ContextLength != nil {
-			ctx = *raw.TopProvider.ContextLength
-		}
-		maxOut := 16384
-		if raw.TopProvider != nil && raw.TopProvider.MaxCompletionTokens != nil {
-			maxOut = *raw.TopProvider.MaxCompletionTokens
-		}
-		var inPrice, outPrice float64
-		if raw.Pricing != nil {
-			inPrice = asFloat(raw.Pricing.Prompt) * 1_000_000
-			outPrice = asFloat(raw.Pricing.Completion) * 1_000_000
-		}
-		entries = append(entries, ModelCatalogEntry{
-			ID: id, InputPricePer1M: inPrice, OutputPricePer1M: outPrice,
-			ContextWindow: ctx, MaxOutput: maxOut, DisplayName: id,
-		})
-	}
-	return entries, nil
+	entries, err := live.FetchOpenRouter(env)
+	return liveEntriesToCatalog(entries), err
 }
 
 func fetchCanopyWaveCatalog(env map[string]string) ([]ModelCatalogEntry, error) {
-	apiKey := strings.TrimSpace(env["CANOPYWAVE_API_KEY"])
-	if apiKey == "" {
-		return nil, nil
-	}
-	baseURL := strings.TrimSpace(env["CANOPYWAVE_BASE_URL"])
-	if baseURL == "" {
-		baseURL = DefaultCanopyWaveBaseURL
-	}
-	baseURL = strings.TrimRight(baseURL, "/")
+	entries, err := live.FetchCanopyWave(env)
+	return liveEntriesToCatalog(entries), err
+}
 
-	req, _ := http.NewRequestWithContext(context.Background(), "GET", baseURL+"/models", nil)
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+func fetchOllamaCatalog(env map[string]string) ([]ModelCatalogEntry, error) {
+	return FetchOllamaModels(env)
+}
 
-	resp, err := catalogHTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("canopywave model fetch failed (%d)", resp.StatusCode)
-	}
+func fetchAnthropicCatalog(env map[string]string) ([]ModelCatalogEntry, error) {
+	entries, err := live.FetchAnthropic(env)
+	return liveEntriesToCatalog(entries), err
+}
 
-	var payload struct {
-		Data []openAICompatModel `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return nil, err
-	}
+func fetchOpenAICatalog(env map[string]string) ([]ModelCatalogEntry, error) {
+	entries, err := live.FetchOpenAI(env)
+	return liveEntriesToCatalog(entries), err
+}
 
-	var entries []ModelCatalogEntry
-	for _, raw := range payload.Data {
-		id := strings.TrimSpace(raw.ID)
-		if id == "" {
-			continue
-		}
-		var inPrice, outPrice float64
-		if raw.Pricing != nil {
-			inPrice = asFloat(raw.Pricing.Prompt) * 1_000_000
-			outPrice = asFloat(raw.Pricing.Completion) * 1_000_000
-		}
-		entries = append(entries, ModelCatalogEntry{
-			ID: id, InputPricePer1M: inPrice, OutputPricePer1M: outPrice,
-			ContextWindow: intOr(raw.ContextLength, 128000),
-			MaxOutput:     intOr(raw.MaxCompletionTokens, 16384),
-			DisplayName:   id,
-		})
-	}
-	return entries, nil
+func fetchGeminiCatalog(env map[string]string) ([]ModelCatalogEntry, error) {
+	entries, err := live.FetchGemini(env)
+	return liveEntriesToCatalog(entries), err
+}
+
+func fetchGrokCatalog(env map[string]string) ([]ModelCatalogEntry, error) {
+	entries, err := live.FetchGrok(env)
+	return liveEntriesToCatalog(entries), err
+}
+
+func fetchOpenCodeGoCatalog(env map[string]string) ([]ModelCatalogEntry, error) {
+	entries, err := live.FetchOpenCodeGo(env)
+	return liveEntriesToCatalog(entries), err
 }

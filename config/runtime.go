@@ -1,8 +1,11 @@
 package config
 
 import (
+	"context"
 	"os"
 	"strings"
+
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 // OpenAICompatibleRuntimeMode identifies the runtime mode.
@@ -27,15 +30,31 @@ func IsOpenAICompatibleRuntimeEnabled() bool {
 		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
 	}
 	for _, k := range keys {
-		if os.Getenv(k) != "" {
+		if envValue(k) != "" {
 			return true
 		}
 	}
 	return false
 }
 
-func asTrimmedEnv(key string) string {
+func envValue(key string) string {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return ""
+	}
+	if isCredentialEnvKey(key) {
+		return credentials.LookupSecret(context.Background(), key)
+	}
 	return strings.TrimSpace(os.Getenv(key))
+}
+
+func isCredentialEnvKey(key string) bool {
+	u := strings.ToUpper(key)
+	return strings.Contains(u, "API_KEY") || strings.Contains(u, "_TOKEN") || u == "OLLAMA_BASE_URL"
+}
+
+func asTrimmedEnv(key string) string {
+	return envValue(key)
 }
 
 func firstEnvValue(keys []string) string {
@@ -56,9 +75,9 @@ func resolveRuntimeProvider() RuntimeProviderProfile {
 			}
 		}
 	}
-	if os.Getenv("OLLAMA_BASE_URL") != "" {
+	if v := envValue("OLLAMA_BASE_URL"); v != "" {
 		base := OpenAIRuntimeProfile
-		base.DefaultBaseURL = os.Getenv("OLLAMA_BASE_URL")
+		base.DefaultBaseURL = v
 		if base.DefaultBaseURL == "" {
 			base.DefaultBaseURL = OllamaDefaultBaseURL
 		}

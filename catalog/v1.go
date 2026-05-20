@@ -406,6 +406,7 @@ func ValidateCatalogV1(c *CatalogV1) error {
 
 func CompileCatalogV1(c *CatalogV1) (*CompiledCatalogV1, error) {
 	EnsureDeploymentEnvFallbacks(c)
+	SanitizeCatalogV1Pricing(c)
 	if err := ValidateCatalogV1(c); err != nil {
 		return nil, err
 	}
@@ -467,6 +468,11 @@ func LoadCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CompiledCat
 }
 
 func loadValidCatalogCache(cachePath string) (*CompiledCatalogV1, bool) {
+	return LoadValidCatalogCache(cachePath)
+}
+
+// LoadValidCatalogCache reads and compiles a non-bootstrap catalog cache from disk.
+func LoadValidCatalogCache(cachePath string) (*CompiledCatalogV1, bool) {
 	if cachePath == "" {
 		return nil, false
 	}
@@ -536,6 +542,7 @@ func WriteCatalogV1Cache(cachePath string, c *CatalogV1) error {
 	if cachePath == "" {
 		return nil
 	}
+	SanitizeCatalogV1Pricing(c)
 	if err := ValidateCatalogV1(c); err != nil {
 		return err
 	}
@@ -546,7 +553,11 @@ func WriteCatalogV1Cache(cachePath string, c *CatalogV1) error {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(cachePath, append(data, '\n'), 0o600)
+	tmpPath := cachePath + ".tmp"
+	if err := os.WriteFile(tmpPath, append(data, '\n'), 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, cachePath)
 }
 
 func (c *CompiledCatalogV1) CanonicalModelForAliasOrID(value string) (string, bool) {
@@ -642,7 +653,7 @@ func localDeployment() DeploymentV1 {
 
 func defaultOfferingTemplatesV1(generatedAt time.Time) []ModelOfferingTemplateV1 {
 	var out []ModelOfferingTemplateV1
-	for _, model := range OpenAIModels {
+	for _, model := range testOpenAIModels {
 		canonical := canonicalModelID("openai", model.ID)
 		out = append(out, ModelOfferingTemplateV1{
 			ID:                  "openai-azure:" + canonical,
@@ -751,14 +762,24 @@ func capabilitySetFromLegacy(entry ModelCatalogEntry) CapabilitySetV1 {
 }
 
 func pricingFromLegacy(entry ModelCatalogEntry, effectiveAt time.Time, source string) PricingV1 {
+	in := entry.InputPricePer1M
+	out := entry.OutputPricePer1M
+	if in < 0 || out < 0 {
+		return PricingV1{
+			Status:      PricingUnknown,
+			Currency:    "USD",
+			EffectiveAt: effectiveAt,
+			Source:      source,
+		}
+	}
 	pricing := PricingV1{
 		Status:      PricingKnown,
 		Currency:    "USD",
 		EffectiveAt: effectiveAt,
-		RatesPer1M:  map[string]float64{"input_tokens": entry.InputPricePer1M, "output_tokens": entry.OutputPricePer1M},
+		RatesPer1M:  map[string]float64{"input_tokens": in, "output_tokens": out},
 		Source:      source,
 	}
-	if entry.InputPricePer1M == 0 && entry.OutputPricePer1M == 0 {
+	if in == 0 && out == 0 {
 		pricing.Status = PricingUnknown
 		pricing.RatesPer1M = nil
 		if strings.Contains(entry.ID, ":free") {
@@ -767,6 +788,43 @@ func pricingFromLegacy(entry ModelCatalogEntry, effectiveAt time.Time, source st
 		}
 	}
 	return pricing
+}
+
+// SanitizeCatalogV1Pricing drops invalid rate dimensions (e.g. negative OpenRouter prices).
+func SanitizeCatalogV1Pricing(c *CatalogV1) {
+	if c == nil {
+		return
+	}
+	for i := range c.Offerings {
+		c.Offerings[i].Pricing = sanitizePricingV1(c.Offerings[i].Pricing)
+	}
+	for i := range c.OfferingTemplates {
+		c.OfferingTemplates[i].Pricing = sanitizePricingV1(c.OfferingTemplates[i].Pricing)
+	}
+}
+
+func sanitizePricingV1(p PricingV1) PricingV1 {
+	if len(p.RatesPer1M) == 0 {
+		return p
+	}
+	clean := make(map[string]float64, len(p.RatesPer1M))
+	for dim, rate := range p.RatesPer1M {
+		if dim == "" || rate < 0 {
+			continue
+		}
+		clean[dim] = rate
+	}
+	if len(clean) == 0 {
+		p.Status = PricingUnknown
+		p.RatesPer1M = nil
+		return p
+	}
+	p.RatesPer1M = clean
+	if p.Status == PricingKnown && (p.Currency == "" || len(p.RatesPer1M) == 0) {
+		p.Status = PricingUnknown
+		p.RatesPer1M = nil
+	}
+	return p
 }
 
 func uniqueNonEmpty(values ...string) []string {

@@ -1,4 +1,4 @@
-package config
+package credential
 
 import (
 	"errors"
@@ -46,8 +46,21 @@ func ValidateCredentialSecret(envKey, secret string) error {
 	if label == "" {
 		label = "provider"
 	}
-	if msg := ValidateAPIKey(secret, label); msg != "" {
+	if msg := validateAPIKey(secret, label); msg != "" {
 		return fmt.Errorf("%s", msg)
 	}
 	return nil
+}
+
+func validateAPIKey(apiKey, providerName string) string {
+	if apiKey == "" {
+		return providerName + " requires an API key"
+	}
+	if apiKey == "SUA_CHAVE" {
+		return providerName + " API key cannot be placeholder value 'SUA_CHAVE'"
+	}
+	if len(apiKey) < 10 {
+		return providerName + " API key appears invalid (too short)"
+	}
+	return ""
 }

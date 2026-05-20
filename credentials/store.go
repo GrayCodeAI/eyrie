@@ -2,7 +2,6 @@ package credentials
 
 import (
 	"context"
-	"os"
 	"strings"
 	"sync"
 
@@ -25,7 +24,7 @@ var (
 	defaultStoreMu sync.RWMutex
 )
 
-// DefaultStore returns the process-wide credential store (keychain + env fallback).
+// DefaultStore returns the process-wide credential store (OS secret service).
 func DefaultStore() Store {
 	defaultStoreMu.RLock()
 	s := defaultStore
@@ -68,24 +67,6 @@ func EnvForAccount(account string) string {
 		return "GROK_API_KEY"
 	default:
 		return strings.ToUpper(strings.ReplaceAll(account, "-", "_"))
-	}
-}
-
-// ApplyToProcess sets env vars from the store for catalog-defined credential accounts.
-func ApplyToProcess(ctx context.Context, store Store) {
-	if store == nil {
-		store = DefaultStore()
-	}
-	keys := discoveryEnvKeys(ctx)
-	for _, envKey := range keys {
-		if strings.TrimSpace(os.Getenv(envKey)) != "" {
-			continue
-		}
-		secret, err := store.Get(ctx, AccountForEnv(envKey))
-		if err != nil || strings.TrimSpace(secret) == "" {
-			continue
-		}
-		_ = os.Setenv(envKey, secret)
 	}
 }
 

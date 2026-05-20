@@ -1,10 +1,12 @@
 package catalog
 
-import "os"
+import (
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
+)
 
 // DefaultDeploymentEnvFallbacks seeds env_fallbacks per deployment until the published catalog includes them.
-// Schema matches CatalogV1 DeploymentV1.env_fallbacks — remote catalog overrides/extends this.
-var DefaultDeploymentEnvFallbacks = map[string][]EnvFallbackV1{
+var DefaultDeploymentEnvFallbacks = func() map[string][]EnvFallbackV1 {
+	base := map[string][]EnvFallbackV1{
 	"anthropic-direct": {
 		{Field: "api_key", Env: []string{"ANTHROPIC_API_KEY"}},
 		{Field: "base_url", Env: []string{"ANTHROPIC_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"}},
@@ -58,7 +60,19 @@ var DefaultDeploymentEnvFallbacks = map[string][]EnvFallbackV1{
 		{Field: "api_key", Env: []string{"OPENCODEGO_API_KEY"}},
 		{Field: "base_url", Env: []string{"OPENCODEGO_BASE_URL"}},
 	},
-}
+	}
+	for id, fbs := range registry.DeploymentEnvFallbacks() {
+		if _, ok := base[id]; ok {
+			continue
+		}
+		var converted []EnvFallbackV1
+		for _, fb := range fbs {
+			converted = append(converted, EnvFallbackV1{Field: fb.Field, Env: fb.Env})
+		}
+		base[id] = converted
+	}
+	return base
+}()
 
 // EnsureDeploymentEnvFallbacks fills missing env_fallbacks from the embedded seed.
 // Published catalogs with env_fallbacks set are left unchanged.
@@ -119,20 +133,4 @@ func EnvVarsForDeployment(deploymentID string) []string {
 		}
 	}
 	return out
-}
-
-// ReadOSEnv reads non-empty values for the given env var names.
-func ReadOSEnv(keys []string) map[string]string {
-	out := map[string]string{}
-	for _, key := range keys {
-		if v := os.Getenv(key); v != "" {
-			out[key] = v
-		}
-	}
-	return out
-}
-
-// CredentialsFromOSEnv builds discovery credentials using catalog-defined env keys.
-func CredentialsFromOSEnv(compiled *CompiledCatalogV1) Credentials {
-	return Credentials{APIKeys: ReadOSEnv(DiscoveryEnvKeysFromCatalog(compiled))}
 }

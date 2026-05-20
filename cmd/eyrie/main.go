@@ -103,7 +103,7 @@ func runCatalog(args []string) {
 	case "discover":
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		result, err := setup.DiscoverModelCatalog(ctx, config.DiscoveryCredentialsFromOS())
+		result, err := setup.DiscoverModelCatalog(ctx, config.DiscoveryCredentials(ctx))
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)

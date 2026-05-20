@@ -1,4 +1,4 @@
-package catalog
+package discover_test
 
 import (
 	"context"
@@ -7,6 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/discover"
 )
 
 func TestDiscoverCatalog_MergesProviderModelsWithAPIKey(t *testing.T) {
@@ -20,22 +23,22 @@ func TestDiscoverCatalog_MergesProviderModelsWithAPIKey(t *testing.T) {
 	defer orServer.Close()
 
 	cachePath := filepath.Join(t.TempDir(), "model_catalog.json")
-	base := testLegacyCatalogV1()
-	if err := WriteCatalogV1Cache(cachePath, &base); err != nil {
+	base := catalog.TestSeedCatalogV1()
+	if err := catalog.WriteCatalogV1Cache(cachePath, &base); err != nil {
 		t.Fatalf("seed cache: %v", err)
 	}
-	result, err := DiscoverCatalog(context.Background(), DiscoverOptions{
-		LoadCatalogV1Options: LoadCatalogV1Options{
+	result, err := discover.Run(context.Background(), discover.Options{
+		LoadCatalogV1Options: catalog.LoadCatalogV1Options{
 			CachePath:     cachePath,
 			RefreshRemote: false,
 		},
-		Credentials: Credentials{APIKeys: map[string]string{
+		Credentials: catalog.Credentials{APIKeys: map[string]string{
 			"OPENROUTER_API_KEY":  "test-or-key",
 			"OPENROUTER_BASE_URL": orServer.URL,
 		}},
 	})
 	if err != nil {
-		t.Fatalf("DiscoverCatalog: %v", err)
+		t.Fatalf("discover.Run: %v", err)
 	}
 	if result == nil || result.Compiled == nil {
 		t.Fatal("expected compiled catalog")

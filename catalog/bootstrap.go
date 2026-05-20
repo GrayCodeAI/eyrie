@@ -4,6 +4,11 @@ import "time"
 
 const bootstrapSource = "bootstrap"
 
+// BootstrapSource returns the provenance label for the embedded catalog seed.
+func BootstrapSource() string {
+	return bootstrapSource
+}
+
 // BootstrapCatalogV1 returns deployment/provider wiring only — no chat models.
 // Chat models come from the published catalog cache and live provider discovery.
 func BootstrapCatalogV1() CatalogV1 {
@@ -21,6 +26,7 @@ func BootstrapCatalogV1() CatalogV1 {
 		Provenance:    &CatalogProvenanceV1{Source: bootstrapSource, ObservedAt: generatedAt},
 	}
 	EnsureDeploymentEnvFallbacks(&c)
+	EnsureCredentialRegistryInCatalog(&c)
 	return c
 }
 

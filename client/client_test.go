@@ -8,19 +8,27 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 func TestDetectProvider(t *testing.T) {
-	// Clear all
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+
 	for _, k := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "OPENCODEGO_API_KEY", "OLLAMA_BASE_URL"} {
 		_ = os.Unsetenv(k)
 	}
-	// Default should be anthropic
+	credentials.ScrubProcessEnv([]string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "OPENCODEGO_API_KEY"})
+
+	ctx := context.Background()
 	if p := DetectProvider(); p != "anthropic" {
 		t.Errorf("expected anthropic default, got %s", p)
 	}
-	_ = os.Setenv("OPENAI_API_KEY", "test")
-	defer func() { _ = os.Unsetenv("OPENAI_API_KEY") }()
+	if err := store.Set(ctx, credentials.AccountForEnv("OPENAI_API_KEY"), "test"); err != nil {
+		t.Fatal(err)
+	}
 	if p := DetectProvider(); p != "openai" {
 		t.Errorf("expected openai, got %s", p)
 	}

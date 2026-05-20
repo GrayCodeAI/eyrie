@@ -1,9 +1,6 @@
 package catalog
 
-import (
-	"os"
-	"strings"
-)
+import "strings"
 
 // ProviderIDsFromCompiled lists provider IDs from catalog providers and deployments.
 func ProviderIDsFromCompiled(compiled *CompiledCatalogV1) []string {
@@ -61,7 +58,8 @@ func apiKeyEnvFromDeployment(dep DeploymentV1) string {
 	return ""
 }
 
-// CredentialStatusForProvider reports set, empty, or local (no API key required).
+// CredentialStatusForProvider reports whether a provider needs an API key (local vs required).
+// For set/empty status use hawk config.EnvKeyStatus or credentials.HasSecret — catalog does not read env.
 func CredentialStatusForProvider(compiled *CompiledCatalogV1, providerID string) string {
 	providerID = canonicalProviderID(providerID)
 	if providerID == "" {
@@ -71,12 +69,7 @@ func CredentialStatusForProvider(compiled *CompiledCatalogV1, providerID string)
 	if len(envs) == 0 {
 		return "local"
 	}
-	for _, env := range envs {
-		if os.Getenv(env) != "" {
-			return "set"
-		}
-	}
-	return "empty"
+	return "required"
 }
 
 // APIKeyEnvsForProvider lists API key env var names for a provider from deployment env_fallbacks.

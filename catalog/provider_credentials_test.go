@@ -24,7 +24,7 @@ func TestCredentialStatusForProvider_OllamaLocal(t *testing.T) {
 	}
 	// ollama-local has base_url env; api_key is optional — still has api_key fallbacks in seed
 	status := CredentialStatusForProvider(compiled, "ollama")
-	if status != "empty" && status != "set" && status != "local" {
+	if status != "local" && status != "required" {
 		t.Fatalf("unexpected status %q", status)
 	}
 }

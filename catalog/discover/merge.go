@@ -1,8 +1,23 @@
-package catalog
+package discover
+
+import (
+	"strings"
+
+	"github.com/GrayCodeAI/eyrie/catalog"
+)
+
+// MergePolicy controls catalog merge behavior when enriching from live APIs.
+type MergePolicy struct {
+	PreferLive bool
+}
 
 // MergeCatalogV1 merges models, offerings, providers, deployments, and aliases from src into dst.
-// dst is modified in place and returned.
-func MergeCatalogV1(dst, src *CatalogV1) *CatalogV1 {
+func MergeCatalogV1(dst, src *catalog.CatalogV1) *catalog.CatalogV1 {
+	return MergeCatalogV1WithPolicy(dst, src, MergePolicy{})
+}
+
+// MergeCatalogV1WithPolicy merges with optional live-preference for existing model IDs.
+func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *catalog.CatalogV1 {
 	if dst == nil {
 		return src
 	}
@@ -10,7 +25,7 @@ func MergeCatalogV1(dst, src *CatalogV1) *CatalogV1 {
 		return dst
 	}
 	if dst.Providers == nil {
-		dst.Providers = map[string]ProviderV1{}
+		dst.Providers = map[string]catalog.ProviderV1{}
 	}
 	for id, p := range src.Providers {
 		if dst.Providers[id].ID == "" {
@@ -18,7 +33,7 @@ func MergeCatalogV1(dst, src *CatalogV1) *CatalogV1 {
 		}
 	}
 	if dst.APIProtocols == nil {
-		dst.APIProtocols = map[string]APIProtocolV1{}
+		dst.APIProtocols = map[string]catalog.APIProtocolV1{}
 	}
 	for id, p := range src.APIProtocols {
 		if dst.APIProtocols[id].ID == "" {
@@ -26,7 +41,7 @@ func MergeCatalogV1(dst, src *CatalogV1) *CatalogV1 {
 		}
 	}
 	if dst.Deployments == nil {
-		dst.Deployments = map[string]DeploymentV1{}
+		dst.Deployments = map[string]catalog.DeploymentV1{}
 	}
 	for id, d := range src.Deployments {
 		if dst.Deployments[id].ID == "" {
@@ -34,9 +49,22 @@ func MergeCatalogV1(dst, src *CatalogV1) *CatalogV1 {
 		}
 	}
 	if dst.Models == nil {
-		dst.Models = map[string]ModelV1{}
+		dst.Models = map[string]catalog.ModelV1{}
 	}
 	for id, m := range src.Models {
+		if existing, ok := dst.Models[id]; ok && policy.PreferLive {
+			if m.ContextWindow > 0 {
+				existing.ContextWindow = m.ContextWindow
+			}
+			if m.MaxOutput > 0 {
+				existing.MaxOutput = m.MaxOutput
+			}
+			if strings.TrimSpace(m.Name) != "" {
+				existing.Name = m.Name
+			}
+			dst.Models[id] = existing
+			continue
+		}
 		if dst.Models[id].ID == "" {
 			dst.Models[id] = m
 		}

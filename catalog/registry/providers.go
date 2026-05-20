@@ -1,0 +1,76 @@
+package registry
+
+// All returns every registered provider spec (sorted by SortOrder at use sites).
+func All() []ProviderSpec {
+	return []ProviderSpec{
+		{
+			ProviderID: "anthropic", DisplayName: "Anthropic", DeploymentID: "anthropic-direct", SortOrder: 1,
+			RequiresKey: true, CredentialEnv: "ANTHROPIC_API_KEY", KeyPrefixes: []string{"sk-ant-"},
+			BaseURLEnv: []string{"ANTHROPIC_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind: ProbeAnthropic, ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
+			LiveFetcherKey: "anthropic", LiveCatalogKey: "anthropic",
+			APIProtocolID: "anthropic-messages", AdapterID: "anthropic",
+		},
+		{
+			ProviderID: "openai", DisplayName: "OpenAI", DeploymentID: "openai-direct", SortOrder: 2,
+			RequiresKey: true, CredentialEnv: "OPENAI_API_KEY", KeyPrefixes: []string{"sk-proj-", "sk-svcacct-", "sk-"},
+			BaseURLEnv: []string{"OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind: ProbeOpenAIModels, ProbeBaseURL: "https://api.openai.com/v1",
+			ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
+			LiveFetcherKey: "openai", LiveCatalogKey: "openai",
+			APIProtocolID: "openai-chat-completions", AdapterID: "openai",
+		},
+		{
+			ProviderID: "gemini", DisplayName: "Google Gemini", DeploymentID: "gemini-direct", SortOrder: 3,
+			RequiresKey: true, CredentialEnv: "GEMINI_API_KEY", KeyPrefixes: []string{"AIza"},
+			BaseURLEnv: []string{"GEMINI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind: ProbeGemini, ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
+			LiveFetcherKey: "gemini", LiveCatalogKey: "gemini",
+			APIProtocolID: "gemini-generate-content", AdapterID: "gemini",
+		},
+		{
+			ProviderID: "openrouter", DisplayName: "OpenRouter", DeploymentID: "openrouter", SortOrder: 4,
+			RequiresKey: true, CredentialEnv: "OPENROUTER_API_KEY", KeyPrefixes: []string{"sk-or-v1-", "sk-or-"},
+			BaseURLEnv: []string{"OPENROUTER_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind: ProbeOpenAIModels, ProbeBaseURL: "https://openrouter.ai/api/v1",
+			ModelStrategy: StrategyLiveOnly, PreferLiveMerge: true,
+			LiveFetcherKey: "openrouter", LiveCatalogKey: "openrouter",
+			APIProtocolID: "openai-chat-completions", AdapterID: "openrouter",
+		},
+		{
+			ProviderID: "grok", DisplayName: "xAI (Grok)", DeploymentID: "grok-direct", SortOrder: 5,
+			RequiresKey: true, CredentialEnv: "XAI_API_KEY", KeyPrefixes: []string{"xai-"},
+			BaseURLEnv: []string{"GROK_BASE_URL", "XAI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind: ProbeOpenAIModels, ProbeBaseURL: "https://api.x.ai/v1",
+			ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
+			LiveFetcherKey: "grok", LiveCatalogKey: "grok",
+			APIProtocolID: "openai-chat-completions", AdapterID: "grok",
+		},
+		{
+			ProviderID: "canopywave", DisplayName: "CanopyWave", DeploymentID: "canopywave", SortOrder: 6,
+			RequiresKey: true, CredentialEnv: "CANOPYWAVE_API_KEY", KeyPrefixes: []string{"cw_"},
+			BaseURLEnv: []string{"CANOPYWAVE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind: ProbeOpenAIModels, ProbeBaseURL: "https://inference.canopywave.io/v1",
+			ModelStrategy: StrategyLiveOnly, PreferLiveMerge: true,
+			LiveFetcherKey: "canopywave", LiveCatalogKey: "canopywave",
+			APIProtocolID: "openai-chat-completions", AdapterID: "canopywave",
+		},
+		{
+			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 7,
+			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY", KeyPrefixes: []string{"ocg_"},
+			BaseURLEnv: []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind: ProbeOpenAIModels,
+			ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
+			LiveFetcherKey: "opencodego", LiveCatalogKey: "opencodego",
+			APIProtocolID: "openai-chat-completions", AdapterID: "opencodego",
+		},
+		{
+			ProviderID: "ollama", DisplayName: "Ollama (local)", DeploymentID: "ollama-local", SortOrder: 8,
+			RequiresKey: false, CredentialEnv: "OLLAMA_BASE_URL",
+			BaseURLEnv: []string{"OLLAMA_BASE_URL"},
+			ProbeKind: ProbeOllama, ModelStrategy: StrategyLiveOnly, PreferLiveMerge: true,
+			LiveFetcherKey: "ollama", LiveCatalogKey: "ollama",
+			APIProtocolID: "openai-chat-completions", AdapterID: "openai",
+		},
+	}
+}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/config"
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 // Version is exported here for backwards compatibility. Callers should prefer
@@ -260,9 +261,9 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 		if info == nil {
 			return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
 		}
-		apiKey = os.Getenv(info.EnvKey)
+		apiKey = resolveEnvSecret(info.EnvKey)
 		if apiKey == "" && providerName == "grok" {
-			apiKey = os.Getenv("GROK_API_KEY")
+			apiKey = resolveEnvSecret("GROK_API_KEY")
 		}
 	}
 
@@ -367,17 +368,18 @@ type AnthropicClientConfig struct {
 	BaseURL        string            `json:"base_url,omitempty"`
 }
 
-// DetectProvider detects the active provider from env vars.
+// DetectProvider detects the active provider from the credential store (not process env).
 func DetectProvider() string {
+	ctx := context.Background()
 	checks := map[string]func() bool{
-		"anthropic":  func() bool { return os.Getenv("ANTHROPIC_API_KEY") != "" },
-		"openrouter": func() bool { return os.Getenv("OPENROUTER_API_KEY") != "" },
-		"grok":       func() bool { return os.Getenv("GROK_API_KEY") != "" || os.Getenv("XAI_API_KEY") != "" },
-		"gemini":     func() bool { return os.Getenv("GEMINI_API_KEY") != "" },
-		"canopywave": func() bool { return os.Getenv("CANOPYWAVE_API_KEY") != "" },
-		"openai":     func() bool { return os.Getenv("OPENAI_API_KEY") != "" },
-		"opencodego": func() bool { return os.Getenv("OPENCODEGO_API_KEY") != "" },
-		"ollama":     func() bool { return os.Getenv("OLLAMA_BASE_URL") != "" },
+		"anthropic":  func() bool { return credentials.HasSecret(ctx, "ANTHROPIC_API_KEY") },
+		"openrouter": func() bool { return credentials.HasSecret(ctx, "OPENROUTER_API_KEY") },
+		"grok":       func() bool { return credentials.HasSecret(ctx, "GROK_API_KEY") || credentials.HasSecret(ctx, "XAI_API_KEY") },
+		"gemini":     func() bool { return credentials.HasSecret(ctx, "GEMINI_API_KEY") },
+		"canopywave": func() bool { return credentials.HasSecret(ctx, "CANOPYWAVE_API_KEY") },
+		"openai":     func() bool { return credentials.HasSecret(ctx, "OPENAI_API_KEY") },
+		"opencodego": func() bool { return credentials.HasSecret(ctx, "OPENCODEGO_API_KEY") },
+		"ollama":     func() bool { return resolveEnvSecret("OLLAMA_BASE_URL") != "" },
 	}
 	for _, p := range config.APIProviderDetectionOrder {
 		if fn, ok := checks[p]; ok && fn() {
@@ -393,11 +395,15 @@ func ResolveProviderModelEnvOverride(provider string) string {
 		provider = DetectProvider()
 	}
 	for _, k := range config.ProviderModelEnvKeys[provider] {
-		if v := strings.TrimSpace(os.Getenv(k)); v != "" {
+		if v := resolveEnvSecret(k); v != "" {
 			return v
 		}
 	}
 	return ""
+}
+
+func resolveEnvSecret(envKey string) string {
+	return credentials.LookupSecret(context.Background(), envKey)
 }
 
 // ParseCustomHeaders parses GRAYCODE_CUSTOM_HEADERS env var into a map.

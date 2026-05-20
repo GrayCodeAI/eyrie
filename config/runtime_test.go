@@ -2,8 +2,11 @@
 package config
 
 import (
+	"context"
 	"os"
 	"testing"
+
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 func TestRuntimeProfileFields(t *testing.T) {
@@ -109,19 +112,10 @@ func TestProviderModelEnvKeys_AllProvidersPresent(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
-	// Clear all provider env vars first
-	clearKeys := []string{
-		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY",
-		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
-		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
-	}
-	for _, k := range clearKeys {
-		os.Unsetenv(k)
-	}
-
-	os.Setenv("OPENAI_API_KEY", "sk-test-key-1234567890")
-	defer os.Unsetenv("OPENAI_API_KEY")
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+	_ = store.Set(context.Background(), credentials.AccountForEnv("OPENAI_API_KEY"), "sk-test-key-1234567890")
 
 	result := ResolveOpenAICompatibleRuntime("gpt-4o", "", "")
 	if result.Mode != "openai" {
@@ -139,19 +133,10 @@ func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
-	clearKeys := []string{
-		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY",
-		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
-		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
-		"GROK_MODEL", "XAI_MODEL",
-	}
-	for _, k := range clearKeys {
-		os.Unsetenv(k)
-	}
-
-	os.Setenv("GROK_API_KEY", "grok-test-key-1234567890")
-	defer os.Unsetenv("GROK_API_KEY")
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+	_ = store.Set(context.Background(), credentials.AccountForEnv("GROK_API_KEY"), "grok-test-key-1234567890")
 
 	result := ResolveOpenAICompatibleRuntime("", "", "")
 	if result.Mode != "grok" {
@@ -184,15 +169,9 @@ func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_NoKeys(t *testing.T) {
-	clearKeys := []string{
-		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY",
-		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
-		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
-	}
-	for _, k := range clearKeys {
-		os.Unsetenv(k)
-	}
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
 
 	result := ResolveOpenAICompatibleRuntime("", "", "")
 	if result.APIKey != "" {

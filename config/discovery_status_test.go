@@ -8,10 +8,13 @@ import (
 	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
-func TestHasAnyConfiguredDeployment_FromEnv(t *testing.T) {
-	t.Setenv("ANTHROPIC_API_KEY", "sk-ant-test-key-long-enough")
+func TestHasAnyConfiguredDeployment_FromStore(t *testing.T) {
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+	_ = store.Set(context.Background(), credentials.AccountForEnv("ANTHROPIC_API_KEY"), "sk-ant-test-key-long-enough")
 	if !HasAnyConfiguredDeployment(context.Background()) {
-		t.Fatal("expected configured deployment from env")
+		t.Fatal("expected configured deployment from credential store")
 	}
 }
 

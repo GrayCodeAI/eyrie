@@ -1,7 +1,7 @@
 package catalog
 
 // Credentials carries API keys and related env (base URLs) for provider-backed catalog discovery.
-// Keys use standard env var names (e.g. OPENROUTER_API_KEY). Populate via config.DiscoveryCredentialsFromOS
+// Keys use standard env var names (e.g. OPENROUTER_API_KEY). Populate via config.DiscoveryCredentials.
 // or pass an explicit map from hawk — do not hardcode provider lists in hawk.
 type Credentials struct {
 	APIKeys map[string]string

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
 // ModelUI is one selectable model for host /config UIs.
@@ -63,17 +64,16 @@ func BuildSetupUI(compiled *catalog.CompiledCatalogV1, providerFilter string) *S
 }
 
 func displayNameForProvider(pid string) string {
+	if name := catalog.ProviderDisplayName(pid); name != pid {
+		return name
+	}
 	switch pid {
-	case "anthropic":
-		return "Anthropic"
-	case "openai":
-		return "OpenAI"
 	case "google":
-		return "Google"
+		return registry.DisplayName("gemini")
 	case "xai":
-		return "xAI"
-	case "openrouter":
-		return "OpenRouter"
+		return registry.DisplayName("grok")
+	case "z-ai":
+		return registry.DisplayName("canopywave")
 	default:
 		return pid
 	}

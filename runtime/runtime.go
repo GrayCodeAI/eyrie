@@ -56,9 +56,9 @@ func SetCredential(ctx context.Context, envKey, secret string) error {
 		return fmt.Errorf("runtime: env key and secret required")
 	}
 	if err := credentials.DefaultStore().Set(ctx, credentials.AccountForEnv(envKey), secret); err != nil {
-		return err
+		return fmt.Errorf("runtime: save credential: %w", err)
 	}
-	_ = os.Setenv(envKey, secret)
+	// Secrets stay in the store only — not in process env (agents / printenv cannot read them).
 	return nil
 }
 
@@ -197,7 +197,7 @@ func (r *Runtime) CredentialTargets() []CredentialTarget {
 				ProviderID:   depID,
 				DeploymentID: id,
 				EnvVar:       env,
-				Set:          os.Getenv(env) != "",
+				Set:          credentials.HasSecret(context.Background(), env),
 			})
 		}
 	}
