@@ -466,7 +466,7 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 	case ProviderOllama:
 		m := activeModel
 		if m == "" {
-			m = string(catalog.GetProviderDefaultModel("ollama", cat))
+			m = catalog.GetProviderDefaultModel("ollama", cat)
 		}
 		if m == "" {
 			m = OllamaDefaultModel

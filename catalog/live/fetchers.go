@@ -92,13 +92,6 @@ func asFloat(v interface{}) float64 {
 	return 0
 }
 
-func intOr(p *int, def int) int {
-	if p != nil {
-		return *p
-	}
-	return def
-}
-
 func ownerFromModelID(id string) string {
 	id = strings.TrimSpace(id)
 	if i := strings.Index(id, "/"); i > 0 {
