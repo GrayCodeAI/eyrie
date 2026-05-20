@@ -91,7 +91,7 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 				source = "providers"
 			}
 		} else {
-			source = source + "+providers"
+			source += "+providers"
 		}
 	}
 

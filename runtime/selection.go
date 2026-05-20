@@ -65,7 +65,6 @@ func inferProviderForModel(ctx context.Context, modelID string) string {
 		return ""
 	}
 	if canonical, ok := rt.Catalog.CanonicalModelForAliasOrID(modelID); ok {
-		modelID = canonical
 		if m, ok := rt.Catalog.ModelsByID[canonical]; ok {
 			return catalog.CanonicalProviderID(m.ProviderID)
 		}
