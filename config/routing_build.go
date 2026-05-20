@@ -13,7 +13,7 @@ func BuildRoutingPolicyFromDeployments(deployments map[string]DeploymentConfig) 
 	if _, ok := deployments["openrouter"]; ok {
 		policy.Default = []RoutingStage{{
 			Deployments: []DeploymentChoice{{DeploymentID: "openrouter", Weight: 100}},
-			Retries:       1,
+			Retries:     1,
 		}}
 	}
 	if stages := openAIProviderStages(deployments); len(stages) > 0 {

@@ -13,10 +13,10 @@ func TestRefreshResult_DiscoverReport(t *testing.T) {
 		t.Fatalf("compile: %v", err)
 	}
 	r := &RefreshResult{
-		Compiled:         compiled,
-		CachePath:        "/tmp/model_catalog.json",
-		Source:           "remote+providers",
-		RemoteURL:        "https://example.com/catalog.json",
+		Compiled:        compiled,
+		CachePath:       "/tmp/model_catalog.json",
+		Source:          "remote+providers",
+		RemoteURL:       "https://example.com/catalog.json",
 		RemoteRefreshed: true,
 		LiveProviders: []LiveProviderEnrichment{
 			{Provider: "openrouter", ModelCount: 42},

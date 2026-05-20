@@ -165,12 +165,12 @@ func (r *Runtime) DeploymentRows() ([]DeploymentRow, error) {
 
 // DeploymentRow is a deployment plus env credential status.
 type DeploymentRow struct {
-	ID          string
-	Name        string
-	ProviderID  string
-	Configured  bool
-	Status      string
-	PrimaryEnv  string
+	ID         string
+	Name       string
+	ProviderID string
+	Configured bool
+	Status     string
+	PrimaryEnv string
 }
 
 // CredentialTargets lists provider-facing API key env vars for simple UIs.

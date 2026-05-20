@@ -8,9 +8,9 @@ import (
 
 // Credential types re-exported for host apps.
 type (
-	CredentialInference       = config.CredentialInference
-	CredentialProviderOption  = config.CredentialProviderOption
-	CredentialResolveResult   = config.CredentialResolveResult
+	CredentialInference      = config.CredentialInference
+	CredentialProviderOption = config.CredentialProviderOption
+	CredentialResolveResult  = config.CredentialResolveResult
 )
 
 // ValidateKeyFormat rejects empty/placeholder keys before provider selection.

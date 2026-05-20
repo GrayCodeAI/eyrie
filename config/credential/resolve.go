@@ -22,8 +22,8 @@ type CredentialProviderOption struct {
 
 // CredentialResolveResult is returned after paste-key format validation + provider listing.
 type CredentialResolveResult struct {
-	FormatOK    bool                     `json:"format_ok"`
-	FormatError string                   `json:"format_error,omitempty"`
+	FormatOK    bool                       `json:"format_ok"`
+	FormatError string                     `json:"format_error,omitempty"`
 	Providers   []CredentialProviderOption `json:"providers"`
 }
 

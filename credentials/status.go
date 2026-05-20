@@ -9,10 +9,10 @@ import (
 
 // StorageReport summarizes where credentials are stored (no secret values).
 type StorageReport struct {
-	PlatformStore   string
+	PlatformStore    string
 	KeychainWritable bool
-	KeychainDetail  string
-	StoredEnvKeys   []string
+	KeychainDetail   string
+	StoredEnvKeys    []string
 }
 
 // StorageReportFor returns a credential storage summary for CLI / doctor output.
@@ -22,8 +22,8 @@ func StorageReportFor(ctx context.Context) StorageReport {
 	}
 	stored := StoredEnvKeys(ctx)
 	report := StorageReport{
-		PlatformStore:    PlatformSecretStoreName(),
-		StoredEnvKeys:    stored,
+		PlatformStore: PlatformSecretStoreName(),
+		StoredEnvKeys: stored,
 	}
 	ok, detail := KeychainWriteAvailable(ctx)
 	report.KeychainWritable = ok

@@ -24,8 +24,8 @@ func TestStoredEnvKeys_StoreOnly(t *testing.T) {
 func TestFormatStorageReport_ListsStoredKeys(t *testing.T) {
 	report := StorageReport{
 		PlatformStore:    "macOS Keychain",
-		KeychainWritable:   true,
-		StoredEnvKeys:      []string{"ANTHROPIC_API_KEY", "OPENROUTER_API_KEY"},
+		KeychainWritable: true,
+		StoredEnvKeys:    []string{"ANTHROPIC_API_KEY", "OPENROUTER_API_KEY"},
 	}
 	out := FormatStorageReport(report)
 	if !strings.Contains(out, "Stored:") {

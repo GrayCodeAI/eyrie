@@ -14,20 +14,20 @@ import (
 
 // StatusReport summarizes deployment routing readiness (eyrie provider status).
 type StatusReport struct {
-	DeploymentRouting bool
-	ProviderConfig    string
-	ConfigVersion     int
-	Configured        []string
-	CatalogCache      string
-	CatalogExists     bool
-	CatalogModified   time.Time
-	CatalogStale      bool
-	CatalogModels     int
+	DeploymentRouting  bool
+	ProviderConfig     string
+	ConfigVersion      int
+	Configured         []string
+	CatalogCache       string
+	CatalogExists      bool
+	CatalogModified    time.Time
+	CatalogStale       bool
+	CatalogModels      int
 	CatalogDeployments int
-	CatalogOfferings  int
-	ActiveModel       string
-	RoutingSource     string
-	RoutingStages     int
+	CatalogOfferings   int
+	ActiveModel        string
+	RoutingSource      string
+	RoutingStages      int
 }
 
 // DeploymentStatus builds a status report for CLI and agent diagnostics.

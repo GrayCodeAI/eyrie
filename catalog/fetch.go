@@ -16,12 +16,12 @@ func LiveEntriesToCatalog(in []live.Entry) []ModelCatalogEntry {
 	out := make([]ModelCatalogEntry, len(in))
 	for i, e := range in {
 		out[i] = ModelCatalogEntry{
-			ID:                e.ID,
-			DisplayName:       e.DisplayName,
-			ContextWindow:     e.ContextWindow,
-			MaxOutput:         e.MaxOutput,
-			InputPricePer1M:   e.InputPricePer1M,
-			OutputPricePer1M:  e.OutputPricePer1M,
+			ID:               e.ID,
+			DisplayName:      e.DisplayName,
+			ContextWindow:    e.ContextWindow,
+			MaxOutput:        e.MaxOutput,
+			InputPricePer1M:  e.InputPricePer1M,
+			OutputPricePer1M: e.OutputPricePer1M,
 		}
 	}
 	return out

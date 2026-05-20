@@ -87,4 +87,3 @@ func ProviderIDForDeployment(deploymentID string) string {
 	}
 	return catalog.CanonicalProviderID(dep.ProviderID)
 }
-

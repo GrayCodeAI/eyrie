@@ -374,7 +374,9 @@ func DetectProvider() string {
 	checks := map[string]func() bool{
 		"anthropic":  func() bool { return credentials.HasSecret(ctx, "ANTHROPIC_API_KEY") },
 		"openrouter": func() bool { return credentials.HasSecret(ctx, "OPENROUTER_API_KEY") },
-		"grok":       func() bool { return credentials.HasSecret(ctx, "GROK_API_KEY") || credentials.HasSecret(ctx, "XAI_API_KEY") },
+		"grok": func() bool {
+			return credentials.HasSecret(ctx, "GROK_API_KEY") || credentials.HasSecret(ctx, "XAI_API_KEY")
+		},
 		"gemini":     func() bool { return credentials.HasSecret(ctx, "GEMINI_API_KEY") },
 		"canopywave": func() bool { return credentials.HasSecret(ctx, "CANOPYWAVE_API_KEY") },
 		"openai":     func() bool { return credentials.HasSecret(ctx, "OPENAI_API_KEY") },

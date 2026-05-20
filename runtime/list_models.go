@@ -171,7 +171,8 @@ func ListProviderSetupOptions(ctx context.Context) []ProviderSetupOption {
 	if hasAny {
 		out = append(out, ProviderSetupOption{Action: "model", Label: "Pick model"})
 	}
-	out = append(out,
+	out = append(
+		out,
 		ProviderSetupOption{Action: "apikey", Label: "Paste API key"},
 		ProviderSetupOption{Action: "ollama", Label: "Ollama (local — no key)"},
 	)

@@ -71,13 +71,13 @@ func RefreshCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*RefreshR
 		source = remote.Provenance.Source
 	}
 	return &RefreshResult{
-		Compiled:         compiled,
-		CachePath:        opts.CachePath,
-		Source:           source,
-		RemoteURL:        opts.RemoteURL,
-		Refreshed:        true,
+		Compiled:        compiled,
+		CachePath:       opts.CachePath,
+		Source:          source,
+		RemoteURL:       opts.RemoteURL,
+		Refreshed:       true,
 		RemoteRefreshed: true,
-		StaleAfter:       remote.StaleAfter,
+		StaleAfter:      remote.StaleAfter,
 	}, nil
 }
 
@@ -86,7 +86,8 @@ func (r *RefreshResult) Summary() string {
 	if r == nil || r.Compiled == nil {
 		return "catalog refresh: no data"
 	}
-	return fmt.Sprintf("Model catalog refreshed (%s): %d models, %d deployments, %d offerings → %s",
+	return fmt.Sprintf(
+		"Model catalog refreshed (%s): %d models, %d deployments, %d offerings → %s",
 		r.Source,
 		len(r.Compiled.ModelsByID),
 		len(r.Compiled.DeploymentsByID),

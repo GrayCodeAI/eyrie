@@ -12,11 +12,11 @@ import (
 var httpClient = &http.Client{Timeout: 30 * time.Second}
 
 const (
-	DefaultOpenRouterBaseURL  = "https://openrouter.ai/api/v1"
-	DefaultCanopyWaveBaseURL  = "https://inference.canopywave.io/v1"
-	DefaultOpenAIBaseURL      = "https://api.openai.com/v1"
-	DefaultGrokBaseURL        = "https://api.x.ai/v1"
-	DefaultOpenCodeGoBaseURL  = "https://api.opencodego.ai/v1"
+	DefaultOpenRouterBaseURL = "https://openrouter.ai/api/v1"
+	DefaultCanopyWaveBaseURL = "https://inference.canopywave.io/v1"
+	DefaultOpenAIBaseURL     = "https://api.openai.com/v1"
+	DefaultGrokBaseURL       = "https://api.x.ai/v1"
+	DefaultOpenCodeGoBaseURL = "https://api.opencodego.ai/v1"
 )
 
 // FetchFunc lists models from a live provider API.
@@ -298,10 +298,10 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 	}
 	var payload struct {
 		Models []struct {
-			Name                       string `json:"name"`
-			DisplayName                string `json:"displayName"`
-			InputTokenLimit            int    `json:"inputTokenLimit"`
-			OutputTokenLimit           int    `json:"outputTokenLimit"`
+			Name                       string   `json:"name"`
+			DisplayName                string   `json:"displayName"`
+			InputTokenLimit            int      `json:"inputTokenLimit"`
+			OutputTokenLimit           int      `json:"outputTokenLimit"`
 			SupportedGenerationMethods []string `json:"supportedGenerationMethods"`
 		} `json:"models"`
 	}

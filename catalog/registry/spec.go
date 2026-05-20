@@ -4,20 +4,20 @@ package registry
 type ModelStrategy string
 
 const (
-	StrategyRemoteCatalog   ModelStrategy = "remote_catalog"
-	StrategyRemoteThenLive  ModelStrategy = "remote_then_live"
-	StrategyLiveOnly        ModelStrategy = "live_only"
+	StrategyRemoteCatalog  ModelStrategy = "remote_catalog"
+	StrategyRemoteThenLive ModelStrategy = "remote_then_live"
+	StrategyLiveOnly       ModelStrategy = "live_only"
 )
 
 // ProbeKind identifies HTTP credential validation.
 type ProbeKind string
 
 const (
-	ProbeAnthropic      ProbeKind = "probe_anthropic"
-	ProbeOpenAIModels   ProbeKind = "probe_openai_models"
-	ProbeGemini         ProbeKind = "probe_gemini"
-	ProbeOllama         ProbeKind = "probe_ollama"
-	ProbeNone           ProbeKind = "probe_none"
+	ProbeAnthropic    ProbeKind = "probe_anthropic"
+	ProbeOpenAIModels ProbeKind = "probe_openai_models"
+	ProbeGemini       ProbeKind = "probe_gemini"
+	ProbeOllama       ProbeKind = "probe_ollama"
+	ProbeNone         ProbeKind = "probe_none"
 )
 
 // ProviderSpec is the single source of truth for setup providers.
