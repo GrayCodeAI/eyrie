@@ -120,9 +120,12 @@ func (r *RefreshResult) DiscoverReport() string {
 	} else {
 		b.WriteString("  Live APIs:\n")
 		for _, p := range r.LiveProviders {
-			if p.Error != "" {
+			switch {
+			case p.Error != "" && strings.HasPrefix(p.Error, "skipped"):
+				b.WriteString(fmt.Sprintf("    - %s: %s\n", p.Provider, p.Error))
+			case p.Error != "":
 				b.WriteString(fmt.Sprintf("    - %s: failed (%s)\n", p.Provider, p.Error))
-			} else {
+			default:
 				b.WriteString(fmt.Sprintf("    - %s: %d models merged\n", p.Provider, p.ModelCount))
 			}
 		}

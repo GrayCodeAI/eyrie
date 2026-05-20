@@ -48,6 +48,10 @@ var DefaultDeploymentEnvFallbacks = func() map[string][]EnvFallbackV1 {
 			{Field: "api_key", Env: []string{"OPENROUTER_API_KEY"}},
 			{Field: "base_url", Env: []string{"OPENROUTER_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"}},
 		},
+		"z-ai-direct": {
+			{Field: "api_key", Env: []string{"ZAI_API_KEY"}},
+			{Field: "base_url", Env: []string{"ZAI_BASE_URL", "ZAI_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"}},
+		},
 		"canopywave": {
 			{Field: "api_key", Env: []string{"CANOPYWAVE_API_KEY"}},
 			{Field: "base_url", Env: []string{"CANOPYWAVE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"}},

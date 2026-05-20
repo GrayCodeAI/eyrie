@@ -3,6 +3,7 @@ package discover
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	eyriecfg "github.com/GrayCodeAI/eyrie/config"
@@ -82,7 +83,26 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 		liveProviders = enrichment
 		if len(legacy.Providers) > 0 {
 			enriched := catalog.CatalogV1FromLegacy(legacy)
-			base = MergeCatalogV1WithPolicy(base, &enriched, MergePolicy{PreferLive: true})
+			var replaceDeps []string
+			for _, item := range enrichment {
+				if item.Error != "" || item.ModelCount <= 0 {
+					continue
+				}
+				if dep := catalog.DeploymentIDForLiveCatalogKey(item.Provider); dep != "" {
+					replaceDeps = append(replaceDeps, dep)
+				}
+			}
+			base = MergeCatalogV1WithPolicy(base, &enriched, MergePolicy{
+				PreferLive:                 true,
+				ReplaceDeploymentOfferings: replaceDeps,
+			})
+			now := time.Now().UTC().Truncate(time.Second)
+			base.GeneratedAt = now
+			base.StaleAfter = now.Add(catalog.LiveCatalogStaleDuration)
+			if base.Provenance == nil {
+				base.Provenance = &catalog.CatalogProvenanceV1{}
+			}
+			base.Provenance.ObservedAt = now
 		}
 		if source == "embedded" || source == catalog.BootstrapSource() || source == "cache-fallback" {
 			if source == "cache-fallback" {

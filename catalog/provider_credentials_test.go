@@ -14,6 +14,12 @@ func TestPrimaryAPIKeyEnvForProvider(t *testing.T) {
 	if got := PrimaryAPIKeyEnvForProvider(compiled, "openrouter"); got != "OPENROUTER_API_KEY" {
 		t.Fatalf("openrouter env = %q", got)
 	}
+	if got := PrimaryAPIKeyEnvForProvider(compiled, "canopywave"); got != "CANOPYWAVE_API_KEY" {
+		t.Fatalf("canopywave env = %q", got)
+	}
+	if got := PrimaryAPIKeyEnvForProvider(compiled, "z-ai"); got != "ZAI_API_KEY" {
+		t.Fatalf("z-ai env = %q", got)
+	}
 }
 
 func TestCredentialStatusForProvider_OllamaLocal(t *testing.T) {

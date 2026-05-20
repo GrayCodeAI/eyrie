@@ -23,15 +23,9 @@ var testGeminiModels = []ModelCatalogEntry{
 	{ID: "gemini-2.0-flash-lite", InputPricePer1M: 0.075, OutputPricePer1M: 0.3, ContextWindow: 1000000, MaxOutput: 8192, ServerTools: []string{"web_search"}},
 }
 
-var testOpenRouterModels = []ModelCatalogEntry{
-	{ID: "openai/gpt-4o", InputPricePer1M: 5, OutputPricePer1M: 15, ContextWindow: 128000, MaxOutput: 16000, ServerTools: []string{"web_search"}},
-	{ID: "openai/gpt-4o-mini", InputPricePer1M: 0.15, OutputPricePer1M: 0.6, ContextWindow: 128000, MaxOutput: 16000, ServerTools: []string{"web_search"}},
-	{ID: "anthropic/claude-sonnet-4-6", InputPricePer1M: 3, OutputPricePer1M: 15, ContextWindow: 200000, MaxOutput: 32000, ServerTools: []string{"web_search"}},
-}
+var testOpenRouterModels []ModelCatalogEntry
 
-var testCanopyWaveModels = []ModelCatalogEntry{
-	{ID: "zai/glm-4.6", InputPricePer1M: 0, OutputPricePer1M: 0, ContextWindow: 128000, MaxOutput: 8192},
-}
+var testCanopyWaveModels []ModelCatalogEntry
 
 var testOpenCodeGoModels = []ModelCatalogEntry{
 	{ID: "glm-5.1", InputPricePer1M: 5, OutputPricePer1M: 15, ContextWindow: 128000, MaxOutput: 8000, DisplayName: "GLM-5.1"},

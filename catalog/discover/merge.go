@@ -8,7 +8,8 @@ import (
 
 // MergePolicy controls catalog merge behavior when enriching from live APIs.
 type MergePolicy struct {
-	PreferLive bool
+	PreferLive                 bool
+	ReplaceDeploymentOfferings []string
 }
 
 // MergeCatalogV1 merges models, offerings, providers, deployments, and aliases from src into dst.
@@ -50,6 +51,23 @@ func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *
 	}
 	if dst.Models == nil {
 		dst.Models = map[string]catalog.ModelV1{}
+	}
+	if len(policy.ReplaceDeploymentOfferings) > 0 {
+		remove := map[string]bool{}
+		for _, dep := range policy.ReplaceDeploymentOfferings {
+			if dep = strings.TrimSpace(dep); dep != "" {
+				remove[dep] = true
+			}
+		}
+		if len(remove) > 0 {
+			filtered := dst.Offerings[:0]
+			for _, o := range dst.Offerings {
+				if !remove[o.DeploymentID] {
+					filtered = append(filtered, o)
+				}
+			}
+			dst.Offerings = filtered
+		}
 	}
 	for id, m := range src.Models {
 		if existing, ok := dst.Models[id]; ok && policy.PreferLive {

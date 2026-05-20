@@ -122,6 +122,7 @@ type ModelOfferingV1 struct {
 	NativeModelID    string               `json:"native_model_id"`
 	Capabilities     CapabilitySetV1      `json:"capabilities,omitempty"`
 	Pricing          PricingV1            `json:"pricing"`
+	LiveMetadata     json.RawMessage      `json:"live_metadata,omitempty"`
 	Provenance       *CatalogProvenanceV1 `json:"provenance,omitempty"`
 }
 
@@ -218,7 +219,7 @@ func CatalogV1FromLegacy(legacy ModelCatalog) CatalogV1 {
 				continue
 			}
 			modelProviderID := ownerProviderID
-			if deploymentID == "openrouter" {
+			if deploymentID == "openrouter" || deploymentID == "canopywave" {
 				if owner, _, ok := strings.Cut(nativeID, "/"); ok && owner != "" {
 					modelProviderID = canonicalProviderID(owner)
 					if c.Providers[modelProviderID].ID == "" {
@@ -251,6 +252,7 @@ func CatalogV1FromLegacy(legacy ModelCatalog) CatalogV1 {
 				NativeModelID:    nativeID,
 				Capabilities:     capabilitySetFromLegacy(entry),
 				Pricing:          pricingFromLegacy(entry, generatedAt, legacy.Source),
+				LiveMetadata:     entry.LiveMetadata,
 			})
 		}
 	}
@@ -604,6 +606,7 @@ func defaultProvidersV1() map[string]ProviderV1 {
 		"google":     {ID: "google", Name: "Google"},
 		"xai":        {ID: "xai", Name: "xAI"},
 		"openrouter": {ID: "openrouter", Name: "OpenRouter"},
+		"canopywave": {ID: "canopywave", Name: "CanopyWave"},
 		"z-ai":       {ID: "z-ai", Name: "Z.AI"},
 		"ollama":     {ID: "ollama", Name: "Ollama"},
 		"opencodego": {ID: "opencodego", Name: "OpenCode Go"},
@@ -629,7 +632,8 @@ func defaultDeploymentsV1() map[string]DeploymentV1 {
 		"gemini-vertex":     deployment("gemini-vertex", "Gemini on Vertex", "google", "gemini-generate-content", "gemini-vertex", NativeModelIDCatalogKnown),
 		"grok-direct":       deployment("grok-direct", "Grok", "xai", "openai-chat-completions", "grok", NativeModelIDCatalogKnown),
 		"openrouter":        deployment("openrouter", "OpenRouter", "openrouter", "openai-chat-completions", "openrouter", NativeModelIDDiscovered),
-		"canopywave":        deployment("canopywave", "CanopyWave", "z-ai", "openai-chat-completions", "canopywave", NativeModelIDCatalogKnown),
+		"z-ai-direct":       deployment("z-ai-direct", "Z.AI", "z-ai", "openai-chat-completions", "z-ai", NativeModelIDCatalogKnown),
+		"canopywave":        deployment("canopywave", "CanopyWave", "canopywave", "openai-chat-completions", "canopywave", NativeModelIDCatalogKnown),
 		"ollama-local":      localDeployment(),
 		"opencodego":        deployment("opencodego", "OpenCode Go", "opencodego", "openai-chat-completions", "opencodego", NativeModelIDCatalogKnown),
 	}
@@ -706,8 +710,10 @@ func legacyDeploymentAndOwner(provider string) (deploymentID, ownerProviderID st
 		return "gemini-direct", "google"
 	case "openrouter":
 		return "openrouter", "openrouter"
+	case "z-ai", "zai":
+		return "z-ai-direct", "z-ai"
 	case "canopywave":
-		return "canopywave", "z-ai"
+		return "canopywave", "canopywave"
 	case "ollama":
 		return "ollama-local", "ollama"
 	case "opencodego":
@@ -757,6 +763,12 @@ func capabilitySetFromLegacy(entry ModelCatalogEntry) CapabilitySetV1 {
 	}
 	if len(set.ServerTools) == 0 {
 		set.ServerTools = nil
+	}
+	for _, tool := range entry.ServerTools {
+		switch strings.ToLower(strings.TrimSpace(tool)) {
+		case "function-calling", "tools":
+			set.FunctionCalling = CapabilitySupported
+		}
 	}
 	return set
 }

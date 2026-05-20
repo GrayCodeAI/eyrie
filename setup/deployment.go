@@ -163,6 +163,12 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultCanopyWaveOpenAIBaseURL), &client.CanopyWaveCompat), true
+	case "z-ai-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("ZAI_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultZAIOpenAIBaseURL), &client.ZAICompat), true
 	case "ollama-local":
 		baseURL := config.NormalizeOllamaOpenAIBaseURL(FirstNonEmpty(deployment.BaseURL, os.Getenv("OLLAMA_BASE_URL"), config.OllamaDefaultBaseURL))
 		return client.NewOpenAIClient(FirstNonEmpty(deployment.APIKey, storeSecret("OLLAMA_API_KEY")), baseURL, &client.OllamaCompat), true
@@ -192,6 +198,8 @@ func DefaultDeploymentForProvider(provider string) string {
 		return "openrouter"
 	case config.ProviderCanopyWave:
 		return "canopywave"
+	case config.ProviderZAI:
+		return "z-ai-direct"
 	case config.ProviderOllama:
 		return "ollama-local"
 	case config.ProviderOpenCodeGo:
@@ -219,6 +227,8 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 		return config.DeploymentConfig{APIKey: cfg.OpenRouterAPIKey, BaseURL: cfg.OpenRouterBaseURL}
 	case config.ProviderCanopyWave:
 		return config.DeploymentConfig{APIKey: cfg.CanopyWaveAPIKey, BaseURL: cfg.CanopyWaveBaseURL}
+	case config.ProviderZAI:
+		return config.DeploymentConfig{APIKey: cfg.ZAIAPIKey, BaseURL: cfg.ZAIBaseURL}
 	case config.ProviderOllama:
 		return config.DeploymentConfig{BaseURL: cfg.OllamaBaseURL}
 	case config.ProviderOpenCodeGo:

@@ -14,6 +14,7 @@ var httpClient = &http.Client{Timeout: 30 * time.Second}
 const (
 	DefaultOpenRouterBaseURL = "https://openrouter.ai/api/v1"
 	DefaultCanopyWaveBaseURL = "https://inference.canopywave.io/v1"
+	DefaultZAIBaseURL        = "https://api.z.ai/api/paas/v4"
 	DefaultOpenAIBaseURL     = "https://api.openai.com/v1"
 	DefaultGrokBaseURL       = "https://api.x.ai/v1"
 	DefaultOpenCodeGoBaseURL = "https://api.opencodego.ai/v1"
@@ -29,6 +30,7 @@ var Registry = map[string]FetchFunc{
 	"gemini":     FetchGemini,
 	"openrouter": FetchOpenRouter,
 	"grok":       FetchGrok,
+	"z-ai":       FetchZAI,
 	"canopywave": FetchCanopyWave,
 	"opencodego": FetchOpenCodeGo,
 	"ollama":     FetchOllama,
@@ -43,11 +45,23 @@ func Fetch(key string, env map[string]string) ([]Entry, error) {
 	return fn(env)
 }
 
-type openAICompatModel struct {
-	ID                  string `json:"id"`
-	ContextLength       *int   `json:"context_length"`
-	MaxCompletionTokens *int   `json:"max_completion_tokens"`
-	Pricing             *struct {
+type listModelJSON struct {
+	ID                   string   `json:"id"`
+	Name                 string   `json:"name"`
+	Title                string   `json:"title"`
+	DisplayName          string   `json:"display_name"`
+	Description          string   `json:"description"`
+	ContextLength        *int     `json:"context_length"`
+	ContextSize          *int     `json:"context_size"`
+	MaxCompletionTokens  *int     `json:"max_completion_tokens"`
+	MaxOutputTokens      *int     `json:"max_output_tokens"`
+	InputTokenPricePerM  *float64 `json:"input_token_price_per_m"`
+	OutputTokenPricePerM *float64 `json:"output_token_price_per_m"`
+	Features             []string `json:"features"`
+	Tags                 []string `json:"tags"`
+	OwnedBy              string   `json:"owned_by"`
+	Status               *int     `json:"status"`
+	Pricing              *struct {
 		Prompt     interface{} `json:"prompt"`
 		Completion interface{} `json:"completion"`
 	} `json:"pricing"`
@@ -85,6 +99,14 @@ func intOr(p *int, def int) int {
 	return def
 }
 
+func ownerFromModelID(id string) string {
+	id = strings.TrimSpace(id)
+	if i := strings.Index(id, "/"); i > 0 {
+		return id[:i]
+	}
+	return ""
+}
+
 func fetchOpenAICompatModels(baseURL, apiKey, authHeader string) ([]Entry, error) {
 	apiKey = strings.TrimSpace(apiKey)
 	if apiKey == "" {
@@ -113,30 +135,84 @@ func fetchOpenAICompatModels(baseURL, apiKey, authHeader string) ([]Entry, error
 	}
 
 	var payload struct {
-		Data []openAICompatModel `json:"data"`
+		Data []json.RawMessage `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
 	for _, raw := range payload.Data {
-		id := strings.TrimSpace(raw.ID)
-		if id == "" {
+		entry, ok := entryFromOpenAICompatJSON(raw)
+		if !ok {
 			continue
 		}
-		var inPrice, outPrice float64
-		if raw.Pricing != nil {
-			inPrice = asFloat(raw.Pricing.Prompt) * 1_000_000
-			outPrice = asFloat(raw.Pricing.Completion) * 1_000_000
-		}
-		entries = append(entries, Entry{
-			ID: id, InputPricePer1M: inPrice, OutputPricePer1M: outPrice,
-			ContextWindow: intOr(raw.ContextLength, 128000),
-			MaxOutput:     intOr(raw.MaxCompletionTokens, 16384),
-			DisplayName:   id,
-		})
+		entries = append(entries, entry)
 	}
 	return entries, nil
+}
+
+func intOrFirst(def int, vals ...*int) int {
+	for _, p := range vals {
+		if p != nil && *p > 0 {
+			return *p
+		}
+	}
+	return def
+}
+
+func entryFromOpenAICompatJSON(raw json.RawMessage) (Entry, bool) {
+	var m listModelJSON
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return Entry{}, false
+	}
+	id := strings.TrimSpace(m.ID)
+	if id == "" {
+		return Entry{}, false
+	}
+	if m.Status != nil && *m.Status <= 0 {
+		return Entry{}, false
+	}
+	inPrice, outPrice := pricingFromListModel(m)
+	label := strings.TrimSpace(m.DisplayName)
+	if label == "" {
+		label = strings.TrimSpace(m.Title)
+	}
+	if label == "" {
+		label = strings.TrimSpace(m.Name)
+	}
+	if label == "" {
+		label = id
+	}
+	features := append([]string(nil), m.Features...)
+	owner := strings.TrimSpace(m.OwnedBy)
+	if owner == "" {
+		owner = ownerFromModelID(id)
+	}
+	return Entry{
+		ID: id, DisplayName: label, Description: strings.TrimSpace(m.Description), OwnedBy: owner,
+		InputPricePer1M: inPrice, OutputPricePer1M: outPrice,
+		ContextWindow: intOrFirst(0, m.ContextLength, m.ContextSize),
+		MaxOutput:     intOrFirst(0, m.MaxCompletionTokens, m.MaxOutputTokens),
+		Features:      features,
+		RawJSON:       append(json.RawMessage(nil), raw...),
+	}, true
+}
+
+func pricingFromListModel(m listModelJSON) (inPrice, outPrice float64) {
+	if m.InputTokenPricePerM != nil {
+		inPrice = *m.InputTokenPricePerM
+	}
+	if m.OutputTokenPricePerM != nil {
+		outPrice = *m.OutputTokenPricePerM
+	}
+	if inPrice > 0 || outPrice > 0 {
+		return inPrice, outPrice
+	}
+	if m.Pricing != nil {
+		inPrice = asFloat(m.Pricing.Prompt) * 1_000_000
+		outPrice = asFloat(m.Pricing.Completion) * 1_000_000
+	}
+	return inPrice, outPrice
 }
 
 func envOr(env map[string]string, key, def string) string {
@@ -161,6 +237,13 @@ func FetchGrok(env map[string]string) ([]Entry, error) {
 	return fetchOpenAICompatModels(
 		envOr(env, "GROK_BASE_URL", envOr(env, "XAI_BASE_URL", DefaultGrokBaseURL)),
 		key, "Bearer",
+	)
+}
+
+func FetchZAI(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		envOr(env, "ZAI_BASE_URL", DefaultZAIBaseURL),
+		env["ZAI_API_KEY"], "Bearer",
 	)
 }
 
@@ -198,35 +281,40 @@ func FetchOpenRouter(env map[string]string) ([]Entry, error) {
 		return nil, fmt.Errorf("openrouter model fetch failed (%d)", resp.StatusCode)
 	}
 	var payload struct {
-		Data []openRouterModel `json:"data"`
+		Data []json.RawMessage `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
 	for _, raw := range payload.Data {
-		id := strings.TrimSpace(raw.ID)
+		var m openRouterModel
+		if err := json.Unmarshal(raw, &m); err != nil {
+			continue
+		}
+		id := strings.TrimSpace(m.ID)
 		if id == "" {
 			continue
 		}
 		ctx := 128000
-		if raw.ContextLength != nil {
-			ctx = *raw.ContextLength
-		} else if raw.TopProvider != nil && raw.TopProvider.ContextLength != nil {
-			ctx = *raw.TopProvider.ContextLength
+		if m.ContextLength != nil {
+			ctx = *m.ContextLength
+		} else if m.TopProvider != nil && m.TopProvider.ContextLength != nil {
+			ctx = *m.TopProvider.ContextLength
 		}
 		maxOut := 16384
-		if raw.TopProvider != nil && raw.TopProvider.MaxCompletionTokens != nil {
-			maxOut = *raw.TopProvider.MaxCompletionTokens
+		if m.TopProvider != nil && m.TopProvider.MaxCompletionTokens != nil {
+			maxOut = *m.TopProvider.MaxCompletionTokens
 		}
 		var inPrice, outPrice float64
-		if raw.Pricing != nil {
-			inPrice = asFloat(raw.Pricing.Prompt) * 1_000_000
-			outPrice = asFloat(raw.Pricing.Completion) * 1_000_000
+		if m.Pricing != nil {
+			inPrice = asFloat(m.Pricing.Prompt) * 1_000_000
+			outPrice = asFloat(m.Pricing.Completion) * 1_000_000
 		}
 		entries = append(entries, Entry{
 			ID: id, InputPricePer1M: inPrice, OutputPricePer1M: outPrice,
 			ContextWindow: ctx, MaxOutput: maxOut, DisplayName: id,
+			RawJSON: append(json.RawMessage(nil), raw...),
 		})
 	}
 	return entries, nil

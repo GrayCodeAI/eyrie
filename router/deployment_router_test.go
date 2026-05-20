@@ -114,6 +114,74 @@ func TestDeploymentRouterFallsBackAcrossStages(t *testing.T) {
 	}
 }
 
+func TestShouldTryNextDeploymentCredits(t *testing.T) {
+	err := fmt.Errorf("requires more credits, or fewer max_tokens; can only afford 5705")
+	if !ShouldTryNextDeployment(err) {
+		t.Fatal("expected credit error to allow next deployment")
+	}
+	if ShouldTryNextDeployment(fmt.Errorf("HTTP 401 unauthorized")) {
+		t.Fatal("auth errors should not try next deployment")
+	}
+}
+
+func TestDeploymentRouterFallsBackOnInsufficientCredits(t *testing.T) {
+	c := catalog.TestSeedCatalogV1()
+	c.Providers["moonshotai"] = catalog.ProviderV1{ID: "moonshotai", Name: "Moonshot AI"}
+	c.Models["moonshotai/kimi-k2.6"] = catalog.ModelV1{
+		ID:         "moonshotai/kimi-k2.6",
+		ProviderID: "moonshotai",
+		Name:       "Kimi K2.6",
+	}
+	c.Offerings = append(
+		c.Offerings,
+		catalog.ModelOfferingV1{
+			ID: "openrouter:moonshotai/kimi-k2.6", CanonicalModelID: "moonshotai/kimi-k2.6",
+			DeploymentID: "openrouter", NativeModelID: "moonshotai/kimi-k2.6",
+			Pricing: catalog.PricingV1{Status: catalog.PricingUnknown},
+		},
+		catalog.ModelOfferingV1{
+			ID: "canopywave:moonshotai/kimi-k2.6", CanonicalModelID: "moonshotai/kimi-k2.6",
+			DeploymentID: "canopywave", NativeModelID: "moonshotai/kimi-k2.6",
+			Pricing: catalog.PricingV1{Status: catalog.PricingUnknown},
+		},
+	)
+	compiled, err := catalog.CompileCatalogV1(&c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	openrouter := &deploymentMockProvider{
+		name: "openrouter",
+		err:  fmt.Errorf("requires more credits, or fewer max_tokens; can only afford 5705"),
+	}
+	canopywave := &deploymentMockProvider{name: "canopywave"}
+	r, err := NewDeploymentRouter(DeploymentRouterOptions{
+		Catalog: compiled,
+		Deployments: map[string]DeploymentAdapter{
+			"openrouter": {Provider: openrouter},
+			"canopywave": {Provider: canopywave},
+		},
+		Routing: RoutingPolicy{
+			Default: []RoutingStage{{
+				Deployments: []DeploymentChoice{{DeploymentID: "openrouter", Weight: 100}},
+				Retries:     1,
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{Model: "moonshotai/kimi-k2.6"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Content != "from canopywave" {
+		t.Fatalf("expected canopywave fallback, got %q", resp.Content)
+	}
+	if canopywave.lastModel != "moonshotai/kimi-k2.6" {
+		t.Fatalf("canopywave model = %q", canopywave.lastModel)
+	}
+}
+
 func TestDeploymentRouterNonTransientDoesNotFallback(t *testing.T) {
 	primary := &deploymentMockProvider{name: "direct", err: fmt.Errorf("HTTP 401 unauthorized")}
 	fallback := &deploymentMockProvider{name: "vertex"}

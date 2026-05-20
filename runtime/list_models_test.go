@@ -66,7 +66,7 @@ func TestListModels_CacheReadDoesNotRequireDiscover(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListModels cache: %v", err)
 	}
-	if len(entries) != 1 || entries[0].ID != "openai/gpt-test" {
+	if len(entries) != 1 || entries[0].ID != "gpt-test" {
 		t.Fatalf("entries: %+v", entries)
 	}
 }

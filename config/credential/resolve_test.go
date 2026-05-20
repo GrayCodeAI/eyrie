@@ -22,8 +22,8 @@ func TestResolveCredential_ListsAllProviders(t *testing.T) {
 	if !res.FormatOK {
 		t.Fatalf("format should be ok: %s", res.FormatError)
 	}
-	if len(res.Providers) != 7 {
-		t.Fatalf("expected 7 catalog providers, got %d", len(res.Providers))
+	if len(res.Providers) != 8 {
+		t.Fatalf("expected 8 key-required catalog providers, got %d", len(res.Providers))
 	}
 	inferred := 0
 	for _, p := range res.Providers {
@@ -50,7 +50,7 @@ func TestResolveCredential_InvalidFormat(t *testing.T) {
 }
 
 func TestListCredentialProviders_Count(t *testing.T) {
-	if n := len(ListCredentialProviders()); n != 8 {
-		t.Fatalf("expected 8 providers, got %d", n)
+	if n := len(ListCredentialProviders()); n != 9 {
+		t.Fatalf("expected 9 providers, got %d", n)
 	}
 }

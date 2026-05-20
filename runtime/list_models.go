@@ -29,11 +29,15 @@ type ListModelsOpts struct {
 
 // ModelEntry is one row for host model pickers.
 type ModelEntry struct {
-	ID          string `json:"id"`
-	DisplayName string `json:"display_name"`
-	ProviderID  string `json:"provider_id"`
-	Source      string `json:"source"`
-	Installed   bool   `json:"installed,omitempty"`
+	ID               string  `json:"id"`
+	DisplayName      string  `json:"display_name"`
+	Owner            string  `json:"owner,omitempty"`
+	ProviderID       string  `json:"provider_id"`
+	ContextWindow    int     `json:"context_window,omitempty"`
+	InputPricePer1M  float64 `json:"input_price_per_1m,omitempty"`
+	OutputPricePer1M float64 `json:"output_price_per_1m,omitempty"`
+	Source           string  `json:"source"`
+	Installed        bool    `json:"installed,omitempty"`
 }
 
 // ListModels returns models for a provider using registry-driven source selection.
@@ -113,7 +117,9 @@ func liveEntriesToModelList(entries []live.Entry, providerID, source string, ins
 	catalogEntries := make([]catalog.ModelCatalogEntry, len(entries))
 	for i, e := range entries {
 		catalogEntries[i] = catalog.ModelCatalogEntry{
-			ID: e.ID, DisplayName: e.DisplayName, ContextWindow: e.ContextWindow, MaxOutput: e.MaxOutput,
+			ID: e.ID, DisplayName: e.DisplayName, Owner: e.OwnedBy,
+			ContextWindow: e.ContextWindow, MaxOutput: e.MaxOutput,
+			InputPricePer1M: e.InputPricePer1M, OutputPricePer1M: e.OutputPricePer1M,
 		}
 	}
 	return entriesToModelList(catalogEntries, providerID, source, installed)
@@ -133,11 +139,15 @@ func entriesToModelList(entries []catalog.ModelCatalogEntry, providerID, source 
 			label = id
 		}
 		out = append(out, ModelEntry{
-			ID:          id,
-			DisplayName: label,
-			ProviderID:  providerID,
-			Source:      source,
-			Installed:   installed,
+			ID:               id,
+			DisplayName:      label,
+			Owner:            catalog.ModelOwner(e),
+			ProviderID:       providerID,
+			ContextWindow:    e.ContextWindow,
+			InputPricePer1M:  e.InputPricePer1M,
+			OutputPricePer1M: e.OutputPricePer1M,
+			Source:           source,
+			Installed:        installed,
 		})
 	}
 	return out

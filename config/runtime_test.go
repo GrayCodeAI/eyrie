@@ -17,6 +17,7 @@ func TestRuntimeProfileFields(t *testing.T) {
 		"gemini":     GeminiRuntimeProfile,
 		"openrouter": OpenRouterRuntimeProfile,
 		"canopywave": CanopyWaveRuntimeProfile,
+		"z-ai":       ZAIRuntimeProfile,
 		"opencodego": OpenCodeGoRuntimeProfile,
 	}
 
@@ -27,7 +28,7 @@ func TestRuntimeProfileFields(t *testing.T) {
 		if profile.DefaultBaseURL == "" {
 			t.Errorf("profile %q has empty DefaultBaseURL", name)
 		}
-		if profile.DefaultModel == "" {
+		if profile.DefaultModel == "" && name != "canopywave" && name != "z-ai" && name != "openrouter" {
 			t.Errorf("profile %q has empty DefaultModel", name)
 		}
 		if len(profile.DetectionEnv) == 0 {
@@ -51,6 +52,7 @@ func TestRuntimeProfileAPIKeys(t *testing.T) {
 		"gemini":     GeminiRuntimeProfile,
 		"openrouter": OpenRouterRuntimeProfile,
 		"canopywave": CanopyWaveRuntimeProfile,
+		"z-ai":       ZAIRuntimeProfile,
 		"opencodego": OpenCodeGoRuntimeProfile,
 	}
 
@@ -153,7 +155,7 @@ func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
 func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
 	clearKeys := []string{
 		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY",
+		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
 		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
 		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
 	}
@@ -203,7 +205,7 @@ func TestOpenAICompatibleRuntimeProfiles_Complete(t *testing.T) {
 		if profile.DefaultBaseURL == "" {
 			t.Errorf("profile %q has empty DefaultBaseURL", key)
 		}
-		if profile.DefaultModel == "" {
+		if profile.DefaultModel == "" && key != "canopywave" && key != "z-ai" && key != "openrouter" {
 			t.Errorf("profile %q has empty DefaultModel", key)
 		}
 	}

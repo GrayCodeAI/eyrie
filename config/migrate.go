@@ -23,6 +23,7 @@ func EnsureDeploymentConfigV2(cfg *ProviderConfig) *ProviderConfig {
 		{ProviderGrok, "grok-direct"},
 		{ProviderGemini, "gemini-direct"},
 		{ProviderOpenRouter, "openrouter"},
+		{ProviderZAI, "z-ai-direct"},
 		{ProviderCanopyWave, "canopywave"},
 		{ProviderOllama, "ollama-local"},
 		{ProviderOpenCodeGo, "opencodego"},
@@ -61,6 +62,8 @@ func legacyDeploymentConfig(cfg *ProviderConfig, provider string) DeploymentConf
 		return DeploymentConfig{APIKey: cfg.OpenRouterAPIKey, BaseURL: cfg.OpenRouterBaseURL}
 	case ProviderCanopyWave:
 		return DeploymentConfig{APIKey: cfg.CanopyWaveAPIKey, BaseURL: cfg.CanopyWaveBaseURL}
+	case ProviderZAI:
+		return DeploymentConfig{APIKey: cfg.ZAIAPIKey, BaseURL: cfg.ZAIBaseURL}
 	case ProviderOllama:
 		return DeploymentConfig{BaseURL: cfg.OllamaBaseURL}
 	case ProviderOpenCodeGo:
@@ -140,6 +143,8 @@ func deploymentOwnerProviderID(deploymentID string) string {
 	case "openrouter":
 		return "openrouter"
 	case "canopywave":
+		return "canopywave"
+	case "z-ai-direct":
 		return "z-ai"
 	case "ollama-local":
 		return "ollama"

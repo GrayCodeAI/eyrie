@@ -22,6 +22,36 @@ func TestBuildRoutingPolicyFromDeployments_OpenAI(t *testing.T) {
 	}
 }
 
+func TestBuildRoutingPolicyFromDeployments_ZAI(t *testing.T) {
+	deployments := map[string]DeploymentConfig{
+		"z-ai-direct": {APIKey: "zai-test"},
+	}
+	policy := BuildRoutingPolicyFromDeployments(deployments)
+	if len(policy.Providers["z-ai"]) == 0 {
+		t.Fatalf("expected z-ai routing, got %+v", policy.Providers)
+	}
+	if policy.Providers["z-ai"][0].Deployments[0].DeploymentID != "z-ai-direct" {
+		t.Fatalf("expected z-ai-direct deployment, got %+v", policy.Providers["z-ai"])
+	}
+}
+
+func TestBuildRoutingPolicyFromDeployments_CanopyWave(t *testing.T) {
+	deployments := map[string]DeploymentConfig{
+		"canopywave": {APIKey: "cw-test"},
+		"openrouter": {APIKey: "or-test"},
+	}
+	policy := BuildRoutingPolicyFromDeployments(deployments)
+	if len(policy.Providers["canopywave"]) == 0 {
+		t.Fatalf("expected canopywave routing, got %+v", policy.Providers)
+	}
+	if policy.Providers["canopywave"][0].Deployments[0].DeploymentID != "canopywave" {
+		t.Fatalf("expected canopywave deployment, got %+v", policy.Providers["canopywave"])
+	}
+	if len(policy.Providers["z-ai"]) != 0 {
+		t.Fatalf("z-ai should not own canopywave routing, got %+v", policy.Providers["z-ai"])
+	}
+}
+
 func TestSyncProviderConfigFromCatalog(t *testing.T) {
 	bootstrap := catalog.BootstrapCatalogV1()
 	compiled, err := catalog.CompileCatalogV1(&bootstrap)

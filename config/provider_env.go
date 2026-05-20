@@ -20,12 +20,14 @@ type ProviderConfig struct {
 	XAIAPIKey         string                      `json:"xai_api_key,omitempty"`
 	OpenAIAPIKey      string                      `json:"openai_api_key,omitempty"`
 	CanopyWaveAPIKey  string                      `json:"canopywave_api_key,omitempty"`
+	ZAIAPIKey         string                      `json:"zai_api_key,omitempty"`
 	OpenRouterAPIKey  string                      `json:"openrouter_api_key,omitempty"`
 	GeminiAPIKey      string                      `json:"gemini_api_key,omitempty"`
 	OllamaBaseURL     string                      `json:"ollama_base_url,omitempty"`
 	OpenCodeGoAPIKey  string                      `json:"opencodego_api_key,omitempty"`
 	AnthropicBaseURL  string                      `json:"anthropic_base_url,omitempty"`
 	CanopyWaveBaseURL string                      `json:"canopywave_base_url,omitempty"`
+	ZAIBaseURL        string                      `json:"zai_base_url,omitempty"`
 	GrokBaseURL       string                      `json:"grok_base_url,omitempty"`
 	XAIBaseURL        string                      `json:"xai_base_url,omitempty"`
 	OpenAIBaseURL     string                      `json:"openai_base_url,omitempty"`
@@ -35,6 +37,7 @@ type ProviderConfig struct {
 	AnthropicModel    string                      `json:"anthropic_model,omitempty"`
 	OpenAIModel       string                      `json:"openai_model,omitempty"`
 	CanopyWaveModel   string                      `json:"canopywave_model,omitempty"`
+	ZAIModel          string                      `json:"zai_model,omitempty"`
 	GrokModel         string                      `json:"grok_model,omitempty"`
 	XAIModel          string                      `json:"xai_model,omitempty"`
 	OpenRouterModel   string                      `json:"openrouter_model,omitempty"`
@@ -100,6 +103,11 @@ var providerFields = map[string]providerFieldMap{
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.CanopyWaveAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.CanopyWaveModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.CanopyWaveBaseURL },
+	},
+	ProviderZAI: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.ZAIAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.ZAIModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.ZAIBaseURL },
 	},
 	ProviderOpenRouter: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.OpenRouterAPIKey} },
@@ -353,6 +361,7 @@ func ClearProviderRuntimeEnv() {
 		"OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL",
 		"OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL",
 		"CANOPYWAVE_API_KEY", "CANOPYWAVE_MODEL", "CANOPYWAVE_BASE_URL",
+		"ZAI_API_KEY", "ZAI_MODEL", "ZAI_BASE_URL", "ZAI_API_BASE",
 		"GROK_API_KEY", "GROK_MODEL", "GROK_BASE_URL",
 		"XAI_API_KEY", "XAI_MODEL", "XAI_BASE_URL",
 		"GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL",
@@ -438,6 +447,14 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 			m = catalog.GetProviderDefaultModel("canopywave", cat)
 		}
 		collectOpenAICompatibleProvider(env, "CANOPYWAVE", apiKey, m, base, overwrite)
+	case ProviderZAI:
+		apiKey := AsNonEmptyString(config.ZAIAPIKey)
+		base := firstNonEmpty(config.ZAIBaseURL, DefaultZAIOpenAIBaseURL)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("z-ai", cat)
+		}
+		collectOpenAICompatibleProvider(env, "ZAI", apiKey, m, base, overwrite)
 	case ProviderOpenRouter:
 		apiKey := AsNonEmptyString(config.OpenRouterAPIKey)
 		base := firstNonEmpty(config.OpenRouterBaseURL, DefaultOpenRouterOpenAIBaseURL)
@@ -448,6 +465,9 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		collectOpenAICompatibleProvider(env, "OPENROUTER", apiKey, m, base, overwrite)
 	case ProviderOllama:
 		m := activeModel
+		if m == "" {
+			m = string(catalog.GetProviderDefaultModel("ollama", cat))
+		}
 		if m == "" {
 			m = OllamaDefaultModel
 		}

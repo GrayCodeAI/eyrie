@@ -47,7 +47,16 @@ func All() []ProviderSpec {
 			APIProtocolID: "openai-chat-completions", AdapterID: "grok",
 		},
 		{
-			ProviderID: "canopywave", DisplayName: "CanopyWave", DeploymentID: "canopywave", SortOrder: 6,
+			ProviderID: "z-ai", DisplayName: "Z.AI", DeploymentID: "z-ai-direct", SortOrder: 6,
+			RequiresKey: true, CredentialEnv: "ZAI_API_KEY",
+			BaseURLEnv: []string{"ZAI_BASE_URL", "ZAI_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.z.ai/api/paas/v4",
+			ModelStrategy: StrategyLiveOnly, PreferLiveMerge: true,
+			LiveFetcherKey: "z-ai", LiveCatalogKey: "z-ai",
+			APIProtocolID: "openai-chat-completions", AdapterID: "z-ai",
+		},
+		{
+			ProviderID: "canopywave", DisplayName: "CanopyWave", DeploymentID: "canopywave", SortOrder: 7,
 			RequiresKey: true, CredentialEnv: "CANOPYWAVE_API_KEY", KeyPrefixes: []string{"cw_"},
 			BaseURLEnv: []string{"CANOPYWAVE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://inference.canopywave.io/v1",
@@ -56,7 +65,7 @@ func All() []ProviderSpec {
 			APIProtocolID: "openai-chat-completions", AdapterID: "canopywave",
 		},
 		{
-			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 7,
+			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 8,
 			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY", KeyPrefixes: []string{"ocg_"},
 			BaseURLEnv:    []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:     ProbeOpenAIModels,
@@ -65,7 +74,7 @@ func All() []ProviderSpec {
 			APIProtocolID: "openai-chat-completions", AdapterID: "opencodego",
 		},
 		{
-			ProviderID: "ollama", DisplayName: "Ollama (local)", DeploymentID: "ollama-local", SortOrder: 8,
+			ProviderID: "ollama", DisplayName: "Ollama (local)", DeploymentID: "ollama-local", SortOrder: 9,
 			RequiresKey: false, CredentialEnv: "OLLAMA_BASE_URL",
 			BaseURLEnv: []string{"OLLAMA_BASE_URL"},
 			ProbeKind:  ProbeOllama, ModelStrategy: StrategyLiveOnly, PreferLiveMerge: true,

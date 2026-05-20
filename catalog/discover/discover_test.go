@@ -56,10 +56,17 @@ func TestDiscoverCatalog_MergesProviderModelsWithAPIKey(t *testing.T) {
 	if _, err := os.Stat(cachePath); err != nil {
 		t.Fatalf("cache not written: %v", err)
 	}
-	if len(result.LiveProviders) != 1 {
-		t.Fatalf("LiveProviders: got %d want 1", len(result.LiveProviders))
+	if len(result.LiveProviders) != 9 {
+		t.Fatalf("LiveProviders: got %d want 9", len(result.LiveProviders))
 	}
-	if result.LiveProviders[0].Provider != "openrouter" || result.LiveProviders[0].ModelCount < 1 {
-		t.Fatalf("openrouter enrichment: %+v", result.LiveProviders[0])
+	var openrouter *catalog.LiveProviderEnrichment
+	for i := range result.LiveProviders {
+		if result.LiveProviders[i].Provider == "openrouter" {
+			openrouter = &result.LiveProviders[i]
+			break
+		}
+	}
+	if openrouter == nil || openrouter.ModelCount < 1 {
+		t.Fatalf("openrouter enrichment: %+v", openrouter)
 	}
 }

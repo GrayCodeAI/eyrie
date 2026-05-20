@@ -32,6 +32,35 @@ func TestCatalogV1FromLegacyCompiles(t *testing.T) {
 	}
 }
 
+func TestCatalogV1FromLegacyZAIDirectModels(t *testing.T) {
+	legacy := testLegacyModelCatalog()
+	legacy.Providers["z-ai"] = []ModelCatalogEntry{{ID: "glm-5.1", DisplayName: "GLM-5.1"}}
+	c := CatalogV1FromLegacy(legacy)
+	compiled, err := CompileCatalogV1(&c)
+	if err != nil {
+		t.Fatalf("CompileCatalogV1 failed: %v", err)
+	}
+	if _, ok := compiled.OfferingForDeployment("z-ai/glm-5.1", "z-ai-direct"); !ok {
+		t.Fatal("expected z-ai-direct offering on z-ai/glm-5.1")
+	}
+}
+
+func TestCatalogV1FromLegacyCanopyWaveNamespacedModels(t *testing.T) {
+	legacy := testLegacyModelCatalog()
+	legacy.Providers["canopywave"] = append(
+		legacy.Providers["canopywave"],
+		ModelCatalogEntry{ID: "moonshotai/kimi-k2.6", DisplayName: "Kimi K2.6"},
+	)
+	c := CatalogV1FromLegacy(legacy)
+	compiled, err := CompileCatalogV1(&c)
+	if err != nil {
+		t.Fatalf("CompileCatalogV1 failed: %v", err)
+	}
+	if _, ok := compiled.OfferingForDeployment("moonshotai/kimi-k2.6", "canopywave"); !ok {
+		t.Fatal("expected canopywave offering on moonshotai/kimi-k2.6")
+	}
+}
+
 func TestValidateCatalogV1RejectsBadReferences(t *testing.T) {
 	c := testLegacyCatalogV1()
 	c.Offerings = append(c.Offerings, ModelOfferingV1{

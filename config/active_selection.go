@@ -67,6 +67,8 @@ func SetProviderModel(cfg *ProviderConfig, provider, model string) {
 		cfg.OpenAIModel = model
 	case ProviderCanopyWave:
 		cfg.CanopyWaveModel = model
+	case ProviderZAI:
+		cfg.ZAIModel = model
 	case ProviderOpenRouter:
 		cfg.OpenRouterModel = model
 	case ProviderGrok:
@@ -81,4 +83,13 @@ func SetProviderModel(cfg *ProviderConfig, provider, model string) {
 	default:
 		// Unknown/custom provider: active_model + active_provider are enough.
 	}
+}
+
+// ClearActiveSelection clears active provider/model fields.
+func ClearActiveSelection(cfg *ProviderConfig) {
+	if cfg == nil {
+		return
+	}
+	cfg.ActiveProvider = ""
+	cfg.ActiveModel = ""
 }

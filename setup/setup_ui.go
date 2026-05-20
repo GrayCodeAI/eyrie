@@ -73,7 +73,7 @@ func displayNameForProvider(pid string) string {
 	case "xai":
 		return registry.DisplayName("grok")
 	case "z-ai":
-		return registry.DisplayName("canopywave")
+		return "Z.AI"
 	default:
 		return pid
 	}

@@ -19,6 +19,39 @@ type ApplyCredentialsResult struct {
 	Setup              *SetupUI
 }
 
+// ApplyCredentialsForProvider discovers models for one provider after key setup, then updates routing.
+func ApplyCredentialsForProvider(ctx context.Context, providerID string, creds catalog.Credentials) (*ApplyCredentialsResult, error) {
+	catResult, err := DiscoverProviderCatalog(ctx, providerID, creds)
+	if err != nil {
+		return nil, fmt.Errorf("catalog discover: %w", err)
+	}
+	env := creds.Env()
+	if len(env) == 0 {
+		env = config.DiscoveryCredentials(ctx).Env()
+	}
+	cfg := config.SyncProviderConfigFromCatalog(catResult.Compiled, env)
+	path := config.GetProviderConfigPath()
+	if err := config.SaveProviderConfig(cfg, path); err != nil {
+		return nil, fmt.Errorf("save provider config: %w", err)
+	}
+	routingJSON := ""
+	if cfg.Routing != nil {
+		raw, err := json.MarshalIndent(cfg.Routing, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		routingJSON = string(raw)
+	}
+	setupUI := BuildSetupUI(catResult.Compiled, providerID)
+	return &ApplyCredentialsResult{
+		Catalog:            catResult,
+		ProviderConfig:     cfg,
+		ProviderConfigPath: path,
+		RoutingJSON:        routingJSON,
+		Setup:              setupUI,
+	}, nil
+}
+
 // ApplyCredentials discovers the model catalog from env API keys, then writes
 // ~/.hawk/provider.json deployments and routing derived from the catalog.
 func ApplyCredentials(ctx context.Context, creds catalog.Credentials) (*ApplyCredentialsResult, error) {

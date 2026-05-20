@@ -59,15 +59,27 @@ func SetActiveProvider(ctx context.Context, provider string) error {
 	return config.SaveProviderConfig(cfg, config.GetProviderConfigPath())
 }
 
+// ClearActiveSelection removes active provider/model from provider.json.
+func ClearActiveSelection(ctx context.Context) error {
+	_ = ctx
+	cfg := config.LoadProviderConfig("")
+	if cfg == nil {
+		return nil
+	}
+	config.ClearActiveSelection(cfg)
+	return config.SaveProviderConfig(cfg, config.GetProviderConfigPath())
+}
+
 func inferProviderForModel(ctx context.Context, modelID string) string {
 	rt, err := Load(ctx)
 	if err != nil || rt == nil || rt.Catalog == nil {
+		if prefix, _, ok := strings.Cut(strings.TrimSpace(modelID), "/"); ok && catalog.IsSetupGateway(prefix) {
+			return catalog.CanonicalProviderID(prefix)
+		}
 		return ""
 	}
-	if canonical, ok := rt.Catalog.CanonicalModelForAliasOrID(modelID); ok {
-		if m, ok := rt.Catalog.ModelsByID[canonical]; ok {
-			return catalog.CanonicalProviderID(m.ProviderID)
-		}
+	if gw := catalog.GatewayForModel(rt.Catalog, modelID); gw != "" {
+		return gw
 	}
 	return ""
 }

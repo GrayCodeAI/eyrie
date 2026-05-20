@@ -26,7 +26,7 @@ type ResolvedOpenAICompatibleRuntime struct {
 func IsOpenAICompatibleRuntimeEnabled() bool {
 	keys := []string{
 		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY",
+		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
 		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
 	}
 	for _, k := range keys {

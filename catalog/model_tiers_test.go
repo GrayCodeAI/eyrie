@@ -21,12 +21,6 @@ func TestGetPreferredProviderModel_AllTiers(t *testing.T) {
 		{"grok", TierOpus, "grok-2"},
 		{"grok", TierSonnet, "grok-2"},
 		{"grok", TierHaiku, "grok-2"},
-		{"openrouter", TierOpus, "openai/gpt-4o"},
-		{"openrouter", TierSonnet, "openai/gpt-4o"},
-		{"openrouter", TierHaiku, "openai/gpt-4o-mini"},
-		{"canopywave", TierOpus, "zai/glm-4.6"},
-		{"canopywave", TierSonnet, "zai/glm-4.6"},
-		{"canopywave", TierHaiku, "zai/glm-4.6"},
 	}
 	for _, tt := range tests {
 		got := GetPreferredProviderModel(tt.provider, tt.tier, &cat)
@@ -44,8 +38,19 @@ func TestGetPreferredProviderModel_NilCatalog(t *testing.T) {
 	}
 }
 
+func TestLiveOnlyProvidersHaveNoTierHardcode(t *testing.T) {
+	for _, provider := range []string{"canopywave", "z-ai", "openrouter", "ollama"} {
+		if got := GetProviderModelCandidates(provider, TierSonnet); len(got) != 0 {
+			t.Fatalf("%s tier candidates should be empty, got %v", provider, got)
+		}
+		if got := GetProviderDefaultModel(provider, &ModelCatalog{}); got != "" {
+			t.Fatalf("%s default should be empty without catalog, got %q", provider, got)
+		}
+	}
+}
+
 func TestAllProvidersHaveAtLeastOneModelPerTier(t *testing.T) {
-	providers := []string{"anthropic", "openai", "canopywave", "openrouter", "grok", "gemini", "ollama", "opencodego"}
+	providers := []string{"anthropic", "openai", "grok", "gemini", "opencodego"}
 	tiers := []ModelTier{TierOpus, TierSonnet, TierHaiku}
 
 	for _, provider := range providers {

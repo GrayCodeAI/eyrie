@@ -1,6 +1,8 @@
 package catalog
 
 import (
+	"strings"
+
 	"github.com/GrayCodeAI/eyrie/catalog/live"
 )
 
@@ -15,13 +17,21 @@ func LiveEntriesToCatalog(in []live.Entry) []ModelCatalogEntry {
 	}
 	out := make([]ModelCatalogEntry, len(in))
 	for i, e := range in {
+		owner := strings.TrimSpace(e.OwnedBy)
+		if owner == "" {
+			owner = ownerFromModelID(e.ID)
+		}
 		out[i] = ModelCatalogEntry{
 			ID:               e.ID,
 			DisplayName:      e.DisplayName,
+			Description:      e.Description,
+			Owner:            owner,
 			ContextWindow:    e.ContextWindow,
 			MaxOutput:        e.MaxOutput,
 			InputPricePer1M:  e.InputPricePer1M,
 			OutputPricePer1M: e.OutputPricePer1M,
+			ServerTools:      append([]string(nil), e.Features...),
+			LiveMetadata:     e.RawJSON,
 		}
 	}
 	return out

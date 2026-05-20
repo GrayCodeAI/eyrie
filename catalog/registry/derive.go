@@ -18,7 +18,7 @@ type CredentialSpec struct {
 	SortOrder    int
 }
 
-// SpecByProviderID finds a provider spec by id (aliases gemini→google handled by caller).
+// SpecByProviderID finds a provider spec by id (accepts registry ids and catalog aliases like google→gemini).
 func SpecByProviderID(id string) (ProviderSpec, bool) {
 	id = strings.TrimSpace(id)
 	for _, s := range All() {
@@ -26,7 +26,25 @@ func SpecByProviderID(id string) (ProviderSpec, bool) {
 			return s, true
 		}
 	}
+	if alt := registryIDFromCatalogProvider(id); alt != id {
+		for _, s := range All() {
+			if s.ProviderID == alt {
+				return s, true
+			}
+		}
+	}
 	return ProviderSpec{}, false
+}
+
+func registryIDFromCatalogProvider(id string) string {
+	switch strings.TrimSpace(id) {
+	case "google":
+		return "gemini"
+	case "xai":
+		return "grok"
+	default:
+		return id
+	}
 }
 
 // SpecByEnvVar finds spec by primary credential env var.

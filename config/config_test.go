@@ -81,8 +81,8 @@ func TestNormalizeOllamaOpenAIBaseURL(t *testing.T) {
 }
 
 func TestProviderDetectionOrder(t *testing.T) {
-	if len(APIProviderDetectionOrder) != 8 {
-		t.Errorf("expected 8 providers in detection order, got %d", len(APIProviderDetectionOrder))
+	if len(APIProviderDetectionOrder) != 9 {
+		t.Errorf("expected 9 providers in detection order, got %d", len(APIProviderDetectionOrder))
 	}
 	if APIProviderDetectionOrder[0] != ProviderAnthropic {
 		t.Error("expected anthropic first in detection order")
