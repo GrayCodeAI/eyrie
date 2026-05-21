@@ -99,9 +99,9 @@ func modelEntryFromOffering(model ModelV1, offering ModelOfferingV1) ModelCatalo
 	}
 	return ModelCatalogEntry{
 		ID:               id,
-		DisplayName:      strings.TrimSpace(model.Name),
+		DisplayName:      DisplayModelLabel(id, model.Name),
 		Description:      descriptionFromLiveMetadata(offering.LiveMetadata),
-		Owner:            modelOwnerFromOffering(offering),
+		Owner:            DisplayModelOwner(modelOwnerFromOffering(offering), id, offering.LiveMetadata),
 		ContextWindow:    model.ContextWindow,
 		MaxOutput:        model.MaxOutput,
 		InputPricePer1M:  inPrice,
