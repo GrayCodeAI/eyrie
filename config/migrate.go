@@ -27,6 +27,8 @@ func EnsureDeploymentConfigV2(cfg *ProviderConfig) *ProviderConfig {
 		{ProviderCanopyWave, "canopywave"},
 		{ProviderOllama, "ollama-local"},
 		{ProviderOpenCodeGo, "opencodego"},
+		{ProviderKimi, "kimi-direct"},
+		{ProviderXiaomi, "xiaomi-direct"},
 	}
 	for _, item := range legacy {
 		dep := legacyDeploymentConfig(cfg, item.provider)
@@ -68,6 +70,10 @@ func legacyDeploymentConfig(cfg *ProviderConfig, provider string) DeploymentConf
 		return DeploymentConfig{BaseURL: cfg.OllamaBaseURL}
 	case ProviderOpenCodeGo:
 		return DeploymentConfig{APIKey: cfg.OpenCodeGoAPIKey, BaseURL: cfg.OpenCodeGoBaseURL}
+	case ProviderKimi:
+		return DeploymentConfig{APIKey: cfg.MoonshotAPIKey, BaseURL: cfg.MoonshotBaseURL}
+	case ProviderXiaomi:
+		return DeploymentConfig{APIKey: cfg.XiaomiAPIKey, BaseURL: cfg.XiaomiBaseURL}
 	default:
 		return DeploymentConfig{}
 	}
@@ -150,6 +156,10 @@ func deploymentOwnerProviderID(deploymentID string) string {
 		return "ollama"
 	case "opencodego":
 		return "opencodego"
+	case "kimi-direct":
+		return "kimi"
+	case "xiaomi-direct":
+		return "xiaomi"
 	default:
 		return ""
 	}

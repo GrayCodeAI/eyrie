@@ -16,6 +16,8 @@ const (
 	DefaultAnthropicOpenAIBaseURL  = "https://api.anthropic.com/v1"
 	DefaultGrokOpenAIBaseURL       = "https://api.x.ai/v1"
 	DefaultOpenCodeGoBaseURL       = "https://opencode.ai/zen/go/v1"
+	DefaultKimiOpenAIBaseURL       = "https://api.moonshot.ai/v1"
+	DefaultXiaomiOpenAIBaseURL     = "https://api.xiaomimimo.com/v1"
 )
 
 // ProviderTransport is the transport type for provider requests.
