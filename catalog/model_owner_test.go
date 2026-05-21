@@ -25,3 +25,17 @@ func TestModelOwner_ExplicitField(t *testing.T) {
 		t.Fatalf("owner = %q", got)
 	}
 }
+
+func TestDisplayModelLabel_StripsOpenRouterLatestPrefix(t *testing.T) {
+	got := DisplayModelLabel("~anthropic/claude-haiku-latest", "")
+	if got != "anthropic/claude-haiku-latest" {
+		t.Fatalf("label = %q", got)
+	}
+}
+
+func TestDisplayModelOwner_StripsOpenRouterLatestPrefix(t *testing.T) {
+	got := DisplayModelOwner("", "~anthropic/claude-haiku-latest")
+	if got != "anthropic" {
+		t.Fatalf("owner = %q", got)
+	}
+}
