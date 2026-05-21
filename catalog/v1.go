@@ -610,6 +610,9 @@ func defaultProvidersV1() map[string]ProviderV1 {
 		"z-ai":       {ID: "z-ai", Name: "Z.AI"},
 		"ollama":     {ID: "ollama", Name: "Ollama"},
 		"opencodego": {ID: "opencodego", Name: "OpenCode Go"},
+		"moonshotai": {ID: "moonshotai", Name: "Moonshot AI"},
+		"kimi":       {ID: "kimi", Name: "Kimi (Moonshot)"},
+		"xiaomi":     {ID: "xiaomi", Name: "Xiaomi"},
 	}
 }
 
@@ -636,6 +639,8 @@ func defaultDeploymentsV1() map[string]DeploymentV1 {
 		"canopywave":        deployment("canopywave", "CanopyWave", "canopywave", "openai-chat-completions", "canopywave", NativeModelIDCatalogKnown),
 		"ollama-local":      localDeployment(),
 		"opencodego":        deployment("opencodego", "OpenCode Go", "opencodego", "openai-chat-completions", "opencodego", NativeModelIDCatalogKnown),
+		"kimi-direct":       deployment("kimi-direct", "Kimi (Moonshot)", "kimi", "openai-chat-completions", "kimi", NativeModelIDDiscovered),
+		"xiaomi-direct":     deployment("xiaomi-direct", "Xiaomi (MiMo)", "xiaomi", "openai-chat-completions", "xiaomi", NativeModelIDDiscovered),
 	}
 }
 
@@ -718,6 +723,10 @@ func legacyDeploymentAndOwner(provider string) (deploymentID, ownerProviderID st
 		return "ollama-local", "ollama"
 	case "opencodego":
 		return "opencodego", "opencodego"
+	case "kimi", "moonshotai":
+		return "kimi-direct", "kimi"
+	case "xiaomi", "mimo":
+		return "xiaomi-direct", "xiaomi"
 	default:
 		return "", ""
 	}
@@ -749,6 +758,8 @@ func canonicalProviderID(providerID string) string {
 		return "xai"
 	case "zai":
 		return "z-ai"
+	case "moonshotai":
+		return "moonshotai"
 	default:
 		return providerID
 	}

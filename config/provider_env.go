@@ -25,6 +25,8 @@ type ProviderConfig struct {
 	GeminiAPIKey      string                      `json:"gemini_api_key,omitempty"`
 	OllamaBaseURL     string                      `json:"ollama_base_url,omitempty"`
 	OpenCodeGoAPIKey  string                      `json:"opencodego_api_key,omitempty"`
+	MoonshotAPIKey    string                      `json:"moonshot_api_key,omitempty"`
+	XiaomiAPIKey      string                      `json:"xiaomi_api_key,omitempty"`
 	AnthropicBaseURL  string                      `json:"anthropic_base_url,omitempty"`
 	CanopyWaveBaseURL string                      `json:"canopywave_base_url,omitempty"`
 	ZAIBaseURL        string                      `json:"zai_base_url,omitempty"`
@@ -34,6 +36,8 @@ type ProviderConfig struct {
 	OpenRouterBaseURL string                      `json:"openrouter_base_url,omitempty"`
 	GeminiBaseURL     string                      `json:"gemini_base_url,omitempty"`
 	OpenCodeGoBaseURL string                      `json:"opencodego_base_url,omitempty"`
+	MoonshotBaseURL   string                      `json:"moonshot_base_url,omitempty"`
+	XiaomiBaseURL     string                      `json:"xiaomi_base_url,omitempty"`
 	AnthropicModel    string                      `json:"anthropic_model,omitempty"`
 	OpenAIModel       string                      `json:"openai_model,omitempty"`
 	CanopyWaveModel   string                      `json:"canopywave_model,omitempty"`
@@ -44,6 +48,8 @@ type ProviderConfig struct {
 	GeminiModel       string                      `json:"gemini_model,omitempty"`
 	OllamaModel       string                      `json:"ollama_model,omitempty"`
 	OpenCodeGoModel   string                      `json:"opencodego_model,omitempty"`
+	MoonshotModel     string                      `json:"moonshot_model,omitempty"`
+	XiaomiModel       string                      `json:"xiaomi_model,omitempty"`
 	ActiveModel       string                      `json:"active_model,omitempty"`
 	ExplorationModel  string                      `json:"exploration_model,omitempty"`
 	AnthropicVersion  string                      `json:"anthropic_version,omitempty"`
@@ -133,6 +139,16 @@ var providerFields = map[string]providerFieldMap{
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.OpenCodeGoAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.OpenCodeGoModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.OpenCodeGoBaseURL },
+	},
+	ProviderKimi: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.MoonshotAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.MoonshotModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.MoonshotBaseURL },
+	},
+	ProviderXiaomi: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.XiaomiAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.XiaomiModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.XiaomiBaseURL },
 	},
 }
 
@@ -367,6 +383,8 @@ func ClearProviderRuntimeEnv() {
 		"GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL",
 		"OLLAMA_BASE_URL",
 		"OPENCODEGO_API_KEY", "OPENCODEGO_MODEL", "OPENCODEGO_BASE_URL",
+		"MOONSHOT_API_KEY", "MOONSHOT_MODEL", "MOONSHOT_BASE_URL", "KIMI_API_KEY", "KIMI_MODEL", "KIMI_BASE_URL",
+		"XIAOMI_API_KEY", "XIAOMI_MODEL", "XIAOMI_BASE_URL", "MIMO_API_KEY", "MIMO_MODEL", "MIMO_BASE_URL",
 	}
 	for _, k := range keys {
 		_ = os.Unsetenv(k)
@@ -485,6 +503,30 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 			m = catalog.GetProviderDefaultModel("opencodego", cat)
 		}
 		collectOpenAICompatibleProvider(env, "OPENCODEGO", apiKey, m, base, overwrite)
+	case ProviderKimi:
+		apiKey := AsNonEmptyString(config.MoonshotAPIKey)
+		base := firstNonEmpty(config.MoonshotBaseURL, DefaultKimiOpenAIBaseURL)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("kimi", cat)
+		}
+		if m == "" {
+			m = KimiDefaultModel
+		}
+		collectEnvValue(env, "MOONSHOT_API_KEY", apiKey, overwrite)
+		collectOpenAICompatibleProvider(env, "MOONSHOT", apiKey, m, base, overwrite)
+	case ProviderXiaomi:
+		apiKey := AsNonEmptyString(config.XiaomiAPIKey)
+		base := firstNonEmpty(config.XiaomiBaseURL, DefaultXiaomiOpenAIBaseURL)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("xiaomi", cat)
+		}
+		if m == "" {
+			m = XiaomiDefaultModel
+		}
+		collectEnvValue(env, "XIAOMI_API_KEY", apiKey, overwrite)
+		collectOpenAICompatibleProvider(env, "XIAOMI", apiKey, m, base, overwrite)
 	}
 	return env
 }
