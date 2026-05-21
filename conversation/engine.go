@@ -95,6 +95,24 @@ func (e *Engine) PromptFrom(ctx context.Context, parentNodeID, message string, o
 		return nil, fmt.Errorf("conversation: create user node: %w", err)
 	}
 
+	if resultIDs := extractToolResultIDsFromContent(message); len(resultIDs) > 0 {
+		_ = e.store.IndexToolIDs(ctx, userNode.ID, resultIDs, "result")
+	}
+
+	ancestorIDs := make([]string, len(ancestors)+1)
+	for i, a := range ancestors {
+		ancestorIDs[i] = a.ID
+	}
+	ancestorIDs[len(ancestors)] = userNode.ID
+
+	orphans, err := e.store.GetOrphanedToolUses(ctx, ancestorIDs)
+	if err != nil {
+		return nil, fmt.Errorf("conversation: check orphaned tool uses: %w", err)
+	}
+	if len(orphans) > 0 {
+		ancestors = injectSyntheticToolResults(ancestors, orphans)
+	}
+
 	messages := buildMessages(ancestors)
 	messages = append(messages, client.EyrieMessage{Role: "user", Content: message})
 
@@ -221,6 +239,9 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 			if err := e.store.CreateNode(ctx, assistantNode); err != nil {
 				events <- Event{Type: EventError, Error: err.Error()}
 				return
+			}
+			if toolUseIDs := extractToolUseIDsFromContent(assistantNode.Content); len(toolUseIDs) > 0 {
+				_ = e.store.IndexToolIDs(ctx, assistantNode.ID, toolUseIDs, "use")
 			}
 
 			if !shouldContinue {

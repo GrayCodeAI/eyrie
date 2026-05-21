@@ -83,8 +83,11 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func constantTimeEqual(a, b string) bool {
-	if len(a) != len(b) {
-		return false
+	// Pad the shorter value so comparison time does not leak token length.
+	if len(a) < len(b) {
+		a = a + strings.Repeat("\x00", len(b)-len(a))
+	} else if len(b) < len(a) {
+		b = b + strings.Repeat("\x00", len(a)-len(b))
 	}
 	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }

@@ -137,15 +137,15 @@ func TestOrphanedToolUses(t *testing.T) {
 	s.CreateNode(ctx, &Node{ID: "r", NodeType: NodeTypeUser, Content: "r", RootID: "r", Sequence: 1})
 	s.CreateNode(ctx, &Node{ID: "a", ParentID: "r", RootID: "r", NodeType: NodeTypeAssistant, Content: "a", Sequence: 2})
 
-	s.IndexToolIDs(ctx, "a", []string{"tool-1", "tool-2"}, "tool_use")
-	s.IndexToolIDs(ctx, "r", []string{"tool-1"}, "tool_result")
+	s.IndexToolIDs(ctx, "a", []string{"tool-1", "tool-2"}, "use")
+	s.IndexToolIDs(ctx, "r", []string{"tool-1"}, "result")
 
-	orphans, err := s.GetOrphanedToolUses(ctx, "r")
+	orphans, err := s.GetOrphanedToolUses(ctx, []string{"r", "a"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(orphans) != 1 || orphans[0] != "tool-2" {
-		t.Errorf("expected [tool-2], got %v", orphans)
+	if len(orphans["a"]) != 1 || orphans["a"][0] != "tool-2" {
+		t.Errorf("expected orphan tool-2 on node a, got %v", orphans)
 	}
 }
 
