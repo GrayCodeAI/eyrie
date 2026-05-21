@@ -140,8 +140,8 @@ func entriesToModelList(entries []catalog.ModelCatalogEntry, providerID, source 
 		}
 		out = append(out, ModelEntry{
 			ID:               id,
-			DisplayName:      label,
-			Owner:            catalog.ModelOwner(e),
+			DisplayName:      catalog.DisplayModelLabel(id, label),
+			Owner:            catalog.DisplayModelOwner(catalog.ModelOwner(e), id, e.LiveMetadata),
 			ProviderID:       providerID,
 			ContextWindow:    e.ContextWindow,
 			InputPricePer1M:  e.InputPricePer1M,
