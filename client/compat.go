@@ -45,6 +45,12 @@ var (
 	OpenCodeGoCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens",
 	}
+	KimiCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
+	XiaomiCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
 )
 
 func init() {
@@ -76,6 +82,14 @@ func init() {
 	if p, ok := OpenAICompatibleProviders["opencodego"]; ok {
 		p.Compat = &OpenCodeGoCompat
 		OpenAICompatibleProviders["opencodego"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["kimi"]; ok {
+		p.Compat = &KimiCompat
+		OpenAICompatibleProviders["kimi"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["xiaomi"]; ok {
+		p.Compat = &XiaomiCompat
+		OpenAICompatibleProviders["xiaomi"] = p
 	}
 	if p, ok := CoreProviders["openai"]; ok {
 		p.Compat = &OpenAICompat

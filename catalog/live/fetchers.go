@@ -18,6 +18,8 @@ const (
 	DefaultOpenAIBaseURL     = "https://api.openai.com/v1"
 	DefaultGrokBaseURL       = "https://api.x.ai/v1"
 	DefaultOpenCodeGoBaseURL = "https://api.opencodego.ai/v1"
+	DefaultKimiBaseURL       = "https://api.moonshot.ai/v1"
+	DefaultXiaomiBaseURL     = "https://api.xiaomimimo.com/v1"
 )
 
 // FetchFunc lists models from a live provider API.
@@ -33,6 +35,8 @@ var Registry = map[string]FetchFunc{
 	"z-ai":       FetchZAI,
 	"canopywave": FetchCanopyWave,
 	"opencodego": FetchOpenCodeGo,
+	"kimi":       FetchKimi,
+	"xiaomi":     FetchXiaomi,
 	"ollama":     FetchOllama,
 }
 
@@ -251,6 +255,28 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 	return fetchOpenAICompatModels(
 		envOr(env, "OPENCODEGO_BASE_URL", DefaultOpenCodeGoBaseURL),
 		env["OPENCODEGO_API_KEY"], "Bearer",
+	)
+}
+
+func FetchKimi(env map[string]string) ([]Entry, error) {
+	key := strings.TrimSpace(env["MOONSHOT_API_KEY"])
+	if key == "" {
+		key = strings.TrimSpace(env["KIMI_API_KEY"])
+	}
+	return fetchOpenAICompatModels(
+		envOr(env, "MOONSHOT_BASE_URL", envOr(env, "KIMI_BASE_URL", DefaultKimiBaseURL)),
+		key, "Bearer",
+	)
+}
+
+func FetchXiaomi(env map[string]string) ([]Entry, error) {
+	key := strings.TrimSpace(env["XIAOMI_API_KEY"])
+	if key == "" {
+		key = strings.TrimSpace(env["MIMO_API_KEY"])
+	}
+	return fetchOpenAICompatModels(
+		envOr(env, "XIAOMI_BASE_URL", envOr(env, "MIMO_BASE_URL", DefaultXiaomiBaseURL)),
+		key, "Bearer",
 	)
 }
 

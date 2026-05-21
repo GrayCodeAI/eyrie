@@ -28,6 +28,7 @@ func IsOpenAICompatibleRuntimeEnabled() bool {
 		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
 		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
 		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
+		"MOONSHOT_API_KEY", "KIMI_API_KEY", "XIAOMI_API_KEY", "MIMO_API_KEY",
 	}
 	for _, k := range keys {
 		if envValue(k) != "" {

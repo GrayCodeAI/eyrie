@@ -178,6 +178,18 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultOpenCodeGoBaseURL), &client.OpenCodeGoCompat), true
+	case "kimi-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MOONSHOT_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultKimiOpenAIBaseURL), &client.KimiCompat), true
+	case "xiaomi-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("XIAOMI_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultXiaomiOpenAIBaseURL), &client.XiaomiCompat), true
 	default:
 		return nil, false
 	}
@@ -204,6 +216,10 @@ func DefaultDeploymentForProvider(provider string) string {
 		return "ollama-local"
 	case config.ProviderOpenCodeGo:
 		return "opencodego"
+	case config.ProviderKimi:
+		return "kimi-direct"
+	case config.ProviderXiaomi:
+		return "xiaomi-direct"
 	default:
 		return ""
 	}
@@ -233,6 +249,10 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 		return config.DeploymentConfig{BaseURL: cfg.OllamaBaseURL}
 	case config.ProviderOpenCodeGo:
 		return config.DeploymentConfig{APIKey: cfg.OpenCodeGoAPIKey, BaseURL: cfg.OpenCodeGoBaseURL}
+	case config.ProviderKimi:
+		return config.DeploymentConfig{APIKey: cfg.MoonshotAPIKey, BaseURL: cfg.MoonshotBaseURL}
+	case config.ProviderXiaomi:
+		return config.DeploymentConfig{APIKey: cfg.XiaomiAPIKey, BaseURL: cfg.XiaomiBaseURL}
 	default:
 		return config.DeploymentConfig{}
 	}
