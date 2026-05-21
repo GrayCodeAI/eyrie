@@ -46,6 +46,23 @@ func IsTransient(err error) bool {
 	return false
 }
 
+// ShouldTryNextDeployment reports billing/credit errors where another deployment may succeed.
+func ShouldTryNextDeployment(err error) bool {
+	if err == nil {
+		return false
+	}
+	low := strings.ToLower(err.Error())
+	for _, pattern := range []string{
+		"requires more credits", "can only afford", "insufficient credits",
+		"insufficient balance", "payment required", "out of credits", "402",
+	} {
+		if strings.Contains(low, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
 func BackoffDelay(attempt int, cfg RetryConfig) time.Duration {
 	base := cfg.BaseDelay
 	for i := 0; i < attempt; i++ {

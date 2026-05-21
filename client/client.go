@@ -11,6 +11,7 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/config"
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 // Version is exported here for backwards compatibility. Callers should prefer
@@ -158,6 +159,7 @@ var CoreProviders = map[string]ProviderRegistryConfig{
 var OpenAICompatibleProviders = map[string]ProviderRegistryConfig{
 	"grok":       {Name: "grok", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.x.ai/v1", EnvKey: "XAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"openrouter": {Name: "openrouter", Type: ProviderTypeOpenAICompatible, BaseURL: "https://openrouter.ai/api/v1", EnvKey: "OPENROUTER_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"z-ai":       {Name: "z-ai", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.z.ai/api/paas/v4", EnvKey: "ZAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"canopywave": {Name: "canopywave", Type: ProviderTypeOpenAICompatible, BaseURL: "https://inference.canopywave.io/v1", EnvKey: "CANOPYWAVE_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"gemini":     {Name: "gemini", Type: ProviderTypeOpenAICompatible, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", EnvKey: "GEMINI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"ollama":     {Name: "ollama", Type: ProviderTypeOpenAICompatible, BaseURL: "http://localhost:11434/v1", EnvKey: "OLLAMA_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: false},
@@ -260,9 +262,9 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 		if info == nil {
 			return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
 		}
-		apiKey = os.Getenv(info.EnvKey)
+		apiKey = resolveEnvSecret(info.EnvKey)
 		if apiKey == "" && providerName == "grok" {
-			apiKey = os.Getenv("GROK_API_KEY")
+			apiKey = resolveEnvSecret("GROK_API_KEY")
 		}
 	}
 
@@ -367,17 +369,21 @@ type AnthropicClientConfig struct {
 	BaseURL        string            `json:"base_url,omitempty"`
 }
 
-// DetectProvider detects the active provider from env vars.
+// DetectProvider detects the active provider from the credential store (not process env).
 func DetectProvider() string {
+	ctx := context.Background()
 	checks := map[string]func() bool{
-		"anthropic":  func() bool { return os.Getenv("ANTHROPIC_API_KEY") != "" },
-		"openrouter": func() bool { return os.Getenv("OPENROUTER_API_KEY") != "" },
-		"grok":       func() bool { return os.Getenv("GROK_API_KEY") != "" || os.Getenv("XAI_API_KEY") != "" },
-		"gemini":     func() bool { return os.Getenv("GEMINI_API_KEY") != "" },
-		"canopywave": func() bool { return os.Getenv("CANOPYWAVE_API_KEY") != "" },
-		"openai":     func() bool { return os.Getenv("OPENAI_API_KEY") != "" },
-		"opencodego": func() bool { return os.Getenv("OPENCODEGO_API_KEY") != "" },
-		"ollama":     func() bool { return os.Getenv("OLLAMA_BASE_URL") != "" },
+		"anthropic":  func() bool { return credentials.HasSecret(ctx, "ANTHROPIC_API_KEY") },
+		"openrouter": func() bool { return credentials.HasSecret(ctx, "OPENROUTER_API_KEY") },
+		"grok": func() bool {
+			return credentials.HasSecret(ctx, "GROK_API_KEY") || credentials.HasSecret(ctx, "XAI_API_KEY")
+		},
+		"gemini":     func() bool { return credentials.HasSecret(ctx, "GEMINI_API_KEY") },
+		"z-ai":       func() bool { return credentials.HasSecret(ctx, "ZAI_API_KEY") },
+		"canopywave": func() bool { return credentials.HasSecret(ctx, "CANOPYWAVE_API_KEY") },
+		"openai":     func() bool { return credentials.HasSecret(ctx, "OPENAI_API_KEY") },
+		"opencodego": func() bool { return credentials.HasSecret(ctx, "OPENCODEGO_API_KEY") },
+		"ollama":     func() bool { return resolveEnvSecret("OLLAMA_BASE_URL") != "" },
 	}
 	for _, p := range config.APIProviderDetectionOrder {
 		if fn, ok := checks[p]; ok && fn() {
@@ -393,11 +399,15 @@ func ResolveProviderModelEnvOverride(provider string) string {
 		provider = DetectProvider()
 	}
 	for _, k := range config.ProviderModelEnvKeys[provider] {
-		if v := strings.TrimSpace(os.Getenv(k)); v != "" {
+		if v := resolveEnvSecret(k); v != "" {
 			return v
 		}
 	}
 	return ""
+}
+
+func resolveEnvSecret(envKey string) string {
+	return credentials.LookupSecret(context.Background(), envKey)
 }
 
 // ParseCustomHeaders parses GRAYCODE_CUSTOM_HEADERS env var into a map.

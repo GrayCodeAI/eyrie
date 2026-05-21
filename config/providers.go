@@ -11,6 +11,7 @@ const (
 	DefaultOpenAIBaseURL           = "https://api.openai.com/v1"
 	DefaultOpenRouterOpenAIBaseURL = "https://openrouter.ai/api/v1"
 	DefaultCanopyWaveOpenAIBaseURL = "https://inference.canopywave.io/v1"
+	DefaultZAIOpenAIBaseURL        = "https://api.z.ai/api/paas/v4"
 	DefaultGeminiOpenAIBaseURL     = "https://generativelanguage.googleapis.com/v1beta/openai"
 	DefaultAnthropicOpenAIBaseURL  = "https://api.anthropic.com/v1"
 	DefaultGrokOpenAIBaseURL       = "https://api.x.ai/v1"

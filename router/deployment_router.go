@@ -130,6 +130,9 @@ func (r *DeploymentRouter) Chat(ctx context.Context, messages []client.EyrieMess
 			}
 			lastErr = err
 			if !IsTransient(err) {
+				if ShouldTryNextDeployment(err) {
+					break
+				}
 				return nil, err
 			}
 		}
@@ -167,7 +170,14 @@ func (r *DeploymentRouter) StreamChat(ctx context.Context, messages []client.Eyr
 					return
 				}
 				lastErr = err
-				if !fallback || !IsTransient(err) {
+				if !fallback {
+					out <- client.EyrieStreamEvent{Type: "error", Error: err.Error()}
+					return
+				}
+				if !IsTransient(err) {
+					if ShouldTryNextDeployment(err) {
+						break
+					}
 					out <- client.EyrieStreamEvent{Type: "error", Error: err.Error()}
 					return
 				}
@@ -231,27 +241,35 @@ func (r *DeploymentRouter) resolveTarget(requested string) (deploymentTarget, er
 }
 
 func (r *DeploymentRouter) routeFor(canonicalModelID string) []RoutingStage {
-	if stages, ok := r.routing.Models[canonicalModelID]; ok {
-		return cloneRoutingStages(stages)
-	}
-	providerID := ownerProviderID(canonicalModelID)
-	if model := r.catalog.ModelsByID[canonicalModelID]; model.ID != "" {
-		providerID = model.ProviderID
-	}
-	if providerID != "" {
-		if stages, ok := r.routing.Providers[providerID]; ok {
-			return cloneRoutingStages(stages)
+	var stages []RoutingStage
+	if explicit, ok := r.routing.Models[canonicalModelID]; ok && len(explicit) > 0 {
+		stages = cloneRoutingStages(explicit)
+	} else {
+		providerID := ownerProviderID(canonicalModelID)
+		if model := r.catalog.ModelsByID[canonicalModelID]; model.ID != "" {
+			providerID = model.ProviderID
 		}
-		for key, stages := range r.routing.Providers {
-			if canonicalProviderID(key) == providerID {
-				return cloneRoutingStages(stages)
+		if providerID != "" {
+			if explicit, ok := r.routing.Providers[providerID]; ok && len(explicit) > 0 {
+				stages = cloneRoutingStages(explicit)
+			} else {
+				for key, explicit := range r.routing.Providers {
+					if canonicalProviderID(key) == providerID && len(explicit) > 0 {
+						stages = cloneRoutingStages(explicit)
+						break
+					}
+				}
+			}
+		}
+		if len(stages) == 0 {
+			if r.routing.Default != nil {
+				stages = cloneRoutingStages(r.routing.Default)
+			} else {
+				return r.automaticStages(canonicalModelID)
 			}
 		}
 	}
-	if r.routing.Default != nil {
-		return cloneRoutingStages(r.routing.Default)
-	}
-	return r.automaticStages(canonicalModelID)
+	return appendAutomaticFallback(stages, r.automaticStages(canonicalModelID))
 }
 
 func (r *DeploymentRouter) automaticStages(canonicalModelID string) []RoutingStage {
@@ -354,6 +372,10 @@ func (r *DeploymentRouter) resolveOffering(target deploymentTarget, deploymentID
 		return catalog.ModelOfferingV1{}, DeploymentAdapter{}, fmt.Errorf("deployment %q is not configured", deploymentID)
 	}
 	if offering, ok := r.catalog.OfferingForDeployment(target.canonicalModelID, deploymentID); ok {
+		if nativeID := adapter.ModelMappings[target.canonicalModelID]; nativeID != "" {
+			offering.NativeModelID = nativeID
+			offering.ID = deploymentID + ":" + nativeID
+		}
 		return offering, adapter, nil
 	}
 	for _, tmpl := range r.catalog.TemplatesByCanonicalModel[target.canonicalModelID] {
@@ -517,6 +539,32 @@ func uniqueStrings(values []string) []string {
 		out = append(out, value)
 	}
 	return out
+}
+
+func appendAutomaticFallback(stages, automatic []RoutingStage) []RoutingStage {
+	if len(automatic) == 0 {
+		return stages
+	}
+	tried := map[string]bool{}
+	for _, stage := range stages {
+		for _, choice := range stage.Deployments {
+			tried[choice.DeploymentID] = true
+		}
+	}
+	var remaining []DeploymentChoice
+	for _, stage := range automatic {
+		for _, choice := range stage.Deployments {
+			if choice.DeploymentID == "" || choice.Weight <= 0 || tried[choice.DeploymentID] {
+				continue
+			}
+			remaining = append(remaining, choice)
+			tried[choice.DeploymentID] = true
+		}
+	}
+	if len(remaining) == 0 {
+		return stages
+	}
+	return append(stages, RoutingStage{Deployments: remaining, Retries: 1})
 }
 
 func cloneRoutingPolicy(policy RoutingPolicy) RoutingPolicy {

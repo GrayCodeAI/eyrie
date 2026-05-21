@@ -11,8 +11,19 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
+	"github.com/GrayCodeAI/eyrie/credentials"
 	"github.com/GrayCodeAI/eyrie/router"
 )
+
+func storeSecret(envKeys ...string) string {
+	ctx := context.Background()
+	for _, k := range envKeys {
+		if v := credentials.LookupSecret(ctx, k); v != "" {
+			return v
+		}
+	}
+	return ""
+}
 
 // UseDeploymentRouting mirrors eyrie CLI behavior: env override, then provider.json shape.
 func UseDeploymentRouting(cfg *config.ProviderConfig) bool {
@@ -27,6 +38,7 @@ func UseDeploymentRouting(cfg *config.ProviderConfig) bool {
 
 // DeploymentProvider builds a catalog-aware router over configured deployments.
 func DeploymentProvider(ctx context.Context, cfg *config.ProviderConfig) (client.Provider, error) {
+	cfg = config.EnsureDeploymentConfigV2(cfg)
 	home, _ := os.UserHomeDir()
 	cachePath := filepath.Join(home, ".eyrie", "model_catalog.json")
 	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
@@ -91,7 +103,7 @@ func ConfiguredDeployments(cfg *config.ProviderConfig) map[string]config.Deploym
 func ProviderForDeployment(id string, deployment config.DeploymentConfig) (client.Provider, bool) {
 	switch id {
 	case "anthropic-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, os.Getenv("ANTHROPIC_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("ANTHROPIC_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
@@ -99,19 +111,28 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 	case "anthropic-vertex":
 		projectID := FirstNonEmpty(deployment.ProjectID, os.Getenv("VERTEX_PROJECT_ID"))
 		region := FirstNonEmpty(deployment.Region, os.Getenv("VERTEX_REGION"))
-		token := FirstNonEmpty(deployment.Token, deployment.APIKey, os.Getenv("VERTEX_ACCESS_TOKEN"), os.Getenv("GOOGLE_OAUTH_ACCESS_TOKEN"))
+		token := FirstNonEmpty(deployment.Token, deployment.APIKey, storeSecret("VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"))
 		if projectID == "" || region == "" || token == "" {
 			return nil, false
 		}
 		return client.NewVertexClient(projectID, region, token), true
+	case "anthropic-bedrock":
+		region := FirstNonEmpty(deployment.Region, os.Getenv("AWS_REGION"), os.Getenv("AWS_DEFAULT_REGION"))
+		accessKeyID := FirstNonEmpty(deployment.AccessKeyID, deployment.APIKey, storeSecret("AWS_ACCESS_KEY_ID"))
+		secretAccessKey := FirstNonEmpty(deployment.SecretAccessKey, deployment.Token, storeSecret("AWS_SECRET_ACCESS_KEY"))
+		sessionToken := FirstNonEmpty(deployment.SessionToken, storeSecret("AWS_SESSION_TOKEN"))
+		if region == "" || accessKeyID == "" || secretAccessKey == "" {
+			return nil, false
+		}
+		return client.NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region), true
 	case "openai-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, os.Getenv("OPENAI_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("OPENAI_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultOpenAIBaseURL), &client.OpenAICompat), true
 	case "openai-azure":
-		apiKey := FirstNonEmpty(deployment.APIKey, os.Getenv("AZURE_OPENAI_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("AZURE_OPENAI_API_KEY"))
 		endpoint := FirstNonEmpty(deployment.Endpoint, os.Getenv("AZURE_OPENAI_ENDPOINT"))
 		apiVersion := FirstNonEmpty(deployment.APIVersion, os.Getenv("AZURE_OPENAI_API_VERSION"))
 		if apiKey == "" || endpoint == "" {
@@ -119,34 +140,40 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 		}
 		return client.NewAzureClient(apiKey, endpoint, apiVersion), true
 	case "grok-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, os.Getenv("XAI_API_KEY"), os.Getenv("GROK_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("XAI_API_KEY", "GROK_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultGrokOpenAIBaseURL), &client.GrokCompat), true
 	case "gemini-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, os.Getenv("GEMINI_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("GEMINI_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultGeminiOpenAIBaseURL), &client.GeminiCompat), true
 	case "openrouter":
-		apiKey := FirstNonEmpty(deployment.APIKey, os.Getenv("OPENROUTER_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("OPENROUTER_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultOpenRouterOpenAIBaseURL), &client.OpenRouterCompat), true
 	case "canopywave":
-		apiKey := FirstNonEmpty(deployment.APIKey, os.Getenv("CANOPYWAVE_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("CANOPYWAVE_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultCanopyWaveOpenAIBaseURL), &client.CanopyWaveCompat), true
+	case "z-ai-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("ZAI_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultZAIOpenAIBaseURL), &client.ZAICompat), true
 	case "ollama-local":
 		baseURL := config.NormalizeOllamaOpenAIBaseURL(FirstNonEmpty(deployment.BaseURL, os.Getenv("OLLAMA_BASE_URL"), config.OllamaDefaultBaseURL))
-		return client.NewOpenAIClient(FirstNonEmpty(deployment.APIKey, os.Getenv("OLLAMA_API_KEY")), baseURL, &client.OllamaCompat), true
+		return client.NewOpenAIClient(FirstNonEmpty(deployment.APIKey, storeSecret("OLLAMA_API_KEY")), baseURL, &client.OllamaCompat), true
 	case "opencodego":
-		apiKey := FirstNonEmpty(deployment.APIKey, os.Getenv("OPENCODEGO_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("OPENCODEGO_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
@@ -171,6 +198,8 @@ func DefaultDeploymentForProvider(provider string) string {
 		return "openrouter"
 	case config.ProviderCanopyWave:
 		return "canopywave"
+	case config.ProviderZAI:
+		return "z-ai-direct"
 	case config.ProviderOllama:
 		return "ollama-local"
 	case config.ProviderOpenCodeGo:
@@ -198,6 +227,8 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 		return config.DeploymentConfig{APIKey: cfg.OpenRouterAPIKey, BaseURL: cfg.OpenRouterBaseURL}
 	case config.ProviderCanopyWave:
 		return config.DeploymentConfig{APIKey: cfg.CanopyWaveAPIKey, BaseURL: cfg.CanopyWaveBaseURL}
+	case config.ProviderZAI:
+		return config.DeploymentConfig{APIKey: cfg.ZAIAPIKey, BaseURL: cfg.ZAIBaseURL}
 	case config.ProviderOllama:
 		return config.DeploymentConfig{BaseURL: cfg.OllamaBaseURL}
 	case config.ProviderOpenCodeGo:

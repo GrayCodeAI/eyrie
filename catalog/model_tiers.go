@@ -35,7 +35,7 @@ var GeminiModelDefaults = map[ModelTier]string{
 // Individual model configs (tier × version → model ID per provider).
 var (
 	Hawk37SonnetConfig = ModelConfig{
-		"anthropic": "claude-3-7-sonnet-20250219", "openai": "gpt-4o-mini", "canopywave": "zai/glm-4.6",
+		"anthropic": "claude-3-7-sonnet-20250219", "openai": "gpt-4o-mini", "z-ai": "glm-5.1", "canopywave": "zai/glm-4.6",
 		"openrouter": "openai/gpt-4o-mini", "grok": "grok-2", "gemini": "gemini-2.0-flash",
 		"ollama": "llama3.1:8b", "opencodego": "kimi-k2.5",
 	}
@@ -65,7 +65,7 @@ var (
 		"ollama": "llama3.1:70b", "opencodego": "kimi-k2.5",
 	}
 	HawkSonnet46Config = ModelConfig{
-		"anthropic": "claude-sonnet-4-6", "openai": "gpt-4o", "canopywave": "zai/glm-4.6",
+		"anthropic": "claude-sonnet-4-6", "openai": "gpt-4o", "z-ai": "glm-5.1", "canopywave": "zai/glm-4.6",
 		"openrouter": "openai/gpt-4o", "grok": "grok-2", "gemini": "gemini-2.0-flash",
 		"ollama": "llama3.1:70b", "opencodego": "kimi-k2.5",
 	}
@@ -134,6 +134,7 @@ var preferredKeys = map[string]map[ModelTier]ModelKey{
 	"anthropic":  {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
 	"openai":     {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
 	"canopywave": {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
+	"z-ai":       {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
 	"openrouter": {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
 	"grok":       {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
 	"gemini":     {TierOpus: "opus46", TierSonnet: "sonnet46", TierHaiku: "haiku45"},
@@ -149,6 +150,9 @@ var fallbackKeys = map[ModelTier][]ModelKey{
 
 // GetProviderModelCandidates returns ordered candidate model IDs for a provider/tier.
 func GetProviderModelCandidates(provider string, tier ModelTier) []ModelName {
+	if usesLiveCatalogOnly(provider) {
+		return nil
+	}
 	seen := make(map[string]bool)
 	var ordered []ModelName
 
@@ -193,6 +197,9 @@ func contains(ss []string, s string) bool {
 }
 
 func providerModelPool(provider string) []ModelName {
+	if usesLiveCatalogOnly(provider) {
+		return nil
+	}
 	seen := make(map[string]bool)
 	var ordered []ModelName
 	for _, key := range modelKeys {
@@ -228,6 +235,10 @@ func GetPreferredProviderModel(provider string, tier ModelTier, catalog *ModelCa
 		return candidates[0]
 	}
 
+	if usesLiveCatalogOnly(provider) {
+		return ""
+	}
+
 	pool := providerModelPool(provider)
 	if len(pool) > 0 {
 		return pool[0]
@@ -235,7 +246,7 @@ func GetPreferredProviderModel(provider string, tier ModelTier, catalog *ModelCa
 	return HawkSonnet46Config[provider]
 }
 
-// GetProviderDefaultModel returns the default model for a provider.
+// GetProviderDefaultModel returns the default model for a provider from catalog when available.
 func GetProviderDefaultModel(provider string, catalog *ModelCatalog) ModelName {
 	if catalog == nil {
 		c := LoadModelCatalogSync("")
@@ -244,6 +255,9 @@ func GetProviderDefaultModel(provider string, catalog *ModelCatalog) ModelName {
 	ids := catalogModelIDs(catalog, provider)
 	if len(ids) > 0 {
 		return ids[0]
+	}
+	if IsLiveOnlyProvider(provider) {
+		return ""
 	}
 	pool := providerModelPool(provider)
 	if len(pool) > 0 {

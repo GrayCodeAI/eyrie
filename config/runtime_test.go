@@ -2,8 +2,11 @@
 package config
 
 import (
+	"context"
 	"os"
 	"testing"
+
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 func TestRuntimeProfileFields(t *testing.T) {
@@ -14,6 +17,7 @@ func TestRuntimeProfileFields(t *testing.T) {
 		"gemini":     GeminiRuntimeProfile,
 		"openrouter": OpenRouterRuntimeProfile,
 		"canopywave": CanopyWaveRuntimeProfile,
+		"z-ai":       ZAIRuntimeProfile,
 		"opencodego": OpenCodeGoRuntimeProfile,
 	}
 
@@ -24,7 +28,7 @@ func TestRuntimeProfileFields(t *testing.T) {
 		if profile.DefaultBaseURL == "" {
 			t.Errorf("profile %q has empty DefaultBaseURL", name)
 		}
-		if profile.DefaultModel == "" {
+		if profile.DefaultModel == "" && name != "canopywave" && name != "z-ai" && name != "openrouter" {
 			t.Errorf("profile %q has empty DefaultModel", name)
 		}
 		if len(profile.DetectionEnv) == 0 {
@@ -48,6 +52,7 @@ func TestRuntimeProfileAPIKeys(t *testing.T) {
 		"gemini":     GeminiRuntimeProfile,
 		"openrouter": OpenRouterRuntimeProfile,
 		"canopywave": CanopyWaveRuntimeProfile,
+		"z-ai":       ZAIRuntimeProfile,
 		"opencodego": OpenCodeGoRuntimeProfile,
 	}
 
@@ -109,19 +114,10 @@ func TestProviderModelEnvKeys_AllProvidersPresent(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
-	// Clear all provider env vars first
-	clearKeys := []string{
-		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY",
-		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
-		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
-	}
-	for _, k := range clearKeys {
-		os.Unsetenv(k)
-	}
-
-	os.Setenv("OPENAI_API_KEY", "sk-test-key-1234567890")
-	defer os.Unsetenv("OPENAI_API_KEY")
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+	_ = store.Set(context.Background(), credentials.AccountForEnv("OPENAI_API_KEY"), "sk-test-key-1234567890")
 
 	result := ResolveOpenAICompatibleRuntime("gpt-4o", "", "")
 	if result.Mode != "openai" {
@@ -139,19 +135,10 @@ func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
-	clearKeys := []string{
-		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY",
-		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
-		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
-		"GROK_MODEL", "XAI_MODEL",
-	}
-	for _, k := range clearKeys {
-		os.Unsetenv(k)
-	}
-
-	os.Setenv("GROK_API_KEY", "grok-test-key-1234567890")
-	defer os.Unsetenv("GROK_API_KEY")
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+	_ = store.Set(context.Background(), credentials.AccountForEnv("GROK_API_KEY"), "grok-test-key-1234567890")
 
 	result := ResolveOpenAICompatibleRuntime("", "", "")
 	if result.Mode != "grok" {
@@ -168,7 +155,7 @@ func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
 func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
 	clearKeys := []string{
 		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY",
+		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
 		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
 		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
 	}
@@ -184,15 +171,9 @@ func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_NoKeys(t *testing.T) {
-	clearKeys := []string{
-		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY",
-		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
-		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
-	}
-	for _, k := range clearKeys {
-		os.Unsetenv(k)
-	}
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
 
 	result := ResolveOpenAICompatibleRuntime("", "", "")
 	if result.APIKey != "" {
@@ -224,7 +205,7 @@ func TestOpenAICompatibleRuntimeProfiles_Complete(t *testing.T) {
 		if profile.DefaultBaseURL == "" {
 			t.Errorf("profile %q has empty DefaultBaseURL", key)
 		}
-		if profile.DefaultModel == "" {
+		if profile.DefaultModel == "" && key != "canopywave" && key != "z-ai" && key != "openrouter" {
 			t.Errorf("profile %q has empty DefaultModel", key)
 		}
 	}

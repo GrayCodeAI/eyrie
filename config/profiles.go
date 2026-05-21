@@ -7,6 +7,7 @@ const (
 	ProviderAnthropic  APIProvider = "anthropic"
 	ProviderOpenAI     APIProvider = "openai"
 	ProviderCanopyWave APIProvider = "canopywave"
+	ProviderZAI        APIProvider = "z-ai"
 	ProviderOpenRouter APIProvider = "openrouter"
 	ProviderGrok       APIProvider = "grok"
 	ProviderGemini     APIProvider = "gemini"
@@ -62,14 +63,21 @@ var (
 		APIKeys:      []APIKeyDef{{Env: "GEMINI_API_KEY", Source: "gemini"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
 	OpenRouterRuntimeProfile = RuntimeProviderProfile{
-		Mode: "openrouter", DefaultBaseURL: DefaultOpenRouterOpenAIBaseURL, DefaultModel: "openai/gpt-4o-mini",
+		Mode: "openrouter", DefaultBaseURL: DefaultOpenRouterOpenAIBaseURL,
 		DetectionEnv: []string{"OPENROUTER_API_KEY"},
 		ModelEnv:     []string{"OPENROUTER_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{"OPENROUTER_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "OPENROUTER_API_KEY", Source: "openrouter"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
+	ZAIRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultZAIOpenAIBaseURL,
+		DetectionEnv: []string{"ZAI_API_KEY"},
+		ModelEnv:     []string{"ZAI_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"ZAI_BASE_URL", "ZAI_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "ZAI_API_KEY", Source: "z-ai"}},
+	}
 	CanopyWaveRuntimeProfile = RuntimeProviderProfile{
-		Mode: "openai", DefaultBaseURL: DefaultCanopyWaveOpenAIBaseURL, DefaultModel: "zai/glm-4.6",
+		Mode: "openai", DefaultBaseURL: DefaultCanopyWaveOpenAIBaseURL,
 		DetectionEnv: []string{"CANOPYWAVE_API_KEY"},
 		ModelEnv:     []string{"CANOPYWAVE_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{"CANOPYWAVE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
@@ -87,7 +95,7 @@ var (
 // APIProviderDetectionOrder is the priority order for provider detection.
 var APIProviderDetectionOrder = []APIProvider{
 	ProviderAnthropic, ProviderOpenRouter, ProviderGrok, ProviderGemini,
-	ProviderCanopyWave, ProviderOpenAI, ProviderOpenCodeGo, ProviderOllama,
+	ProviderZAI, ProviderCanopyWave, ProviderOpenAI, ProviderOpenCodeGo, ProviderOllama,
 }
 
 // ProviderModelEnvKeys maps each provider to its model env var keys.
@@ -95,6 +103,7 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 	ProviderAnthropic:  AnthropicRuntimeProfile.ModelEnv,
 	ProviderOpenAI:     OpenAIRuntimeProfile.ModelEnv,
 	ProviderCanopyWave: CanopyWaveRuntimeProfile.ModelEnv,
+	ProviderZAI:        ZAIRuntimeProfile.ModelEnv,
 	ProviderOpenRouter: OpenRouterRuntimeProfile.ModelEnv,
 	ProviderGrok:       GrokRuntimeProfile.ModelEnv,
 	ProviderGemini:     GeminiRuntimeProfile.ModelEnv,
@@ -111,7 +120,7 @@ const (
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.
 var OpenAICompatibleRuntimeProfileOrder = []string{
-	"openrouter", "grok", "gemini", "anthropic", "canopywave", "openai", "opencodego",
+	"openrouter", "grok", "gemini", "anthropic", "z-ai", "canopywave", "openai", "opencodego",
 }
 
 // OpenAICompatibleRuntimeProfiles maps profile key to its runtime profile.
@@ -119,6 +128,7 @@ var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
 	"anthropic":  AnthropicRuntimeProfile,
 	"grok":       GrokRuntimeProfile,
 	"gemini":     GeminiRuntimeProfile,
+	"z-ai":       ZAIRuntimeProfile,
 	"canopywave": CanopyWaveRuntimeProfile,
 	"openai":     OpenAIRuntimeProfile,
 	"openrouter": OpenRouterRuntimeProfile,
