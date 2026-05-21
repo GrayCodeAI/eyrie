@@ -17,6 +17,8 @@ type Store interface {
 	GetNodeByAlias(ctx context.Context, alias string) (*Node, error)
 	ListAliases(ctx context.Context, nodeID string) ([]Alias, error)
 	IndexToolIDs(ctx context.Context, nodeID string, toolIDs []string, role string) error
-	GetOrphanedToolUses(ctx context.Context, rootID string) ([]string, error)
+	// GetOrphanedToolUses returns tool_use IDs on ancestorIDs with no matching
+	// tool_result on the same path. Map keys are node IDs.
+	GetOrphanedToolUses(ctx context.Context, ancestorIDs []string) (map[string][]string, error)
 	Close() error
 }

@@ -15,7 +15,10 @@ import (
 
 const (
 	CatalogV1SchemaVersion = "model-catalog/v1"
-	DefaultCatalogV1URL    = "https://langdag.com/model-catalog/v1/catalog.json"
+	// DefaultCatalogV1URL is the published model-catalog/v1 document (same schema langdag hosts).
+	// Override with EYRIE_MODEL_CATALOG_URL or LoadCatalogV1Options.RemoteURL.
+	DefaultCatalogV1URL = "https://langdag.com/model-catalog/v1/catalog.json"
+	EnvModelCatalogURL  = "EYRIE_MODEL_CATALOG_URL"
 )
 
 type CapabilityState string
@@ -119,6 +122,7 @@ type ModelOfferingV1 struct {
 	NativeModelID    string               `json:"native_model_id"`
 	Capabilities     CapabilitySetV1      `json:"capabilities,omitempty"`
 	Pricing          PricingV1            `json:"pricing"`
+	LiveMetadata     json.RawMessage      `json:"live_metadata,omitempty"`
 	Provenance       *CatalogProvenanceV1 `json:"provenance,omitempty"`
 }
 
@@ -177,12 +181,15 @@ type LoadCatalogV1Options struct {
 	CachePath     string
 	RemoteURL     string
 	RefreshRemote bool
-	HTTPClient    *http.Client
-	Timeout       time.Duration
+	// RequireCache fails when no valid cache file exists (production hawk/eyrie path).
+	RequireCache bool
+	HTTPClient   *http.Client
+	Timeout      time.Duration
 }
 
+// DefaultCatalogV1 returns the bootstrap catalog (deployments only, no models).
 func DefaultCatalogV1() CatalogV1 {
-	return CatalogV1FromLegacy(DefaultModelCatalog())
+	return BootstrapCatalogV1()
 }
 
 func CatalogV1FromLegacy(legacy ModelCatalog) CatalogV1 {
@@ -212,7 +219,7 @@ func CatalogV1FromLegacy(legacy ModelCatalog) CatalogV1 {
 				continue
 			}
 			modelProviderID := ownerProviderID
-			if deploymentID == "openrouter" {
+			if deploymentID == "openrouter" || deploymentID == "canopywave" {
 				if owner, _, ok := strings.Cut(nativeID, "/"); ok && owner != "" {
 					modelProviderID = canonicalProviderID(owner)
 					if c.Providers[modelProviderID].ID == "" {
@@ -245,6 +252,7 @@ func CatalogV1FromLegacy(legacy ModelCatalog) CatalogV1 {
 				NativeModelID:    nativeID,
 				Capabilities:     capabilitySetFromLegacy(entry),
 				Pricing:          pricingFromLegacy(entry, generatedAt, legacy.Source),
+				LiveMetadata:     entry.LiveMetadata,
 			})
 		}
 	}
@@ -303,10 +311,10 @@ func ValidateCatalogV1(c *CatalogV1) error {
 	if len(c.Deployments) == 0 {
 		add("deployments is required")
 	}
-	if len(c.Models) == 0 {
+	if len(c.Models) == 0 && !IsBootstrapCatalog(c) {
 		add("models is required")
 	}
-	if len(c.Offerings) == 0 {
+	if len(c.Offerings) == 0 && !IsBootstrapCatalog(c) {
 		add("offerings is required")
 	}
 	for id, provider := range c.Providers {
@@ -376,7 +384,7 @@ func ValidateCatalogV1(c *CatalogV1) error {
 			add("offering_template missing id")
 			continue
 		}
-		if c.Models[tmpl.CanonicalModelID].ID == "" {
+		if !IsBootstrapCatalog(c) && c.Models[tmpl.CanonicalModelID].ID == "" {
 			add("offering_template %q references unknown model %q", tmpl.ID, tmpl.CanonicalModelID)
 		}
 		deployment := c.Deployments[tmpl.DeploymentID]
@@ -399,6 +407,8 @@ func ValidateCatalogV1(c *CatalogV1) error {
 }
 
 func CompileCatalogV1(c *CatalogV1) (*CompiledCatalogV1, error) {
+	EnsureDeploymentEnvFallbacks(c)
+	SanitizeCatalogV1Pricing(c)
 	if err := ValidateCatalogV1(c); err != nil {
 		return nil, err
 	}
@@ -428,39 +438,77 @@ func CompileCatalogV1(c *CatalogV1) (*CompiledCatalogV1, error) {
 }
 
 func LoadCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CompiledCatalogV1, error) {
-	if opts.CachePath != "" {
-		if data, err := os.ReadFile(opts.CachePath); err == nil {
-			c, err := ParseCatalogV1(data)
-			if err == nil {
-				if compiled, compileErr := CompileCatalogV1(c); compileErr == nil {
-					return compiled, nil
-				}
-			}
-		}
-	}
-	embedded := DefaultCatalogV1()
-	compiled, err := CompileCatalogV1(&embedded)
-	if err != nil {
-		return nil, err
+	if opts.CachePath == "" {
+		opts.CachePath = DefaultCachePath()
 	}
 	if opts.RefreshRemote {
 		remote, err := FetchRemoteCatalogV1(ctx, opts)
-		if err == nil {
-			if opts.CachePath != "" {
-				_ = WriteCatalogV1Cache(opts.CachePath, remote)
-			}
-			return CompileCatalogV1(remote)
+		if err != nil {
+			return nil, fmt.Errorf("catalog remote: %w", err)
 		}
-		compiled.Diagnostics = append(compiled.Diagnostics, CatalogDiagnosticV1{Code: "remote_refresh_failed", Message: err.Error()})
+		if opts.CachePath != "" {
+			_ = WriteCatalogV1Cache(opts.CachePath, remote)
+		}
+		return CompileCatalogV1(remote)
 	}
+	if compiled, ok := loadValidCatalogCache(opts.CachePath); ok {
+		return compiled, nil
+	}
+	if opts.RequireCache {
+		return nil, fmt.Errorf("%w (%s missing or invalid; run: hawk models refresh)", ErrCatalogCacheRequired, opts.CachePath)
+	}
+	bootstrap := BootstrapCatalogV1()
+	compiled, err := CompileCatalogV1(&bootstrap)
+	if err != nil {
+		return nil, err
+	}
+	compiled.Diagnostics = append(compiled.Diagnostics, CatalogDiagnosticV1{
+		Code:    "bootstrap_only",
+		Message: "no model catalog cache; run hawk models refresh or eyrie catalog discover",
+	})
 	return compiled, nil
 }
 
-func FetchRemoteCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CatalogV1, error) {
-	url := opts.RemoteURL
-	if url == "" {
-		url = DefaultCatalogV1URL
+func loadValidCatalogCache(cachePath string) (*CompiledCatalogV1, bool) {
+	return LoadValidCatalogCache(cachePath)
+}
+
+// LoadValidCatalogCache reads and compiles a non-bootstrap catalog cache from disk.
+func LoadValidCatalogCache(cachePath string) (*CompiledCatalogV1, bool) {
+	if cachePath == "" {
+		return nil, false
 	}
+	data, err := os.ReadFile(cachePath)
+	if err != nil {
+		return nil, false
+	}
+	c, err := ParseCatalogV1(data)
+	if err != nil {
+		return nil, false
+	}
+	if IsBootstrapCatalog(c) || len(c.Models) == 0 {
+		return nil, false
+	}
+	compiled, err := CompileCatalogV1(c)
+	if err != nil {
+		return nil, false
+	}
+	return compiled, true
+}
+
+// ResolvedRemoteCatalogURL returns explicit URL, else EYRIE_MODEL_CATALOG_URL, else DefaultCatalogV1URL.
+func ResolvedRemoteCatalogURL(explicit string) string {
+	if u := strings.TrimSpace(explicit); u != "" {
+		return u
+	}
+	if u := strings.TrimSpace(os.Getenv(EnvModelCatalogURL)); u != "" {
+		return u
+	}
+	return DefaultCatalogV1URL
+}
+
+func FetchRemoteCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CatalogV1, error) {
+	url := ResolvedRemoteCatalogURL(opts.RemoteURL)
 	timeout := opts.Timeout
 	if timeout == 0 {
 		timeout = 5 * time.Second
@@ -496,6 +544,7 @@ func WriteCatalogV1Cache(cachePath string, c *CatalogV1) error {
 	if cachePath == "" {
 		return nil
 	}
+	SanitizeCatalogV1Pricing(c)
 	if err := ValidateCatalogV1(c); err != nil {
 		return err
 	}
@@ -506,7 +555,11 @@ func WriteCatalogV1Cache(cachePath string, c *CatalogV1) error {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(cachePath, append(data, '\n'), 0o600)
+	tmpPath := cachePath + ".tmp"
+	if err := os.WriteFile(tmpPath, append(data, '\n'), 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, cachePath)
 }
 
 func (c *CompiledCatalogV1) CanonicalModelForAliasOrID(value string) (string, bool) {
@@ -553,6 +606,7 @@ func defaultProvidersV1() map[string]ProviderV1 {
 		"google":     {ID: "google", Name: "Google"},
 		"xai":        {ID: "xai", Name: "xAI"},
 		"openrouter": {ID: "openrouter", Name: "OpenRouter"},
+		"canopywave": {ID: "canopywave", Name: "CanopyWave"},
 		"z-ai":       {ID: "z-ai", Name: "Z.AI"},
 		"ollama":     {ID: "ollama", Name: "Ollama"},
 		"opencodego": {ID: "opencodego", Name: "OpenCode Go"},
@@ -578,7 +632,8 @@ func defaultDeploymentsV1() map[string]DeploymentV1 {
 		"gemini-vertex":     deployment("gemini-vertex", "Gemini on Vertex", "google", "gemini-generate-content", "gemini-vertex", NativeModelIDCatalogKnown),
 		"grok-direct":       deployment("grok-direct", "Grok", "xai", "openai-chat-completions", "grok", NativeModelIDCatalogKnown),
 		"openrouter":        deployment("openrouter", "OpenRouter", "openrouter", "openai-chat-completions", "openrouter", NativeModelIDDiscovered),
-		"canopywave":        deployment("canopywave", "CanopyWave", "z-ai", "openai-chat-completions", "canopywave", NativeModelIDCatalogKnown),
+		"z-ai-direct":       deployment("z-ai-direct", "Z.AI", "z-ai", "openai-chat-completions", "z-ai", NativeModelIDCatalogKnown),
+		"canopywave":        deployment("canopywave", "CanopyWave", "canopywave", "openai-chat-completions", "canopywave", NativeModelIDCatalogKnown),
 		"ollama-local":      localDeployment(),
 		"opencodego":        deployment("opencodego", "OpenCode Go", "opencodego", "openai-chat-completions", "opencodego", NativeModelIDCatalogKnown),
 	}
@@ -602,7 +657,7 @@ func localDeployment() DeploymentV1 {
 
 func defaultOfferingTemplatesV1(generatedAt time.Time) []ModelOfferingTemplateV1 {
 	var out []ModelOfferingTemplateV1
-	for _, model := range OpenAIModels {
+	for _, model := range testOpenAIModels {
 		canonical := canonicalModelID("openai", model.ID)
 		out = append(out, ModelOfferingTemplateV1{
 			ID:                  "openai-azure:" + canonical,
@@ -655,8 +710,10 @@ func legacyDeploymentAndOwner(provider string) (deploymentID, ownerProviderID st
 		return "gemini-direct", "google"
 	case "openrouter":
 		return "openrouter", "openrouter"
+	case "z-ai", "zai":
+		return "z-ai-direct", "z-ai"
 	case "canopywave":
-		return "canopywave", "z-ai"
+		return "canopywave", "canopywave"
 	case "ollama":
 		return "ollama-local", "ollama"
 	case "opencodego":
@@ -677,6 +734,11 @@ func canonicalModelID(ownerProviderID, nativeID string) string {
 		return "z-ai/" + strings.TrimPrefix(nativeID, "zai/")
 	}
 	return ownerProviderID + "/" + nativeID
+}
+
+// CanonicalProviderID normalizes legacy provider aliases (e.g. gemini -> google).
+func CanonicalProviderID(providerID string) string {
+	return canonicalProviderID(providerID)
 }
 
 func canonicalProviderID(providerID string) string {
@@ -702,18 +764,34 @@ func capabilitySetFromLegacy(entry ModelCatalogEntry) CapabilitySetV1 {
 	if len(set.ServerTools) == 0 {
 		set.ServerTools = nil
 	}
+	for _, tool := range entry.ServerTools {
+		switch strings.ToLower(strings.TrimSpace(tool)) {
+		case "function-calling", "tools":
+			set.FunctionCalling = CapabilitySupported
+		}
+	}
 	return set
 }
 
 func pricingFromLegacy(entry ModelCatalogEntry, effectiveAt time.Time, source string) PricingV1 {
+	in := entry.InputPricePer1M
+	out := entry.OutputPricePer1M
+	if in < 0 || out < 0 {
+		return PricingV1{
+			Status:      PricingUnknown,
+			Currency:    "USD",
+			EffectiveAt: effectiveAt,
+			Source:      source,
+		}
+	}
 	pricing := PricingV1{
 		Status:      PricingKnown,
 		Currency:    "USD",
 		EffectiveAt: effectiveAt,
-		RatesPer1M:  map[string]float64{"input_tokens": entry.InputPricePer1M, "output_tokens": entry.OutputPricePer1M},
+		RatesPer1M:  map[string]float64{"input_tokens": in, "output_tokens": out},
 		Source:      source,
 	}
-	if entry.InputPricePer1M == 0 && entry.OutputPricePer1M == 0 {
+	if in == 0 && out == 0 {
 		pricing.Status = PricingUnknown
 		pricing.RatesPer1M = nil
 		if strings.Contains(entry.ID, ":free") {
@@ -722,6 +800,43 @@ func pricingFromLegacy(entry ModelCatalogEntry, effectiveAt time.Time, source st
 		}
 	}
 	return pricing
+}
+
+// SanitizeCatalogV1Pricing drops invalid rate dimensions (e.g. negative OpenRouter prices).
+func SanitizeCatalogV1Pricing(c *CatalogV1) {
+	if c == nil {
+		return
+	}
+	for i := range c.Offerings {
+		c.Offerings[i].Pricing = sanitizePricingV1(c.Offerings[i].Pricing)
+	}
+	for i := range c.OfferingTemplates {
+		c.OfferingTemplates[i].Pricing = sanitizePricingV1(c.OfferingTemplates[i].Pricing)
+	}
+}
+
+func sanitizePricingV1(p PricingV1) PricingV1 {
+	if len(p.RatesPer1M) == 0 {
+		return p
+	}
+	clean := make(map[string]float64, len(p.RatesPer1M))
+	for dim, rate := range p.RatesPer1M {
+		if dim == "" || rate < 0 {
+			continue
+		}
+		clean[dim] = rate
+	}
+	if len(clean) == 0 {
+		p.Status = PricingUnknown
+		p.RatesPer1M = nil
+		return p
+	}
+	p.RatesPer1M = clean
+	if p.Status == PricingKnown && (p.Currency == "" || len(p.RatesPer1M) == 0) {
+		p.Status = PricingUnknown
+		p.RatesPer1M = nil
+	}
+	return p
 }
 
 func uniqueNonEmpty(values ...string) []string {

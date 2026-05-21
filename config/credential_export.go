@@ -1,0 +1,85 @@
+package config
+
+import (
+	"context"
+
+	"github.com/GrayCodeAI/eyrie/config/credential"
+)
+
+// Credential types and helpers — implemented in config/credential.
+
+type (
+	CredentialProviderOption = credential.CredentialProviderOption
+	CredentialResolveResult  = credential.CredentialResolveResult
+	CredentialInference      = credential.CredentialInference
+)
+
+// FormatOllamaConnectError turns probe/network failures into actionable setup hints.
+func FormatOllamaConnectError(err error) error {
+	return credential.FormatOllamaConnectError(err)
+}
+
+// ValidateKeyFormat checks a pasted secret before any provider is chosen.
+func ValidateKeyFormat(secret string) error {
+	return credential.ValidateKeyFormat(secret)
+}
+
+// ListCredentialProviders returns all registry providers for setup UIs.
+func ListCredentialProviders() []CredentialProviderOption {
+	return credential.ListCredentialProviders()
+}
+
+// ResolveCredential validates format and lists all providers (inferred ranked first).
+func ResolveCredential(ctx context.Context, secret string) CredentialResolveResult {
+	return credential.ResolveCredential(ctx, secret)
+}
+
+// InferenceFromOption converts a provider picker row to persistence metadata.
+func InferenceFromOption(opt CredentialProviderOption) CredentialInference {
+	return credential.InferenceFromOption(opt)
+}
+
+// LocalCredentialInference returns setup metadata for no-key providers.
+func LocalCredentialInference(providerID string) (CredentialInference, error) {
+	return credential.LocalCredentialInference(providerID)
+}
+
+// InferCredentialsFromAPIKey returns prefix-inferred candidates only.
+func InferCredentialsFromAPIKey(ctx context.Context, secret string) []CredentialInference {
+	return credential.InferCredentialsFromAPIKey(ctx, secret)
+}
+
+// CommitCredential validates and probes a credential before persistence.
+func CommitCredential(ctx context.Context, inference CredentialInference, secret string) error {
+	return credential.CommitCredential(ctx, inference, secret)
+}
+
+// CommitLocalCredential validates and probes a no-key provider.
+func CommitLocalCredential(ctx context.Context, inference CredentialInference, value string) error {
+	return credential.CommitLocalCredential(ctx, inference, value)
+}
+
+// ProbeCredential verifies a key against the provider API when a probe is configured.
+func ProbeCredential(ctx context.Context, envKey, secret string) error {
+	return credential.ProbeCredential(ctx, envKey, secret)
+}
+
+// ProbeLocalCredential verifies a local provider endpoint when configured.
+func ProbeLocalCredential(ctx context.Context, envKey, value string) error {
+	return credential.ProbeLocalCredential(ctx, envKey, value)
+}
+
+// ProviderIDForEnv maps an env var to registry provider id.
+func ProviderIDForEnv(envKey string) string {
+	return credential.ProviderIDForEnv(envKey)
+}
+
+// LooksLikePlaceholderSecret detects obvious placeholder API keys.
+func LooksLikePlaceholderSecret(secret string) bool {
+	return credential.LooksLikePlaceholderSecret(secret)
+}
+
+// ValidateCredentialSecret validates env-specific secret shape.
+func ValidateCredentialSecret(envKey, secret string) error {
+	return credential.ValidateCredentialSecret(envKey, secret)
+}

@@ -2,8 +2,11 @@
 package config
 
 import (
+	"context"
 	"os"
 	"testing"
+
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 func TestResolveProviderRequest(t *testing.T) {
@@ -50,17 +53,16 @@ func TestIsLocalProviderURL(t *testing.T) {
 }
 
 func TestIsOpenAICompatibleRuntimeEnabled(t *testing.T) {
-	// Clear all keys first
-	for _, k := range []string{"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "OPENAI_API_KEY", "OPENCODEGO_API_KEY", "OLLAMA_BASE_URL"} {
-		os.Unsetenv(k)
-	}
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+
 	if IsOpenAICompatibleRuntimeEnabled() {
 		t.Error("expected false with no keys set")
 	}
-	os.Setenv("OPENAI_API_KEY", "test-key")
-	defer os.Unsetenv("OPENAI_API_KEY")
+	_ = store.Set(context.Background(), credentials.AccountForEnv("OPENAI_API_KEY"), "test-key")
 	if !IsOpenAICompatibleRuntimeEnabled() {
-		t.Error("expected true with OPENAI_API_KEY set")
+		t.Error("expected true with OPENAI_API_KEY in secure store")
 	}
 }
 
@@ -79,8 +81,8 @@ func TestNormalizeOllamaOpenAIBaseURL(t *testing.T) {
 }
 
 func TestProviderDetectionOrder(t *testing.T) {
-	if len(APIProviderDetectionOrder) != 8 {
-		t.Errorf("expected 8 providers in detection order, got %d", len(APIProviderDetectionOrder))
+	if len(APIProviderDetectionOrder) != 9 {
+		t.Errorf("expected 9 providers in detection order, got %d", len(APIProviderDetectionOrder))
 	}
 	if APIProviderDetectionOrder[0] != ProviderAnthropic {
 		t.Error("expected anthropic first in detection order")

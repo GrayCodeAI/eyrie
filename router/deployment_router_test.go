@@ -49,8 +49,7 @@ func (m *deploymentMockProvider) Name() string                 { return m.name }
 
 func testCompiledCatalog(t *testing.T) *catalog.CompiledCatalogV1 {
 	t.Helper()
-	c := catalog.DefaultCatalogV1()
-	compiled, err := catalog.CompileCatalogV1(&c)
+	compiled, err := catalog.CompileTestCatalog()
 	if err != nil {
 		t.Fatalf("compile catalog: %v", err)
 	}
@@ -64,6 +63,9 @@ func TestDeploymentRouterRewritesCanonicalModelToNativeModel(t *testing.T) {
 		Deployments: map[string]DeploymentAdapter{
 			"anthropic-direct": {Provider: p},
 		},
+		Routing: RoutingPolicy{Providers: map[string][]RoutingStage{
+			"anthropic": {{Deployments: []DeploymentChoice{{DeploymentID: "anthropic-direct", Weight: 100}}}},
+		}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -103,12 +105,80 @@ func TestDeploymentRouterFallsBackAcrossStages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp, err := r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{Model: "claude-sonnet-4-6"})
+	resp, err := r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{Model: "anthropic/claude-sonnet-4-6"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resp.Content != "from vertex" && resp.Content != "from bedrock" {
 		t.Fatalf("expected fallback deployment, got %q", resp.Content)
+	}
+}
+
+func TestShouldTryNextDeploymentCredits(t *testing.T) {
+	err := fmt.Errorf("requires more credits, or fewer max_tokens; can only afford 5705")
+	if !ShouldTryNextDeployment(err) {
+		t.Fatal("expected credit error to allow next deployment")
+	}
+	if ShouldTryNextDeployment(fmt.Errorf("HTTP 401 unauthorized")) {
+		t.Fatal("auth errors should not try next deployment")
+	}
+}
+
+func TestDeploymentRouterFallsBackOnInsufficientCredits(t *testing.T) {
+	c := catalog.TestSeedCatalogV1()
+	c.Providers["moonshotai"] = catalog.ProviderV1{ID: "moonshotai", Name: "Moonshot AI"}
+	c.Models["moonshotai/kimi-k2.6"] = catalog.ModelV1{
+		ID:         "moonshotai/kimi-k2.6",
+		ProviderID: "moonshotai",
+		Name:       "Kimi K2.6",
+	}
+	c.Offerings = append(
+		c.Offerings,
+		catalog.ModelOfferingV1{
+			ID: "openrouter:moonshotai/kimi-k2.6", CanonicalModelID: "moonshotai/kimi-k2.6",
+			DeploymentID: "openrouter", NativeModelID: "moonshotai/kimi-k2.6",
+			Pricing: catalog.PricingV1{Status: catalog.PricingUnknown},
+		},
+		catalog.ModelOfferingV1{
+			ID: "canopywave:moonshotai/kimi-k2.6", CanonicalModelID: "moonshotai/kimi-k2.6",
+			DeploymentID: "canopywave", NativeModelID: "moonshotai/kimi-k2.6",
+			Pricing: catalog.PricingV1{Status: catalog.PricingUnknown},
+		},
+	)
+	compiled, err := catalog.CompileCatalogV1(&c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	openrouter := &deploymentMockProvider{
+		name: "openrouter",
+		err:  fmt.Errorf("requires more credits, or fewer max_tokens; can only afford 5705"),
+	}
+	canopywave := &deploymentMockProvider{name: "canopywave"}
+	r, err := NewDeploymentRouter(DeploymentRouterOptions{
+		Catalog: compiled,
+		Deployments: map[string]DeploymentAdapter{
+			"openrouter": {Provider: openrouter},
+			"canopywave": {Provider: canopywave},
+		},
+		Routing: RoutingPolicy{
+			Default: []RoutingStage{{
+				Deployments: []DeploymentChoice{{DeploymentID: "openrouter", Weight: 100}},
+				Retries:     1,
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{Model: "moonshotai/kimi-k2.6"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Content != "from canopywave" {
+		t.Fatalf("expected canopywave fallback, got %q", resp.Content)
+	}
+	if canopywave.lastModel != "moonshotai/kimi-k2.6" {
+		t.Fatalf("canopywave model = %q", canopywave.lastModel)
 	}
 }
 
@@ -163,6 +233,34 @@ func TestDeploymentRouterMaterializesAzureModelMapping(t *testing.T) {
 	}
 	if azure.lastModel != "gpt-4o-prod" {
 		t.Fatalf("azure native model = %q, want mapping", azure.lastModel)
+	}
+}
+
+func TestDeploymentRouterModelMappingOverridesCatalogOffering(t *testing.T) {
+	bedrock := &deploymentMockProvider{name: "bedrock"}
+	r, err := NewDeploymentRouter(DeploymentRouterOptions{
+		Catalog: testCompiledCatalog(t),
+		Deployments: map[string]DeploymentAdapter{
+			"anthropic-bedrock": {
+				Provider: bedrock,
+				ModelMappings: map[string]string{
+					"anthropic/claude-sonnet-4-6": "anthropic.claude-sonnet-4-6-bedrock",
+				},
+			},
+		},
+		Routing: RoutingPolicy{Models: map[string][]RoutingStage{
+			"anthropic/claude-sonnet-4-6": {{Deployments: []DeploymentChoice{{DeploymentID: "anthropic-bedrock", Weight: 100}}}},
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{Model: "anthropic/claude-sonnet-4-6"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bedrock.lastModel != "anthropic.claude-sonnet-4-6-bedrock" {
+		t.Fatalf("bedrock native model = %q, want mapping override", bedrock.lastModel)
 	}
 }
 

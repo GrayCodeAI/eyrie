@@ -12,7 +12,7 @@ import (
 )
 
 func TestCatalogV1FromLegacyCompiles(t *testing.T) {
-	c := DefaultCatalogV1()
+	c := testLegacyCatalogV1()
 	compiled, err := CompileCatalogV1(&c)
 	if err != nil {
 		t.Fatalf("CompileCatalogV1 failed: %v", err)
@@ -32,8 +32,37 @@ func TestCatalogV1FromLegacyCompiles(t *testing.T) {
 	}
 }
 
+func TestCatalogV1FromLegacyZAIDirectModels(t *testing.T) {
+	legacy := testLegacyModelCatalog()
+	legacy.Providers["z-ai"] = []ModelCatalogEntry{{ID: "glm-5.1", DisplayName: "GLM-5.1"}}
+	c := CatalogV1FromLegacy(legacy)
+	compiled, err := CompileCatalogV1(&c)
+	if err != nil {
+		t.Fatalf("CompileCatalogV1 failed: %v", err)
+	}
+	if _, ok := compiled.OfferingForDeployment("z-ai/glm-5.1", "z-ai-direct"); !ok {
+		t.Fatal("expected z-ai-direct offering on z-ai/glm-5.1")
+	}
+}
+
+func TestCatalogV1FromLegacyCanopyWaveNamespacedModels(t *testing.T) {
+	legacy := testLegacyModelCatalog()
+	legacy.Providers["canopywave"] = append(
+		legacy.Providers["canopywave"],
+		ModelCatalogEntry{ID: "moonshotai/kimi-k2.6", DisplayName: "Kimi K2.6"},
+	)
+	c := CatalogV1FromLegacy(legacy)
+	compiled, err := CompileCatalogV1(&c)
+	if err != nil {
+		t.Fatalf("CompileCatalogV1 failed: %v", err)
+	}
+	if _, ok := compiled.OfferingForDeployment("moonshotai/kimi-k2.6", "canopywave"); !ok {
+		t.Fatal("expected canopywave offering on moonshotai/kimi-k2.6")
+	}
+}
+
 func TestValidateCatalogV1RejectsBadReferences(t *testing.T) {
-	c := DefaultCatalogV1()
+	c := testLegacyCatalogV1()
 	c.Offerings = append(c.Offerings, ModelOfferingV1{
 		ID:               "missing:model",
 		CanonicalModelID: "anthropic/claude-sonnet-4-6",
@@ -49,7 +78,7 @@ func TestValidateCatalogV1RejectsBadReferences(t *testing.T) {
 func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
 	dir := t.TempDir()
 	cachePath := filepath.Join(dir, "catalog.json")
-	c := DefaultCatalogV1()
+	c := testLegacyCatalogV1()
 	c.SourceForTest("cache")
 	if err := WriteCatalogV1Cache(cachePath, &c); err != nil {
 		t.Fatalf("write cache: %v", err)
@@ -61,9 +90,8 @@ func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
 	}))
 	defer srv.Close()
 	compiled, err := LoadCatalogV1(context.Background(), LoadCatalogV1Options{
-		CachePath:     cachePath,
-		RemoteURL:     srv.URL,
-		RefreshRemote: true,
+		CachePath: cachePath,
+		RemoteURL: srv.URL,
 	})
 	if err != nil {
 		t.Fatalf("LoadCatalogV1 failed: %v", err)
@@ -76,11 +104,25 @@ func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
 	}
 }
 
-func TestLoadCatalogV1RejectsInvalidRemoteAndKeepsEmbedded(t *testing.T) {
+func TestLoadCatalogV1RefreshRemoteOverridesValidCache(t *testing.T) {
 	dir := t.TempDir()
-	cachePath := filepath.Join(dir, "missing.json")
+	cachePath := filepath.Join(dir, "catalog.json")
+	cached := testLegacyCatalogV1()
+	cached.SourceForTest("cache")
+	if err := WriteCatalogV1Cache(cachePath, &cached); err != nil {
+		t.Fatalf("write cache: %v", err)
+	}
+	remote := testLegacyCatalogV1()
+	remote.SourceForTest("remote")
+	data, err := json.Marshal(remote)
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(`{"schema_version":"model-catalog/v1"}`))
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(data)
 	}))
 	defer srv.Close()
 	compiled, err := LoadCatalogV1(context.Background(), LoadCatalogV1Options{
@@ -91,8 +133,28 @@ func TestLoadCatalogV1RejectsInvalidRemoteAndKeepsEmbedded(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadCatalogV1 failed: %v", err)
 	}
-	if compiled.Catalog.Provenance == nil || compiled.Catalog.Provenance.Source != "embedded" {
-		t.Fatalf("expected embedded fallback, got %#v", compiled.Catalog.Provenance)
+	if compiled.Catalog.Provenance == nil || compiled.Catalog.Provenance.Source != "remote" {
+		t.Fatalf("expected remote catalog, got %#v", compiled.Catalog.Provenance)
+	}
+	if calls != 1 {
+		t.Fatalf("remote calls = %d, want 1", calls)
+	}
+}
+
+func TestLoadCatalogV1RejectsInvalidRemote(t *testing.T) {
+	dir := t.TempDir()
+	cachePath := filepath.Join(dir, "missing.json")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"schema_version":"model-catalog/v1"}`))
+	}))
+	defer srv.Close()
+	_, err := LoadCatalogV1(context.Background(), LoadCatalogV1Options{
+		CachePath:     cachePath,
+		RemoteURL:     srv.URL,
+		RefreshRemote: true,
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid remote catalog")
 	}
 	if _, err := os.Stat(cachePath); !os.IsNotExist(err) {
 		t.Fatalf("invalid remote should not write cache, stat err=%v", err)
@@ -100,7 +162,7 @@ func TestLoadCatalogV1RejectsInvalidRemoteAndKeepsEmbedded(t *testing.T) {
 }
 
 func TestFetchRemoteCatalogV1StrictValidation(t *testing.T) {
-	c := DefaultCatalogV1()
+	c := testLegacyCatalogV1()
 	c.GeneratedAt = time.Now().UTC()
 	c.StaleAfter = c.GeneratedAt.Add(time.Hour)
 	data, err := json.Marshal(c)
