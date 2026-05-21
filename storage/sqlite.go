@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -217,29 +218,44 @@ func (s *SQLiteStore) IndexToolIDs(ctx context.Context, nodeID string, toolIDs [
 	return tx.Commit()
 }
 
-func (s *SQLiteStore) GetOrphanedToolUses(ctx context.Context, rootID string) ([]string, error) {
+func (s *SQLiteStore) GetOrphanedToolUses(ctx context.Context, ancestorIDs []string) (map[string][]string, error) {
+	if len(ancestorIDs) == 0 {
+		return nil, nil
+	}
+
+	placeholders := make([]string, len(ancestorIDs))
+	args := make([]any, 0, len(ancestorIDs)*2)
+	for i, id := range ancestorIDs {
+		placeholders[i] = "?"
+		args = append(args, id)
+	}
+	inClause := strings.Join(placeholders, ",")
+	for _, id := range ancestorIDs {
+		args = append(args, id)
+	}
+
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT t.tool_id FROM node_tool_ids t
-		JOIN nodes n ON n.id = t.node_id
-		WHERE n.root_id = ? AND t.role = 'tool_use'
-		AND t.tool_id NOT IN (
-			SELECT t2.tool_id FROM node_tool_ids t2
-			JOIN nodes n2 ON n2.id = t2.node_id
-			WHERE n2.root_id = ? AND t2.role = 'tool_result'
-		)`, rootID, rootID)
+		SELECT nti.node_id, nti.tool_id
+		FROM node_tool_ids nti
+		WHERE nti.node_id IN (`+inClause+`) AND nti.role = 'use'
+		AND nti.tool_id NOT IN (
+			SELECT tool_id FROM node_tool_ids
+			WHERE node_id IN (`+inClause+`) AND role = 'result'
+		)`, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = rows.Close() }()
-	var ids []string
+
+	result := make(map[string][]string)
 	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
+		var nodeID, toolID string
+		if err := rows.Scan(&nodeID, &toolID); err != nil {
 			return nil, err
 		}
-		ids = append(ids, id)
+		result[nodeID] = append(result[nodeID], toolID)
 	}
-	return ids, rows.Err()
+	return result, rows.Err()
 }
 
 func (s *SQLiteStore) scanNode(row *sql.Row) (*Node, error) {

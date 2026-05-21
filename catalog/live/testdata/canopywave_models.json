@@ -1,0 +1,30 @@
+{
+  "data": [
+    {
+      "id": "vendor/alpha",
+      "object": "model",
+      "owned_by": "vendor",
+      "input_token_price_per_m": 10,
+      "output_token_price_per_m": 20,
+      "display_name": "Alpha Model",
+      "description": "Synthetic test fixture only",
+      "context_size": 100000,
+      "status": 1,
+      "max_output_tokens": 4096,
+      "features": ["function-calling"],
+      "tags": ["test-fixture"]
+    },
+    {
+      "id": "vendor/beta",
+      "object": "model",
+      "owned_by": "vendor",
+      "input_token_price_per_m": 5,
+      "output_token_price_per_m": 15,
+      "display_name": "Beta Model",
+      "context_size": null,
+      "status": 1,
+      "max_output_tokens": null,
+      "features": ["vision"]
+    }
+  ]
+}

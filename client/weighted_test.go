@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"math/rand"
 	"testing"
 )
 
@@ -84,7 +85,7 @@ func TestWeightedProviderFailoverOnRetriableError(t *testing.T) {
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
 	secondary.mock.Response = "fallback success"
 
-	wp := NewWeightedProvider([]WeightedProviderConfig{
+	wp := newWeightedProviderForTest([]WeightedProviderConfig{
 		{Provider: primary, Weight: 1.0},    // will always be selected
 		{Provider: secondary, Weight: 0.01}, // extremely low weight
 	})
@@ -107,7 +108,7 @@ func TestWeightedProviderNoFailoverOnNonRetriableError(t *testing.T) {
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
 	secondary.mock.Response = "should not reach"
 
-	wp := NewWeightedProvider([]WeightedProviderConfig{
+	wp := newWeightedProviderForTest([]WeightedProviderConfig{
 		{Provider: primary, Weight: 1.0}, // always selected
 		{Provider: secondary, Weight: 0.01},
 	})
@@ -130,7 +131,7 @@ func TestWeightedProviderNoFailoverOn401(t *testing.T) {
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
 	secondary.mock.Response = "should not reach"
 
-	wp := NewWeightedProvider([]WeightedProviderConfig{
+	wp := newWeightedProviderForTest([]WeightedProviderConfig{
 		{Provider: primary, Weight: 1.0},
 		{Provider: secondary, Weight: 0.01},
 	})
@@ -243,6 +244,18 @@ func TestWeightedProviderPanicOnZeroWeight(t *testing.T) {
 	NewWeightedProvider([]WeightedProviderConfig{
 		{Provider: p, Weight: 0},
 	})
+}
+
+// zeroRandSource always yields 0 from Float64(), so weighted selection picks the highest-weight provider.
+type zeroRandSource struct{}
+
+func (zeroRandSource) Int63() int64 { return 0 }
+func (zeroRandSource) Seed(int64)   {}
+
+func newWeightedProviderForTest(configs []WeightedProviderConfig) *WeightedProvider {
+	wp := NewWeightedProvider(configs)
+	wp.rng = rand.New(zeroRandSource{})
+	return wp
 }
 
 // namedProvider wraps a mock provider with a custom name, used to distinguish

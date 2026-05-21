@@ -32,6 +32,10 @@ var (
 	GeminiCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens", SupportsUsageInStreaming: true,
 	}
+	ZAICompat = OpenAICompatConfig{
+		ThinkingFormat: "zai", MaxTokensField: "max_tokens",
+		SupportsUsageInStreaming: true,
+	}
 	CanopyWaveCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens",
 	}
@@ -56,6 +60,10 @@ func init() {
 	if p, ok := OpenAICompatibleProviders["gemini"]; ok {
 		p.Compat = &GeminiCompat
 		OpenAICompatibleProviders["gemini"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["z-ai"]; ok {
+		p.Compat = &ZAICompat
+		OpenAICompatibleProviders["z-ai"] = p
 	}
 	if p, ok := OpenAICompatibleProviders["canopywave"]; ok {
 		p.Compat = &CanopyWaveCompat

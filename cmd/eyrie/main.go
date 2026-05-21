@@ -8,7 +8,9 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/conversation"
@@ -48,6 +50,12 @@ func main() {
 		runServe(port)
 	case "version":
 		fmt.Println("eyrie " + client.Version)
+	case "catalog":
+		runCatalog(os.Args[2:])
+	case "routing":
+		runRouting(os.Args[2:])
+	case "status":
+		runStatus(os.Args[2:])
 	case "help", "--help", "-h":
 		printUsage()
 	default:
@@ -67,7 +75,94 @@ Usage:
   eyrie show <node-id>              Show node tree
   eyrie rm <node-id>                Delete node and children
   eyrie serve [port]                Start REST API server (default: 8080)
+  eyrie catalog refresh             Fetch published catalog only (no live provider APIs)
+  eyrie catalog discover            Remote catalog + live provider APIs (env API keys) → ~/.eyrie/model_catalog.json
+  eyrie catalog status              Show cached catalog metadata
+  eyrie routing preview <model>     Show effective routing JSON for a model
+  eyrie status [model]              Deployment routing status (optional model for route preview)
   eyrie version                     Print version`)
+}
+
+func runCatalog(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: eyrie catalog refresh|discover|status")
+		os.Exit(1)
+	}
+	switch args[0] {
+	case "refresh", "update":
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		result, err := catalog.RefreshCatalogV1(ctx, catalog.LoadCatalogV1Options{
+			CachePath: catalog.DefaultCachePath(),
+		})
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(result.Summary())
+	case "discover":
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		result, err := setup.DiscoverModelCatalog(ctx, config.DiscoveryCredentials(ctx))
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Print(result.DiscoverReport())
+	case "status":
+		path := catalog.DefaultCachePath()
+		exists, mod, size, err := catalog.CacheInfo(path)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		if !exists {
+			fmt.Printf("Catalog cache: not found at %s (embedded catalog used at runtime)\n", path)
+			return
+		}
+		compiled, err := catalog.LoadCatalogV1(context.Background(), catalog.LoadCatalogV1Options{CachePath: path})
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Catalog cache: %s\n", path)
+		fmt.Printf("  modified: %s (%d bytes)\n", mod.UTC().Format(time.RFC3339), size)
+		fmt.Printf("  models: %d  deployments: %d  offerings: %d\n",
+			len(compiled.ModelsByID), len(compiled.DeploymentsByID), len(compiled.OfferingsByID))
+		if time.Now().UTC().After(compiled.Catalog.StaleAfter) {
+			fmt.Println("  stale: yes — run `eyrie catalog discover`")
+		}
+	default:
+		fmt.Fprintln(os.Stderr, "usage: eyrie catalog refresh|discover|status")
+		os.Exit(1)
+	}
+}
+
+func runRouting(args []string) {
+	if len(args) < 2 || args[0] != "preview" {
+		fmt.Fprintln(os.Stderr, "usage: eyrie routing preview <model>")
+		os.Exit(1)
+	}
+	model := strings.Join(args[1:], " ")
+	out, err := setup.RoutingPreview(context.Background(), model)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println(out)
+}
+
+func runStatus(args []string) {
+	model := ""
+	if len(args) > 0 {
+		model = strings.Join(args, " ")
+	}
+	report, err := setup.DeploymentStatus(context.Background(), model)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println(setup.FormatStatus(report))
 }
 
 func openStore() storage.Store {
