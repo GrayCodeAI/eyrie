@@ -501,6 +501,8 @@ func canonicalProviderID(providerID string) string {
 		return "xai"
 	case "zai":
 		return "z-ai"
+	case "moonshotai":
+		return "moonshotai"
 	default:
 		return providerID
 	}
