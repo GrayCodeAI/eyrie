@@ -1,43 +1,10 @@
 package catalog
 
 import (
+	"strings"
+
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
-
-// CredentialProviderSpec defines paste-key setup metadata (derived from registry).
-type CredentialProviderSpec struct {
-	ProviderID   string
-	DisplayName  string
-	DeploymentID string
-	EnvVar       string
-	KeyPrefixes  []string
-	ProbeKind    string
-	ProbeBaseURL string
-	RequiresKey  bool
-	SortOrder    int
-}
-
-// CredentialProviderRegistry is derived from catalog/registry (single source of truth).
-var CredentialProviderRegistry = deriveCredentialRegistry()
-
-func deriveCredentialRegistry() []CredentialProviderSpec {
-	rows := registry.CredentialRegistry()
-	out := make([]CredentialProviderSpec, len(rows))
-	for i, r := range rows {
-		out[i] = CredentialProviderSpec{
-			ProviderID:   r.ProviderID,
-			DisplayName:  r.DisplayName,
-			DeploymentID: r.DeploymentID,
-			EnvVar:       r.EnvVar,
-			KeyPrefixes:  r.KeyPrefixes,
-			ProbeKind:    r.ProbeKind,
-			ProbeBaseURL: r.ProbeBaseURL,
-			RequiresKey:  r.RequiresKey,
-			SortOrder:    r.SortOrder,
-		}
-	}
-	return out
-}
 
 // EnsureCredentialRegistryInCatalog merges registry providers/deployments into catalog v1.
 func EnsureCredentialRegistryInCatalog(c *CatalogV1) {
@@ -50,7 +17,7 @@ func EnsureCredentialRegistryInCatalog(c *CatalogV1) {
 	if c.Deployments == nil {
 		c.Deployments = map[string]DeploymentV1{}
 	}
-	for _, spec := range registry.All() {
+	for _, spec := range registry.DefaultRegistry.All() {
 		pid := CanonicalProviderID(spec.ProviderID)
 		if c.Providers[pid].ID == "" {
 			c.Providers[pid] = ProviderV1{ID: pid, Name: spec.DisplayName}
@@ -69,23 +36,34 @@ func EnsureCredentialRegistryInCatalog(c *CatalogV1) {
 	EnsureDeploymentEnvFallbacks(c)
 }
 
-func SpecByEnvVar(env string) (CredentialProviderSpec, bool) {
-	for _, s := range CredentialProviderRegistry {
-		if s.EnvVar == env {
-			return s, true
-		}
-	}
-	return CredentialProviderSpec{}, false
+// SpecByEnvVar returns the registry ProviderSpec for the given credential env var.
+func SpecByEnvVar(env string) (registry.ProviderSpec, bool) {
+	return registry.DefaultRegistry.GetByEnv(env)
 }
 
-func SpecByProviderID(id string) (CredentialProviderSpec, bool) {
-	id = CanonicalProviderID(id)
-	for _, s := range CredentialProviderRegistry {
-		if CanonicalProviderID(s.ProviderID) == id {
+// SpecByProviderID returns the registry ProviderSpec for the given provider ID or catalog alias.
+func SpecByProviderID(id string) (registry.ProviderSpec, bool) {
+	id = strings.TrimSpace(id)
+	if s, ok := registry.DefaultRegistry.Get(id); ok {
+		return s, true
+	}
+	if alt := catalogProviderIDToRegistry(id); alt != id {
+		if s, ok := registry.DefaultRegistry.Get(alt); ok {
 			return s, true
 		}
 	}
-	return CredentialProviderSpec{}, false
+	return registry.ProviderSpec{}, false
+}
+
+func catalogProviderIDToRegistry(id string) string {
+	switch strings.TrimSpace(id) {
+	case "google":
+		return "gemini"
+	case "xai":
+		return "grok"
+	default:
+		return id
+	}
 }
 
 // ProviderDisplayName returns UI label from registry.

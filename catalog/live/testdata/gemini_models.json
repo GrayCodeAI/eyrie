@@ -1,0 +1,28 @@
+{
+  "models": [
+    {
+      "name": "models/gemini-2.0-flash",
+      "version": "001",
+      "displayName": "Gemini 2.0 Flash",
+      "description": "Fast and versatile multimodal model",
+      "inputTokenLimit": 128000,
+      "outputTokenLimit": 8192,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens"
+      ]
+    },
+    {
+      "name": "models/gemini-2.5-pro-exp-03-25",
+      "version": "001",
+      "displayName": "Gemini 2.5 Pro Experimental",
+      "description": "Enhanced reasoning model",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens"
+      ]
+    }
+  ]
+}

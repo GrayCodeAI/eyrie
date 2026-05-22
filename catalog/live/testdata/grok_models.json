@@ -1,0 +1,17 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "grok-3-beta",
+      "object": "model",
+      "created": 1740000000,
+      "owned_by": "xai"
+    },
+    {
+      "id": "grok-3-mini-beta",
+      "object": "model",
+      "created": 1740000001,
+      "owned_by": "xai"
+    }
+  ]
+}

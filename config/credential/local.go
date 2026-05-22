@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
 // CommitLocalCredential validates and probes a no-key provider (e.g. Ollama base URL).
@@ -16,7 +17,7 @@ func CommitLocalCredential(ctx context.Context, inference CredentialInference, v
 	if value == "" || envKey == "" {
 		return fmt.Errorf("commit local credential: value and env var required")
 	}
-	spec, ok := catalog.SpecByProviderID(inference.ProviderID)
+	spec, ok := registry.DefaultRegistry.Get(inference.ProviderID)
 	if !ok || spec.RequiresKey {
 		return fmt.Errorf("commit local credential: %s is not a local provider", inference.ProviderID)
 	}
@@ -65,12 +66,12 @@ func ProbeLocalCredential(ctx context.Context, envKey, value string) error {
 	if envKey == "" || value == "" {
 		return fmt.Errorf("local credential probe: env var and value required")
 	}
-	spec, ok := catalog.SpecByEnvVar(envKey)
+	spec, ok := registry.DefaultRegistry.GetByEnv(envKey)
 	if !ok {
 		return nil
 	}
 	switch spec.ProbeKind {
-	case "probe_ollama":
+	case registry.ProbeOllama:
 		err := probeOllama(ctx, value)
 		if err != nil {
 			return FormatOllamaConnectError(err)

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
 // CredentialProviderOption is one row for host provider pickers (JSON-safe).
@@ -44,8 +44,9 @@ func ValidateKeyFormat(secret string) error {
 
 // ListCredentialProviders returns all registered API-key providers for host pickers.
 func ListCredentialProviders() []CredentialProviderOption {
-	out := make([]CredentialProviderOption, len(catalog.CredentialProviderRegistry))
-	for i, spec := range catalog.CredentialProviderRegistry {
+	specs := registry.DefaultRegistry.CredentialProviders()
+	out := make([]CredentialProviderOption, len(specs))
+	for i, spec := range specs {
 		out[i] = optionFromSpec(spec, false, spec.SortOrder)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Rank < out[j].Rank })
@@ -63,7 +64,7 @@ func ResolveCredential(ctx context.Context, secret string) CredentialResolveResu
 		inferredSet[pid] = rank
 	}
 	var out []CredentialProviderOption
-	for _, spec := range catalog.CredentialProviderRegistry {
+	for _, spec := range registry.DefaultRegistry.CredentialProviders() {
 		if !spec.RequiresKey {
 			continue
 		}
@@ -95,11 +96,11 @@ func InferenceFromOption(opt CredentialProviderOption) CredentialInference {
 	}
 }
 
-func optionFromSpec(spec catalog.CredentialProviderSpec, inferred bool, rank int) CredentialProviderOption {
+func optionFromSpec(spec registry.ProviderSpec, inferred bool, rank int) CredentialProviderOption {
 	return CredentialProviderOption{
 		ProviderID:   spec.ProviderID,
 		DeploymentID: spec.DeploymentID,
-		EnvVar:       spec.EnvVar,
+		EnvVar:       spec.CredentialEnv,
 		DisplayName:  spec.DisplayName,
 		Inferred:     inferred,
 		RequiresKey:  spec.RequiresKey,
@@ -109,14 +110,14 @@ func optionFromSpec(spec catalog.CredentialProviderSpec, inferred bool, rank int
 
 // LocalCredentialInference returns setup metadata for no-key providers (e.g. Ollama).
 func LocalCredentialInference(providerID string) (CredentialInference, error) {
-	spec, ok := catalog.SpecByProviderID(strings.TrimSpace(providerID))
+	spec, ok := registry.DefaultRegistry.Get(strings.TrimSpace(providerID))
 	if !ok || spec.RequiresKey {
 		return CredentialInference{}, fmt.Errorf("local credential: unknown provider %q", providerID)
 	}
 	return CredentialInference{
 		ProviderID:   spec.ProviderID,
 		DeploymentID: spec.DeploymentID,
-		EnvVar:       spec.EnvVar,
+		EnvVar:       spec.CredentialEnv,
 		DisplayName:  spec.DisplayName,
 	}, nil
 }
@@ -128,7 +129,7 @@ func matchedProviderIDsFromRegistry(secret string) []string {
 		rank   int
 	}
 	var matches []match
-	for _, spec := range catalog.CredentialProviderRegistry {
+	for _, spec := range registry.DefaultRegistry.CredentialProviders() {
 		for pi, prefix := range spec.KeyPrefixes {
 			if prefix != "" && strings.HasPrefix(secret, prefix) {
 				matches = append(matches, match{id: spec.ProviderID, prefix: prefix, rank: spec.SortOrder*100 + pi})

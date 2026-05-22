@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	eyriecfg "github.com/GrayCodeAI/eyrie/config"
 )
 
@@ -84,6 +85,7 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 		if len(legacy.Providers) > 0 {
 			enriched := catalog.CatalogV1FromLegacy(legacy)
 			var replaceDeps []string
+			var preferProviders []string
 			for _, item := range enrichment {
 				if item.Error != "" || item.ModelCount <= 0 {
 					continue
@@ -91,9 +93,13 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 				if dep := catalog.DeploymentIDForLiveCatalogKey(item.Provider); dep != "" {
 					replaceDeps = append(replaceDeps, dep)
 				}
+				if spec, ok := registry.SpecForLiveFetcher(item.Provider); ok && spec.PreferLiveMerge {
+					preferProviders = append(preferProviders, catalog.CanonicalProviderID(spec.ProviderID))
+				}
 			}
 			base = MergeCatalogV1WithPolicy(base, &enriched, MergePolicy{
-				PreferLive:                 true,
+				PreferLive:                 len(preferProviders) > 0,
+				PreferLiveProviders:        preferProviders,
 				ReplaceDeploymentOfferings: replaceDeps,
 			})
 			now := time.Now().UTC().Truncate(time.Second)
