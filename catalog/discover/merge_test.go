@@ -165,8 +165,10 @@ func TestMergeCatalogV1WithPolicy_PreferLiveUnconditionalPricing(t *testing.T) {
 	dst.Offerings = []catalog.ModelOfferingV1{{
 		ID: "openrouter:model-a", CanonicalModelID: "openrouter/model-a",
 		DeploymentID: "openrouter", NativeModelID: "model-a",
-		Pricing: catalog.PricingV1{Status: catalog.PricingKnown, Currency: "USD",
-			RatesPer1M: map[string]float64{"input_tokens": 5, "output_tokens": 15}},
+		Pricing: catalog.PricingV1{
+			Status: catalog.PricingKnown, Currency: "USD",
+			RatesPer1M: map[string]float64{"input_tokens": 5, "output_tokens": 15},
+		},
 	}}
 	src := &catalog.CatalogV1{
 		Models: map[string]catalog.ModelV1{
@@ -175,8 +177,10 @@ func TestMergeCatalogV1WithPolicy_PreferLiveUnconditionalPricing(t *testing.T) {
 		Offerings: []catalog.ModelOfferingV1{{
 			ID: "openrouter:model-a", CanonicalModelID: "openrouter/model-a",
 			DeploymentID: "openrouter", NativeModelID: "model-a",
-			Pricing: catalog.PricingV1{Status: catalog.PricingKnown, Currency: "EUR",
-				RatesPer1M: map[string]float64{"input_tokens": 3, "output_tokens": 10}},
+			Pricing: catalog.PricingV1{
+				Status: catalog.PricingKnown, Currency: "EUR",
+				RatesPer1M: map[string]float64{"input_tokens": 3, "output_tokens": 10},
+			},
 		}},
 	}
 	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{

@@ -29,7 +29,7 @@ func TestFetchXiaomi_MockHTTPServer(t *testing.T) {
 	defer srv.Close()
 
 	entries, err := FetchXiaomi(map[string]string{
-		"XIAOMI_API_KEY": "test-xiaomi-key",
+		"XIAOMI_API_KEY":  "test-xiaomi-key",
 		"XIAOMI_BASE_URL": srv.URL,
 	})
 	if err != nil {
