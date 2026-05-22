@@ -86,6 +86,7 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 			enriched := catalog.CatalogV1FromLegacy(legacy)
 			var replaceDeps []string
 			var preferProviders []string
+			var liveOnlyProviders []string
 			for _, item := range enrichment {
 				if item.Error != "" || item.ModelCount <= 0 {
 					continue
@@ -94,13 +95,18 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 					replaceDeps = append(replaceDeps, dep)
 				}
 				if spec, ok := registry.SpecForLiveFetcher(item.Provider); ok && spec.PreferLiveMerge {
-					preferProviders = append(preferProviders, catalog.CanonicalProviderID(spec.ProviderID))
+					canonicalID := catalog.CanonicalProviderID(spec.ProviderID)
+					preferProviders = append(preferProviders, canonicalID)
+					if spec.ModelStrategy == registry.StrategyLiveOnly {
+						liveOnlyProviders = append(liveOnlyProviders, canonicalID)
+					}
 				}
 			}
 			base = MergeCatalogV1WithPolicy(base, &enriched, MergePolicy{
 				PreferLive:                 len(preferProviders) > 0,
 				PreferLiveProviders:        preferProviders,
 				ReplaceDeploymentOfferings: replaceDeps,
+				LiveOnlyProviders:          liveOnlyProviders,
 			})
 			now := time.Now().UTC().Truncate(time.Second)
 			base.GeneratedAt = now
