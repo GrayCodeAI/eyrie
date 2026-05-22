@@ -37,12 +37,12 @@ User → Hawk /config
 
 | Area | Problem |
 |------|---------|
-| **Live fetch** | Only OpenRouter, CanopyWave, Ollama — others rely 100% on remote JSON |
-| **Ollama** | Special path in hawk (`LiveOllamaModelOptions`) bypassing unified `ListModels` |
-| **Registry drift** | `CredentialProviderRegistry`, `liveDiscoverableDeployments`, `DefaultDeploymentEnvFallbacks` are three separate maps |
-| **Layering** | Hawk imports `eyrie/catalog`, `eyrie/config`, `eyrie/setup` directly in several files despite `eyrieclient` facade |
+| **Live fetch** | All 11 providers have fetchers, but 4 have zero test coverage (z-ai, opencodego, kimi, xiaomi) and 3 lack RawJSON preservation (Anthropic, Gemini, Ollama) |
+| **Ollama** | No longer bypasses `ListModels`; RetryConfig moved to ProviderSpec. Remaining: hardcoded `== "ollama"` in validation |
+| **Registry drift** | ✅ Fixed — `CredentialProviderRegistry` and `liveDiscoverableDeployments` removed; `DefaultDeploymentEnvFallbacks` consolidated (Item 1) |
+| **Layering** | Hawk still has ~112 files with direct eyrie imports (Phase A facade done, B-D remain) |
 | **Legacy API** | `FetchModelCatalog` / `providers.go` slices coexist with catalog v1 |
-| **Merge policy** | Add-only merge — live pricing/metadata never updates existing remote IDs |
+| **Merge policy** | ✅ Fixed — strategy-aware merge with `LiveOnlyProviders` and unconditional pricing for prefer-live (Item 2) |
 | **Display names** | `BuildSetupUI` has partial hardcoded provider labels |
 | **Docs** | `CREDENTIAL-SETUP-FLOW.md` out of date (7 vs 8 providers, Ollama wording) |
 
@@ -456,40 +456,42 @@ SetupUI(ctx, providerFilter)
 - [ ] Fix `displayNameForProvider` to read registry
 - [ ] Document current API in `hawk/docs/DYNAMIC-MODELS.md`
 
-### Phase 1 — Unify hawk access (2–3 days)
-- [ ] Move `LiveOllamaModelOptions`, direct catalog imports → `eyrieclient`
-- [ ] Hawk cmd imports only `eyrieclient` + `hawk/internal/config`
-- [ ] Add `runtime.FormatSetupError(provider, err)`
+### Phase 1 — Unify hawk access (in progress — Phase A done)
+- [x] `eyrieclient` facade package created with catalog/credentials/client/storage wrappers
+- [~] Migrate ~112 hawk files from direct eyrie imports to `eyrieclient` (Phase A: facade extended; B-D remain)
+- [x] Add `runtime.FormatSetupError(provider, err)`
 
-### Phase 2 — Provider registry (3–5 days)
-- [ ] Create `catalog/registry/` with `ProviderSpec`
-- [ ] Derive credential registry, env fallbacks, live registry from specs
-- [ ] Delete duplicated maps after migration tests pass
+### Phase 2 — Provider registry ✅
+- [x] Create `catalog/registry/` with `ProviderSpec`
+- [x] Derive credential registry, env fallbacks, live registry from specs
+- [x] Delete duplicated maps after migration tests pass
 
-### Phase 3 — Unified ListModels (3–4 days)
-- [ ] Implement `runtime.ListModels(ctx, ListModelsOpts)` with `Source: auto`
-- [ ] Ollama `live_only` enforced inside runtime (remove hawk special case)
-- [ ] Hawk picker uses single `eyrieclient.ListModels` path
+### Phase 3 — Unified ListModels ✅
+- [x] Implement `runtime.ListModels(ctx, ListModelsOpts)` with `Source: auto`
+- [x] Ollama `live_only` enforced inside runtime (remove hawk special case)
+- [x] Hawk picker uses single `eyrieclient.ListModels` path
 
-### Phase 4 — Live fetchers for all cloud providers (5–7 days)
-- [ ] Anthropic, OpenAI, Gemini, Grok live fetchers
-- [ ] OpenCode Go probe + live fetch
-- [ ] CanopyWave probe (replace `probe_none`)
-- [ ] Register all in `catalog/live/registry.go`
+### Phase 4 — Live fetchers for all cloud providers (~80% done)
+- [x] All 11 providers have live fetchers (Anthropic, OpenAI, Gemini, Grok, OpenRouter, CanopyWave, z-ai, opencodego, kimi, xiaomi, ollama)
+- [x] OpenCode Go probe + live fetch
+- [x] CanopyWave probe (was already `ProbeOpenAIModels`, plan doc was stale)
+- [x] Register all in `catalog/live/registry.go`
+- [~] RawJSON preserved in Anthropic, Gemini, Ollama; hardcoded context/max removed
+- [~] 9 new tests added for z-ai, opencodego, kimi, xiaomi
 
-### Phase 5 — Merge policy + cache (2–3 days)
-- [ ] Strategy-aware merge (`prefer_live` for pricing/context)
-- [ ] Discover mutex / in-flight dedup
+### Phase 5 — Merge policy + cache ✅
+- [x] Strategy-aware merge (`prefer_live` for pricing/context, `LiveOnlyProviders` full replace)
+- [x] Discover mutex / in-flight dedup
 - [ ] Enrichment metadata surfaced in SetupUI (`source` badge optional in UI)
 
-### Phase 6 — Folder reorg (2–3 days)
+### Phase 6 — Folder reorg (not started)
 - [ ] Move files per §4 (can be incremental with re-exports)
 - [ ] Move legacy catalog API to `catalog/legacy/`; mark deprecated
 - [ ] Remove hot-path usage of `FetchModelCatalog`
 
 ### Phase 7 — Tests + observability (ongoing)
-- [ ] Table-driven tests per provider spec (probe, live, merge, list)
-- [ ] httptest mock server shared fixtures in `catalog/live/testdata/`
+- [~] 9 new live fetcher tests for previously untested providers
+- [~] httptest mock server shared fixtures in `catalog/live/testdata/`
 - [ ] `Discover` enrichment logged: `{provider, model_count, error, duration_ms}`
 
 ---

@@ -134,7 +134,9 @@ func (r *ProviderRegistry) DeploymentEnvFallbacks() map[string][]EnvFallback {
 	for _, s := range r.specs {
 		var fb []EnvFallback
 		if s.RequiresKey && s.CredentialEnv != "" {
-			fb = append(fb, EnvFallback{Field: "api_key", Env: []string{s.CredentialEnv}})
+			envs := []string{s.CredentialEnv}
+			envs = append(envs, s.CredentialEnvFallbacks...)
+			fb = append(fb, EnvFallback{Field: "api_key", Env: envs})
 		}
 		if !s.RequiresKey && s.CredentialEnv != "" {
 			fb = append(fb, EnvFallback{Field: "base_url", Env: []string{s.CredentialEnv}})

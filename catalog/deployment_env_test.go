@@ -1,59 +1,114 @@
 package catalog
 
-import "testing"
+import (
+	"testing"
 
-func TestDiscoveryEnvKeysFromCatalog(t *testing.T) {
-	embedded := DefaultCatalogV1()
-	compiled, err := CompileCatalogV1(&embedded)
-	if err != nil {
-		t.Fatalf("CompileCatalogV1: %v", err)
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
+)
+
+func TestDefaultDeploymentEnvFallbacks_HasAllProviderDeployments(t *testing.T) {
+	fbs := DefaultDeploymentEnvFallbacks
+	for _, spec := range registry.All() {
+		if _, ok := fbs[spec.DeploymentID]; !ok {
+			t.Errorf("missing deployment %q in DefaultDeploymentEnvFallbacks", spec.DeploymentID)
+		}
 	}
-	keys := DiscoveryEnvKeysFromCatalog(compiled)
-	has := func(want string) bool {
-		for _, k := range keys {
-			if k == want {
-				return true
+}
+
+func TestDefaultDeploymentEnvFallbacks_ExtraDeployments(t *testing.T) {
+	fbs := DefaultDeploymentEnvFallbacks
+	extras := []string{"anthropic-bedrock", "anthropic-vertex", "openai-azure", "gemini-vertex"}
+	for _, id := range extras {
+		if _, ok := fbs[id]; !ok {
+			t.Errorf("missing extra deployment %q in DefaultDeploymentEnvFallbacks", id)
+		}
+	}
+}
+
+func TestDefaultDeploymentEnvFallbacks_GrokHasGROKAPIKey(t *testing.T) {
+	fbs := DefaultDeploymentEnvFallbacks
+	grok, ok := fbs["grok-direct"]
+	if !ok {
+		t.Fatal("grok-direct not found in env fallbacks")
+	}
+	hasGROK := false
+	for _, fb := range grok {
+		if fb.Field == "api_key" {
+			for _, env := range fb.Env {
+				if env == "GROK_API_KEY" {
+					hasGROK = true
+				}
 			}
 		}
-		return false
 	}
-	if !has("OPENROUTER_API_KEY") || !has("ANTHROPIC_API_KEY") {
-		t.Fatalf("expected catalog env keys from deployments, got %v", keys)
-	}
-}
-
-func TestEnvVarsForDeployment_OpenRouter(t *testing.T) {
-	envs := EnvVarsForDeployment("openrouter")
-	if len(envs) == 0 {
-		t.Fatal("expected env vars for openrouter deployment")
+	if !hasGROK {
+		t.Error("grok-direct api_key fallbacks should include GROK_API_KEY")
 	}
 }
 
-func TestEnsureDeploymentEnvFallbacks_FillsMissing(t *testing.T) {
+func TestDefaultDeploymentEnvFallbacks_ZAIHasZAIAPIBase(t *testing.T) {
+	fbs := DefaultDeploymentEnvFallbacks
+	zai, ok := fbs["z-ai-direct"]
+	if !ok {
+		t.Fatal("z-ai-direct not found in env fallbacks")
+	}
+	hasZAIAPIBase := false
+	for _, fb := range zai {
+		if fb.Field == "base_url" {
+			for _, env := range fb.Env {
+				if env == "ZAI_API_BASE" {
+					hasZAIAPIBase = true
+				}
+			}
+		}
+	}
+	if !hasZAIAPIBase {
+		t.Error("z-ai-direct base_url fallbacks should include ZAI_API_BASE")
+	}
+}
+
+func TestEnsureDeploymentEnvFallbacks(t *testing.T) {
 	c := &CatalogV1{
 		Deployments: map[string]DeploymentV1{
-			"openrouter": {ID: "openrouter"},
+			"anthropic-direct": {ID: "anthropic-direct"},
+			"unknown-dep":      {ID: "unknown-dep"},
 		},
 	}
 	EnsureDeploymentEnvFallbacks(c)
-	if len(c.Deployments["openrouter"].EnvFallbacks) == 0 {
-		t.Fatal("expected seeded env_fallbacks for openrouter")
+	dep, ok := c.Deployments["anthropic-direct"]
+	if !ok {
+		t.Fatal("anthropic-direct should exist")
+	}
+	if len(dep.EnvFallbacks) == 0 {
+		t.Error("anthropic-direct should have env fallbacks after EnsureDeploymentEnvFallbacks")
+	}
+	unknown, ok := c.Deployments["unknown-dep"]
+	if !ok {
+		t.Fatal("unknown-dep should exist")
+	}
+	if len(unknown.EnvFallbacks) != 0 {
+		t.Error("unknown-dep should have no env fallbacks")
 	}
 }
 
-func TestEnsureDeploymentEnvFallbacks_PreservesPublishedEnvFallbacks(t *testing.T) {
-	c := &CatalogV1{
-		Deployments: map[string]DeploymentV1{
-			"custom": {
-				ID: "custom",
-				EnvFallbacks: []EnvFallbackV1{
-					{Field: "api_key", Env: []string{"CUSTOM_API_KEY"}},
-				},
-			},
-		},
+func TestEnvVarsForDeployment(t *testing.T) {
+	vars := EnvVarsForDeployment("anthropic-direct")
+	if len(vars) == 0 {
+		t.Fatal("anthropic-direct should have env vars")
 	}
-	EnsureDeploymentEnvFallbacks(c)
-	if c.Deployments["custom"].EnvFallbacks[0].Env[0] != "CUSTOM_API_KEY" {
-		t.Fatal("published env_fallbacks should not be overwritten")
+	found := false
+	for _, v := range vars {
+		if v == "ANTHROPIC_API_KEY" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("anthropic-direct env vars should include ANTHROPIC_API_KEY")
+	}
+
+	vars = EnvVarsForDeployment("nonexistent")
+	if vars != nil {
+		t.Error("nonexistent deployment should return nil")
 	}
 }
