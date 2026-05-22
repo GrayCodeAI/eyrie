@@ -390,7 +390,8 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 	if apiKey == "" {
 		return nil, nil
 	}
-	url := "https://generativelanguage.googleapis.com/v1beta/models?key=" + apiKey
+	base := strings.TrimRight(envOr(env, "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com"), "/")
+	url := base + "/v1beta/models?key=" + apiKey
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
@@ -456,10 +457,7 @@ func FetchOllama(env map[string]string) ([]Entry, error) {
 	if baseURL == "" {
 		return nil, nil
 	}
-	root := strings.TrimRight(baseURL, "/")
-	if strings.HasSuffix(root, "/v1") {
-		root = strings.TrimSuffix(root, "/v1")
-	}
+	root := strings.TrimSuffix(strings.TrimRight(baseURL, "/"), "/v1")
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, root+"/api/tags", nil)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")

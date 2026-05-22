@@ -166,7 +166,7 @@ func FormatPreflightReport(r PreflightReport) string {
 		case PreflightFail:
 			icon = "✗"
 		}
-		b.WriteString(fmt.Sprintf("  %s %s: %s\n", icon, c.Name, c.Detail))
+		fmt.Fprintf(&b, "  %s %s: %s\n", icon, c.Name, c.Detail)
 	}
 	return strings.TrimRight(b.String(), "\n")
 }

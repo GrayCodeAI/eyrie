@@ -135,6 +135,12 @@ const (
 	ProviderTypeOpenAI ProviderType = "openai"
 	// ProviderTypeOpenAICompatible uses OpenAI-compatible APIs with custom base URLs.
 	ProviderTypeOpenAICompatible ProviderType = "openai-compatible"
+	// ProviderTypeAzure uses Azure OpenAI.
+	ProviderTypeAzure ProviderType = "azure"
+	// ProviderTypeBedrock uses AWS Bedrock.
+	ProviderTypeBedrock ProviderType = "bedrock"
+	// ProviderTypeVertex uses Google Vertex AI.
+	ProviderTypeVertex ProviderType = "vertex"
 )
 
 // ProviderRegistryConfig holds provider registry info.
@@ -153,6 +159,9 @@ type ProviderRegistryConfig struct {
 var CoreProviders = map[string]ProviderRegistryConfig{
 	"anthropic": {Name: "anthropic", Type: ProviderTypeAnthropic, EnvKey: "ANTHROPIC_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"openai":    {Name: "openai", Type: ProviderTypeOpenAI, BaseURL: "https://api.openai.com/v1", EnvKey: "OPENAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"azure":     {Name: "azure", Type: ProviderTypeAzure, EnvKey: "AZURE_OPENAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"bedrock":   {Name: "bedrock", Type: ProviderTypeBedrock, EnvKey: "AWS_SECRET_ACCESS_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"vertex":    {Name: "vertex", Type: ProviderTypeVertex, EnvKey: "VERTEX_ACCESS_TOKEN", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 }
 
 // OpenAICompatibleProviders use the OpenAI SDK with custom baseUrl.
@@ -283,6 +292,31 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 	switch info.Type {
 	case ProviderTypeAnthropic:
 		p = NewAnthropicClient(apiKey, info.BaseURL)
+	case ProviderTypeAzure:
+		endpoint := resolveEnvSecret("AZURE_OPENAI_ENDPOINT")
+		if endpoint == "" {
+			endpoint = info.BaseURL
+		}
+		apiVersion := resolveEnvSecret("AZURE_OPENAI_API_VERSION")
+		p = NewAzureClient(apiKey, endpoint, apiVersion)
+	case ProviderTypeBedrock:
+		region := resolveEnvSecret("AWS_REGION")
+		if region == "" {
+			region = resolveEnvSecret("AWS_DEFAULT_REGION")
+		}
+		if region == "" {
+			region = "us-east-1"
+		}
+		accessKey := resolveEnvSecret("AWS_ACCESS_KEY_ID")
+		sessionToken := resolveEnvSecret("AWS_SESSION_TOKEN")
+		p = NewBedrockClient(accessKey, apiKey, sessionToken, region)
+	case ProviderTypeVertex:
+		projectID := resolveEnvSecret("VERTEX_PROJECT_ID")
+		region := resolveEnvSecret("VERTEX_REGION")
+		if region == "" {
+			region = "us-central1"
+		}
+		p = NewVertexClient(projectID, region, apiKey)
 	default:
 		p = NewOpenAIClient(apiKey, info.BaseURL, info.Compat)
 	}
@@ -349,6 +383,22 @@ func (c *EyrieClient) StreamChatContinue(ctx context.Context, messages []EyrieMe
 	return StreamChatWithContinuation(ctx, p, messages, opts, cfg)
 }
 
+// CreateEmbedding sends an embedding request to the specified (or default) provider.
+func (c *EyrieClient) CreateEmbedding(ctx context.Context, req EmbeddingRequest, provider string) (*EmbeddingResponse, error) {
+	if provider == "" {
+		provider = c.defaultProvider
+	}
+	p, err := c.getOrCreateProvider(provider)
+	if err != nil {
+		return nil, err
+	}
+	embedder, ok := p.(Embedder)
+	if !ok {
+		return nil, fmt.Errorf("eyrie: provider %s does not support embeddings", provider)
+	}
+	return embedder.CreateEmbedding(ctx, req)
+}
+
 // Ping checks connectivity to the specified (or default) provider.
 func (c *EyrieClient) Ping(ctx context.Context, provider string) error {
 	if provider == "" {
@@ -386,6 +436,15 @@ func DetectProvider() string {
 		"openai":     func() bool { return credentials.HasSecret(ctx, "OPENAI_API_KEY") },
 		"opencodego": func() bool { return credentials.HasSecret(ctx, "OPENCODEGO_API_KEY") },
 		"ollama":     func() bool { return resolveEnvSecret("OLLAMA_BASE_URL") != "" },
+		"azure": func() bool {
+			return credentials.HasSecret(ctx, "AZURE_OPENAI_API_KEY") && resolveEnvSecret("AZURE_OPENAI_ENDPOINT") != ""
+		},
+		"bedrock": func() bool {
+			return credentials.HasSecret(ctx, "AWS_ACCESS_KEY_ID") && credentials.HasSecret(ctx, "AWS_SECRET_ACCESS_KEY")
+		},
+		"vertex": func() bool {
+			return credentials.HasSecret(ctx, "VERTEX_PROJECT_ID") && credentials.HasSecret(ctx, "VERTEX_ACCESS_TOKEN")
+		},
 	}
 	for _, p := range config.APIProviderDetectionOrder {
 		if fn, ok := checks[p]; ok && fn() {
@@ -430,8 +489,11 @@ func ParseCustomHeaders() map[string]string {
 
 // ResolveDefaultModel resolves the default model for a provider from the catalog.
 func ResolveDefaultModel(provider string) string {
-	cat := catalog.LoadModelCatalogSync("")
-	models := catalog.ModelsForProvider(&cat, provider)
+	cat, err := catalog.LoadCatalogV1(context.Background(), catalog.LoadCatalogV1Options{})
+	if err != nil {
+		return ""
+	}
+	models := catalog.ModelEntriesForProvider(cat, provider)
 	if len(models) > 0 {
 		return models[0].ID
 	}
