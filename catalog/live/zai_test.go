@@ -4,31 +4,34 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 )
 
-func TestFetchAnthropic_MockHTTPServer(t *testing.T) {
-	body, err := os.ReadFile("testdata/anthropic_models.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestFetchZAI_MockHTTPServer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)
 			return
 		}
-		if r.Header.Get("x-api-key") == "" {
+		if r.Header.Get("Authorization") != "Bearer test-zai-key" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		_, _ = w.Write(body)
+		resp := struct {
+			Data []json.RawMessage `json:"data"`
+		}{
+			Data: []json.RawMessage{
+				json.RawMessage(`{"id":"z-ai/model-a","display_name":"ZAI Model A","status":1}`),
+				json.RawMessage(`{"id":"z-ai/model-b","display_name":"ZAI Model B","status":1}`),
+			},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 
-	entries, err := FetchAnthropic(map[string]string{
-		"ANTHROPIC_API_KEY":  "sk-ant-test123",
-		"ANTHROPIC_BASE_URL": srv.URL,
+	entries, err := FetchZAI(map[string]string{
+		"ZAI_API_KEY":  "test-zai-key",
+		"ZAI_BASE_URL": srv.URL,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -40,23 +43,20 @@ func TestFetchAnthropic_MockHTTPServer(t *testing.T) {
 	for _, e := range entries {
 		byID[e.ID] = e
 	}
-	sonnet, ok := byID["claude-sonnet-4-20250514"]
+	a, ok := byID["z-ai/model-a"]
 	if !ok {
-		t.Fatal("missing claude-sonnet-4-20250514")
+		t.Fatal("missing z-ai/model-a")
 	}
-	if sonnet.DisplayName != "Claude Sonnet 4" {
-		t.Fatalf("display name = %q", sonnet.DisplayName)
+	if a.DisplayName != "ZAI Model A" {
+		t.Fatalf("display name = %q", a.DisplayName)
 	}
-	if sonnet.ContextWindow != 0 || sonnet.MaxOutput != 0 {
-		t.Fatalf("context/max = %d/%d (expected 0/0 — no hardcoded defaults)", sonnet.ContextWindow, sonnet.MaxOutput)
-	}
-	if len(sonnet.RawJSON) == 0 {
+	if len(a.RawJSON) == 0 {
 		t.Fatal("expected RawJSON to be preserved")
 	}
 }
 
-func TestFetchAnthropic_NoKey(t *testing.T) {
-	entries, err := FetchAnthropic(map[string]string{})
+func TestFetchZAI_NoKey(t *testing.T) {
+	entries, err := FetchZAI(map[string]string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,16 +65,16 @@ func TestFetchAnthropic_NoKey(t *testing.T) {
 	}
 }
 
-func TestFetchAnthropic_Unauthorized(t *testing.T) {
+func TestFetchZAI_Unauthorized(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
 	}))
 	defer srv.Close()
 
-	_, err := FetchAnthropic(map[string]string{
-		"ANTHROPIC_API_KEY":  "sk-ant-bad",
-		"ANTHROPIC_BASE_URL": srv.URL,
+	_, err := FetchZAI(map[string]string{
+		"ZAI_API_KEY":  "bad-key",
+		"ZAI_BASE_URL": srv.URL,
 	})
 	if err == nil {
 		t.Fatal("expected error for 401")

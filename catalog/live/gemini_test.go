@@ -51,6 +51,9 @@ func TestFetchGemini_MockHTTPServer(t *testing.T) {
 	if flash.ContextWindow != 128000 || flash.MaxOutput != 8192 {
 		t.Fatalf("context/max = %d/%d", flash.ContextWindow, flash.MaxOutput)
 	}
+	if len(flash.RawJSON) == 0 {
+		t.Fatal("expected RawJSON to be preserved")
+	}
 }
 
 func TestFetchGemini_NoKey(t *testing.T) {

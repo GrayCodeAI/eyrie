@@ -360,26 +360,31 @@ func FetchAnthropic(env map[string]string) ([]Entry, error) {
 		return nil, fmt.Errorf("anthropic model fetch failed (%d)", resp.StatusCode)
 	}
 	var payload struct {
-		Data []struct {
-			ID          string `json:"id"`
-			DisplayName string `json:"display_name"`
-		} `json:"data"`
+		Data []json.RawMessage `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
 	for _, raw := range payload.Data {
-		id := strings.TrimSpace(raw.ID)
+		var m struct {
+			ID          string `json:"id"`
+			DisplayName string `json:"display_name"`
+		}
+		if err := json.Unmarshal(raw, &m); err != nil {
+			continue
+		}
+		id := strings.TrimSpace(m.ID)
 		if id == "" {
 			continue
 		}
-		label := strings.TrimSpace(raw.DisplayName)
+		label := strings.TrimSpace(m.DisplayName)
 		if label == "" {
 			label = id
 		}
 		entries = append(entries, Entry{
-			ID: id, DisplayName: label, ContextWindow: 200000, MaxOutput: 8192,
+			ID: id, DisplayName: label,
+			RawJSON: append(json.RawMessage(nil), raw...),
 		})
 	}
 	return entries, nil
@@ -405,26 +410,30 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 		return nil, fmt.Errorf("gemini model fetch failed (%d)", resp.StatusCode)
 	}
 	var payload struct {
-		Models []struct {
-			Name                       string   `json:"name"`
-			DisplayName                string   `json:"displayName"`
-			InputTokenLimit            int      `json:"inputTokenLimit"`
-			OutputTokenLimit           int      `json:"outputTokenLimit"`
-			SupportedGenerationMethods []string `json:"supportedGenerationMethods"`
-		} `json:"models"`
+		Models []json.RawMessage `json:"models"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
 	for _, raw := range payload.Models {
-		name := strings.TrimSpace(raw.Name)
+		var m struct {
+			Name                       string   `json:"name"`
+			DisplayName                string   `json:"displayName"`
+			InputTokenLimit            int      `json:"inputTokenLimit"`
+			OutputTokenLimit           int      `json:"outputTokenLimit"`
+			SupportedGenerationMethods []string `json:"supportedGenerationMethods"`
+		}
+		if err := json.Unmarshal(raw, &m); err != nil {
+			continue
+		}
+		name := strings.TrimSpace(m.Name)
 		if name == "" {
 			continue
 		}
 		supportsGen := false
-		for _, m := range raw.SupportedGenerationMethods {
-			if m == "generateContent" {
+		for _, method := range m.SupportedGenerationMethods {
+			if method == "generateContent" {
 				supportsGen = true
 				break
 			}
@@ -433,20 +442,21 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 			continue
 		}
 		id := strings.TrimPrefix(name, "models/")
-		label := strings.TrimSpace(raw.DisplayName)
+		label := strings.TrimSpace(m.DisplayName)
 		if label == "" {
 			label = id
 		}
-		ctxWin := raw.InputTokenLimit
+		ctxWin := m.InputTokenLimit
 		if ctxWin <= 0 {
 			ctxWin = 128000
 		}
-		maxOut := raw.OutputTokenLimit
+		maxOut := m.OutputTokenLimit
 		if maxOut <= 0 {
 			maxOut = 8192
 		}
 		entries = append(entries, Entry{
 			ID: id, DisplayName: label, ContextWindow: ctxWin, MaxOutput: maxOut,
+			RawJSON: append(json.RawMessage(nil), raw...),
 		})
 	}
 	return entries, nil
@@ -471,21 +481,26 @@ func FetchOllama(env map[string]string) ([]Entry, error) {
 		return nil, fmt.Errorf("ollama model fetch failed (%d)", resp.StatusCode)
 	}
 	var payload struct {
-		Models []struct {
-			Name string `json:"name"`
-		} `json:"models"`
+		Models []json.RawMessage `json:"models"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
 	for _, raw := range payload.Models {
-		id := strings.TrimSpace(raw.Name)
+		var m struct {
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal(raw, &m); err != nil {
+			continue
+		}
+		id := strings.TrimSpace(m.Name)
 		if id == "" {
 			continue
 		}
 		entries = append(entries, Entry{
-			ID: id, DisplayName: id, ContextWindow: 32000, MaxOutput: 4096,
+			ID: id, DisplayName: id,
+			RawJSON: append(json.RawMessage(nil), raw...),
 		})
 	}
 	return entries, nil

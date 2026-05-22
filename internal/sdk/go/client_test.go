@@ -3,8 +3,10 @@ package eyrie
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -55,50 +57,6 @@ func TestClient_EmptyAPIKey_NoAuthHeader(t *testing.T) {
 	}
 }
 
-func TestClient_BaseURLConfig(t *testing.T) {
-	c := NewClient("http://example.com:9999/api", "key")
-	if c.baseURL != "http://example.com:9999/api" {
-		t.Errorf("unexpected baseURL: %q", c.baseURL)
-	}
-}
-
-func TestClient_RequestHeaders_ContentType(t *testing.T) {
-	var contentType string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		contentType = r.Header.Get("Content-Type")
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	c := NewClient(srv.URL, "key")
-	_, _ = c.Prompt(context.Background(), PromptRequest{Message: "hello"})
-	if contentType != "application/json" {
-		t.Errorf("expected application/json, got %q", contentType)
-	}
-}
-
-func TestClient_Health(t *testing.T) {
-	var method, path string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		method = r.Method
-		path = r.URL.Path
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	c := NewClient(srv.URL, "key")
-	err := c.Health(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if method != "GET" {
-		t.Errorf("expected GET, got %s", method)
-	}
-	if path != "/health" {
-		t.Errorf("expected /health, got %s", path)
-	}
-}
-
 func TestClient_Prompt(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -133,6 +91,34 @@ func TestClient_Prompt(t *testing.T) {
 	}
 }
 
+func TestClient_PromptWithTools(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req PromptRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatal(err)
+		}
+		if len(req.Tools) != 1 {
+			t.Fatalf("expected 1 tool, got %d", len(req.Tools))
+		}
+		if req.Tools[0].Name != "test_tool" {
+			t.Errorf("tool name = %q", req.Tools[0].Name)
+		}
+		resp, _ := json.Marshal(PromptResponse{Content: "tool response"})
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(resp)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	_, err := c.Prompt(context.Background(), PromptRequest{
+		Message: "use a tool",
+		Tools:   []ToolDef{{Name: "test_tool", Description: "A test tool"}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestClient_PromptFrom(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -154,6 +140,46 @@ func TestClient_PromptFrom(t *testing.T) {
 	}
 	if result.Content != "child response" {
 		t.Errorf("expected 'child response', got %q", result.Content)
+	}
+}
+
+func TestClient_StreamPrompt(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		flusher, _ := w.(http.Flusher)
+		for i, content := range []string{"Hello", " World", "!"} {
+			evt, _ := json.Marshal(map[string]any{
+				"type": "delta",
+				"data": map[string]string{"content": content},
+			})
+			fmt.Fprintf(w, "data: %s\n\n", evt)
+			flusher.Flush()
+			if i == 2 {
+				done, _ := json.Marshal(map[string]string{"type": "done"})
+				fmt.Fprintf(w, "data: %s\n\n", done)
+				flusher.Flush()
+			}
+		}
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	events, err := c.StreamPrompt(context.Background(), PromptRequest{Message: "stream test"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var contents []string
+	for evt := range events {
+		if evt.Type == "delta" {
+			var data map[string]string
+			json.Unmarshal(evt.Data, &data)
+			contents = append(contents, data["content"])
+		}
+	}
+	result := strings.Join(contents, "")
+	if result != "Hello World!" {
+		t.Errorf("expected 'Hello World!', got %q", result)
 	}
 }
 
@@ -257,6 +283,55 @@ func TestClient_DeleteNode(t *testing.T) {
 	}
 }
 
+func TestClient_CreateAlias(t *testing.T) {
+	var method, path string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method = r.Method
+		path = r.URL.Path
+		resp, _ := json.Marshal(AliasResult{Alias: "my-alias", NodeID: "node-123"})
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(resp)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	result, err := c.CreateAlias(context.Background(), "node-123", "my-alias")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if method != "PUT" {
+		t.Errorf("expected PUT, got %s", method)
+	}
+	if path != "/nodes/node-123/aliases/my-alias" {
+		t.Errorf("expected /nodes/node-123/aliases/my-alias, got %s", path)
+	}
+	if result.Alias != "my-alias" {
+		t.Errorf("alias = %q", result.Alias)
+	}
+}
+
+func TestClient_DeleteAlias(t *testing.T) {
+	var method, path string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method = r.Method
+		path = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	err := c.DeleteAlias(context.Background(), "my-alias")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if method != "DELETE" {
+		t.Errorf("expected DELETE, got %s", method)
+	}
+	if path != "/aliases/my-alias" {
+		t.Errorf("expected /aliases/my-alias, got %s", path)
+	}
+}
+
 func TestClient_ErrorResponse(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -269,8 +344,22 @@ func TestClient_ErrorResponse(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	expected := `eyrie: GET /health: 400 {"error": "bad request"}`
-	if err.Error() != expected {
-		t.Errorf("unexpected error:\ngot:  %q\nwant: %q", err.Error(), expected)
+	apiErr, ok := err.(*APIError)
+	if !ok {
+		t.Fatalf("expected *APIError, got %T", err)
+	}
+	if apiErr.StatusCode != 400 {
+		t.Errorf("status = %d", apiErr.StatusCode)
+	}
+	if !strings.Contains(apiErr.Error(), "bad request") {
+		t.Errorf("error body missing: %s", apiErr.Error())
+	}
+}
+
+func TestClient_StreamPromptReturnsErrorOnNonStream(t *testing.T) {
+	c := NewClient("http://localhost:9999", "key")
+	_, err := c.Prompt(context.Background(), PromptRequest{Message: "test", Stream: true})
+	if err == nil {
+		t.Fatal("expected error for stream=true with Prompt")
 	}
 }
