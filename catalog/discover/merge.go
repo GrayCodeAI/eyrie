@@ -1,6 +1,8 @@
 package discover
 
 import (
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
@@ -9,7 +11,16 @@ import (
 // MergePolicy controls catalog merge behavior when enriching from live APIs.
 type MergePolicy struct {
 	PreferLive                 bool
+	PreferLiveProviders        []string
 	ReplaceDeploymentOfferings []string
+}
+
+func (p MergePolicy) preferLiveForProvider(providerID string) bool {
+	if len(p.PreferLiveProviders) == 0 {
+		return p.PreferLive
+	}
+	providerID = strings.TrimSpace(providerID)
+	return providerID != "" && slices.Contains(p.PreferLiveProviders, providerID)
 }
 
 // MergeCatalogV1 merges models, offerings, providers, deployments, and aliases from src into dst.
@@ -70,32 +81,31 @@ func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *
 		}
 	}
 	for id, m := range src.Models {
-		if existing, ok := dst.Models[id]; ok && policy.PreferLive {
-			if m.ContextWindow > 0 {
-				existing.ContextWindow = m.ContextWindow
+		if existing, ok := dst.Models[id]; ok {
+			if policy.preferLiveForProvider(m.ProviderID) {
+				dst.Models[id] = mergeModelV1(existing, m)
 			}
-			if m.MaxOutput > 0 {
-				existing.MaxOutput = m.MaxOutput
-			}
-			if strings.TrimSpace(m.Name) != "" {
-				existing.Name = m.Name
-			}
-			dst.Models[id] = existing
 			continue
 		}
 		if dst.Models[id].ID == "" {
 			dst.Models[id] = m
 		}
 	}
-	seen := map[string]bool{}
-	for _, o := range dst.Offerings {
-		seen[o.ID] = true
+	seen := map[string]int{}
+	for i, o := range dst.Offerings {
+		seen[o.ID] = i
 	}
 	for _, o := range src.Offerings {
-		if o.ID == "" || seen[o.ID] {
+		if o.ID == "" {
 			continue
 		}
-		seen[o.ID] = true
+		if idx, ok := seen[o.ID]; ok {
+			if policy.preferLiveForProvider(providerIDForOffering(dst, o)) {
+				dst.Offerings[idx] = mergeOfferingV1(dst.Offerings[idx], o)
+			}
+			continue
+		}
+		seen[o.ID] = len(dst.Offerings)
 		dst.Offerings = append(dst.Offerings, o)
 	}
 	if dst.Aliases == nil {
@@ -107,4 +117,117 @@ func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *
 		}
 	}
 	return dst
+}
+
+func providerIDForOffering(c *catalog.CatalogV1, offering catalog.ModelOfferingV1) string {
+	if c == nil {
+		return ""
+	}
+	model, ok := c.Models[offering.CanonicalModelID]
+	if ok {
+		return model.ProviderID
+	}
+	return ""
+}
+
+func mergeModelV1(existing, live catalog.ModelV1) catalog.ModelV1 {
+	if strings.TrimSpace(live.ProviderID) != "" {
+		existing.ProviderID = live.ProviderID
+	}
+	if strings.TrimSpace(live.Name) != "" {
+		existing.Name = live.Name
+	}
+	if strings.TrimSpace(live.Family) != "" {
+		existing.Family = live.Family
+	}
+	if live.ContextWindow > 0 {
+		existing.ContextWindow = live.ContextWindow
+	}
+	if live.MaxOutput > 0 {
+		existing.MaxOutput = live.MaxOutput
+	}
+	if len(live.Aliases) > 0 {
+		existing.Aliases = unionStrings(existing.Aliases, live.Aliases)
+	}
+	if live.Provenance != nil {
+		existing.Provenance = live.Provenance
+	}
+	return existing
+}
+
+func mergeOfferingV1(existing, live catalog.ModelOfferingV1) catalog.ModelOfferingV1 {
+	if strings.TrimSpace(live.CanonicalModelID) != "" {
+		existing.CanonicalModelID = live.CanonicalModelID
+	}
+	if strings.TrimSpace(live.DeploymentID) != "" {
+		existing.DeploymentID = live.DeploymentID
+	}
+	if strings.TrimSpace(live.NativeModelID) != "" {
+		existing.NativeModelID = live.NativeModelID
+	}
+	existing.Capabilities = mergeCapabilities(existing.Capabilities, live.Capabilities)
+	if shouldReplacePricing(existing.Pricing, live.Pricing) {
+		existing.Pricing = live.Pricing
+	}
+	if len(live.LiveMetadata) > 0 {
+		existing.LiveMetadata = live.LiveMetadata
+	}
+	if live.Provenance != nil {
+		existing.Provenance = live.Provenance
+	}
+	return existing
+}
+
+func mergeCapabilities(existing, live catalog.CapabilitySetV1) catalog.CapabilitySetV1 {
+	if len(live.ServerTools) > 0 {
+		if existing.ServerTools == nil {
+			existing.ServerTools = map[string]catalog.CapabilityState{}
+		}
+		maps.Copy(existing.ServerTools, live.ServerTools)
+	}
+	if live.FunctionCalling != "" {
+		existing.FunctionCalling = live.FunctionCalling
+	}
+	if live.ExplicitThinkingBudget != "" {
+		existing.ExplicitThinkingBudget = live.ExplicitThinkingBudget
+	}
+	return existing
+}
+
+func shouldReplacePricing(existing, live catalog.PricingV1) bool {
+	if live.Status == "" {
+		return false
+	}
+	if existing.Status == catalog.PricingUnknown && live.Status != catalog.PricingUnknown {
+		return true
+	}
+	if existing.Status == catalog.PricingPartial && live.Status == catalog.PricingKnown {
+		return true
+	}
+	if len(live.RatesPer1M) > 0 {
+		return true
+	}
+	return existing.Status == ""
+}
+
+func unionStrings(left, right []string) []string {
+	seen := make(map[string]bool, len(left)+len(right))
+	out := make([]string, 0, len(left)+len(right))
+	for _, item := range left {
+		item = strings.TrimSpace(item)
+		if item == "" || seen[item] {
+			continue
+		}
+		seen[item] = true
+		out = append(out, item)
+	}
+	for _, item := range right {
+		item = strings.TrimSpace(item)
+		if item == "" || seen[item] {
+			continue
+		}
+		seen[item] = true
+		out = append(out, item)
+	}
+	return out
 }

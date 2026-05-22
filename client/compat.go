@@ -51,6 +51,15 @@ var (
 	XiaomiCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens",
 	}
+	AzureCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
+	BedrockCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
+	VertexCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
 )
 
 func init() {
@@ -94,5 +103,17 @@ func init() {
 	if p, ok := CoreProviders["openai"]; ok {
 		p.Compat = &OpenAICompat
 		CoreProviders["openai"] = p
+	}
+	if p, ok := CoreProviders["azure"]; ok {
+		p.Compat = &AzureCompat
+		CoreProviders["azure"] = p
+	}
+	if p, ok := CoreProviders["bedrock"]; ok {
+		p.Compat = &BedrockCompat
+		CoreProviders["bedrock"] = p
+	}
+	if p, ok := CoreProviders["vertex"]; ok {
+		p.Compat = &VertexCompat
+		CoreProviders["vertex"] = p
 	}
 }

@@ -122,16 +122,16 @@ func (r *RefreshResult) DiscoverReport() string {
 		for _, p := range r.LiveProviders {
 			switch {
 			case p.Error != "" && strings.HasPrefix(p.Error, "skipped"):
-				b.WriteString(fmt.Sprintf("    - %s: %s\n", p.Provider, p.Error))
+				fmt.Fprintf(&b, "    - %s: %s\n", p.Provider, p.Error)
 			case p.Error != "":
-				b.WriteString(fmt.Sprintf("    - %s: failed (%s)\n", p.Provider, p.Error))
+				fmt.Fprintf(&b, "    - %s: failed (%s)\n", p.Provider, p.Error)
 			default:
-				b.WriteString(fmt.Sprintf("    - %s: %d models merged\n", p.Provider, p.ModelCount))
+				fmt.Fprintf(&b, "    - %s: %d models merged\n", p.Provider, p.ModelCount)
 			}
 		}
 	}
 	if !r.StaleAfter.IsZero() {
-		b.WriteString(fmt.Sprintf("  stale_after: %s\n", r.StaleAfter.UTC().Format(time.RFC3339)))
+		fmt.Fprintf(&b, "  stale_after: %s\n", r.StaleAfter.UTC().Format(time.RFC3339))
 	}
 	return strings.TrimRight(b.String(), "\n") + "\n"
 }

@@ -86,9 +86,9 @@ func FormatStatus(report StatusReport) string {
 	} else {
 		b.WriteString("disabled (legacy provider client)\n")
 	}
-	b.WriteString(fmt.Sprintf("Provider config: %s", report.ProviderConfig))
+	fmt.Fprintf(&b, "Provider config: %s", report.ProviderConfig)
 	if report.ConfigVersion > 0 {
-		b.WriteString(fmt.Sprintf(" (v%d)", report.ConfigVersion))
+		fmt.Fprintf(&b, " (v%d)", report.ConfigVersion)
 	}
 	b.WriteString("\n")
 	if len(report.Configured) > 0 {
@@ -96,21 +96,21 @@ func FormatStatus(report StatusReport) string {
 	} else {
 		b.WriteString("Configured deployments: none (set API keys or deployments in provider.json)\n")
 	}
-	b.WriteString(fmt.Sprintf("Catalog cache: %s\n", report.CatalogCache))
+	fmt.Fprintf(&b, "Catalog cache: %s\n", report.CatalogCache)
 	if report.CatalogExists {
 		age := time.Since(report.CatalogModified).Truncate(time.Second)
-		b.WriteString(fmt.Sprintf("  cached: yes (modified %s ago, %d models, %d deployments, %d offerings)\n",
-			age, report.CatalogModels, report.CatalogDeployments, report.CatalogOfferings))
+		fmt.Fprintf(&b, "  cached: yes (modified %s ago, %d models, %d deployments, %d offerings)\n",
+			age, report.CatalogModels, report.CatalogDeployments, report.CatalogOfferings)
 	} else {
-		b.WriteString(fmt.Sprintf("  cached: no (using embedded catalog: %d models)\n", report.CatalogModels))
+		fmt.Fprintf(&b, "  cached: no (using embedded catalog: %d models)\n", report.CatalogModels)
 	}
 	if report.CatalogStale {
 		b.WriteString("  stale: yes — hawk refreshes automatically; use `hawk models refresh` or `/refresh-model-catalog` for a manual run\n")
 	}
 	if report.ActiveModel != "" {
-		b.WriteString(fmt.Sprintf("Active canonical model: %s\n", report.ActiveModel))
+		fmt.Fprintf(&b, "Active canonical model: %s\n", report.ActiveModel)
 		if report.RoutingSource != "" {
-			b.WriteString(fmt.Sprintf("Routing: %s (%d stages)\n", report.RoutingSource, report.RoutingStages))
+			fmt.Fprintf(&b, "Routing: %s (%d stages)\n", report.RoutingSource, report.RoutingStages)
 		}
 	}
 	return strings.TrimRight(b.String(), "\n")
