@@ -29,7 +29,7 @@ func TestFetchKimi_MockHTTPServer(t *testing.T) {
 	defer srv.Close()
 
 	entries, err := FetchKimi(map[string]string{
-		"MOONSHOT_API_KEY": "test-kimi-key",
+		"MOONSHOT_API_KEY":  "test-kimi-key",
 		"MOONSHOT_BASE_URL": srv.URL,
 	})
 	if err != nil {
