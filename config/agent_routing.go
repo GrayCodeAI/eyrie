@@ -117,7 +117,7 @@ func AgentRoutingSummary() string {
 	var b strings.Builder
 	b.WriteString("Agent routing:\n")
 	for agentType, route := range cfg.Routes {
-		b.WriteString(fmt.Sprintf("  %s → %s\n", agentType, route))
+		fmt.Fprintf(&b, "  %s → %s\n", agentType, route)
 	}
 	return b.String()
 }

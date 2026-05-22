@@ -83,9 +83,7 @@ func readLegacyEnvFile(path string) (map[string]string, error) {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		if strings.HasPrefix(line, "export ") {
-			line = strings.TrimPrefix(line, "export ")
-		}
+		line = strings.TrimPrefix(line, "export ")
 		idx := strings.Index(line, "=")
 		if idx < 0 {
 			continue

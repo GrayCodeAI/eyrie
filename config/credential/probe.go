@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
 const credentialProbeTimeout = 8 * time.Second
@@ -20,11 +21,11 @@ func ProbeCredential(ctx context.Context, envKey, secret string) error {
 	if secret == "" || envKey == "" {
 		return fmt.Errorf("credential probe: key and env var required")
 	}
-	spec, ok := catalog.SpecByEnvVar(envKey)
+	spec, ok := registry.DefaultRegistry.GetByEnv(envKey)
 	if !ok {
 		return nil
 	}
-	if spec.ProbeKind == "" || spec.ProbeKind == "probe_none" {
+	if spec.ProbeKind == "" || spec.ProbeKind == registry.ProbeNone {
 		return nil
 	}
 	if ctx == nil {
@@ -34,13 +35,13 @@ func ProbeCredential(ctx context.Context, envKey, secret string) error {
 	defer cancel()
 
 	switch spec.ProbeKind {
-	case "probe_openai_models":
+	case registry.ProbeOpenAIModels:
 		return probeOpenAIModels(ctx, spec.ProbeBaseURL, secret)
-	case "probe_anthropic":
+	case registry.ProbeAnthropic:
 		return probeAnthropic(ctx, secret)
-	case "probe_gemini":
+	case registry.ProbeGemini:
 		return probeGemini(ctx, secret)
-	case "probe_ollama":
+	case registry.ProbeOllama:
 		err := probeOllama(ctx, secret)
 		if err != nil {
 			return FormatOllamaConnectError(err)

@@ -1,7 +1,17 @@
 package registry
 
+func init() {
+	for _, spec := range providerSpecs() {
+		DefaultRegistry.Register(spec)
+	}
+}
+
 // All returns every registered provider spec (sorted by SortOrder at use sites).
 func All() []ProviderSpec {
+	return DefaultRegistry.All()
+}
+
+func providerSpecs() []ProviderSpec {
 	return []ProviderSpec{
 		{
 			ProviderID: "anthropic", DisplayName: "Anthropic", DeploymentID: "anthropic-direct", SortOrder: 1,

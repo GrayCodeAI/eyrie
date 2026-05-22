@@ -1,7 +1,9 @@
 package discover_test
 
 import (
+	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/catalog/discover"
@@ -36,5 +38,91 @@ func TestMergeCatalogV1WithPolicy_ReplacesDeploymentOfferings(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("expected live canopywave offering after replace merge")
+	}
+}
+
+func TestMergeCatalogV1WithPolicy_PreferLiveUpdatesExistingModel(t *testing.T) {
+	dst := catalog.TestSeedCatalogV1()
+	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
+		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet",
+		ContextWindow: 100000, MaxOutput: 4096, Aliases: []string{"claude-sonnet"},
+	}
+	src := &catalog.CatalogV1{
+		Models: map[string]catalog.ModelV1{
+			"anthropic/claude-sonnet-4-6": {
+				ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet 4.6",
+				ContextWindow: 200000, MaxOutput: 8192, Aliases: []string{"sonnet-4-6"},
+				Provenance: &catalog.CatalogProvenanceV1{Source: "live", ObservedAt: time.Now().UTC()},
+			},
+		},
+	}
+	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{
+		PreferLiveProviders: []string{"anthropic"},
+	})
+	got := out.Models["anthropic/claude-sonnet-4-6"]
+	if got.ContextWindow != 200000 || got.MaxOutput != 8192 {
+		t.Fatalf("context/max = %d/%d", got.ContextWindow, got.MaxOutput)
+	}
+	if got.Name != "Claude Sonnet 4.6" {
+		t.Fatalf("name = %q", got.Name)
+	}
+	if len(got.Aliases) != 2 {
+		t.Fatalf("aliases = %#v", got.Aliases)
+	}
+}
+
+func TestMergeCatalogV1WithPolicy_PreferLiveUpdatesExistingOffering(t *testing.T) {
+	dst := catalog.TestSeedCatalogV1()
+	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
+		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet",
+	}
+	dst.Offerings = []catalog.ModelOfferingV1{{
+		ID:               "anthropic-direct:claude-sonnet-4-6",
+		CanonicalModelID: "anthropic/claude-sonnet-4-6",
+		DeploymentID:     "anthropic-direct",
+		NativeModelID:    "claude-sonnet-4-6",
+		Pricing:          catalog.PricingV1{Status: catalog.PricingUnknown},
+	}}
+	liveMeta, _ := json.Marshal(map[string]any{"mode": "live"})
+	src := &catalog.CatalogV1{
+		Models: map[string]catalog.ModelV1{
+			"anthropic/claude-sonnet-4-6": {
+				ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet 4.6",
+			},
+		},
+		Offerings: []catalog.ModelOfferingV1{{
+			ID:               "anthropic-direct:claude-sonnet-4-6",
+			CanonicalModelID: "anthropic/claude-sonnet-4-6",
+			DeploymentID:     "anthropic-direct",
+			NativeModelID:    "claude-sonnet-4-6",
+			Capabilities: catalog.CapabilitySetV1{
+				FunctionCalling:        "supported",
+				ExplicitThinkingBudget: "supported",
+			},
+			Pricing: catalog.PricingV1{
+				Status:     catalog.PricingKnown,
+				Currency:   "USD",
+				RatesPer1M: map[string]float64{"input_tokens": 3, "output_tokens": 15},
+				Source:     "live",
+			},
+			LiveMetadata: liveMeta,
+			Provenance:   &catalog.CatalogProvenanceV1{Source: "live", ObservedAt: time.Now().UTC()},
+		}},
+	}
+	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{
+		PreferLiveProviders: []string{"anthropic"},
+	})
+	if len(out.Offerings) != 1 {
+		t.Fatalf("offerings = %d", len(out.Offerings))
+	}
+	got := out.Offerings[0]
+	if got.Pricing.Status != catalog.PricingKnown {
+		t.Fatalf("pricing status = %q", got.Pricing.Status)
+	}
+	if got.Capabilities.FunctionCalling != "supported" {
+		t.Fatalf("function calling = %q", got.Capabilities.FunctionCalling)
+	}
+	if string(got.LiveMetadata) == "" {
+		t.Fatal("expected live metadata")
 	}
 }
