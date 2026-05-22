@@ -15,7 +15,7 @@ import (
 
 const (
 	CatalogV1SchemaVersion = "model-catalog/v1"
-	// DefaultCatalogV1URL is the published model-catalog/v1 document (same schema langdag hosts).
+	// DefaultCatalogV1URL is the published model-catalog/v1 document.
 	// Override with EYRIE_MODEL_CATALOG_URL or LoadCatalogV1Options.RemoteURL.
 	DefaultCatalogV1URL = "https://langdag.com/model-catalog/v1/catalog.json"
 	EnvModelCatalogURL  = "EYRIE_MODEL_CATALOG_URL"

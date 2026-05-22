@@ -290,7 +290,7 @@ Provider-specific friendly text lives in eyrie, not hawk cmd.
 
 ### Strategy definitions
 
-- **`remote_catalog`** — Use compiled cache from langdag.com JSON only.
+- **`remote_catalog`** — Use compiled cache from remote JSON only.
 - **`live_only`** — Must fetch from provider; empty/error fails setup (Ollama, OpenRouter primary).
 - **`remote_then_live`** — Remote bootstrap for metadata; live merge adds/updates IDs user can actually call.
 - **`live_only` picker filter** — For Ollama: never show remote catalog models user hasn't installed.
@@ -303,7 +303,7 @@ Provider-specific friendly text lives in eyrie, not hawk cmd.
 DiscoverCatalog(ctx, opts)
 │
 ├─1─ Load base catalog
-│     ├─ RefreshRemote? → GET langdag.com/.../catalog.json
+│     ├─ RefreshRemote? → GET remote catalog JSON
 │     └─ else → ~/.eyrie/model_catalog.json or bootstrap
 │
 ├─2─ Ensure registry deployments in catalog (from ProviderSpec)
@@ -514,7 +514,7 @@ hawk/cmd/chat_config_*_test.go                — hub flows (mock eyrieclient)
 
 ## 13. Adding a new provider (future checklist)
 
-1. Add models to remote catalog source (langdag.com) **or** rely on live-only.
+1. Add models to remote catalog source **or** rely on live-only.
 2. Add one `ProviderSpec` row in `catalog/registry/providers.go`.
 3. If live list API exists: implement fetcher in `catalog/live/` and register key.
 4. Run `go test ./catalog/... ./runtime/...`.
