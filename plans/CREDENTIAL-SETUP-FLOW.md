@@ -4,7 +4,7 @@
 
 See also: [DYNAMIC-MODEL-DISCOVERY.md](./DYNAMIC-MODEL-DISCOVERY.md)
 
-## Supported providers (8 — from `catalog/registry`)
+## Supported providers (11 — from `catalog/registry`)
 
 | Provider | Credential | Model strategy |
 |----------|------------|----------------|
@@ -13,8 +13,11 @@ See also: [DYNAMIC-MODEL-DISCOVERY.md](./DYNAMIC-MODEL-DISCOVERY.md)
 | Google Gemini | `GEMINI_API_KEY` | remote + live API |
 | OpenRouter | `OPENROUTER_API_KEY` | live-only (fallback remote) |
 | xAI (Grok) | `XAI_API_KEY` | remote + live `/models` |
+| Z.AI | `ZAI_API_KEY` | live-only |
 | CanopyWave | `CANOPYWAVE_API_KEY` | live-only |
 | OpenCode Go | `OPENCODEGO_API_KEY` | remote + live `/models` |
+| Kimi (Moonshot) | `MOONSHOT_API_KEY` | live-only |
+| Xiaomi (MiMo) | `XIAOMI_API_KEY` | live-only |
 | Ollama (local) | `OLLAMA_BASE_URL` | live-only (`/api/tags`) |
 
 Single source: `eyrie/catalog/registry/providers.go`
