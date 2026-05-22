@@ -25,6 +25,19 @@ func TestLiveFetcherKeys_AllProviders(t *testing.T) {
 	}
 }
 
+func TestOpenCodeGo_HasProbeBaseURL(t *testing.T) {
+	spec, ok := registry.SpecByProviderID("opencodego")
+	if !ok {
+		t.Fatal("missing opencodego spec")
+	}
+	if spec.ProbeBaseURL == "" {
+		t.Fatal("opencodego must have a ProbeBaseURL")
+	}
+	if spec.ProbeKind != registry.ProbeOpenAIModels {
+		t.Fatalf("opencodego probe kind = %q", spec.ProbeKind)
+	}
+}
+
 func TestOllamaStrategy_LiveOnly(t *testing.T) {
 	spec, ok := registry.SpecByProviderID("ollama")
 	if !ok {

@@ -13,6 +13,7 @@ type MergePolicy struct {
 	PreferLive                 bool
 	PreferLiveProviders        []string
 	ReplaceDeploymentOfferings []string
+	LiveOnlyProviders          []string
 }
 
 func (p MergePolicy) preferLiveForProvider(providerID string) bool {
@@ -21,6 +22,14 @@ func (p MergePolicy) preferLiveForProvider(providerID string) bool {
 	}
 	providerID = strings.TrimSpace(providerID)
 	return providerID != "" && slices.Contains(p.PreferLiveProviders, providerID)
+}
+
+func (p MergePolicy) isLiveOnly(providerID string) bool {
+	if len(p.LiveOnlyProviders) == 0 {
+		return false
+	}
+	providerID = strings.TrimSpace(providerID)
+	return providerID != "" && slices.Contains(p.LiveOnlyProviders, providerID)
 }
 
 // MergeCatalogV1 merges models, offerings, providers, deployments, and aliases from src into dst.
@@ -83,7 +92,11 @@ func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *
 	for id, m := range src.Models {
 		if existing, ok := dst.Models[id]; ok {
 			if policy.preferLiveForProvider(m.ProviderID) {
-				dst.Models[id] = mergeModelV1(existing, m)
+				if policy.isLiveOnly(m.ProviderID) {
+					dst.Models[id] = m
+				} else {
+					dst.Models[id] = mergeModelV1(existing, m, policy)
+				}
 			}
 			continue
 		}
@@ -100,8 +113,8 @@ func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *
 			continue
 		}
 		if idx, ok := seen[o.ID]; ok {
-			if policy.preferLiveForProvider(providerIDForOffering(dst, o)) {
-				dst.Offerings[idx] = mergeOfferingV1(dst.Offerings[idx], o)
+			if provID := providerIDForOffering(dst, o); policy.preferLiveForProvider(provID) {
+				dst.Offerings[idx] = mergeOfferingV1(dst.Offerings[idx], o, provID, policy)
 			}
 			continue
 		}
@@ -130,7 +143,7 @@ func providerIDForOffering(c *catalog.CatalogV1, offering catalog.ModelOfferingV
 	return ""
 }
 
-func mergeModelV1(existing, live catalog.ModelV1) catalog.ModelV1 {
+func mergeModelV1(existing, live catalog.ModelV1, policy MergePolicy) catalog.ModelV1 {
 	if strings.TrimSpace(live.ProviderID) != "" {
 		existing.ProviderID = live.ProviderID
 	}
@@ -140,10 +153,10 @@ func mergeModelV1(existing, live catalog.ModelV1) catalog.ModelV1 {
 	if strings.TrimSpace(live.Family) != "" {
 		existing.Family = live.Family
 	}
-	if live.ContextWindow > 0 {
+	if policy.preferLiveForProvider(existing.ProviderID) || live.ContextWindow > 0 {
 		existing.ContextWindow = live.ContextWindow
 	}
-	if live.MaxOutput > 0 {
+	if policy.preferLiveForProvider(existing.ProviderID) || live.MaxOutput > 0 {
 		existing.MaxOutput = live.MaxOutput
 	}
 	if len(live.Aliases) > 0 {
@@ -155,7 +168,7 @@ func mergeModelV1(existing, live catalog.ModelV1) catalog.ModelV1 {
 	return existing
 }
 
-func mergeOfferingV1(existing, live catalog.ModelOfferingV1) catalog.ModelOfferingV1 {
+func mergeOfferingV1(existing, live catalog.ModelOfferingV1, providerID string, policy MergePolicy) catalog.ModelOfferingV1 {
 	if strings.TrimSpace(live.CanonicalModelID) != "" {
 		existing.CanonicalModelID = live.CanonicalModelID
 	}
@@ -166,7 +179,7 @@ func mergeOfferingV1(existing, live catalog.ModelOfferingV1) catalog.ModelOfferi
 		existing.NativeModelID = live.NativeModelID
 	}
 	existing.Capabilities = mergeCapabilities(existing.Capabilities, live.Capabilities)
-	if shouldReplacePricing(existing.Pricing, live.Pricing) {
+	if policy.preferLiveForProvider(providerID) || shouldReplacePricing(existing.Pricing, live.Pricing) {
 		existing.Pricing = live.Pricing
 	}
 	if len(live.LiveMetadata) > 0 {

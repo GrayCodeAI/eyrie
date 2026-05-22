@@ -1,13 +1,33 @@
-/** Eyrie TypeScript SDK — conversation DAG client. */
+interface ToolDef {
+  name: string;
+  description?: string;
+  input_schema?: unknown;
+}
 
-export interface PromptOptions {
+interface PromptOptions {
   model?: string;
   system_prompt?: string;
   max_tokens?: number;
-  stream?: boolean;
+  tools?: ToolDef[];
+  signal?: AbortSignal;
 }
 
-export interface Node {
+interface PromptResponse {
+  content: string;
+  node_id: string;
+}
+
+interface StreamEvent {
+  type: string;
+  data: unknown;
+}
+
+interface AliasResult {
+  alias: string;
+  node_id: string;
+}
+
+interface Node {
   id: string;
   parent_id?: string;
   root_id?: string;
@@ -15,68 +35,65 @@ export interface Node {
   node_type: string;
   content: string;
   model?: string;
-  provider?: string;
-  tokens_in?: number;
-  tokens_out?: number;
-  created_at: string;
   title?: string;
+  created_at: string;
 }
 
-export interface PromptResponse {
-  content: string;
-  node_id: string;
+class APIError extends Error {
+  statusCode: number;
+  body: string;
+
+  constructor(statusCode: number, body: string) {
+    super(`eyrie: ${statusCode} ${body}`);
+    this.statusCode = statusCode;
+    this.body = body;
+  }
 }
 
-export interface StreamEvent {
-  type: "delta" | "done" | "error";
-  content?: string;
-  node_id?: string;
-  error?: string;
-}
-
-export class EyrieClient {
+class EyrieClient {
   private baseURL: string;
   private headers: Record<string, string>;
 
-  constructor(baseURL = "http://localhost:8080", apiKey?: string) {
-    this.baseURL = baseURL.replace(/\/$/, "");
-    this.headers = { "Content-Type": "application/json" };
+  constructor(baseURL: string, apiKey: string = "") {
+    this.baseURL = baseURL.replace(/\/+$/, "");
+    this.headers = {
+      "Content-Type": "application/json",
+    };
     if (apiKey) {
       this.headers["Authorization"] = `Bearer ${apiKey}`;
     }
   }
 
-  async prompt(message: string, opts?: PromptOptions): Promise<PromptResponse> {
-    const body = { message, ...opts };
-    const resp = await fetch(`${this.baseURL}/prompt`, {
+  async prompt(message: string, options?: PromptOptions): Promise<PromptResponse> {
+    const body: Record<string, unknown> = { message };
+    if (options?.model) body.model = options.model;
+    if (options?.system_prompt) body.system_prompt = options.system_prompt;
+    if (options?.max_tokens) body.max_tokens = options.max_tokens;
+    if (options?.tools) body.tools = options.tools;
+    const res = await fetch(`${this.baseURL}/prompt`, {
       method: "POST",
       headers: this.headers,
       body: JSON.stringify(body),
+      signal: options?.signal,
     });
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status} ${await resp.text()}`);
-    return resp.json();
+    if (!res.ok) throw new APIError(res.status, await res.text());
+    return res.json();
   }
 
-  async promptFrom(nodeId: string, message: string, opts?: PromptOptions): Promise<PromptResponse> {
-    const body = { message, ...opts };
-    const resp = await fetch(`${this.baseURL}/nodes/${nodeId}/prompt`, {
+  async *streamPrompt(message: string, options?: PromptOptions): AsyncGenerator<StreamEvent> {
+    const body: Record<string, unknown> = { message, stream: true };
+    if (options?.model) body.model = options.model;
+    if (options?.system_prompt) body.system_prompt = options.system_prompt;
+    if (options?.max_tokens) body.max_tokens = options.max_tokens;
+    if (options?.tools) body.tools = options.tools;
+    const res = await fetch(`${this.baseURL}/prompt`, {
       method: "POST",
       headers: this.headers,
       body: JSON.stringify(body),
+      signal: options?.signal,
     });
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status} ${await resp.text()}`);
-    return resp.json();
-  }
-
-  async *streamPrompt(message: string, opts?: PromptOptions): AsyncGenerator<StreamEvent> {
-    const body = { message, stream: true, ...opts };
-    const resp = await fetch(`${this.baseURL}/prompt`, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify(body),
-    });
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status} ${await resp.text()}`);
-    const reader = resp.body!.getReader();
+    if (!res.ok) throw new APIError(res.status, await res.text());
+    const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
     while (true) {
@@ -84,51 +101,75 @@ export class EyrieClient {
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
-      buffer = lines.pop()!;
+      buffer = lines.pop() || "";
       for (const line of lines) {
         if (line.startsWith("data: ")) {
-          yield JSON.parse(line.slice(6));
+          const data = line.slice(6);
+          const evt: StreamEvent = JSON.parse(data);
+          yield evt;
+          if (evt.type === "done" || evt.type === "error") return;
         }
       }
     }
   }
 
+  async promptFrom(nodeId: string, message: string, options?: PromptOptions): Promise<PromptResponse> {
+    const body: Record<string, unknown> = { message };
+    if (options?.model) body.model = options.model;
+    if (options?.system_prompt) body.system_prompt = options.system_prompt;
+    if (options?.max_tokens) body.max_tokens = options.max_tokens;
+    if (options?.tools) body.tools = options.tools;
+    const res = await fetch(`${this.baseURL}/nodes/${nodeId}/prompt`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify(body),
+      signal: options?.signal,
+    });
+    if (!res.ok) throw new APIError(res.status, await res.text());
+    return res.json();
+  }
+
   async listConversations(): Promise<Node[]> {
-    const resp = await fetch(`${this.baseURL}/nodes`, { headers: this.headers });
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status}`);
-    return resp.json();
+    const res = await fetch(`${this.baseURL}/nodes`, { headers: this.headers });
+    if (!res.ok) throw new APIError(res.status, await res.text());
+    return res.json();
   }
 
   async getNode(nodeId: string): Promise<Node> {
-    const resp = await fetch(`${this.baseURL}/nodes/${nodeId}`, { headers: this.headers });
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status}`);
-    return resp.json();
+    const res = await fetch(`${this.baseURL}/nodes/${nodeId}`, { headers: this.headers });
+    if (!res.ok) throw new APIError(res.status, await res.text());
+    return res.json();
   }
 
   async getTree(nodeId: string): Promise<Node[]> {
-    const resp = await fetch(`${this.baseURL}/nodes/${nodeId}/tree`, { headers: this.headers });
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status}`);
-    return resp.json();
+    const res = await fetch(`${this.baseURL}/nodes/${nodeId}/tree`, { headers: this.headers });
+    if (!res.ok) throw new APIError(res.status, await res.text());
+    return res.json();
   }
 
   async deleteNode(nodeId: string): Promise<void> {
-    const resp = await fetch(`${this.baseURL}/nodes/${nodeId}`, { method: "DELETE", headers: this.headers });
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status}`);
+    const res = await fetch(`${this.baseURL}/nodes/${nodeId}`, { method: "DELETE", headers: this.headers });
+    if (!res.ok) throw new APIError(res.status, await res.text());
   }
 
-  async createAlias(nodeId: string, alias: string): Promise<void> {
-    const resp = await fetch(`${this.baseURL}/nodes/${nodeId}/aliases/${alias}`, { method: "PUT", headers: this.headers });
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status}`);
+  async createAlias(nodeId: string, alias: string): Promise<AliasResult> {
+    const res = await fetch(`${this.baseURL}/nodes/${nodeId}/aliases/${alias}`, {
+      method: "PUT",
+      headers: this.headers,
+    });
+    if (!res.ok) throw new APIError(res.status, await res.text());
+    return res.json();
   }
 
-  async deleteAlias(alias: string): Promise<void> {
-    const resp = await fetch(`${this.baseURL}/aliases/${alias}`, { method: "DELETE", headers: this.headers });
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status}`);
+  async deleteAlias(alias: string): Promise<AliasResult> {
+    const res = await fetch(`${this.baseURL}/aliases/${alias}`, { method: "DELETE", headers: this.headers });
+    if (!res.ok) throw new APIError(res.status, await res.text());
+    return res.json();
   }
 
   async health(): Promise<{ status: string }> {
-    const resp = await fetch(`${this.baseURL}/health`);
-    if (!resp.ok) throw new Error(`eyrie: ${resp.status}`);
-    return resp.json();
+    const res = await fetch(`${this.baseURL}/health`, { headers: this.headers });
+    if (!res.ok) throw new APIError(res.status, await res.text());
+    return res.json();
   }
 }

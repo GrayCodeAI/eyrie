@@ -49,7 +49,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "grok", DisplayName: "xAI (Grok)", DeploymentID: "grok-direct", SortOrder: 5,
-			RequiresKey: true, CredentialEnv: "XAI_API_KEY", KeyPrefixes: []string{"xai-"},
+			RequiresKey: true, CredentialEnv: "XAI_API_KEY", CredentialEnvFallbacks: []string{"GROK_API_KEY"}, KeyPrefixes: []string{"xai-"},
 			BaseURLEnv: []string{"GROK_BASE_URL", "XAI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.x.ai/v1",
 			ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
@@ -79,6 +79,7 @@ func providerSpecs() []ProviderSpec {
 			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY", KeyPrefixes: []string{"ocg_"},
 			BaseURLEnv:    []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:     ProbeOpenAIModels,
+			ProbeBaseURL:  "https://api.opencodego.ai/v1",
 			ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
 			LiveFetcherKey: "opencodego", LiveCatalogKey: "opencodego",
 			APIProtocolID: "openai-chat-completions", AdapterID: "opencodego",
@@ -108,6 +109,13 @@ func providerSpecs() []ProviderSpec {
 			ProbeKind:  ProbeOllama, ModelStrategy: StrategyLiveOnly, PreferLiveMerge: true,
 			LiveFetcherKey: "ollama", LiveCatalogKey: "ollama",
 			APIProtocolID: "openai-chat-completions", AdapterID: "openai",
+			IsLocal: true,
+			RetryConfig: &RetryConfig{
+				BaseDelayMs: 2000, MaxDelayMs: 10000, MaxRetries: 3,
+				BackoffMultiplier: 1.5, JitterPct: 10,
+				RetryOnCodes: []int{500, 503},
+				AbortOnCodes: []int{400},
+			},
 		},
 	}
 }
