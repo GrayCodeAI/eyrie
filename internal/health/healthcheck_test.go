@@ -167,7 +167,7 @@ func TestRecoveryAfterFailure(t *testing.T) {
 
 	fail = false
 	hc.mu.RLock()
-	p, _ := hc.providers["p1"]
+	p := hc.providers["p1"]
 	hc.mu.RUnlock()
 	status = hc.checkProvider(p)
 	hc.updateStatus("p1", status)

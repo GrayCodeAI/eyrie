@@ -489,8 +489,11 @@ func ParseCustomHeaders() map[string]string {
 
 // ResolveDefaultModel resolves the default model for a provider from the catalog.
 func ResolveDefaultModel(provider string) string {
-	cat := catalog.LoadModelCatalogSync("")
-	models := catalog.ModelsForProvider(&cat, provider)
+	cat, err := catalog.LoadCatalogV1(context.Background(), catalog.LoadCatalogV1Options{})
+	if err != nil {
+		return ""
+	}
+	models := catalog.ModelEntriesForProvider(cat, provider)
 	if len(models) > 0 {
 		return models[0].ID
 	}

@@ -11,6 +11,10 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
+func testModelCatalog() catalog.ModelCatalog {
+	return catalog.ModelCatalog{Providers: map[string][]catalog.ModelCatalogEntry{}}
+}
+
 func TestLoadProviderConfig_ValidJSON(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "provider.json")
@@ -140,7 +144,7 @@ func TestApplyProviderEnv_Anthropic(t *testing.T) {
 		AnthropicAPIKey: "sk-ant-test-1234567890",
 		AnthropicModel:  "claude-sonnet-4-6",
 	}
-	cat := catalog.DefaultModelCatalog()
+	cat := testModelCatalog()
 
 	env := ApplyProviderEnv(ProviderAnthropic, cfg, "claude-opus-4-6", true, &cat)
 
@@ -156,7 +160,7 @@ func TestApplyProviderEnv_OpenAI(t *testing.T) {
 	cfg := &ProviderConfig{
 		OpenAIAPIKey: "sk-openai-test-1234567890",
 	}
-	cat := catalog.DefaultModelCatalog()
+	cat := testModelCatalog()
 
 	env := ApplyProviderEnv(ProviderOpenAI, cfg, "gpt-4o", true, &cat)
 
@@ -175,7 +179,7 @@ func TestApplyProviderEnv_Gemini(t *testing.T) {
 	cfg := &ProviderConfig{
 		GeminiAPIKey: "gemini-key-1234567890",
 	}
-	cat := catalog.DefaultModelCatalog()
+	cat := testModelCatalog()
 
 	env := ApplyProviderEnv(ProviderGemini, cfg, "gemini-2.0-flash", true, &cat)
 
@@ -195,7 +199,7 @@ func TestApplyProviderEnv_Ollama(t *testing.T) {
 	cfg := &ProviderConfig{
 		OllamaBaseURL: "http://localhost:11434",
 	}
-	cat := catalog.DefaultModelCatalog()
+	cat := testModelCatalog()
 
 	env := ApplyProviderEnv(ProviderOllama, cfg, "llama3.1:8b", true, &cat)
 
@@ -211,7 +215,7 @@ func TestApplyProviderEnv_DefaultModel(t *testing.T) {
 	cfg := &ProviderConfig{
 		AnthropicAPIKey: "sk-ant-test-1234567890",
 	}
-	cat := catalog.DefaultModelCatalog()
+	cat := testModelCatalog()
 
 	// Empty activeModel should use catalog default
 	env := ApplyProviderEnv(ProviderAnthropic, cfg, "", true, &cat)
@@ -229,7 +233,7 @@ func TestApplyProviderEnv_OverwriteFalse(t *testing.T) {
 	cfg := &ProviderConfig{
 		AnthropicAPIKey: "new-key-1234567890",
 	}
-	cat := catalog.DefaultModelCatalog()
+	cat := testModelCatalog()
 
 	env := ApplyProviderEnv(ProviderAnthropic, cfg, "claude-sonnet-4-6", false, &cat)
 

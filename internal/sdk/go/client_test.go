@@ -116,7 +116,7 @@ func TestClient_Prompt(t *testing.T) {
 		}
 		resp, _ := json.Marshal(PromptResponse{Content: "response content", NodeID: "node-123"})
 		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
+		_, _ = w.Write(resp)
 	}))
 	defer srv.Close()
 
@@ -143,7 +143,7 @@ func TestClient_PromptFrom(t *testing.T) {
 		}
 		resp, _ := json.Marshal(PromptResponse{Content: "child response", NodeID: "child-789"})
 		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
+		_, _ = w.Write(resp)
 	}))
 	defer srv.Close()
 
@@ -170,7 +170,7 @@ func TestClient_ListConversations(t *testing.T) {
 			{ID: "2", Content: "world", Model: "gpt-4", Sequence: 2, NodeType: "conversation"},
 		})
 		w.WriteHeader(http.StatusOK)
-		w.Write(nodes)
+		_, _ = w.Write(nodes)
 	}))
 	defer srv.Close()
 
@@ -197,7 +197,7 @@ func TestClient_GetNode(t *testing.T) {
 		}
 		node, _ := json.Marshal(Node{ID: "node-42", Content: "node content", Model: "claude-3"})
 		w.WriteHeader(http.StatusOK)
-		w.Write(node)
+		_, _ = w.Write(node)
 	}))
 	defer srv.Close()
 
@@ -221,7 +221,7 @@ func TestClient_GetTree(t *testing.T) {
 			{ID: "child-1", Sequence: 2, ParentID: "root-1"},
 		})
 		w.WriteHeader(http.StatusOK)
-		w.Write(nodes)
+		_, _ = w.Write(nodes)
 	}))
 	defer srv.Close()
 
@@ -260,7 +260,7 @@ func TestClient_DeleteNode(t *testing.T) {
 func TestClient_ErrorResponse(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error": "bad request"}`))
+		_, _ = w.Write([]byte(`{"error": "bad request"}`))
 	}))
 	defer srv.Close()
 

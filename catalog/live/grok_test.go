@@ -28,7 +28,7 @@ func TestFetchGrok_MockHTTPServer(t *testing.T) {
 
 	t.Run("XAI_API_KEY", func(t *testing.T) {
 		entries, err := FetchGrok(map[string]string{
-			"XAI_API_KEY": "xai-test123",
+			"XAI_API_KEY":  "xai-test123",
 			"XAI_BASE_URL": srv.URL,
 		})
 		if err != nil {
@@ -41,7 +41,7 @@ func TestFetchGrok_MockHTTPServer(t *testing.T) {
 
 	t.Run("GROK_API_KEY", func(t *testing.T) {
 		entries, err := FetchGrok(map[string]string{
-			"GROK_API_KEY": "xai-test456",
+			"GROK_API_KEY":  "xai-test456",
 			"GROK_BASE_URL": srv.URL,
 		})
 		if err != nil {
