@@ -43,8 +43,8 @@ func FormatOllamaConnectError(err error) error {
 	case strings.Contains(msg, "context deadline exceeded"),
 		strings.Contains(msg, "timeout"),
 		strings.Contains(msg, "i/o timeout"):
-		return fmt.Errorf("Ollama timed out — check the URL and that ollama serve is running")
+		return fmt.Errorf("ollama timed out — check the URL and that ollama serve is running")
 	default:
-		return fmt.Errorf("Ollama connection failed: %w", err)
+		return fmt.Errorf("ollama connection failed: %w", err)
 	}
 }

@@ -32,7 +32,7 @@ func Open(path string) (*SQLiteStore, error) {
 func (s *SQLiteStore) Close() error { return s.db.Close() }
 
 func (s *SQLiteStore) migrate() error {
-	_, err := s.db.Exec(`
+	_, err := s.db.ExecContext(context.Background(), `
 		CREATE TABLE IF NOT EXISTS nodes (
 			id TEXT PRIMARY KEY,
 			parent_id TEXT REFERENCES nodes(id) ON DELETE CASCADE,

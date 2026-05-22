@@ -129,11 +129,11 @@ func ListProfiles() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("Saved profiles (%d):\n\n", len(profiles)))
+	fmt.Fprintf(&b, "Saved profiles (%d):\n\n", len(profiles))
 	for _, p := range profiles {
-		b.WriteString(fmt.Sprintf("  • %s — %s/%s", p.Name, p.Provider, p.Model))
+		fmt.Fprintf(&b, "  • %s — %s/%s", p.Name, p.Provider, p.Model)
 		if p.Description != "" {
-			b.WriteString(fmt.Sprintf(" (%s)", p.Description))
+			fmt.Fprintf(&b, " (%s)", p.Description)
 		}
 		b.WriteString("\n")
 	}

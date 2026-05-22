@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
 // CredentialInference is one provider/deployment match for a pasted API key (no secret).
@@ -112,7 +113,7 @@ func isProviderAPIKeyEnv(env string) bool {
 }
 
 func inferenceDisplayName(compiled *catalog.CompiledCatalogV1, deploymentID, providerID string) string {
-	if spec, ok := catalog.SpecByProviderID(providerID); ok {
+	if spec, ok := registry.DefaultRegistry.Get(providerID); ok {
 		return spec.DisplayName
 	}
 	if compiled != nil && compiled.Catalog != nil {

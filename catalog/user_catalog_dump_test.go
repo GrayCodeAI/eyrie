@@ -2,7 +2,6 @@ package catalog_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,7 +24,7 @@ func TestUserCatalog_GatewayCountsMatchDeploymentOfferings(t *testing.T) {
 		RequireCache: true,
 	})
 	if err != nil {
-		t.Skip(fmt.Sprintf("no user catalog: %v", err))
+		t.Skipf("no user catalog: %v", err)
 	}
 	for _, gw := range []string{"openrouter", "canopywave", "gemini"} {
 		spec, ok := registry.SpecByProviderID(gw)
