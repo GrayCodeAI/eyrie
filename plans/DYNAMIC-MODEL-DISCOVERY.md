@@ -482,17 +482,18 @@ SetupUI(ctx, providerFilter)
 ### Phase 5 — Merge policy + cache ✅
 - [x] Strategy-aware merge (`prefer_live` for pricing/context, `LiveOnlyProviders` full replace)
 - [x] Discover mutex / in-flight dedup
-- [ ] Enrichment metadata surfaced in SetupUI (`source` badge optional in UI)
+- [x] Enrichment metadata surfaced in SetupUI (`source` badge in ModelUI)
 
-### Phase 6 — Folder reorg (not started)
-- [ ] Move files per §4 (can be incremental with re-exports)
-- [ ] Move legacy catalog API to `catalog/legacy/`; mark deprecated
-- [ ] Remove hot-path usage of `FetchModelCatalog`
+### Phase 6 — Folder reorg ✅
+- [x] Move files per §4 (can be incremental with re-exports)
+- [x] Move legacy catalog API to `catalog/legacy/`; mark deprecated
+- [x] Remove hot-path usage of `FetchModelCatalog` (model_tiers.go, catalog_test.go)
 
-### Phase 7 — Tests + observability (ongoing)
-- [~] 9 new live fetcher tests for previously untested providers
-- [~] httptest mock server shared fixtures in `catalog/live/testdata/`
-- [ ] `Discover` enrichment logged: `{provider, model_count, error, duration_ms}`
+### Phase 7 — Tests + observability ✅
+- [x] 9 new live fetcher tests for previously untested providers
+- [x] httptest mock server shared fixtures in `catalog/live/testdata/`
+- [x] `Discover` enrichment logged with `{provider, model_count, error, duration_ms}`
+- [x] Table-driven provider spec tests (all 11 providers, 8 assertions each)
 
 ---
 
