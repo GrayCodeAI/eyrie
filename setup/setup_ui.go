@@ -12,6 +12,7 @@ import (
 type ModelUI struct {
 	CanonicalID string `json:"canonical_id"`
 	DisplayName string `json:"display_name"`
+	Source      string `json:"source,omitempty"` // "remote", "live", or "remote+live"
 }
 
 // ProviderUI is a provider and its models after credential apply.
@@ -95,9 +96,20 @@ func modelsForProvider(compiled *catalog.CompiledCatalogV1, providerID string) [
 				label = id[i+1:]
 			}
 		}
-		out = append(out, ModelUI{CanonicalID: id, DisplayName: label})
+		out = append(out, ModelUI{
+			CanonicalID: id,
+			DisplayName: label,
+			Source:      modelProvenanceSource(model),
+		})
 	}
 	return out
+}
+
+func modelProvenanceSource(model catalog.ModelV1) string {
+	if model.Provenance == nil || model.Provenance.Source == "" {
+		return ""
+	}
+	return model.Provenance.Source
 }
 
 // ProviderIDForDeployment resolves catalog provider id for a deployment id.

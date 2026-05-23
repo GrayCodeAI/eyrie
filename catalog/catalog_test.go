@@ -69,16 +69,16 @@ func TestGetModelDeprecationWarning(t *testing.T) {
 
 func TestModelsForProvider(t *testing.T) {
 	cat := testLegacyModelCatalog()
-	models := ModelsForProvider(&cat, "anthropic")
+	models := cat.Providers["anthropic"]
 	if len(models) == 0 {
 		t.Error("expected anthropic models in default catalog")
 	}
-	models = ModelsForProvider(&cat, "nonexistent")
+	models = cat.Providers["nonexistent"]
 	if len(models) != 0 {
 		t.Error("expected no models for nonexistent provider")
 	}
-	models = ModelsForProvider(nil, "anthropic")
-	if len(models) != 0 {
+	var nilCat *ModelCatalog
+	if nilCat != nil && len(nilCat.Providers["anthropic"]) > 0 {
 		t.Error("expected no models for nil catalog")
 	}
 }

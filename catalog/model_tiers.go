@@ -179,7 +179,10 @@ func GetProviderModelCandidates(provider string, tier ModelTier) []ModelName {
 }
 
 func catalogModelIDs(catalog *ModelCatalog, provider string) []string {
-	models := ModelsForProvider(catalog, provider)
+	if catalog == nil {
+		return nil
+	}
+	models := catalog.Providers[provider]
 	ids := make([]string, len(models))
 	for i, m := range models {
 		ids[i] = m.ID
@@ -215,8 +218,11 @@ func providerModelPool(provider string) []ModelName {
 // GetPreferredProviderModel returns the preferred model for a provider/tier.
 func GetPreferredProviderModel(provider string, tier ModelTier, catalog *ModelCatalog) ModelName {
 	if catalog == nil {
-		c := LoadModelCatalogSync("")
-		catalog = &c
+		candidates := GetProviderModelCandidates(provider, tier)
+		if len(candidates) > 0 {
+			return candidates[0]
+		}
+		return ""
 	}
 
 	ids := catalogModelIDs(catalog, provider)
@@ -249,8 +255,14 @@ func GetPreferredProviderModel(provider string, tier ModelTier, catalog *ModelCa
 // GetProviderDefaultModel returns the default model for a provider from catalog when available.
 func GetProviderDefaultModel(provider string, catalog *ModelCatalog) ModelName {
 	if catalog == nil {
-		c := LoadModelCatalogSync("")
-		catalog = &c
+		if IsLiveOnlyProvider(provider) {
+			return ""
+		}
+		pool := providerModelPool(provider)
+		if len(pool) > 0 {
+			return pool[0]
+		}
+		return HawkSonnet46Config[provider]
 	}
 	ids := catalogModelIDs(catalog, provider)
 	if len(ids) > 0 {
