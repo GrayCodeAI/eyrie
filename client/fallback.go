@@ -210,15 +210,7 @@ func (fp *FallbackProvider) recordSuccess(name string) {
 // or "HTTP 429 from ...").
 var httpStatusRe = regexp.MustCompile(`(?:HTTP|http)\s+(\d{3})`)
 
-// retriableStatusCodes are HTTP status codes that indicate a provider-side
-// or transient issue worth retrying on a different provider.
-var retriableStatusCodes = map[int]bool{
-	429: true, // rate limited
-	500: true, // internal server error
-	502: true, // bad gateway
-	503: true, // service unavailable
-	529: true, // overloaded (Anthropic)
-}
+var _ = map[int]bool{} // placeholder
 
 // nonRetriableStatusCodes are HTTP status codes that indicate a client-side
 // error -- falling back won't help because the request itself is bad.

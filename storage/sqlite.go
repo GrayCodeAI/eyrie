@@ -11,9 +11,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// schemaVersion is the current schema version. Increment when adding migrations.
-const schemaVersion = 1
-
 type SQLiteStore struct {
 	db *sql.DB
 }
