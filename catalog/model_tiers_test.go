@@ -2,8 +2,34 @@ package catalog
 
 import "testing"
 
+func testDefaultModelCatalog() ModelCatalog {
+	return ModelCatalog{
+		Source: "test",
+		Providers: map[string][]ModelCatalogEntry{
+			"anthropic": {
+				{ID: "claude-opus-4-6", DisplayName: "Claude Opus 4.6"},
+				{ID: "claude-sonnet-4-6", DisplayName: "Claude Sonnet 4.6"},
+				{ID: "claude-haiku-4-5-20251001", DisplayName: "Claude Haiku 4.5"},
+				{ID: "claude-haiku-3-5", DisplayName: "Claude Haiku 3.5"},
+			},
+			"openai": {
+				{ID: "gpt-4o", DisplayName: "GPT-4o"},
+				{ID: "gpt-4o-mini", DisplayName: "GPT-4o Mini"},
+			},
+			"gemini": {
+				{ID: "gemini-2.5-pro-preview-03-25", DisplayName: "Gemini 2.5 Pro"},
+				{ID: "gemini-2.0-flash", DisplayName: "Gemini 2.0 Flash"},
+				{ID: "gemini-2.0-flash-lite", DisplayName: "Gemini 2.0 Flash Lite"},
+			},
+			"grok": {
+				{ID: "grok-2", DisplayName: "Grok 2"},
+			},
+		},
+	}
+}
+
 func TestGetPreferredProviderModel_AllTiers(t *testing.T) {
-	cat := DefaultModelCatalog()
+	cat := testDefaultModelCatalog()
 	tests := []struct {
 		provider string
 		tier     ModelTier
@@ -69,7 +95,7 @@ func TestUnknownProviderReturnsEmpty(t *testing.T) {
 		t.Errorf("expected empty candidates for unknown provider, got %v", candidates)
 	}
 
-	cat := DefaultModelCatalog()
+	cat := testDefaultModelCatalog()
 	model := GetPreferredProviderModel("nonexistent_provider", TierSonnet, &cat)
 	if model != "" {
 		t.Errorf("expected empty model for unknown provider, got %q", model)
