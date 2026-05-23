@@ -551,13 +551,13 @@ msg := eyrieclient.FormatSetupError("ollama", err)
 
 ## 15. Success criteria
 
-- [ ] Zero provider-specific branches in `hawk/cmd/chat_config_*.go`
-- [ ] Zero hawk imports of `eyrie/catalog`, `eyrie/setup`, `eyrie/config` outside `eyrieclient`
-- [ ] All 8 registry providers have documented model source strategy
-- [ ] Ollama never shows uninstalled remote catalog models
-- [ ] Live-capable providers enrich catalog on every Apply
-- [ ] New provider = 1 spec row + optional 1 fetcher file + remote catalog entry
-- [ ] Full `/config` flow tested: hub → credential → discover → picker → chat
+- [~] Minimize provider-specific branches in `hawk/cmd/chat_config_*.go` (Ollama URL screen is intentional UX)
+- [~] Minimize hawk imports of `eyrie/catalog`, `eyrie/setup`, `eyrie/config` outside `eyrieclient` (~30 remain, need interface extraction for circular deps)
+- [x] All 11 registry providers have documented model source strategy (in `hawk/docs/DYNAMIC-MODELS.md`)
+- [x] Ollama never shows uninstalled remote catalog models (StrategyLiveOnly merge policy)
+- [x] Live-capable providers enrich catalog on every Apply (discover.Run path)
+- [x] New provider = 1 spec row + optional 1 fetcher file + remote catalog entry (registry pattern)
+- [~] Full `/config` flow tested: hub → credential → discover → picker → chat (script exists at `scripts/test-config-flow.sh`)
 
 ---
 
