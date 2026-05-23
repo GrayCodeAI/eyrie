@@ -37,6 +37,7 @@ var _ Provider = (*FallbackProvider)(nil)
 
 // NewFallbackProvider creates a FallbackProvider that tries providers in order.
 // At least one provider must be supplied.
+// NewFallbackProvider creates a fallback provider chain. Panics if no providers are given (programmer error).
 func NewFallbackProvider(providers ...Provider) *FallbackProvider {
 	if len(providers) == 0 {
 		panic("eyrie: FallbackProvider requires at least one provider")
@@ -209,8 +210,6 @@ func (fp *FallbackProvider) recordSuccess(name string) {
 // the eyrie client (e.g. "eyrie: openai API error (request_id=...): ..."
 // or "HTTP 429 from ...").
 var httpStatusRe = regexp.MustCompile(`(?:HTTP|http)\s+(\d{3})`)
-
-var _ = map[int]bool{} // placeholder
 
 // nonRetriableStatusCodes are HTTP status codes that indicate a client-side
 // error -- falling back won't help because the request itself is bad.

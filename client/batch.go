@@ -109,7 +109,7 @@ func (bc *BatchClient) Submit(ctx context.Context, requests []BatchRequest) (str
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
-		errBody, _ := io.ReadAll(resp.Body)
+		errBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		return "", fmt.Errorf("eyrie: batch API error %d: %s", resp.StatusCode, string(errBody))
 	}
 

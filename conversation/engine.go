@@ -175,6 +175,7 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 			accumulatedText string
 			cumulativeOut   int
 			currentParent   = parentNode
+			currentSR       = sr
 			currentStream   = sr.Events
 		)
 
@@ -188,19 +189,29 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 				switch evt.Type {
 				case "content":
 					fullText += evt.Content
-					events <- Event{Type: EventDelta, Content: evt.Content}
+					select {
+					case events <- Event{Type: EventDelta, Content: evt.Content}:
+					case <-ctx.Done():
+						return
+					}
 				case "done":
 					stopReason = evt.StopReason
 					usage = evt.Usage
 				case "error":
-					events <- Event{Type: EventError, Error: evt.Error}
+					select {
+					case events <- Event{Type: EventError, Error: evt.Error}:
+					case <-ctx.Done():
+					}
 					return
 				}
 			}
 
 			if fullText == "" && stopReason == "" {
 				if accumulatedText != "" {
-					events <- Event{Type: EventNodeSaved, NodeID: currentParent.ID}
+					select {
+					case events <- Event{Type: EventNodeSaved, NodeID: currentParent.ID}:
+					case <-ctx.Done():
+					}
 				}
 				return
 			}
@@ -237,7 +248,10 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 				assistantNode.TokensCacheCreation = usage.CacheCreationTokens
 			}
 			if err := e.store.CreateNode(ctx, assistantNode); err != nil {
-				events <- Event{Type: EventError, Error: err.Error()}
+				select {
+				case events <- Event{Type: EventError, Error: err.Error()}:
+				case <-ctx.Done():
+				}
 				return
 			}
 			if toolUseIDs := extractToolUseIDsFromContent(assistantNode.Content); len(toolUseIDs) > 0 {
@@ -245,7 +259,10 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 			}
 
 			if !shouldContinue {
-				events <- Event{Type: EventDone, NodeID: assistantNode.ID}
+				select {
+				case events <- Event{Type: EventDone, NodeID: assistantNode.ID}:
+				case <-ctx.Done():
+				}
 				return
 			}
 
@@ -257,9 +274,15 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 
 			contSR, contErr := e.provider.StreamChat(ctx, contMessages, chatOpts)
 			if contErr != nil {
-				events <- Event{Type: EventDone, NodeID: assistantNode.ID}
+				select {
+				case events <- Event{Type: EventDone, NodeID: assistantNode.ID}:
+				case <-ctx.Done():
+				}
 				return
 			}
+			// Close the previous stream before switching to the continuation.
+			currentSR.Close()
+			currentSR = contSR
 			currentStream = contSR.Events
 		}
 	}()
@@ -278,7 +301,10 @@ func buildMessages(nodes []*storage.Node) []client.EyrieMessage {
 			seen[n.OutputGroupID] = true
 		}
 		role := string(n.NodeType)
-		if role == "tool_call" || role == "tool_result" {
+		switch role {
+		case "tool_call":
+			role = "assistant"
+		case "tool_result":
 			role = "user"
 		}
 		if role != "user" && role != "assistant" && role != "system" {
@@ -291,8 +317,9 @@ func buildMessages(nodes []*storage.Node) []client.EyrieMessage {
 
 func generateTitle(msg string) string {
 	msg = strings.TrimSpace(msg)
-	if len(msg) > 50 {
-		return msg[:50] + "..."
+	runes := []rune(msg)
+	if len(runes) > 50 {
+		return string(runes[:50]) + "..."
 	}
 	return msg
 }

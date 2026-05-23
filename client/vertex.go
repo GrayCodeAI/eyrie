@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 )
 
@@ -13,6 +14,7 @@ type VertexClient struct {
 	region     string
 	token      string
 	httpClient *http.Client
+	logger     *slog.Logger
 }
 
 var _ Provider = (*VertexClient)(nil)
@@ -23,6 +25,7 @@ func NewVertexClient(projectID, region, token string) *VertexClient {
 		region:     region,
 		token:      token,
 		httpClient: &http.Client{Timeout: defaultTimeout},
+		logger:     slog.Default().With("component", "vertex"),
 	}
 }
 
@@ -128,8 +131,8 @@ func (c *VertexClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
-	sseEvents := parseSSEStream(streamCtx, resp.Body, nil)
-	events := processAnthropicStream(streamCtx, sseEvents, nil)
+	sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
+	events := processAnthropicStream(streamCtx, sseEvents, c.logger)
 
 	return &StreamResult{Events: events, cancel: cancel}, nil
 }

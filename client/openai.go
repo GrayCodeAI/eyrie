@@ -268,6 +268,14 @@ func buildOpenAIRequest(messages []EyrieMessage, opts ChatOptions, stream bool) 
 		}
 		req.Tools = tools
 	}
+	maxTok := opts.MaxTokens
+	if maxTok == 0 {
+		maxTok = 4096
+	}
+	req.MaxTokens = &maxTok
+	if stream {
+		req.StreamOptions = &streamOptions{IncludeUsage: true}
+	}
 	if opts.ResponseFormat != nil {
 		rf := map[string]interface{}{"type": opts.ResponseFormat.Type}
 		if opts.ResponseFormat.Schema != "" && opts.ResponseFormat.Type == "json_schema" {

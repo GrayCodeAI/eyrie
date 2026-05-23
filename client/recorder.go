@@ -272,6 +272,7 @@ func (r *RecorderProvider) recordStream(ctx context.Context, result *StreamResul
 
 	go func() {
 		defer close(ch)
+		defer result.Close()
 
 		var content string
 		var toolCalls []ToolCall

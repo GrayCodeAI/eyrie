@@ -679,6 +679,11 @@ func (mc *MetricsCollector) addOutputTokens(key string, n int64) {
 
 func (mc *MetricsCollector) recordLatency(key string, d time.Duration) {
 	mc.mu.Lock()
+	const maxLatencySamples = 100
+	if len(mc.latencies[key]) >= maxLatencySamples {
+		// Rotate: drop oldest sample to cap memory usage.
+		mc.latencies[key] = mc.latencies[key][1:]
+	}
 	mc.latencies[key] = append(mc.latencies[key], d)
 	mc.mu.Unlock()
 }

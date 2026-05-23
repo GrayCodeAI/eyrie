@@ -148,6 +148,7 @@ func StreamChatWithContinuation(ctx context.Context, p Provider, messages []Eyri
 					emit(cancelCtx, outCh, evt)
 				}
 			}
+			stream.Close()
 
 			// Don't continue if: not max_tokens, had tool calls, or hit token cap
 			if stopReason != "max_tokens" && stopReason != "length" {
