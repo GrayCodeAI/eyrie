@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/client"
@@ -47,6 +48,7 @@ type DeploymentRouter struct {
 	routing     RoutingPolicy
 	statsMu     sync.RWMutex
 	stats       map[string]*atomic.Int64
+	breakers    map[string]*CircuitBreaker
 }
 
 var _ client.Provider = (*DeploymentRouter)(nil)
@@ -82,6 +84,7 @@ func NewDeploymentRouter(opts DeploymentRouterOptions) (*DeploymentRouter, error
 		deployments: deployments,
 		routing:     cloneRoutingPolicy(opts.Routing),
 		stats:       stats,
+		breakers:    make(map[string]*CircuitBreaker, len(deployments)),
 	}
 	return router, nil
 }
@@ -129,6 +132,7 @@ func (r *DeploymentRouter) Chat(ctx context.Context, messages []client.EyrieMess
 				return resp, nil
 			}
 			lastErr = err
+			r.recordFailure(choice.DeploymentID)
 			if !IsTransient(err) {
 				if ShouldTryNextDeployment(err) {
 					break
@@ -170,6 +174,7 @@ func (r *DeploymentRouter) StreamChat(ctx context.Context, messages []client.Eyr
 					return
 				}
 				lastErr = err
+				r.recordFailure(choice.DeploymentID)
 				if !fallback {
 					out <- client.EyrieStreamEvent{Type: "error", Error: err.Error()}
 					return
@@ -293,6 +298,10 @@ func (r *DeploymentRouter) eligibleChoices(target deploymentTarget, stage Routin
 		if choice.DeploymentID == "" || choice.Weight <= 0 {
 			continue
 		}
+		// Skip deployments with open circuit breakers.
+		if cb := r.getCircuitBreaker(choice.DeploymentID); !cb.Allow() {
+			continue
+		}
 		offering, _, err := r.resolveOffering(target, choice.DeploymentID)
 		if err != nil {
 			continue
@@ -306,6 +315,16 @@ func (r *DeploymentRouter) eligibleChoices(target deploymentTarget, stage Routin
 		return toolCapable
 	}
 	return choices
+}
+
+// getCircuitBreaker returns or lazily creates a circuit breaker for a deployment.
+func (r *DeploymentRouter) getCircuitBreaker(deploymentID string) *CircuitBreaker {
+	if cb, ok := r.breakers[deploymentID]; ok {
+		return cb
+	}
+	cb := NewCircuitBreaker(5, 30*time.Second)
+	r.breakers[deploymentID] = cb
+	return cb
 }
 
 func (r *DeploymentRouter) chatWithDeployment(ctx context.Context, messages []client.EyrieMessage, opts client.ChatOptions, target deploymentTarget, deploymentID string) (*client.EyrieResponse, error) {
@@ -617,5 +636,15 @@ func (r *DeploymentRouter) recordSuccess(deploymentID string) {
 	r.statsMu.RUnlock()
 	if counter != nil {
 		counter.Add(1)
+	}
+	if cb := r.getCircuitBreaker(deploymentID); cb != nil {
+		cb.Success()
+	}
+}
+
+// recordFailure records a deployment failure on its circuit breaker.
+func (r *DeploymentRouter) recordFailure(deploymentID string) {
+	if cb := r.getCircuitBreaker(deploymentID); cb != nil {
+		cb.Failure()
 	}
 }

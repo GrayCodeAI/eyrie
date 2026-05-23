@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/GrayCodeAI/eyrie/types"
 )
 
 // FallbackProvider wraps multiple Providers and automatically falls back to the
@@ -229,56 +231,30 @@ var nonRetriableStatusCodes = map[int]bool{
 }
 
 // isRetriableError inspects an error to determine if a fallback should be attempted.
-// It extracts HTTP status codes from the error message format used by eyrie providers,
-// and also treats context timeouts as retriable (the next provider may respond faster).
 func isRetriableError(err error) bool {
 	if err == nil {
 		return false
 	}
-
-	// Context deadline exceeded is retriable (the next provider may be faster).
 	if errors.Is(err, context.DeadlineExceeded) {
 		return true
 	}
-
-	// Context cancelled is NOT retriable (the caller wants to stop).
 	if errors.Is(err, context.Canceled) {
 		return false
 	}
-
-	errMsg := err.Error()
-
-	// Try to extract an HTTP status code from the error message.
-	if matches := httpStatusRe.FindStringSubmatch(errMsg); len(matches) >= 2 {
-		code, _ := strconv.Atoi(matches[1])
-		if nonRetriableStatusCodes[code] {
-			return false
-		}
-		if retriableStatusCodes[code] {
-			return true
-		}
+	// If IsTransient returns a definitive answer (true or false for known codes), use it.
+	// Only fall back to retriable=true for errors that don't match any known pattern.
+	if types.IsTransient(err) {
+		return true
 	}
-
-	// Heuristic: common transient-error substrings.
-	transientPatterns := []string{
-		"timeout",
-		"connection refused",
-		"connection reset",
-		"EOF",
-		"server error",
-		"bad gateway",
-		"service unavailable",
-		"overloaded",
-		"rate limit",
-		"max retries",
-	}
-	lower := strings.ToLower(errMsg)
-	for _, pattern := range transientPatterns {
-		if strings.Contains(lower, pattern) {
-			return true
+	// Check for explicit non-retriable codes that IsTransient already rejects.
+	msg := err.Error()
+	if matches := httpStatusRe.FindStringSubmatch(msg); len(matches) >= 2 {
+		if code, convErr := strconv.Atoi(matches[1]); convErr == nil {
+			if nonRetriableStatusCodes[code] {
+				return false
+			}
 		}
 	}
-
-	// Default: treat unknown errors as retriable so we at least try the next provider.
+	// Unknown error types: treat as retriable so we at least try the next provider.
 	return true
 }
