@@ -7,7 +7,7 @@ type Credentials struct {
 	APIKeys map[string]string
 }
 
-// Env returns a copy of the key map suitable for FetchModelCatalog.
+// Env returns a copy of the key map suitable for catalog discovery.
 func (c Credentials) Env() map[string]string {
 	out := make(map[string]string, len(c.APIKeys))
 	for k, v := range c.APIKeys {
