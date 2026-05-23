@@ -22,27 +22,30 @@ func FetchLiveProviderCatalog(env map[string]string) (ModelCatalog, []LiveProvid
 			continue
 		}
 		catalogKey := registry.LiveCatalogKeyForFetcher(fetcherKey)
+		start := time.Now()
 		if !registry.CredentialPresent(spec, env) {
 			reason := "skipped (no API key)"
 			if !spec.RequiresKey {
 				reason = "skipped (no base URL)"
 			}
-			enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: reason})
+			enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: reason, DurationMs: time.Since(start).Milliseconds()})
 			continue
 		}
 		models, err := live.Fetch(fetcherKey, env)
+		elapsed := time.Since(start)
+		duration := elapsed.Milliseconds()
 		if err != nil {
-			enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: err.Error()})
+			enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: err.Error(), DurationMs: duration})
 			continue
 		}
 		if len(models) == 0 {
 			if spec.ModelStrategy == registry.StrategyLiveOnly {
-				enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: "no models returned"})
+				enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: "no models returned", DurationMs: duration})
 			}
 			continue
 		}
 		cat.Providers[catalogKey] = LiveEntriesToCatalog(models)
-		enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, ModelCount: len(models)})
+		enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, ModelCount: len(models), DurationMs: duration})
 	}
 	return cat, enrichment
 }
