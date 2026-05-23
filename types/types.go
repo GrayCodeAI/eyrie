@@ -1,6 +1,12 @@
 package types
 
-import "regexp"
+import (
+	"context"
+	"errors"
+	"regexp"
+	"strconv"
+	"strings"
+)
 
 // --- Branded string types ---
 
@@ -377,3 +383,62 @@ type NonNullableUsage struct {
 func EmptyUsage() NonNullableUsage {
 	return NonNullableUsage{Iterations: []interface{}{}}
 }
+
+// IsTransient reports whether the error is likely temporary.
+// This is the single source of truth for retry decisions across all eyrie packages.
+// Unknown errors are treated as NOT retriable by default; callers may override.
+func IsTransient(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	if errors.Is(err, context.Canceled) {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+
+	// Extract HTTP status code if present and check explicit lists.
+	nonRetriableCodes := map[int]bool{400: true, 401: true, 403: true, 404: true, 422: true}
+	retriableCodes := map[int]bool{408: true, 429: true, 500: true, 502: true, 503: true, 504: true, 529: true}
+	if matches := httpStatusRe.FindStringSubmatch(err.Error()); len(matches) >= 2 {
+		if code, err := strconv.Atoi(matches[1]); err == nil {
+			if nonRetriableCodes[code] {
+				return false
+			}
+			if retriableCodes[code] {
+				return true
+			}
+		}
+	}
+
+	for _, pattern := range []string{
+		"timeout", "timed out", "deadline exceeded",
+		"connection refused", "connection reset", "eof", "broken pipe",
+		"temporarily", "overloaded", "try again",
+		"unavailable", "server error", "bad gateway", "service unavailable",
+		"rate limit", "rate_limit",
+	} {
+		if strings.Contains(msg, pattern) {
+			return true
+		}
+	}
+	if _, ok := err.(*APIConnectionTimeoutError); ok {
+		return true
+	}
+	return false
+}
+
+var httpStatusRe = regexp.MustCompile(`\b(\d{3})\b`)
+
+// ClassifyError creates a structured error from a status code and message.
+// It returns the most specific error type for the given error condition.
+func ClassifyError(provider string, statusCode int, message string) *APIError {
+	err := &APIError{
+		Status:  statusCode,
+		Message: message,
+	}
+	return err
+}
+

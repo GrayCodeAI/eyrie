@@ -1,9 +1,11 @@
 package router
 
 import (
-	"math/rand/v2"
+	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/types"
 )
 
 type RetryConfig struct {
@@ -29,21 +31,7 @@ func DefaultRetryConfig() RetryConfig {
 }
 
 func IsTransient(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	for _, code := range []string{"429", "500", "502", "503", "529"} {
-		if strings.Contains(msg, code) {
-			return true
-		}
-	}
-	for _, pattern := range []string{"timeout", "deadline exceeded", "connection refused", "EOF", "reset by peer", "broken pipe"} {
-		if strings.Contains(strings.ToLower(msg), pattern) {
-			return true
-		}
-	}
-	return false
+	return types.IsTransient(err)
 }
 
 // ShouldTryNextDeployment reports billing/credit errors where another deployment may succeed.
