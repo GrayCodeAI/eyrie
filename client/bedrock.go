@@ -74,22 +74,134 @@ func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts 
 }
 
 func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
-	resp, err := c.Chat(ctx, messages, opts)
+	if opts.Model == "" {
+		return nil, fmt.Errorf("eyrie: model is required for bedrock")
+	}
+	body, err := c.buildBody(messages, opts)
 	if err != nil {
 		return nil, err
 	}
-	out := make(chan EyrieStreamEvent, 3+len(resp.ToolCalls))
-	out <- EyrieStreamEvent{Type: "content", Content: resp.Content}
-	for i := range resp.ToolCalls {
-		toolCall := resp.ToolCalls[i]
-		out <- EyrieStreamEvent{Type: "tool_call", ToolCall: &toolCall}
+	// Set stream: true for Bedrock invoke-with-response-stream
+	var bodyMap map[string]interface{}
+	if err := json.Unmarshal(body, &bodyMap); err != nil {
+		return nil, err
 	}
-	if resp.Usage != nil {
-		out <- EyrieStreamEvent{Type: "usage", Usage: resp.Usage}
+	bodyMap["stream"] = true
+	streamBody, err := json.Marshal(bodyMap)
+	if err != nil {
+		return nil, err
 	}
-	out <- EyrieStreamEvent{Type: "done", StopReason: resp.FinishReason}
-	close(out)
-	return &StreamResult{Events: out, RequestID: resp.RequestID}, nil
+
+	streamURL := strings.Replace(c.modelURL(opts.Model), "/invoke", "/invoke-with-response-stream", 1)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, streamURL, bytes.NewReader(streamBody))
+	if err != nil {
+		return nil, fmt.Errorf("eyrie: bedrock stream request creation failed: %w", err)
+	}
+	req.Header.Set("Accept", "application/vnd.amazon.eventstream")
+	req.Header.Set("Content-Type", "application/json")
+	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(streamBody)), nil }
+	if err := c.sign(req, streamBody, time.Now().UTC()); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("eyrie: bedrock stream request failed: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		_ = resp.Body.Close()
+		return nil, fmt.Errorf("eyrie: bedrock stream error (status %d): %s", resp.StatusCode, parseErrorBody(resp.Body))
+	}
+
+	streamCtx, cancel := context.WithCancel(ctx)
+	ch := make(chan EyrieStreamEvent, 64)
+
+	go func() {
+		defer close(ch)
+		defer cancel()
+		defer resp.Body.Close()
+
+		var contentBuf strings.Builder
+		var toolCalls []ToolCall
+		var usage *EyrieUsage
+		var finishReason string
+
+		// Bedrock uses Amazon EventStream format. Parse it.
+		reader := newEventStreamReader(resp.Body)
+		for {
+			event, err := reader.ReadEvent()
+			if err != nil {
+				if err != io.EOF {
+					select {
+					case ch <- EyrieStreamEvent{Type: "error", Content: err.Error()}:
+					case <-streamCtx.Done():
+					}
+				}
+				break
+			}
+
+			// Parse the chunk payload
+			var chunk anthropicStreamChunk
+			if err := json.Unmarshal(event.Payload, &chunk); err != nil {
+				continue
+			}
+
+			switch chunk.Type {
+			case "content_block_delta":
+				if chunk.Delta != nil && chunk.Delta.Text != "" {
+					contentBuf.WriteString(chunk.Delta.Text)
+					select {
+					case ch <- EyrieStreamEvent{Type: "content", Content: chunk.Delta.Text}:
+					case <-streamCtx.Done():
+						return
+					}
+				}
+				if chunk.Delta != nil && chunk.Delta.Type == "input_json_delta" && chunk.Delta.PartialJSON != "" {
+					// Accumulate tool input JSON
+					select {
+					case ch <- EyrieStreamEvent{Type: "tool_input_delta", Content: chunk.Delta.PartialJSON}:
+					case <-streamCtx.Done():
+						return
+					}
+				}
+			case "content_block_start":
+				if chunk.ContentBlock != nil && chunk.ContentBlock.Type == "tool_use" {
+					var args map[string]interface{}
+					_ = json.Unmarshal(chunk.ContentBlock.Input, &args)
+					tc := ToolCall{ID: chunk.ContentBlock.ID, Name: chunk.ContentBlock.Name, Arguments: args}
+					toolCalls = append(toolCalls, tc)
+					select {
+					case ch <- EyrieStreamEvent{Type: "tool_call", ToolCall: &tc}:
+					case <-streamCtx.Done():
+						return
+					}
+				}
+			case "message_delta":
+				if chunk.Delta != nil && chunk.Delta.StopReason != "" {
+					finishReason = chunk.Delta.StopReason
+				}
+			case "message_start":
+				if chunk.Message != nil && chunk.Message.Usage != nil {
+					usage = chunk.Message.Usage
+				}
+			}
+		}
+
+		// Send final usage event
+		if usage != nil {
+			select {
+			case ch <- EyrieStreamEvent{Type: "usage", Usage: usage}:
+			case <-streamCtx.Done():
+				return
+			}
+		}
+		select {
+		case ch <- EyrieStreamEvent{Type: "done", StopReason: finishReason}:
+		case <-streamCtx.Done():
+		}
+	}()
+
+	return &StreamResult{Events: ch, cancel: cancel, RequestID: resp.Header.Get("X-Amzn-Requestid")}, nil
 }
 
 func (c *BedrockClient) Ping(ctx context.Context) error {
@@ -140,6 +252,111 @@ func (c *BedrockClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]
 
 func (c *BedrockClient) modelURL(model string) string {
 	return fmt.Sprintf("https://bedrock-runtime.%s.amazonaws.com/model/%s/invoke", c.region, url.PathEscape(model))
+}
+
+// anthropicStreamChunk represents a chunk from Bedrock's streaming response.
+type anthropicStreamChunk struct {
+	Type         string `json:"type"`
+	Index        int    `json:"index,omitempty"`
+	ContentBlock *struct {
+		Type  string          `json:"type"`
+		ID    string          `json:"id,omitempty"`
+		Name  string          `json:"name,omitempty"`
+		Input json.RawMessage `json:"input,omitempty"`
+	} `json:"content_block,omitempty"`
+	Delta *struct {
+		Type        string `json:"type"`
+		Text        string `json:"text,omitempty"`
+		PartialJSON string `json:"partial_json,omitempty"`
+		StopReason  string `json:"stop_reason,omitempty"`
+	} `json:"delta,omitempty"`
+	Message *struct {
+		Usage *EyrieUsage `json:"usage,omitempty"`
+	} `json:"message,omitempty"`
+}
+
+// eventStreamReader parses Amazon EventStream binary frames from a reader.
+// This is a minimal implementation for Bedrock's invoke-with-response-stream.
+type eventStreamReader struct {
+	r io.Reader
+}
+
+func newEventStreamReader(r io.Reader) *eventStreamReader {
+	return &eventStreamReader{r: r}
+}
+
+type eventStreamFrame struct {
+	Headers map[string]string
+	Payload []byte
+}
+
+// ReadEvent reads one EventStream frame. Returns io.EOF when the stream ends.
+func (es *eventStreamReader) ReadEvent() (*eventStreamFrame, error) {
+	// Read prelude: total_length(4) + headers_length(4) + prelude_crc(4)
+	var prelude [12]byte
+	if _, err := io.ReadFull(es.r, prelude[:]); err != nil {
+		return nil, err
+	}
+	totalLen := int(prelude[0])<<24 | int(prelude[1])<<16 | int(prelude[2])<<8 | int(prelude[3])
+	headersLen := int(prelude[4])<<24 | int(prelude[5])<<16 | int(prelude[6])<<8 | int(prelude[7])
+	if totalLen < 12 || totalLen > 10*1024*1024 {
+		return nil, fmt.Errorf("eventstream: invalid total length %d", totalLen)
+	}
+	if headersLen > totalLen-12 {
+		return nil, fmt.Errorf("eventstream: headers length %d exceeds total %d", headersLen, totalLen)
+	}
+
+	// Read remaining bytes: headers + payload + message_crc(4)
+	remaining := totalLen - 12
+	buf := make([]byte, remaining)
+	if _, err := io.ReadFull(es.r, buf); err != nil {
+		return nil, err
+	}
+
+	// Parse headers (skip for now, we only need the payload)
+	payloadStart := headersLen
+	if payloadStart > len(buf)-4 {
+		return nil, fmt.Errorf("eventstream: invalid headers length")
+	}
+	payload := buf[payloadStart : len(buf)-4] // exclude trailing CRC
+
+	// Decode headers for content-type
+	headers := make(map[string]string)
+	headerBuf := buf[:headersLen]
+	for len(headerBuf) > 0 {
+		if len(headerBuf) < 2 {
+			break
+		}
+		nameLen := int(headerBuf[0])
+		if len(headerBuf) < 1+nameLen+1 {
+			break
+		}
+		name := string(headerBuf[1 : 1+nameLen])
+		headerBuf = headerBuf[1+nameLen:]
+		valueType := headerBuf[0]
+		headerBuf = headerBuf[1:]
+		switch valueType {
+		case 7: // string
+			if len(headerBuf) < 2 {
+				break
+			}
+			strLen := int(headerBuf[0])<<8 | int(headerBuf[1])
+			if len(headerBuf) < 2+strLen {
+				break
+			}
+			headers[name] = string(headerBuf[2 : 2+strLen])
+			headerBuf = headerBuf[2+strLen:]
+		case 0: // bool true
+			headers[name] = "true"
+		case 1: // bool false
+			headers[name] = "false"
+		default:
+			// Skip other types
+			return nil, fmt.Errorf("eventstream: unsupported header value type %d", valueType)
+		}
+	}
+
+	return &eventStreamFrame{Headers: headers, Payload: payload}, nil
 }
 
 func (c *BedrockClient) sign(req *http.Request, body []byte, now time.Time) error {

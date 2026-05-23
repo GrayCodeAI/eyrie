@@ -18,7 +18,7 @@ type OpenAICompatibleApiKeySource = string
 type ResolvedOpenAICompatibleRuntime struct {
 	Mode         string                  `json:"mode"`
 	Request      ResolvedProviderRequest `json:"request"`
-	APIKey       string                  `json:"api_key"`
+	APIKey       string                  `json:"-"`
 	APIKeySource string                  `json:"api_key_source"`
 }
 
@@ -51,7 +51,7 @@ func envValue(key string) string {
 
 func isCredentialEnvKey(key string) bool {
 	u := strings.ToUpper(key)
-	return strings.Contains(u, "API_KEY") || strings.Contains(u, "_TOKEN") || u == "OLLAMA_BASE_URL"
+	return strings.Contains(u, "API_KEY") || strings.Contains(u, "_TOKEN")
 }
 
 func asTrimmedEnv(key string) string {

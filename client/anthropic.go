@@ -336,10 +336,9 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 	return &StreamResult{Events: events, RequestID: requestID, cancel: cancel}, nil
 }
 
-// Ping checks connectivity to the Anthropic API.
+// Ping checks connectivity to the Anthropic API using a lightweight GET request.
 func (c *AnthropicClient) Ping(ctx context.Context) error {
-	body := []byte(`{"model":"claude-3-5-haiku-20241022","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}`)
-	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/messages", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/v1/models", nil)
 	if err != nil {
 		return fmt.Errorf("eyrie: anthropic ping failed: %w", err)
 	}

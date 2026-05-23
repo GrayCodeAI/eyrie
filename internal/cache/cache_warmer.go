@@ -4,7 +4,6 @@ import (
 	"context"
 	"math"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -171,18 +170,16 @@ func (cw *CacheWarmer) Warm(ctx context.Context) error {
 	err := cw.ChatFn(ctx, messages, opts)
 
 	cw.mu.Lock()
-	atomic.AddInt64(&cw.Stats.WarmingRequests, 1)
+	cw.Stats.WarmingRequests++
 	cw.Stats.LastWarmedAt = time.Now()
 	if err == nil {
-		// If the request succeeded and we've sent more than one warming request,
-		// subsequent ones are cache hits.
 		if cw.Stats.WarmingRequests > 1 {
-			atomic.AddInt64(&cw.Stats.CacheHits, 1)
+			cw.Stats.CacheHits++
 		} else {
-			atomic.AddInt64(&cw.Stats.CacheMisses, 1)
+			cw.Stats.CacheMisses++
 		}
 	} else {
-		atomic.AddInt64(&cw.Stats.CacheMisses, 1)
+		cw.Stats.CacheMisses++
 	}
 	cw.mu.Unlock()
 

@@ -168,7 +168,10 @@ func (d *DAG) Prune(nodeID string) error {
 		return fmt.Errorf("node %q not found", nodeID)
 	}
 	if d.headID != "" {
-		subtree, _ := d.store.GetSubtree(ctx, nodeID)
+		subtree, err := d.store.GetSubtree(ctx, nodeID)
+		if err != nil {
+			return fmt.Errorf("get subtree: %w", err)
+		}
 		for _, n := range subtree {
 			if n.ID == d.headID {
 				if sn.ParentID != "" {
@@ -224,7 +227,7 @@ func storageToDagNode(sn *Node) *DAGNode {
 }
 
 func dagID() string {
-	b := make([]byte, 4)
+	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	return fmt.Sprintf("%x", b)
 }

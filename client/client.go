@@ -44,7 +44,7 @@ type Provider interface {
 // EyrieConfig holds client configuration.
 type EyrieConfig struct {
 	Provider   string `json:"provider,omitempty"`
-	APIKey     string `json:"api_key,omitempty"`
+	APIKey     string `json:"-"`
 	BaseURL    string `json:"base_url,omitempty"`
 	Model      string `json:"model,omitempty"`
 	MaxRetries int    `json:"max_retries,omitempty"`
@@ -123,6 +123,11 @@ func (sr *StreamResult) Close() {
 	if sr.cancel != nil {
 		sr.cancel()
 	}
+}
+
+// NewStreamResult creates a StreamResult with a cancel function for resource cleanup.
+func NewStreamResult(events <-chan EyrieStreamEvent, cancel context.CancelFunc) *StreamResult {
+	return &StreamResult{Events: events, cancel: cancel}
 }
 
 // ProviderType classifies providers.
@@ -246,7 +251,15 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 		c.mu.RUnlock()
 		return p, nil
 	}
+	hasKey := c.apiKeys[providerName] != ""
 	c.mu.RUnlock()
+
+	// Register fallback provider BEFORE acquiring c.mu to avoid lock ordering issues.
+	if !hasKey && c.GetProviderInfo(providerName) == nil {
+		if fallbackURL := openaiBaseFallbackURL(); fallbackURL != "" {
+			_ = RegisterDynamicProvider(providerName, fallbackURL, "OPENAI_API_KEY")
+		}
+	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -259,17 +272,6 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 	apiKey := c.apiKeys[providerName]
 	if apiKey == "" {
 		info := c.GetProviderInfo(providerName)
-		if info == nil {
-			// Fallback: if OPENAI_API_BASE or OPENAI_BASE_URL is set, register
-			// an ad-hoc OpenAI-compatible provider so unknown names still work.
-			if fallbackURL := openaiBaseFallbackURL(); fallbackURL != "" {
-				_ = RegisterDynamicProvider(providerName, fallbackURL, "OPENAI_API_KEY")
-			} else {
-				return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
-			}
-		}
-		// Re-check after potential dynamic registration.
-		info = c.GetProviderInfo(providerName)
 		if info == nil {
 			return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
 		}
@@ -413,7 +415,7 @@ func (c *EyrieClient) Ping(ctx context.Context, provider string) error {
 
 // AnthropicClientConfig holds config for creating an Anthropic client.
 type AnthropicClientConfig struct {
-	APIKey         string            `json:"api_key,omitempty"`
+	APIKey         string            `json:"-"`
 	DefaultHeaders map[string]string `json:"default_headers,omitempty"`
 	Timeout        int               `json:"timeout,omitempty"`
 	MaxRetries     int               `json:"max_retries,omitempty"`

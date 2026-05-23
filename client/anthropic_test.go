@@ -881,8 +881,8 @@ func TestAnthropicStreamChat_ContextCancel(t *testing.T) {
 
 func TestAnthropicPing_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/messages" {
-			t.Errorf("expected /v1/messages for ping, got %s", r.URL.Path)
+		if r.URL.Path != "/v1/models" {
+			t.Errorf("expected /v1/models for ping, got %s", r.URL.Path)
 		}
 		if r.Header.Get("X-Api-Key") != "valid-key" {
 			t.Errorf("expected valid-key, got %q", r.Header.Get("X-Api-Key"))
