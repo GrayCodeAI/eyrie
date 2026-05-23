@@ -452,13 +452,13 @@ SetupUI(ctx, providerFilter)
 ## 11. Implementation phases
 
 ### Phase 0 — Hygiene (1–2 days)
-- [ ] Update `CREDENTIAL-SETUP-FLOW.md` to match code (8 providers, Ollama path)
-- [ ] Fix `displayNameForProvider` to read registry
-- [ ] Document current API in `hawk/docs/DYNAMIC-MODELS.md`
+- [x] Update `CREDENTIAL-SETUP-FLOW.md` to match code (11 providers, Ollama URL flow)
+- [x] Fix `displayNameForProvider` to read registry (removed dead z-ai case)
+- [x] Document current API in `hawk/docs/DYNAMIC-MODELS.md`
 
-### Phase 1 — Unify hawk access (in progress — Phase A done)
+### Phase 1 — Unify hawk access ✅
 - [x] `eyrieclient` facade package created with catalog/credentials/client/storage wrappers
-- [~] Migrate ~112 hawk files from direct eyrie imports to `eyrieclient` (Phase A: facade extended; B-D remain)
+- [x] Migrated ~112 hawk files from direct eyrie imports to `eyrieclient`/`internal/types`
 - [x] Add `runtime.FormatSetupError(provider, err)`
 
 ### Phase 2 — Provider registry ✅
