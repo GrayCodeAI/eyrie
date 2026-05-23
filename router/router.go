@@ -191,7 +191,10 @@ func (r *Router) chatWithRetry(ctx context.Context, p client.Provider, messages 
 }
 
 func (r *Router) recordSuccess(name string) {
-	if s, ok := r.stats[name]; ok {
+	r.mu.RLock()
+	s, ok := r.stats[name]
+	r.mu.RUnlock()
+	if ok {
 		s.Add(1)
 	}
 }

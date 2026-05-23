@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -70,7 +71,7 @@ func (rc RetryConfig) backoffDelay(attempt int, resp *http.Response) time.Durati
 	if delay > rc.MaxDelay {
 		delay = rc.MaxDelay
 	}
-	jitter := time.Duration(rand.Int63n(int64(delay)))
+	jitter := time.Duration(cryptoRandInt64(int64(delay)))
 	return jitter
 }
 
@@ -147,4 +148,17 @@ func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request
 	}
 
 	return nil, fmt.Errorf("max retries (%d) exceeded: %w", rc.MaxRetries, lastErr)
+}
+
+// cryptoRandInt64 returns a cryptographically random int64 in [0, n).
+func cryptoRandInt64(n int64) int64 {
+	if n <= 0 {
+		return 0
+	}
+	bigN := big.NewInt(n)
+	result, err := rand.Int(rand.Reader, bigN)
+	if err != nil {
+		return 0
+	}
+	return result.Int64()
 }

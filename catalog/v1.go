@@ -533,7 +533,7 @@ func FetchRemoteCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*Cata
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("catalog v1: remote returned HTTP %d", resp.StatusCode)
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024)) // 10 MiB max
 	if err != nil {
 		return nil, err
 	}

@@ -35,7 +35,7 @@ func (e *EyrieError) Unwrap() error { return e.Err }
 // IsRetriable returns true if the error is likely transient and retrying may help.
 func (e *EyrieError) IsRetriable() bool {
 	switch e.StatusCode {
-	case 429, 500, 502, 503, 529:
+	case 408, 429, 500, 502, 503, 504, 529:
 		return true
 	}
 	return false

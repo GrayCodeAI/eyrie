@@ -78,7 +78,7 @@ func resolveRoutingStages(canonicalModelID string, compiled *catalog.CompiledCat
 			return cloneRoutingStages(stages), "providers"
 		}
 		for key, stages := range policy.Providers {
-			if canonicalProviderID(key) == providerID && len(stages) > 0 {
+			if catalog.CanonicalProviderID(key) == providerID && len(stages) > 0 {
 				return cloneRoutingStages(stages), "provider_alias"
 			}
 		}

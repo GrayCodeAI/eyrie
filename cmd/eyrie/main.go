@@ -166,7 +166,11 @@ func runStatus(args []string) {
 }
 
 func openStore() storage.Store {
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "error: cannot determine home directory: %v\n", err)
+		os.Exit(1)
+	}
 	dir := filepath.Join(home, ".eyrie")
 	_ = os.MkdirAll(dir, 0o755)
 	store, err := storage.Open(filepath.Join(dir, "conversations.db"))
@@ -309,6 +313,7 @@ func runServe(port string) {
 		}
 	}
 	store := openStore()
+	defer store.Close()
 	provider := getProvider()
 	srv := api.NewServer(api.Config{
 		Store:    store,
@@ -324,8 +329,9 @@ func runServe(port string) {
 
 func truncate(s string, n int) string {
 	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) > n {
-		return s[:n] + "..."
+	runes := []rune(s)
+	if len(runes) > n {
+		return string(runes[:n]) + "..."
 	}
 	return s
 }

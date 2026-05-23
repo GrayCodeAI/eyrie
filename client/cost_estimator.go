@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
 
 // CostEstimator estimates the cost of an API call BEFORE sending it.
@@ -80,6 +81,7 @@ func (ce *CostEstimator) countInputTokens(messages []EyrieMessage) int {
 // StreamingTokenCounter counts tokens as they stream in real-time.
 // Provides running cost estimate during generation.
 type StreamingTokenCounter struct {
+	mu           sync.Mutex
 	model        string
 	inputTokens  int
 	outputTokens int
@@ -96,19 +98,22 @@ func NewStreamingTokenCounter(model string, inputTokens int) *StreamingTokenCoun
 
 // AddOutput records streamed output tokens.
 func (stc *StreamingTokenCounter) AddOutput(text string) {
+	stc.mu.Lock()
 	stc.outputTokens += len(text) / 4
+	stc.mu.Unlock()
 }
 
 // AddCached records cached input tokens.
 func (stc *StreamingTokenCounter) AddCached(tokens int) {
+	stc.mu.Lock()
 	stc.cachedTokens = tokens
+	stc.mu.Unlock()
 }
 
-// CurrentCost returns the running cost so far.
-func (stc *StreamingTokenCounter) CurrentCost() float64 {
+// currentCostLocked returns the running cost. Caller must hold stc.mu.
+func (stc *StreamingTokenCounter) currentCostLocked() float64 {
 	inPrice := pricePerToken(stc.model, true)
 	outPrice := pricePerToken(stc.model, false)
-	// Cached tokens cost 10% of normal
 	regularIn := stc.inputTokens - stc.cachedTokens
 	if regularIn < 0 {
 		regularIn = 0
@@ -116,10 +121,19 @@ func (stc *StreamingTokenCounter) CurrentCost() float64 {
 	return float64(regularIn)*inPrice + float64(stc.cachedTokens)*inPrice*0.1 + float64(stc.outputTokens)*outPrice
 }
 
+// CurrentCost returns the running cost so far.
+func (stc *StreamingTokenCounter) CurrentCost() float64 {
+	stc.mu.Lock()
+	defer stc.mu.Unlock()
+	return stc.currentCostLocked()
+}
+
 // Summary returns current token counts and cost.
 func (stc *StreamingTokenCounter) Summary() string {
+	stc.mu.Lock()
+	defer stc.mu.Unlock()
 	return fmt.Sprintf("Tokens: %d in + %d out ($%.4f so far)",
-		stc.inputTokens, stc.outputTokens, stc.CurrentCost())
+		stc.inputTokens, stc.outputTokens, stc.currentCostLocked())
 }
 
 // PromptOptimizer compresses conversation history to reduce input tokens.
