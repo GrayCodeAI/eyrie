@@ -100,4 +100,3 @@ func TestProviderSpecs_TableDriven(t *testing.T) {
 		})
 	}
 }
-
