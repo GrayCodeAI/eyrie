@@ -48,6 +48,7 @@ type DeploymentRouter struct {
 	routing     RoutingPolicy
 	statsMu     sync.RWMutex
 	stats       map[string]*atomic.Int64
+	breakersMu  sync.RWMutex
 	breakers    map[string]*CircuitBreaker
 }
 
@@ -152,6 +153,7 @@ func (r *DeploymentRouter) StreamChat(ctx context.Context, messages []client.Eyr
 	if err != nil {
 		return nil, err
 	}
+	streamCtx, cancel := context.WithCancel(ctx)
 	out := make(chan client.EyrieStreamEvent, 64)
 	go func() {
 		defer close(out)
@@ -168,7 +170,7 @@ func (r *DeploymentRouter) StreamChat(ctx context.Context, messages []client.Eyr
 			}
 			for attempt := 0; attempt < attempts; attempt++ {
 				choice := selectDeploymentChoice(choices)
-				fallback, err := r.streamWithDeployment(ctx, out, messages, opts, target, choice.DeploymentID)
+				fallback, err := r.streamWithDeployment(streamCtx, out, messages, opts, target, choice.DeploymentID)
 				if err == nil {
 					r.recordSuccess(choice.DeploymentID)
 					return
@@ -176,14 +178,20 @@ func (r *DeploymentRouter) StreamChat(ctx context.Context, messages []client.Eyr
 				lastErr = err
 				r.recordFailure(choice.DeploymentID)
 				if !fallback {
-					out <- client.EyrieStreamEvent{Type: "error", Error: err.Error()}
+					select {
+					case out <- client.EyrieStreamEvent{Type: "error", Error: err.Error()}:
+					case <-streamCtx.Done():
+					}
 					return
 				}
 				if !IsTransient(err) {
 					if ShouldTryNextDeployment(err) {
 						break
 					}
-					out <- client.EyrieStreamEvent{Type: "error", Error: err.Error()}
+					select {
+					case out <- client.EyrieStreamEvent{Type: "error", Error: err.Error()}:
+					case <-streamCtx.Done():
+					}
 					return
 				}
 			}
@@ -191,9 +199,12 @@ func (r *DeploymentRouter) StreamChat(ctx context.Context, messages []client.Eyr
 		if lastErr == nil {
 			lastErr = fmt.Errorf("no route configured")
 		}
-		out <- client.EyrieStreamEvent{Type: "error", Error: fmt.Sprintf("deployment router: all deployments failed for %q: %v", target.canonicalModelID, lastErr)}
+		select {
+		case out <- client.EyrieStreamEvent{Type: "error", Error: fmt.Sprintf("deployment router: all deployments failed for %q: %v", target.canonicalModelID, lastErr)}:
+		case <-streamCtx.Done():
+		}
 	}()
-	return &client.StreamResult{Events: out}, nil
+	return client.NewStreamResult(out, cancel), nil
 }
 
 func (r *DeploymentRouter) Stats() map[string]int64 {
@@ -259,7 +270,7 @@ func (r *DeploymentRouter) routeFor(canonicalModelID string) []RoutingStage {
 				stages = cloneRoutingStages(explicit)
 			} else {
 				for key, explicit := range r.routing.Providers {
-					if canonicalProviderID(key) == providerID && len(explicit) > 0 {
+					if catalog.CanonicalProviderID(key) == providerID && len(explicit) > 0 {
 						stages = cloneRoutingStages(explicit)
 						break
 					}
@@ -319,6 +330,16 @@ func (r *DeploymentRouter) eligibleChoices(target deploymentTarget, stage Routin
 
 // getCircuitBreaker returns or lazily creates a circuit breaker for a deployment.
 func (r *DeploymentRouter) getCircuitBreaker(deploymentID string) *CircuitBreaker {
+	r.breakersMu.RLock()
+	if cb, ok := r.breakers[deploymentID]; ok {
+		r.breakersMu.RUnlock()
+		return cb
+	}
+	r.breakersMu.RUnlock()
+
+	r.breakersMu.Lock()
+	defer r.breakersMu.Unlock()
+	// Double-check after acquiring write lock.
 	if cb, ok := r.breakers[deploymentID]; ok {
 		return cb
 	}
@@ -351,14 +372,21 @@ func (r *DeploymentRouter) streamWithDeployment(ctx context.Context, out chan<- 
 	var buffered []client.EyrieStreamEvent
 	flush := func() {
 		for _, event := range buffered {
-			out <- event
+			select {
+			case out <- event:
+			case <-ctx.Done():
+				return
+			}
 		}
 		buffered = nil
 	}
 	for event := range stream.Events {
 		if event.Type == "error" {
 			if emitted {
-				out <- event
+				select {
+				case out <- event:
+				case <-ctx.Done():
+				}
 				return false, fmt.Errorf("%s", event.Error)
 			}
 			if event.Error == "" {
@@ -369,12 +397,20 @@ func (r *DeploymentRouter) streamWithDeployment(ctx context.Context, out chan<- 
 		if isOutputEvent(event) {
 			emitted = true
 			flush()
-			out <- event
+			select {
+			case out <- event:
+			case <-ctx.Done():
+				return false, ctx.Err()
+			}
 			continue
 		}
 		if emitted || event.Type == "done" {
 			flush()
-			out <- event
+			select {
+			case out <- event:
+			case <-ctx.Done():
+				return false, ctx.Err()
+			}
 			return false, nil
 		}
 		buffered = append(buffered, event)
@@ -509,22 +545,7 @@ func isOutputEvent(event client.EyrieStreamEvent) bool {
 
 func ownerProviderID(canonicalModelID string) string {
 	owner, _, _ := strings.Cut(canonicalModelID, "/")
-	return canonicalProviderID(owner)
-}
-
-func canonicalProviderID(providerID string) string {
-	switch providerID {
-	case "gemini":
-		return "google"
-	case "grok":
-		return "xai"
-	case "zai":
-		return "z-ai"
-	case "moonshotai":
-		return "moonshotai"
-	default:
-		return providerID
-	}
+	return catalog.CanonicalProviderID(owner)
 }
 
 func nativeModelHintForDeployment(model string, deployment catalog.DeploymentV1) string {

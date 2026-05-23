@@ -11,8 +11,8 @@ import (
 // ProviderFeatures tracks which capabilities each provider supports.
 // Prevents sending unsupported features (thinking, tools, images) to providers
 // that don't handle them, avoiding cryptic API errors.
+// Read-only after construction — no mutex needed.
 type ProviderFeatures struct {
-	mu       sync.RWMutex
 	features map[string]FeatureSet
 }
 
@@ -67,10 +67,8 @@ func NewProviderFeatures() *ProviderFeatures {
 	return pf
 }
 
-// Get returns features for a provider.
+// Get returns features for a provider. Read-only after construction — safe for concurrent access.
 func (pf *ProviderFeatures) Get(provider string) FeatureSet {
-	pf.mu.RLock()
-	defer pf.mu.RUnlock()
 	if f, ok := pf.features[strings.ToLower(provider)]; ok {
 		return f
 	}
@@ -102,8 +100,8 @@ func (pf *ProviderFeatures) Supports(provider, feature string) bool {
 }
 
 // DeprecationChecker warns when using models approaching retirement.
+// Read-only after construction — no mutex needed.
 type DeprecationChecker struct {
-	mu           sync.RWMutex
 	deprecations map[string]DeprecationInfo
 }
 
@@ -147,8 +145,6 @@ func NewDeprecationChecker() *DeprecationChecker {
 
 // Check returns deprecation info if the model is deprecated.
 func (dc *DeprecationChecker) Check(model string) *DeprecationInfo {
-	dc.mu.RLock()
-	defer dc.mu.RUnlock()
 	if info, ok := dc.deprecations[model]; ok && info.Deprecated {
 		return &info
 	}

@@ -63,7 +63,12 @@ var (
 )
 
 func init() {
-	// Attach compat configs to provider registry
+	// Attach compat configs to provider registry.
+	// Acquire dynamicMu for consistency with the runtime lock protocol,
+	// even though init() is single-threaded.
+	dynamicMu.Lock()
+	defer dynamicMu.Unlock()
+
 	if p, ok := OpenAICompatibleProviders["grok"]; ok {
 		p.Compat = &GrokCompat
 		OpenAICompatibleProviders["grok"] = p

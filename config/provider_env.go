@@ -71,6 +71,11 @@ type DeploymentConfig struct {
 	ModelMappings   map[string]string `json:"model_mappings,omitempty"`
 }
 
+// NOTE: RoutingPolicy, RoutingStage, DeploymentChoice are intentionally duplicated
+// in both config and router packages to avoid a circular import (config→router→client→config).
+// The setup.RouterRoutingPolicy() converter in setup/deployment.go bridges the two.
+// Keep these structs in sync with router/deployment_router.go.
+
 type RoutingPolicy struct {
 	Default   []RoutingStage            `json:"default,omitempty"`
 	Providers map[string][]RoutingStage `json:"providers,omitempty"`
