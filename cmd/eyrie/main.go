@@ -313,7 +313,11 @@ func runServe(port string) {
 		}
 	}
 	store := openStore()
-	defer store.Close()
+	defer func() {
+		if err := store.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "error closing store: %v\n", err)
+		}
+	}()
 	provider := getProvider()
 	srv := api.NewServer(api.Config{
 		Store:    store,
