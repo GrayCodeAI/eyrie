@@ -2,10 +2,10 @@ package client
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log/slog"
 	"math"
-	"crypto/rand"
 	"math/big"
 	"net/http"
 	"regexp"
