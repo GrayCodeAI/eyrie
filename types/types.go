@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -384,6 +385,17 @@ func EmptyUsage() NonNullableUsage {
 	return NonNullableUsage{Iterations: []interface{}{}}
 }
 
+// TransientError wraps an HTTP status code and message to indicate a retriable error.
+// Use errors.As to check for transient errors programmatically.
+type TransientError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *TransientError) Error() string {
+	return fmt.Sprintf("transient error (HTTP %d): %s", e.StatusCode, e.Message)
+}
+
 // IsTransient reports whether the error is likely temporary.
 // This is the single source of truth for retry decisions across all eyrie packages.
 // Unknown errors are treated as NOT retriable by default; callers may override.
@@ -396,6 +408,11 @@ func IsTransient(err error) bool {
 	}
 	if errors.Is(err, context.Canceled) {
 		return false
+	}
+	// Check for typed TransientError
+	var te *TransientError
+	if errors.As(err, &te) {
+		return true
 	}
 	msg := strings.ToLower(err.Error())
 
@@ -434,10 +451,14 @@ var httpStatusRe = regexp.MustCompile(`\b(\d{3})\b`)
 
 // ClassifyError creates a structured error from a status code and message.
 // It returns the most specific error type for the given error condition.
-func ClassifyError(provider string, statusCode int, message string) *APIError {
-	err := &APIError{
+// For retriable status codes (408, 429, 500, 502, 503, 504, 529), returns a TransientError.
+func ClassifyError(provider string, statusCode int, message string) error {
+	retriableCodes := map[int]bool{408: true, 429: true, 500: true, 502: true, 503: true, 504: true, 529: true}
+	if retriableCodes[statusCode] {
+		return &TransientError{StatusCode: statusCode, Message: message}
+	}
+	return &APIError{
 		Status:  statusCode,
 		Message: message,
 	}
-	return err
 }
