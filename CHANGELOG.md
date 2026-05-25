@@ -47,7 +47,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
   Checklist.
 - `.github/ISSUE_TEMPLATE/bug_report.yml` — structured bug report.
 - `.github/ISSUE_TEMPLATE/feature_request.yml` — feature request with
-  solo-developer fit checks.
+  developer fit checks.
 - `.github/ISSUE_TEMPLATE/config.yml` — routes security reports to
   GitHub Security Advisories, questions to Discussions, blocks blank
   issues.
