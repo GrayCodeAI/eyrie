@@ -114,6 +114,8 @@ type Telemetry struct {
 	OnSpanEnd func(*Span)
 }
 
+const maxTelemetrySpans = 10000 // cap to prevent unbounded memory growth
+
 // NewTelemetry creates a new Telemetry instance with an initialized
 // MetricsCollector.
 func NewTelemetry() *Telemetry {
@@ -179,6 +181,10 @@ func (t *Telemetry) EndSpan(span *Span, err error) {
 
 	t.mu.Lock()
 	t.spans = append(t.spans, span)
+	// Evict oldest half when cap exceeded to prevent unbounded growth
+	if len(t.spans) > maxTelemetrySpans {
+		t.spans = t.spans[maxTelemetrySpans/2:]
+	}
 	t.mu.Unlock()
 
 	// Update metrics from span attributes.
@@ -439,6 +445,8 @@ func (mc *MetricsCollector) CacheHitRate() float64 {
 	return float64(mc.cacheHits.Load()) / float64(total)
 }
 
+const maxCustomSamplesPerMetric = 1000 // cap per metric name to prevent unbounded growth
+
 // RecordCustom records a custom named metric.
 func (mc *MetricsCollector) RecordCustom(name string, value float64, attrs map[string]string) {
 	if mc == nil {
@@ -446,7 +454,12 @@ func (mc *MetricsCollector) RecordCustom(name string, value float64, attrs map[s
 	}
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	mc.customMetrics[name] = append(mc.customMetrics[name], customSample{
+	samples := mc.customMetrics[name]
+	if len(samples) >= maxCustomSamplesPerMetric {
+		// Evict oldest half
+		samples = samples[maxCustomSamplesPerMetric/2:]
+	}
+	mc.customMetrics[name] = append(samples, customSample{
 		Value: value,
 		Attrs: attrs,
 		Time:  time.Now(),
