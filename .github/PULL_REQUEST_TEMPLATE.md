@@ -56,4 +56,4 @@ $ make lint
 - [ ] No regression for existing providers (Anthropic, OpenAI, Azure, Vertex,
       OpenAI-compatible)
 - [ ] No secrets, tokens, or PII added to the repo
-- [ ] No `Co-authored-by:` trailers (this is solo-developer work)
+- [ ] No `Co-authored-by:` trailers (this is individual-developer work)
