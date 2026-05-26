@@ -35,9 +35,9 @@ func NewOpenAIClient(apiKey, baseURL string, compat *OpenAICompatConfig, opts ..
 		// TODO: Use a shared http.Transport with MaxIdleConnsPerHost and
 		// IdleConnTimeout to enable connection pooling across providers,
 		// reducing latency and connection overhead.
-		httpClient:   &http.Client{Timeout: defaultTimeout},
-		retry:        DefaultRetryConfig(),
-		logger:       slog.Default(),
+		httpClient: &http.Client{Timeout: defaultTimeout},
+		retry:      DefaultRetryConfig(),
+		logger:     slog.Default(),
 	}
 	if c.baseURL == "" {
 		c.baseURL = "https://api.openai.com/v1"

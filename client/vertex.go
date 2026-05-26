@@ -23,9 +23,9 @@ var _ Provider = (*VertexClient)(nil)
 
 func NewVertexClient(projectID, region, token string) *VertexClient {
 	return &VertexClient{
-		projectID:  projectID,
-		region:     region,
-		token:      token,
+		projectID: projectID,
+		region:    region,
+		token:     token,
 		// TODO: Use a shared http.Transport with MaxIdleConnsPerHost and
 		// IdleConnTimeout to enable connection pooling across providers,
 		// reducing latency and connection overhead.

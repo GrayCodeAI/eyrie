@@ -38,9 +38,9 @@ func NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region string)
 		// TODO: Use a shared http.Transport with MaxIdleConnsPerHost and
 		// IdleConnTimeout to enable connection pooling across providers,
 		// reducing latency and connection overhead.
-		httpClient:      &http.Client{Timeout: defaultTimeout},
-		retry:           DefaultRetryConfig(),
-		logger:          slog.Default().With("component", "bedrock"),
+		httpClient: &http.Client{Timeout: defaultTimeout},
+		retry:      DefaultRetryConfig(),
+		logger:     slog.Default().With("component", "bedrock"),
 	}
 }
 
