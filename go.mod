@@ -3,13 +3,11 @@ module github.com/GrayCodeAI/eyrie
 go 1.26.3
 
 require (
-	github.com/GrayCodeAI/tok v0.2.0
+	github.com/GrayCodeAI/tok v0.3.0
 	github.com/google/uuid v1.6.0
 	github.com/zalando/go-keyring v0.2.6
 	modernc.org/sqlite v1.50.1
 )
-
-replace github.com/GrayCodeAI/tok => ../tok
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect

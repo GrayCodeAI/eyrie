@@ -38,8 +38,8 @@ type DeploymentAdapter struct {
 
 // CircuitBreakerConfig holds tunable circuit breaker parameters.
 type CircuitBreakerConfig struct {
-	Threshold int           `json:"threshold"`           // failures before opening (default 5)
-	Cooldown  time.Duration `json:"cooldown"`            // time before half-open (default 30s)
+	Threshold int           `json:"threshold"` // failures before opening (default 5)
+	Cooldown  time.Duration `json:"cooldown"`  // time before half-open (default 30s)
 }
 
 // DefaultCircuitBreakerConfig returns production defaults.
@@ -51,10 +51,10 @@ func DefaultCircuitBreakerConfig() CircuitBreakerConfig {
 }
 
 type DeploymentRouterOptions struct {
-	Catalog          *catalog.CompiledCatalogV1
-	Deployments      map[string]DeploymentAdapter
-	Routing          RoutingPolicy
-	CircuitBreaker   *CircuitBreakerConfig // optional, defaults applied if nil
+	Catalog        *catalog.CompiledCatalogV1
+	Deployments    map[string]DeploymentAdapter
+	Routing        RoutingPolicy
+	CircuitBreaker *CircuitBreakerConfig // optional, defaults applied if nil
 }
 
 type DeploymentRouter struct {
