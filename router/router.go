@@ -24,6 +24,7 @@ type Router struct {
 	defaultRetry RetryConfig
 	mu           sync.RWMutex
 	stats        map[string]*atomic.Int64
+	selectMu     sync.Mutex
 }
 
 var _ client.Provider = (*Router)(nil)
@@ -136,6 +137,8 @@ func (r *Router) Stats() map[string]int64 {
 }
 
 func (r *Router) selectProvider() (client.Provider, RetryConfig) {
+	r.selectMu.Lock()
+	defer r.selectMu.Unlock()
 	if r.totalWeight == 0 && len(r.entries) > 0 {
 		e := r.entries[0]
 		rc := r.defaultRetry
