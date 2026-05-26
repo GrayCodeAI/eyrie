@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -206,11 +204,6 @@ func (fp *FallbackProvider) recordSuccess(name string) {
 	}
 }
 
-// httpStatusRe extracts HTTP status codes from error messages produced by
-// the eyrie client (e.g. "eyrie: openai API error (request_id=...): ..."
-// or "HTTP 429 from ...").
-var httpStatusRe = regexp.MustCompile(`(?:HTTP|http)\s+(\d{3})`)
-
 // nonRetriableStatusCodes are HTTP status codes that indicate a client-side
 // error -- falling back won't help because the request itself is bad.
 var nonRetriableStatusCodes = map[int]bool{
@@ -221,7 +214,15 @@ var nonRetriableStatusCodes = map[int]bool{
 	422: true, // unprocessable entity
 }
 
-// isRetriableError inspects an error to determine if a fallback should be attempted.
+// isRetriableError determines whether a fallback to the next provider should
+// be attempted. It delegates to types.IsTransient for known error patterns
+// but diverges on unknown errors: where IsTransient is conservative (returns
+// false for unrecognized errors), isRetriableError is optimistic (returns true).
+//
+// Rationale: in a fallback chain, trying the next provider is cheap and may
+// succeed even if the current provider failed with an unexpected error type.
+// In contrast, retry middleware (which uses IsTransient) should be conservative
+// to avoid wasting requests on errors that won't resolve with a retry.
 func isRetriableError(err error) bool {
 	if err == nil {
 		return false
@@ -232,18 +233,15 @@ func isRetriableError(err error) bool {
 	if errors.Is(err, context.Canceled) {
 		return false
 	}
-	// If IsTransient returns a definitive answer (true or false for known codes), use it.
-	// Only fall back to retriable=true for errors that don't match any known pattern.
+	// If IsTransient returns true, the error is known-retriable — try next provider.
 	if types.IsTransient(err) {
 		return true
 	}
-	// Check for explicit non-retriable codes that IsTransient already rejects.
-	msg := err.Error()
-	if matches := httpStatusRe.FindStringSubmatch(msg); len(matches) >= 2 {
-		if code, convErr := strconv.Atoi(matches[1]); convErr == nil {
-			if nonRetriableStatusCodes[code] {
-				return false
-			}
+	// If the error contains a known non-retriable HTTP status code, give up
+	// immediately — the request itself is bad, not the provider.
+	if code, ok := types.ExtractHTTPStatus(err); ok {
+		if nonRetriableStatusCodes[code] {
+			return false
 		}
 	}
 	// Unknown error types: treat as retriable so we at least try the next provider.

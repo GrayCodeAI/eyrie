@@ -98,7 +98,9 @@ type openaiResponse struct {
 	} `json:"usage"`
 }
 
-func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, stream bool) openaiRequest {
+// buildRequestBase builds an OpenAI-compatible request body.
+// When compat is non-nil, MaxTokensField and SupportsUsageInStreaming overrides are applied.
+func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, compat *OpenAICompatConfig) openaiRequest {
 	var msgs []map[string]interface{}
 	for _, m := range messages {
 		if m.ToolResult != nil {
@@ -176,13 +178,15 @@ func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, s
 	if maxTok == 0 {
 		maxTok = 4096
 	}
-	if c.compat.MaxTokensField == "max_completion_tokens" {
+	if compat != nil && compat.MaxTokensField == "max_completion_tokens" {
 		req.MaxCompletionTokens = &maxTok
 	} else {
 		req.MaxTokens = &maxTok
 	}
-	if stream && c.compat.SupportsUsageInStreaming {
-		req.StreamOptions = &streamOptions{IncludeUsage: true}
+	if stream {
+		if compat == nil || compat.SupportsUsageInStreaming {
+			req.StreamOptions = &streamOptions{IncludeUsage: true}
+		}
 	}
 	if opts.ResponseFormat != nil {
 		rf := map[string]interface{}{"type": opts.ResponseFormat.Type}
@@ -197,96 +201,13 @@ func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, s
 	return req
 }
 
+func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, stream bool) openaiRequest {
+	return buildRequestBase(messages, opts, stream, c.compat)
+}
+
 // buildOpenAIRequest builds the shared OpenAI-compatible request body.
 func buildOpenAIRequest(messages []EyrieMessage, opts ChatOptions, stream bool) openaiRequest {
-	var msgs []map[string]interface{}
-	for _, m := range messages {
-		if m.ToolResult != nil {
-			msgs = append(msgs, map[string]interface{}{
-				"role":         "tool",
-				"content":      m.ToolResult.Content,
-				"tool_call_id": m.ToolResult.ToolUseID,
-			})
-			continue
-		}
-		msg := map[string]interface{}{"role": m.Role, "content": m.Content}
-		if len(m.Images) > 0 {
-			content := make([]map[string]interface{}, 0, 1+len(m.Images))
-			if m.Content != "" {
-				content = append(content, map[string]interface{}{"type": "text", "text": m.Content})
-			}
-			for _, img := range m.Images {
-				switch {
-				case strings.HasPrefix(img, "data:"):
-					content = append(content, map[string]interface{}{
-						"type":      "image_url",
-						"image_url": map[string]interface{}{"url": img},
-					})
-				case strings.HasPrefix(img, "http"):
-					content = append(content, map[string]interface{}{
-						"type":      "image_url",
-						"image_url": map[string]interface{}{"url": img},
-					})
-				default:
-					content = append(content, map[string]interface{}{
-						"type":      "image_url",
-						"image_url": map[string]interface{}{"url": "data:image/png;base64," + img},
-					})
-				}
-			}
-			msg["content"] = content
-		}
-		if len(m.ToolUse) > 0 {
-			toolCalls := make([]map[string]interface{}, len(m.ToolUse))
-			for i, tc := range m.ToolUse {
-				args, _ := json.Marshal(tc.Arguments)
-				toolCalls[i] = map[string]interface{}{
-					"id":   tc.ID,
-					"type": "function",
-					"function": map[string]interface{}{
-						"name":      tc.Name,
-						"arguments": string(args),
-					},
-				}
-			}
-			msg["tool_calls"] = toolCalls
-		}
-		msgs = append(msgs, msg)
-	}
-	req := openaiRequest{Model: opts.Model, Messages: msgs, Temperature: opts.Temperature, Stream: stream}
-	if len(opts.Tools) > 0 {
-		tools := make([]map[string]interface{}, len(opts.Tools))
-		for i, t := range opts.Tools {
-			tools[i] = map[string]interface{}{
-				"type": "function",
-				"function": map[string]interface{}{
-					"name":        t.Name,
-					"description": t.Description,
-					"parameters":  t.Parameters,
-				},
-			}
-		}
-		req.Tools = tools
-	}
-	maxTok := opts.MaxTokens
-	if maxTok == 0 {
-		maxTok = 4096
-	}
-	req.MaxTokens = &maxTok
-	if stream {
-		req.StreamOptions = &streamOptions{IncludeUsage: true}
-	}
-	if opts.ResponseFormat != nil {
-		rf := map[string]interface{}{"type": opts.ResponseFormat.Type}
-		if opts.ResponseFormat.Schema != "" && opts.ResponseFormat.Type == "json_schema" {
-			var schema map[string]interface{}
-			if json.Unmarshal([]byte(opts.ResponseFormat.Schema), &schema) == nil {
-				rf["json_schema"] = schema
-			}
-		}
-		req.ResponseFormat = rf
-	}
-	return req
+	return buildRequestBase(messages, opts, stream, nil)
 }
 
 // Chat sends a non-streaming request.

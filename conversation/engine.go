@@ -180,7 +180,7 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 		)
 
 		for {
-			var fullText string
+			var fullTextBuilder strings.Builder
 			var usage *client.EyrieUsage
 			var stopReason string
 			start := time.Now()
@@ -188,7 +188,7 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 			for evt := range currentStream {
 				switch evt.Type {
 				case "content":
-					fullText += evt.Content
+					fullTextBuilder.WriteString(evt.Content)
 					select {
 					case events <- Event{Type: EventDelta, Content: evt.Content}:
 					case <-ctx.Done():
@@ -205,6 +205,8 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 					return
 				}
 			}
+
+			fullText := fullTextBuilder.String()
 
 			if fullText == "" && stopReason == "" {
 				if accumulatedText != "" {
