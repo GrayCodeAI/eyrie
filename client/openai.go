@@ -32,9 +32,9 @@ func NewOpenAIClient(apiKey, baseURL string, compat *OpenAICompatConfig, opts ..
 		baseURL:      baseURL,
 		providerName: "openai",
 		compat:       compat,
-		httpClient: NewPooledHTTPClient(defaultTimeout),
-		retry:      DefaultRetryConfig(),
-		logger:     slog.Default(),
+		httpClient:   NewPooledHTTPClient(defaultTimeout),
+		retry:        DefaultRetryConfig(),
+		logger:       slog.Default(),
 	}
 	if c.baseURL == "" {
 		c.baseURL = "https://api.openai.com/v1"

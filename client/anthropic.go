@@ -27,9 +27,9 @@ var _ Provider = (*AnthropicClient)(nil)
 // NewAnthropicClient creates a configured Anthropic client.
 func NewAnthropicClient(apiKey, baseURL string, opts ...ClientOption) *AnthropicClient {
 	c := &AnthropicClient{
-		apiKey:  apiKey,
-		baseURL: baseURL,
-		version: "2023-06-01",
+		apiKey:     apiKey,
+		baseURL:    baseURL,
+		version:    "2023-06-01",
 		httpClient: NewPooledHTTPClient(defaultTimeout),
 		retry:      DefaultRetryConfig(),
 		logger:     slog.Default(),

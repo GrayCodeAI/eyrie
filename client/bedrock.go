@@ -35,9 +35,9 @@ func NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region string)
 		secretAccessKey: secretAccessKey,
 		sessionToken:    sessionToken,
 		region:          region,
-		httpClient: NewPooledHTTPClient(defaultTimeout),
-		retry:      DefaultRetryConfig(),
-		logger:     slog.Default().With("component", "bedrock"),
+		httpClient:      NewPooledHTTPClient(defaultTimeout),
+		retry:           DefaultRetryConfig(),
+		logger:          slog.Default().With("component", "bedrock"),
 	}
 }
 
