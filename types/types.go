@@ -396,9 +396,14 @@ func (e *TransientError) Error() string {
 	return fmt.Sprintf("transient error (HTTP %d): %s", e.StatusCode, e.Message)
 }
 
-// IsTransient reports whether the error is likely temporary.
-// This is the single source of truth for retry decisions across all eyrie packages.
-// Unknown errors are treated as NOT retriable by default; callers may override.
+// IsTransient reports whether the error is likely temporary and worth retrying.
+// This is the canonical retry classifier used by the retry middleware.
+//
+// Conservative by default: unknown errors (those that match neither retriable
+// nor non-retriable patterns) are treated as NOT retriable. This avoids
+// unnecessary retries for unexpected error types (e.g., malformed responses,
+// serialization failures). Callers like FallbackProvider that want optimistic
+// fallback on unknown errors implement their own wrapper — see client.isRetriableError.
 func IsTransient(err error) bool {
 	if err == nil {
 		return false
@@ -448,6 +453,24 @@ func IsTransient(err error) bool {
 }
 
 var httpStatusRe = regexp.MustCompile(`\b(\d{3})\b`)
+
+// ExtractHTTPStatus attempts to extract an HTTP status code from err's message.
+// Uses the same regex as IsTransient to find 3-digit codes in error text.
+// Returns the status code and true if found, or 0 and false otherwise.
+func ExtractHTTPStatus(err error) (int, bool) {
+	if err == nil {
+		return 0, false
+	}
+	matches := httpStatusRe.FindStringSubmatch(err.Error())
+	if len(matches) < 2 {
+		return 0, false
+	}
+	code, convErr := strconv.Atoi(matches[1])
+	if convErr != nil {
+		return 0, false
+	}
+	return code, true
+}
 
 // ClassifyError creates a structured error from a status code and message.
 // It returns the most specific error type for the given error condition.

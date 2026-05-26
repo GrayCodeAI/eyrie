@@ -168,7 +168,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 					var args map[string]interface{}
 					_ = json.Unmarshal(chunk.ContentBlock.Input, &args)
 					tc := ToolCall{ID: chunk.ContentBlock.ID, Name: chunk.ContentBlock.Name, Arguments: args}
-					toolCalls = append(toolCalls, tc)
+					_ = append(toolCalls, tc) // individual calls sent via channel; accumulation unused
 					select {
 					case ch <- EyrieStreamEvent{Type: "tool_call", ToolCall: &tc}:
 					case <-streamCtx.Done():

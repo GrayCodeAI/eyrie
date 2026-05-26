@@ -36,16 +36,32 @@ type DeploymentAdapter struct {
 	ModelMappings map[string]string
 }
 
+// CircuitBreakerConfig holds tunable circuit breaker parameters.
+type CircuitBreakerConfig struct {
+	Threshold int           `json:"threshold"`           // failures before opening (default 5)
+	Cooldown  time.Duration `json:"cooldown"`            // time before half-open (default 30s)
+}
+
+// DefaultCircuitBreakerConfig returns production defaults.
+func DefaultCircuitBreakerConfig() CircuitBreakerConfig {
+	return CircuitBreakerConfig{
+		Threshold: 5,
+		Cooldown:  30 * time.Second,
+	}
+}
+
 type DeploymentRouterOptions struct {
-	Catalog     *catalog.CompiledCatalogV1
-	Deployments map[string]DeploymentAdapter
-	Routing     RoutingPolicy
+	Catalog          *catalog.CompiledCatalogV1
+	Deployments      map[string]DeploymentAdapter
+	Routing          RoutingPolicy
+	CircuitBreaker   *CircuitBreakerConfig // optional, defaults applied if nil
 }
 
 type DeploymentRouter struct {
 	catalog     *catalog.CompiledCatalogV1
 	deployments map[string]DeploymentAdapter
 	routing     RoutingPolicy
+	cbConfig    CircuitBreakerConfig
 	statsMu     sync.RWMutex
 	stats       map[string]*atomic.Int64
 	breakersMu  sync.RWMutex
@@ -80,10 +96,15 @@ func NewDeploymentRouter(opts DeploymentRouterOptions) (*DeploymentRouter, error
 		deployments[id] = adapter
 		stats[id] = &atomic.Int64{}
 	}
+	cbConfig := DefaultCircuitBreakerConfig()
+	if opts.CircuitBreaker != nil {
+		cbConfig = *opts.CircuitBreaker
+	}
 	router := &DeploymentRouter{
 		catalog:     opts.Catalog,
 		deployments: deployments,
 		routing:     cloneRoutingPolicy(opts.Routing),
+		cbConfig:    cbConfig,
 		stats:       stats,
 		breakers:    make(map[string]*CircuitBreaker, len(deployments)),
 	}
@@ -343,7 +364,7 @@ func (r *DeploymentRouter) getCircuitBreaker(deploymentID string) *CircuitBreake
 	if cb, ok := r.breakers[deploymentID]; ok {
 		return cb
 	}
-	cb := NewCircuitBreaker(5, 30*time.Second)
+	cb := NewCircuitBreaker(r.cbConfig.Threshold, r.cbConfig.Cooldown)
 	r.breakers[deploymentID] = cb
 	return cb
 }

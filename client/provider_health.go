@@ -1,6 +1,7 @@
 package client
 
 import (
+	"math"
 	"sort"
 	"sync"
 	"time"
@@ -149,8 +150,26 @@ func (s *providerStats) score() float64 {
 		return 1.0
 	}
 
-	// Base score from success rate
-	successRate := float64(s.successes) / float64(total)
+	// Apply exponential time decay to failure counts after a 5-minute grace period.
+	// Recent failures (< 5 min) are kept at full weight. Older failures decay
+	// with a 1-hour half-life, allowing providers to recover over time.
+	decayedFailures := float64(s.failures)
+	if !s.lastError.IsZero() {
+		elapsed := time.Since(s.lastError)
+		if elapsed > 5*time.Minute {
+			// Decay starts after grace period, measured from end of grace
+			decayElapsed := elapsed - 5*time.Minute
+			decay := math.Exp(-math.Ln2 * decayElapsed.Hours()) // half-life = 1 hour
+			decayedFailures *= decay
+		}
+	}
+	decayedTotal := float64(s.successes) + decayedFailures
+	if decayedTotal == 0 {
+		return 1.0
+	}
+
+	// Base score from decayed success rate
+	successRate := float64(s.successes) / decayedTotal
 
 	// Penalty for recent failures
 	recencyPenalty := 0.0
