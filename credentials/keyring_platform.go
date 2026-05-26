@@ -15,33 +15,54 @@ func newPlatformKeyringStore() Store {
 	return &keyringStore{}
 }
 
-// TODO: Pass ctx to the underlying keyring call once
-// github.com/zalando/go-keyring supports context propagation for
-// proper timeout/cancellation.
+// keyringDo runs fn with context timeout/cancellation. The underlying
+// go-keyring library does not accept context.Context, so we wrap it with a
+// goroutine and select to support cancellation.
+func keyringDo(ctx context.Context, fn func() error) error {
+	ch := make(chan error, 1)
+	go func() {
+		ch <- fn()
+	}()
+	select {
+	case err := <-ch:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func (k *keyringStore) Set(ctx context.Context, account, secret string) error {
-	_ = ctx
-	return keyring.Set(ServiceName, account, secret)
+	return keyringDo(ctx, func() error {
+		return keyring.Set(ServiceName, account, secret)
+	})
 }
 
-// TODO: Pass ctx to the underlying keyring call once
-// github.com/zalando/go-keyring supports context propagation for
-// proper timeout/cancellation.
 func (k *keyringStore) Get(ctx context.Context, account string) (string, error) {
-	_ = ctx
-	v, err := keyring.Get(ServiceName, account)
-	if err != nil {
-		return "", ErrNotFound
+	type result struct {
+		val string
+		err error
 	}
-	if strings.TrimSpace(v) == "" {
-		return "", ErrNotFound
+	ch := make(chan result, 1)
+	go func() {
+		v, err := keyring.Get(ServiceName, account)
+		ch <- result{v, err}
+	}()
+	select {
+	case r := <-ch:
+		if r.err != nil {
+			return "", ErrNotFound
+		}
+		if strings.TrimSpace(r.val) == "" {
+			return "", ErrNotFound
+		}
+		return r.val, nil
+	case <-ctx.Done():
+		return "", ctx.Err()
 	}
-	return v, nil
 }
 
-// TODO: Pass ctx to the underlying keyring call once
-// github.com/zalando/go-keyring supports context propagation for
-// proper timeout/cancellation.
 func (k *keyringStore) Delete(ctx context.Context, account string) error {
-	_ = ctx
-	return keyring.Delete(ServiceName, account)
+	return keyringDo(ctx, func() error {
+		return keyring.Delete(ServiceName, account)
+	})
 }
