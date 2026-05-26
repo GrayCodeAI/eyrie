@@ -35,7 +35,7 @@ func BenchmarkCircuitBreaker_Failure(b *testing.B) {
 
 func BenchmarkCircuitBreaker_Allow_Open(b *testing.B) {
 	cb := NewCircuitBreaker(1, 1*time.Hour) // opens after 1 failure, long cooldown
-	cb.Failure()                             // open it
+	cb.Failure()                            // open it
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
