@@ -1,7 +1,8 @@
 package router
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"strings"
 	"time"
 
@@ -59,8 +60,19 @@ func BackoffDelay(attempt int, cfg RetryConfig) time.Duration {
 	if base > cfg.MaxDelay {
 		base = cfg.MaxDelay
 	}
-	jitter := 0.5 + rand.Float64()
-	return time.Duration(float64(base) * jitter)
+	return cryptoRandDuration(base)
+}
+
+func cryptoRandDuration(max time.Duration) time.Duration {
+	if max <= 0 {
+		return 0
+	}
+	bigN := big.NewInt(int64(max))
+	result, err := rand.Int(rand.Reader, bigN)
+	if err != nil {
+		return 0
+	}
+	return time.Duration(result.Int64())
 }
 
 var afterFunc = time.After
