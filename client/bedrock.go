@@ -35,6 +35,9 @@ func NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region string)
 		secretAccessKey: secretAccessKey,
 		sessionToken:    sessionToken,
 		region:          region,
+		// TODO: Use a shared http.Transport with MaxIdleConnsPerHost and
+		// IdleConnTimeout to enable connection pooling across providers,
+		// reducing latency and connection overhead.
 		httpClient:      &http.Client{Timeout: defaultTimeout},
 		retry:           DefaultRetryConfig(),
 		logger:          slog.Default().With("component", "bedrock"),
