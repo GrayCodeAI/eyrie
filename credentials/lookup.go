@@ -3,6 +3,7 @@ package credentials
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 )
@@ -19,6 +20,7 @@ func LookupSecret(ctx context.Context, envKey string) string {
 	}
 	secret, err := DefaultStore().Get(ctx, AccountForEnv(envKey))
 	if err != nil {
+		slog.Warn("failed to lookup secret", "env_key", envKey, "error", err)
 		return ""
 	}
 	return strings.TrimSpace(secret)
