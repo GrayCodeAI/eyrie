@@ -23,9 +23,9 @@ var _ Provider = (*VertexClient)(nil)
 
 func NewVertexClient(projectID, region, token string) *VertexClient {
 	return &VertexClient{
-		projectID: projectID,
-		region:    region,
-		token:     token,
+		projectID:  projectID,
+		region:     region,
+		token:      token,
 		httpClient: NewPooledHTTPClient(defaultTimeout),
 		retry:      DefaultRetryConfig(),
 		logger:     slog.Default().With("component", "vertex"),
