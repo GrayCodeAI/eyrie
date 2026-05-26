@@ -30,7 +30,7 @@ func NewAzureClient(apiKey, endpoint, apiVersion string) *AzureClient {
 		apiKey:     apiKey,
 		endpoint:   strings.TrimRight(endpoint, "/"),
 		apiVersion: apiVersion,
-		httpClient: &http.Client{Timeout: defaultTimeout},
+		httpClient: NewPooledHTTPClient(defaultTimeout),
 		retry:      DefaultRetryConfig(),
 		logger:     slog.Default(),
 	}
