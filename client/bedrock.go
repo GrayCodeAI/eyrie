@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"sort"
@@ -22,6 +23,8 @@ type BedrockClient struct {
 	sessionToken    string
 	region          string
 	httpClient      *http.Client
+	retry           RetryConfig
+	logger          *slog.Logger
 }
 
 var _ Provider = (*BedrockClient)(nil)
@@ -33,6 +36,8 @@ func NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region string)
 		sessionToken:    sessionToken,
 		region:          region,
 		httpClient:      &http.Client{Timeout: defaultTimeout},
+		retry:           DefaultRetryConfig(),
+		logger:          slog.Default().With("component", "bedrock"),
 	}
 }
 
@@ -57,7 +62,7 @@ func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts 
 		return nil, err
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock request failed: %w", err)
 	}
@@ -104,7 +109,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 		return nil, err
 	}
 
-	resp, err := c.httpClient.Do(req) //nolint:bodyclose // closed inside goroutine for streaming
+	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock stream request failed: %w", err)
 	}
