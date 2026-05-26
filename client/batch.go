@@ -44,11 +44,11 @@ func NewBatchClient(apiKey, baseURL string) *BatchClient {
 	if baseURL == "" {
 		baseURL = "https://api.anthropic.com"
 	}
-	return &BatchClient{
-		apiKey:     apiKey,
-		baseURL:    baseURL,
-		httpClient: &http.Client{Timeout: 5 * time.Minute},
-	}
+		return &BatchClient{
+			apiKey:     apiKey,
+			baseURL:    baseURL,
+			httpClient: NewPooledHTTPClient(5 * time.Minute),
+		}
 }
 
 // Submit sends a batch of requests. Returns the batch ID for polling.

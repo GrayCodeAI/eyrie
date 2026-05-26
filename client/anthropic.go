@@ -30,10 +30,7 @@ func NewAnthropicClient(apiKey, baseURL string, opts ...ClientOption) *Anthropic
 		apiKey:  apiKey,
 		baseURL: baseURL,
 		version: "2023-06-01",
-		// TODO: Use a shared http.Transport with MaxIdleConnsPerHost and
-		// IdleConnTimeout to enable connection pooling across providers,
-		// reducing latency and connection overhead.
-		httpClient: &http.Client{Timeout: defaultTimeout},
+		httpClient: NewPooledHTTPClient(defaultTimeout),
 		retry:      DefaultRetryConfig(),
 		logger:     slog.Default(),
 	}
