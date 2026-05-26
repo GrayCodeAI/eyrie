@@ -112,12 +112,12 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 		return nil, err
 	}
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger) //nolint:bodyclose // closed in goroutine for streaming
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock stream request failed: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		return nil, fmt.Errorf("eyrie: bedrock stream error (status %d): %s", resp.StatusCode, parseErrorBody(resp.Body))
 	}
 
@@ -127,7 +127,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 	go func() {
 		defer close(ch)
 		defer cancel()
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		var contentBuf strings.Builder
 		var toolCalls []ToolCall
