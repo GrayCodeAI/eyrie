@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 )
@@ -14,6 +15,7 @@ type VertexClient struct {
 	region     string
 	token      string
 	httpClient *http.Client
+	retry      RetryConfig
 	logger     *slog.Logger
 }
 
@@ -25,6 +27,7 @@ func NewVertexClient(projectID, region, token string) *VertexClient {
 		region:     region,
 		token:      token,
 		httpClient: &http.Client{Timeout: defaultTimeout},
+		retry:      DefaultRetryConfig(),
 		logger:     slog.Default().With("component", "vertex"),
 	}
 }
@@ -50,8 +53,9 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		return nil, fmt.Errorf("eyrie: vertex request creation failed: %w", err)
 	}
 	c.setHeaders(req)
+	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: vertex request failed: %w", err)
 	}
@@ -118,10 +122,11 @@ func (c *VertexClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	}
 	c.setHeaders(req)
 	req.Header.Set("Accept", "text/event-stream")
+	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
-		return nil, fmt.Errorf("eyrie: vertex stream failed: %w", err)
+		return nil, fmt.Errorf("eyrie: vertex stream request failed: %w", err)
 	}
 
 	if resp.StatusCode != 200 {
