@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/GrayCodeAI/tok"
 )
 
 // CostEstimator estimates the cost of an API call BEFORE sending it.
@@ -63,15 +65,14 @@ func (ce *CostEstimator) IsExpensive(est CostEstimate, threshold float64) bool {
 func (ce *CostEstimator) countInputTokens(messages []EyrieMessage) int {
 	total := 0
 	for _, m := range messages {
-		// ~4 chars per token (rough estimate for fast pre-call estimation)
-		total += len(m.Content) / 4
+		total += tok.EstimateTokens(m.Content)
 		if m.ToolResult != nil {
-			total += len(m.ToolResult.Content) / 4
+			total += tok.EstimateTokens(m.ToolResult.Content)
 		}
 		for _, tc := range m.ToolUse {
 			total += 50 // tool call overhead
 			for _, v := range tc.Arguments {
-				total += len(fmt.Sprintf("%v", v)) / 4
+				total += tok.EstimateTokens(fmt.Sprintf("%v", v))
 			}
 		}
 	}
@@ -99,7 +100,7 @@ func NewStreamingTokenCounter(model string, inputTokens int) *StreamingTokenCoun
 // AddOutput records streamed output tokens.
 func (stc *StreamingTokenCounter) AddOutput(text string) {
 	stc.mu.Lock()
-	stc.outputTokens += len(text) / 4
+	stc.outputTokens += tok.EstimateTokens(text)
 	stc.mu.Unlock()
 }
 
@@ -156,7 +157,7 @@ func NewPromptOptimizer(maxInputTokens int) *PromptOptimizer {
 func (po *PromptOptimizer) Optimize(messages []EyrieMessage) []EyrieMessage {
 	totalTokens := 0
 	for _, m := range messages {
-		totalTokens += len(m.Content)/4 + 10 // +10 for overhead
+		totalTokens += tok.EstimateTokens(m.Content) + 10 // +10 for overhead
 	}
 
 	if totalTokens <= po.maxInputTokens {
@@ -190,17 +191,21 @@ func (po *PromptOptimizer) Optimize(messages []EyrieMessage) []EyrieMessage {
 func compressMessages(messages []EyrieMessage) string {
 	var parts []string
 	for _, m := range messages {
-		content := m.Content
-		if len(content) > 100 {
-			content = content[:100] + "..."
-		}
-		if content != "" {
-			parts = append(parts, m.Role+": "+content)
+		if m.Content != "" {
+			parts = append(parts, m.Role+": "+m.Content)
 		}
 	}
-	summary := strings.Join(parts, " | ")
-	if len(summary) > 500 {
-		summary = summary[:500]
+	raw := strings.Join(parts, "\n")
+
+	// Use tok compression pipeline for intelligent summarization
+	compressed, _ := tok.Compress(raw, tok.Minimal)
+	if len(compressed) > 0 && len(compressed) < len(raw) {
+		return compressed
 	}
-	return summary
+
+	// Fallback: naive truncation
+	if len(raw) > 500 {
+		raw = raw[:500]
+	}
+	return raw
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/types"
 )
 
 func TestFallbackProviderSuccess(t *testing.T) {
@@ -163,20 +165,57 @@ func TestIsRetriableError(t *testing.T) {
 		err       error
 		retriable bool
 	}{
+		// nil
 		{"nil error", nil, false},
+
+		// Retriable HTTP status codes: 408, 429, 500, 502, 503, 504, 529
+		{"HTTP 408", fmt.Errorf("HTTP 408 from api.openai.com"), true},
 		{"HTTP 429", fmt.Errorf("HTTP 429 from api.openai.com"), true},
 		{"HTTP 500", fmt.Errorf("HTTP 500 from api.openai.com"), true},
 		{"HTTP 502", fmt.Errorf("HTTP 502 from api.openai.com"), true},
 		{"HTTP 503", fmt.Errorf("HTTP 503 from api.openai.com"), true},
+		{"HTTP 504", fmt.Errorf("HTTP 504 from api.openai.com"), true},
+		{"HTTP 529", fmt.Errorf("HTTP 529 from api.openai.com"), true},
+
+		// Non-retriable HTTP status codes: 400, 401, 403, 404, 422
 		{"HTTP 400", fmt.Errorf("HTTP 400 from api.openai.com"), false},
 		{"HTTP 401", fmt.Errorf("HTTP 401 from api.openai.com"), false},
 		{"HTTP 403", fmt.Errorf("HTTP 403 from api.openai.com"), false},
-		{"timeout", fmt.Errorf("request timeout"), true},
-		{"connection refused", fmt.Errorf("connection refused"), true},
+		{"HTTP 404", fmt.Errorf("HTTP 404 from api.openai.com"), false},
+		{"HTTP 422", fmt.Errorf("HTTP 422 from api.openai.com"), false},
+
+		// Context errors
 		{"context deadline", context.DeadlineExceeded, true},
 		{"context cancelled", context.Canceled, false},
+
+		// TransientError type — delegated to IsTransient, returns true
+		{"TransientError 500", &types.TransientError{StatusCode: 500, Message: "oops"}, true},
+		{"TransientError 429", &types.TransientError{StatusCode: 429, Message: "rate limit"}, true},
+		{"wrapped TransientError", fmt.Errorf("outer: %w", &types.TransientError{StatusCode: 503, Message: "down"}), true},
+
+		// Message-based pattern matching (delegated to IsTransient)
+		{"timeout message", fmt.Errorf("request timeout"), true},
+		{"timed out", fmt.Errorf("connection timed out"), true},
+		{"deadline exceeded message", fmt.Errorf("deadline exceeded"), true},
+		{"connection refused", fmt.Errorf("connection refused"), true},
+		{"connection reset", fmt.Errorf("connection reset by peer"), true},
+		{"EOF", fmt.Errorf("unexpected EOF"), true},
+		{"broken pipe", fmt.Errorf("broken pipe"), true},
+		{"temporarily unavailable", fmt.Errorf("temporarily unavailable"), true},
+		{"overloaded", fmt.Errorf("server overloaded"), true},
+		{"try again", fmt.Errorf("please try again later"), true},
 		{"rate limit", fmt.Errorf("eyrie: rate limit exceeded"), true},
-		{"generic error", fmt.Errorf("eyrie: mock error"), true},
+		{"rate_limit", fmt.Errorf("rate_limit hit"), true},
+
+		// APIConnectionTimeoutError (recognized by IsTransient)
+		{"APIConnectionTimeoutError", types.NewAPIConnectionTimeoutError("timed out"), true},
+
+		// KEY DIVERGENCE: unknown errors are retriable in isRetriableError
+		// (optimistic) but NOT retriable in IsTransient (conservative).
+		{"unknown error — optimistic", fmt.Errorf("eyrie: mock error"), true},
+		{"unknown error — weird", fmt.Errorf("something weird happened"), true},
+		{"unknown error — crash", fmt.Errorf("provider crashed"), true},
+		{"unknown error — assertion", fmt.Errorf("internal assertion failed"), true},
 	}
 
 	for _, tt := range tests {
@@ -186,6 +225,53 @@ func TestIsRetriableError(t *testing.T) {
 				t.Errorf("isRetriableError(%v) = %v, want %v", tt.err, got, tt.retriable)
 			}
 		})
+	}
+}
+
+// TestIsRetriableErrorVsIsTransientDivergence documents the intentional
+// behavioral difference: isRetriableError is optimistic (unknown errors retriable),
+// while types.IsTransient is conservative (unknown errors NOT retriable).
+func TestIsRetriableErrorVsIsTransientDivergence(t *testing.T) {
+	unknownErrors := []error{
+		fmt.Errorf("something weird happened"),
+		fmt.Errorf("provider crashed"),
+		fmt.Errorf("internal assertion failed"),
+		fmt.Errorf("unexpected response format"),
+	}
+
+	for _, err := range unknownErrors {
+		// IsTransient: conservative — unknown errors are NOT retriable.
+		if types.IsTransient(err) {
+			t.Errorf("types.IsTransient should be conservative for %q, got true", err)
+		}
+		// isRetriableError: optimistic — unknown errors ARE retriable.
+		if !isRetriableError(err) {
+			t.Errorf("isRetriableError should be optimistic for %q, got false", err)
+		}
+	}
+
+	// Known retriable errors should be retriable in BOTH functions.
+	retriableErrors := []error{
+		context.DeadlineExceeded,
+		fmt.Errorf("HTTP 503 service unavailable"),
+		fmt.Errorf("rate limit exceeded"),
+		&types.TransientError{StatusCode: 500, Message: "oops"},
+	}
+	for _, err := range retriableErrors {
+		if !types.IsTransient(err) {
+			t.Errorf("types.IsTransient should be true for %q", err)
+		}
+		if !isRetriableError(err) {
+			t.Errorf("isRetriableError should be true for %q", err)
+		}
+	}
+
+	// context.Canceled is NOT retriable in either function.
+	if types.IsTransient(context.Canceled) {
+		t.Error("types.IsTransient(context.Canceled) should be false")
+	}
+	if isRetriableError(context.Canceled) {
+		t.Error("isRetriableError(context.Canceled) should be false")
 	}
 }
 
