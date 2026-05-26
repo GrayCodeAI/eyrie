@@ -27,9 +27,9 @@ var _ Provider = (*AnthropicClient)(nil)
 // NewAnthropicClient creates a configured Anthropic client.
 func NewAnthropicClient(apiKey, baseURL string, opts ...ClientOption) *AnthropicClient {
 	c := &AnthropicClient{
-		apiKey:     apiKey,
-		baseURL:    baseURL,
-		version:    "2023-06-01",
+		apiKey:  apiKey,
+		baseURL: baseURL,
+		version: "2023-06-01",
 		// TODO: Use a shared http.Transport with MaxIdleConnsPerHost and
 		// IdleConnTimeout to enable connection pooling across providers,
 		// reducing latency and connection overhead.
