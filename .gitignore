@@ -26,3 +26,6 @@ Thumbs.db
 vendor/
 go.work
 go.work.sum
+
+# CodeGraph local index
+.codegraph/
