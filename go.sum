@@ -4,6 +4,8 @@ github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
 github.com/GrayCodeAI/hawk v0.2.1-0.20260517190521-61a6865d141a h1:RHsZ2qGNfl3qYx7oGhwB6S41jI5jxla4CGYvnS7O2zU=
 github.com/GrayCodeAI/hawk v0.2.1-0.20260517190521-61a6865d141a/go.mod h1:KG3UWsLYX0kmcR/+ZJ09Wk1q2qmecYcn8AJZT+fHTR0=
+github.com/GrayCodeAI/tok v0.3.0 h1:4YAWErBl4fdaorvVMU2cxhL6X0qrYsiYld+vQl6oRjw=
+github.com/GrayCodeAI/tok v0.3.0/go.mod h1:dd9hG5ULboJEGUCq756Y2uVUd/UDSk6bDIabN0j2BcI=
 github.com/danieljoos/wincred v1.2.2 h1:774zMFJrqaeYCK2W57BgAem/MLi6mtSE47MB6BOJ0i0=
 github.com/danieljoos/wincred v1.2.2/go.mod h1:w7w4Utbrz8lqeMbDAK0lkNJUv5sAOkFi7nd/ogr0Uh8=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
