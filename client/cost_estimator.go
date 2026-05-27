@@ -179,8 +179,7 @@ func (po *PromptOptimizer) Optimize(messages []EyrieMessage) []EyrieMessage {
 	summary := compressMessages(middle)
 
 	result := make([]EyrieMessage, 0, keepEnd+2)
-	result = append(result, messages[0]) // first message
-	result = append(result, EyrieMessage{
+	result = append(result, messages[0], EyrieMessage{
 		Role:    "user",
 		Content: "[Earlier conversation summary: " + summary + "]",
 	})
