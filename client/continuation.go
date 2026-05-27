@@ -82,8 +82,9 @@ func ChatWithContinuation(ctx context.Context, p Provider, messages []EyrieMessa
 
 		// Hit max_tokens — append partial as assistant and continue
 		if i < cfg.MaxContinuations {
-			msgs = append(msgs, EyrieMessage{Role: "assistant", Content: accumulated.String()})
-			msgs = append(msgs, EyrieMessage{Role: "user", Content: "Continue."})
+			msgs = append(msgs,
+				EyrieMessage{Role: "assistant", Content: accumulated.String()},
+				EyrieMessage{Role: "user", Content: "Continue."})
 		}
 	}
 
@@ -176,8 +177,9 @@ func StreamChatWithContinuation(ctx context.Context, p Provider, messages []Eyri
 			})
 
 			// Build continuation messages
-			msgs = append(msgs, EyrieMessage{Role: "assistant", Content: accumulated.String()})
-			msgs = append(msgs, EyrieMessage{Role: "user", Content: "Continue."})
+			msgs = append(msgs,
+				EyrieMessage{Role: "assistant", Content: accumulated.String()},
+				EyrieMessage{Role: "user", Content: "Continue."})
 		}
 
 		emit(cancelCtx, outCh, EyrieStreamEvent{Type: "done", StopReason: "max_tokens"})
