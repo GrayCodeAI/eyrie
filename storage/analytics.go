@@ -9,43 +9,43 @@ import (
 
 // CostRecord represents a single persisted cost entry for an API request.
 type CostRecord struct {
-	ID                 int64     `json:"id"`
-	Provider           string    `json:"provider"`
-	Model              string    `json:"model"`
-	InputTokens        int       `json:"input_tokens"`
-	OutputTokens       int       `json:"output_tokens"`
-	CacheReadTokens    int       `json:"cache_read_tokens"`
-	CacheCreationTokens int     `json:"cache_creation_tokens"`
-	CostUSD            float64   `json:"cost_usd"`
-	LatencyMs          int       `json:"latency_ms"`
-	CreatedAt          time.Time `json:"created_at"`
+	ID                  int64     `json:"id"`
+	Provider            string    `json:"provider"`
+	Model               string    `json:"model"`
+	InputTokens         int       `json:"input_tokens"`
+	OutputTokens        int       `json:"output_tokens"`
+	CacheReadTokens     int       `json:"cache_read_tokens"`
+	CacheCreationTokens int       `json:"cache_creation_tokens"`
+	CostUSD             float64   `json:"cost_usd"`
+	LatencyMs           int       `json:"latency_ms"`
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 // UsageStats holds aggregated usage statistics for a provider/model pair.
 type UsageStats struct {
-	Provider         string  `json:"provider"`
-	Model            string  `json:"model"`
-	RequestCount     int     `json:"request_count"`
-	TotalInputTokens int     `json:"total_input_tokens"`
-	TotalOutputTokens int    `json:"total_output_tokens"`
-	TotalCacheRead   int     `json:"total_cache_read_tokens"`
-	TotalCacheCreation int   `json:"total_cache_creation_tokens"`
-	ErrorCount       int     `json:"error_count"`
-	ErrorRate        float64 `json:"error_rate"`
-	AvgLatencyMs     float64 `json:"avg_latency_ms"`
-	TotalCostUSD     float64 `json:"total_cost_usd"`
+	Provider           string  `json:"provider"`
+	Model              string  `json:"model"`
+	RequestCount       int     `json:"request_count"`
+	TotalInputTokens   int     `json:"total_input_tokens"`
+	TotalOutputTokens  int     `json:"total_output_tokens"`
+	TotalCacheRead     int     `json:"total_cache_read_tokens"`
+	TotalCacheCreation int     `json:"total_cache_creation_tokens"`
+	ErrorCount         int     `json:"error_count"`
+	ErrorRate          float64 `json:"error_rate"`
+	AvgLatencyMs       float64 `json:"avg_latency_ms"`
+	TotalCostUSD       float64 `json:"total_cost_usd"`
 }
 
 // ProviderHealthRecord holds per-provider health data from the nodes table.
 type ProviderHealthRecord struct {
-	Provider     string  `json:"provider"`
-	RequestCount int     `json:"request_count"`
-	ErrorCount   int     `json:"error_count"`
-	ErrorRate    float64 `json:"error_rate"`
-	AvgLatencyMs float64 `json:"avg_latency_ms"`
-	P50LatencyMs float64 `json:"p50_latency_ms"`
-	P95LatencyMs float64 `json:"p95_latency_ms"`
-	P99LatencyMs float64 `json:"p99_latency_ms"`
+	Provider      string    `json:"provider"`
+	RequestCount  int       `json:"request_count"`
+	ErrorCount    int       `json:"error_count"`
+	ErrorRate     float64   `json:"error_rate"`
+	AvgLatencyMs  float64   `json:"avg_latency_ms"`
+	P50LatencyMs  float64   `json:"p50_latency_ms"`
+	P95LatencyMs  float64   `json:"p95_latency_ms"`
+	P99LatencyMs  float64   `json:"p99_latency_ms"`
 	LastRequestAt time.Time `json:"last_request_at"`
 }
 
@@ -107,7 +107,8 @@ func (a *SQLiteAnalyticsStore) RecordCost(ctx context.Context, rec *CostRecord) 
 	if rec.CreatedAt.IsZero() {
 		rec.CreatedAt = time.Now()
 	}
-	_, err := a.db.ExecContext(ctx,
+	_, err := a.db.ExecContext(
+		ctx,
 		`INSERT INTO cost_records (provider, model, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, latency_ms, created_at) VALUES (?,?,?,?,?,?,?,?,?)`,
 		rec.Provider, rec.Model, rec.InputTokens, rec.OutputTokens,
 		rec.CacheReadTokens, rec.CacheCreationTokens, rec.CostUSD,

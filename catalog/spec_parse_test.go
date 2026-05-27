@@ -113,11 +113,11 @@ func TestValidateCatalogV1_BadProviderIDMismatch(t *testing.T) {
 func TestValidateCatalogV1_BadDeploymentProviderRef(t *testing.T) {
 	c := testLegacyCatalogV1()
 	c.Deployments["bad-dep"] = DeploymentV1{
-		ID:                 "bad-dep",
-		Name:               "Bad",
-		ProviderID:         "nonexistent",
-		APIProtocolID:      "openai-chat-completions",
-		AdapterConstructor: "openai",
+		ID:                  "bad-dep",
+		Name:                "Bad",
+		ProviderID:          "nonexistent",
+		APIProtocolID:       "openai-chat-completions",
+		AdapterConstructor:  "openai",
 		NativeModelIDSource: NativeModelIDCatalogKnown,
 	}
 	if err := ValidateCatalogV1(&c); err == nil {
@@ -128,11 +128,11 @@ func TestValidateCatalogV1_BadDeploymentProviderRef(t *testing.T) {
 func TestValidateCatalogV1_BadDeploymentProtocolRef(t *testing.T) {
 	c := testLegacyCatalogV1()
 	c.Deployments["bad-dep"] = DeploymentV1{
-		ID:                 "bad-dep",
-		Name:               "Bad",
-		ProviderID:         "openai",
-		APIProtocolID:      "nonexistent-protocol",
-		AdapterConstructor: "openai",
+		ID:                  "bad-dep",
+		Name:                "Bad",
+		ProviderID:          "openai",
+		APIProtocolID:       "nonexistent-protocol",
+		AdapterConstructor:  "openai",
 		NativeModelIDSource: NativeModelIDCatalogKnown,
 	}
 	if err := ValidateCatalogV1(&c); err == nil {
@@ -323,7 +323,8 @@ func TestCatalogV1FromLegacy_PreservesTimestamp(t *testing.T) {
 
 func TestCatalogV1FromLegacy_SkipsEmptyNativeIDs(t *testing.T) {
 	legacy := testLegacyModelCatalog()
-	legacy.Providers["anthropic"] = append(legacy.Providers["anthropic"],
+	legacy.Providers["anthropic"] = append(
+		legacy.Providers["anthropic"],
 		ModelCatalogEntry{ID: "", DisplayName: "Empty"},
 		ModelCatalogEntry{ID: "  ", DisplayName: "Whitespace"},
 	)

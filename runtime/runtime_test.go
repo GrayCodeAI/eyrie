@@ -397,12 +397,12 @@ func TestChatProvider_NilProvider(t *testing.T) {
 
 func TestEntriesToModelList(t *testing.T) {
 	tests := []struct {
-		name      string
-		entries   []catalog.ModelCatalogEntry
+		name       string
+		entries    []catalog.ModelCatalogEntry
 		providerID string
-		source    string
-		installed bool
-		wantLen   int
+		source     string
+		installed  bool
+		wantLen    int
 	}{
 		{
 			name:    "nil entries",

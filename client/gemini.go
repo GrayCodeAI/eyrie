@@ -126,9 +126,9 @@ func (c *GeminiClient) Ping(ctx context.Context) error {
 // --- Request building ---
 
 type geminiRequest struct {
-	Contents         []geminiContent        `json:"contents"`
+	Contents         []geminiContent         `json:"contents"`
 	GenerationConfig *geminiGenerationConfig `json:"generationConfig,omitempty"`
-	Tools            []geminiTool           `json:"tools,omitempty"`
+	Tools            []geminiTool            `json:"tools,omitempty"`
 }
 
 type geminiContent struct {
@@ -137,9 +137,9 @@ type geminiContent struct {
 }
 
 type geminiPart struct {
-	Text             string                 `json:"text,omitempty"`
-	InlineData       *geminiInlineData      `json:"inlineData,omitempty"`
-	FunctionCall     *geminiFunctionCall    `json:"functionCall,omitempty"`
+	Text             string                  `json:"text,omitempty"`
+	InlineData       *geminiInlineData       `json:"inlineData,omitempty"`
+	FunctionCall     *geminiFunctionCall     `json:"functionCall,omitempty"`
 	FunctionResponse *geminiFunctionResponse `json:"functionResponse,omitempty"`
 }
 

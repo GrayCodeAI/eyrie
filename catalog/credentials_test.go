@@ -7,10 +7,10 @@ import (
 func TestCredentials_Env_FiltersEmpty(t *testing.T) {
 	c := Credentials{
 		APIKeys: map[string]string{
-			"OPENAI_API_KEY":     "sk-test",
-			"EMPTY_KEY":          "",
-			"":                   "orphan-value",
-			"ANTHROPIC_API_KEY":  "sk-ant-test",
+			"OPENAI_API_KEY":    "sk-test",
+			"EMPTY_KEY":         "",
+			"":                  "orphan-value",
+			"ANTHROPIC_API_KEY": "sk-ant-test",
 		},
 	}
 	env := c.Env()
