@@ -153,7 +153,8 @@ func TestWithLoggerOpenAI(t *testing.T) {
 // --- Option application order tests ---
 
 func TestOptionApplicationOrderAnthropic(t *testing.T) {
-	c := NewAnthropicClient("key", "",
+	c := NewAnthropicClient(
+		"key", "",
 		WithAPIKey("first"),
 		WithAPIKey("second"),
 		WithBaseURL("https://first.example.com"),
@@ -168,7 +169,8 @@ func TestOptionApplicationOrderAnthropic(t *testing.T) {
 }
 
 func TestOptionApplicationOrderOpenAI(t *testing.T) {
-	c := NewOpenAIClient("key", "", nil,
+	c := NewOpenAIClient(
+		"key", "", nil,
 		WithAPIKey("first"),
 		WithAPIKey("second"),
 		WithBaseURL("https://first.example.com"),
@@ -183,7 +185,8 @@ func TestOptionApplicationOrderOpenAI(t *testing.T) {
 }
 
 func TestOptionOrderModelMaxTokensTemperature(t *testing.T) {
-	c := NewAnthropicClient("key", "",
+	c := NewAnthropicClient(
+		"key", "",
 		WithModel("first-model"),
 		WithMaxTokens(100),
 		WithTemperature(0.1),
@@ -311,7 +314,8 @@ func TestProviderSpecificNilFnNoPanic(t *testing.T) {
 // --- Combined option tests ---
 
 func TestMultipleOptionsAnthropic(t *testing.T) {
-	c := NewAnthropicClient("", "",
+	c := NewAnthropicClient(
+		"", "",
 		WithAPIKey("my-key"),
 		WithBaseURL("https://proxy.example.com"),
 		WithModel("claude-sonnet-4-6"),
@@ -336,7 +340,8 @@ func TestMultipleOptionsAnthropic(t *testing.T) {
 }
 
 func TestMultipleOptionsOpenAI(t *testing.T) {
-	c := NewOpenAIClient("", "", nil,
+	c := NewOpenAIClient(
+		"", "", nil,
 		WithAPIKey("my-key"),
 		WithBaseURL("https://proxy.example.com/v1"),
 		WithModel("gpt-4o"),

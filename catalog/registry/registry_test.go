@@ -16,10 +16,10 @@ func TestNewProviderRegistry_Empty(t *testing.T) {
 func TestProviderRegistry_RegisterAndGet(t *testing.T) {
 	r := NewProviderRegistry()
 	spec := ProviderSpec{
-		ProviderID:   "test-provider",
-		DisplayName:  "Test Provider",
-		DeploymentID: "test-direct",
-		RequiresKey:  true,
+		ProviderID:    "test-provider",
+		DisplayName:   "Test Provider",
+		DeploymentID:  "test-direct",
+		RequiresKey:   true,
 		CredentialEnv: "TEST_API_KEY",
 	}
 	r.Register(spec)
@@ -82,9 +82,9 @@ func TestProviderRegistry_GetByEnv(t *testing.T) {
 	r.Register(ProviderSpec{ProviderID: "b", CredentialEnv: "B_KEY"})
 
 	tests := []struct {
-		env      string
-		wantID   string
-		wantOK   bool
+		env    string
+		wantID string
+		wantOK bool
 	}{
 		{"A_KEY", "a", true},
 		{"B_KEY", "b", true},
@@ -277,10 +277,10 @@ func TestProviderRegistry_DeploymentEnvFallbacks_BaseURL(t *testing.T) {
 
 func TestCredentialPresent(t *testing.T) {
 	tests := []struct {
-		name     string
-		spec     ProviderSpec
-		env      map[string]string
-		want     bool
+		name string
+		spec ProviderSpec
+		env  map[string]string
+		want bool
 	}{
 		{
 			name: "key_present",
