@@ -509,9 +509,9 @@ func TestProviderForDeployment_AnthropicVertexRequiresAllFields(t *testing.T) {
 
 func TestProviderForDeployment_OpenAIAzure(t *testing.T) {
 	p, ok := ProviderForDeployment("openai-azure", config.DeploymentConfig{
-		APIKey:      "azure-key",
-		Endpoint:    "https://myendpoint.openai.azure.com",
-		APIVersion:  "2024-02-15-preview",
+		APIKey:     "azure-key",
+		Endpoint:   "https://myendpoint.openai.azure.com",
+		APIVersion: "2024-02-15-preview",
 	})
 	if !ok {
 		t.Fatal("expected openai-azure to be configured")
