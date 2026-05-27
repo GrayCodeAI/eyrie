@@ -17,7 +17,7 @@ import (
 // --- Helpers ---
 
 func newTestOpenAIClient(url string, compat *OpenAICompatConfig) *OpenAIClient {
-	rc := RetryConfig{MaxRetries: 0, BaseDelay: 10 * time.Millisecond, MaxDelay: 50 * time.Millisecond, RetryOn: []int{}}
+	rc := NewRetryConfig(0, 10*time.Millisecond, 50*time.Millisecond)
 	return NewOpenAIClient("test-key", url, compat, WithRetry(rc))
 }
 
