@@ -1,7 +1,13 @@
 package client
 
 import (
+	"context"
+	"io"
+	"log/slog"
 	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -50,10 +56,7 @@ func TestRetryShouldRetryFalse(t *testing.T) {
 }
 
 func TestRetryDelayIncreasesExponentially(t *testing.T) {
-	cfg := RetryConfig{
-		BaseDelay: 100 * time.Millisecond,
-		MaxDelay:  10 * time.Second,
-	}
+	cfg := NewRetryConfig(0, 100*time.Millisecond, 10*time.Second)
 
 	// Run multiple samples to confirm the trend despite jitter
 	samples := 100
@@ -80,10 +83,7 @@ func TestRetryDelayIncreasesExponentially(t *testing.T) {
 }
 
 func TestRetryParseRetryAfterHeader(t *testing.T) {
-	cfg := RetryConfig{
-		BaseDelay: 100 * time.Millisecond,
-		MaxDelay:  60 * time.Second,
-	}
+	cfg := NewRetryConfig(0, 100*time.Millisecond, 60*time.Second)
 
 	resp := &http.Response{
 		Header: http.Header{},
@@ -111,5 +111,248 @@ func TestRetryParseRetryDelayFromMessage(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("parseRetryDelay(%q) = %v, want %v", tc.msg, got, tc.want)
 		}
+	}
+}
+
+func TestNewRetryConfig(t *testing.T) {
+	rc := NewRetryConfig(5, 200*time.Millisecond, 10*time.Second, 429, 500)
+	if rc.MaxRetries != 5 {
+		t.Errorf("MaxRetries = %d, want 5", rc.MaxRetries)
+	}
+	if rc.BaseDelay != 200*time.Millisecond {
+		t.Errorf("BaseDelay = %v, want 200ms", rc.BaseDelay)
+	}
+	if rc.MaxDelay != 10*time.Second {
+		t.Errorf("MaxDelay = %v, want 10s", rc.MaxDelay)
+	}
+	if len(rc.RetryOn) != 2 {
+		t.Fatalf("RetryOn has %d codes, want 2", len(rc.RetryOn))
+	}
+	if rc.RetryOn[0] != 429 || rc.RetryOn[1] != 500 {
+		t.Errorf("RetryOn = %v, want [429 500]", rc.RetryOn)
+	}
+}
+
+func TestDoWithRetrySuccess(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	}))
+	defer srv.Close()
+
+	rc := NewRetryConfig(3, 10*time.Millisecond, 50*time.Millisecond, 429, 500)
+	logger := slog.Default()
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
+
+	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	if err != nil {
+		t.Fatalf("doWithRetry: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("StatusCode = %d, want 200", resp.StatusCode)
+	}
+}
+
+func TestDoWithRetryRetriesOn500ThenSucceeds(t *testing.T) {
+	var attempts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := attempts.Add(1)
+		if n < 3 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	}))
+	defer srv.Close()
+
+	rc := NewRetryConfig(3, 10*time.Millisecond, 50*time.Millisecond, 500)
+	logger := slog.Default()
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
+
+	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	if err != nil {
+		t.Fatalf("doWithRetry: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("StatusCode = %d, want 200", resp.StatusCode)
+	}
+	if n := attempts.Load(); n != 3 {
+		t.Errorf("attempts = %d, want 3", n)
+	}
+}
+
+func TestDoWithRetryExhaustsRetries(t *testing.T) {
+	var attempts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts.Add(1)
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer srv.Close()
+
+	rc := NewRetryConfig(2, 5*time.Millisecond, 20*time.Millisecond, 429)
+	logger := slog.Default()
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
+
+	_, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	if err == nil {
+		t.Fatal("doWithRetry should fail after exhausting retries")
+	}
+	// Initial attempt + 2 retries = 3 total
+	if n := attempts.Load(); n != 3 {
+		t.Errorf("attempts = %d, want 3", n)
+	}
+}
+
+func TestDoWithRetryNoRetryOn400(t *testing.T) {
+	var attempts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts.Add(1)
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	defer srv.Close()
+
+	rc := NewRetryConfig(3, 10*time.Millisecond, 50*time.Millisecond, 429, 500)
+	logger := slog.Default()
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
+
+	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	if err != nil {
+		t.Fatalf("doWithRetry: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("StatusCode = %d, want 400", resp.StatusCode)
+	}
+	if n := attempts.Load(); n != 1 {
+		t.Errorf("attempts = %d, want 1 (no retry for 400)", n)
+	}
+}
+
+func TestDoWithRetryContextCancellation(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer srv.Close()
+
+	rc := NewRetryConfig(10, 1*time.Second, 10*time.Second, 429)
+	logger := slog.Default()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	req, _ := http.NewRequestWithContext(ctx, "GET", srv.URL, nil)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := doWithRetry(ctx, http.DefaultClient, req, rc, logger)
+		done <- err
+	}()
+
+	// Cancel after a short delay
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	err := <-done
+	if err == nil {
+		t.Fatal("doWithRetry should fail when context is cancelled")
+	}
+}
+
+func TestDoWithRetryRespectsRetryAfter(t *testing.T) {
+	var attempts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := attempts.Add(1)
+		if n < 2 {
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	rc := NewRetryConfig(2, 10*time.Millisecond, 5*time.Second, 429)
+	logger := slog.Default()
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
+
+	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	if err != nil {
+		t.Fatalf("doWithRetry: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("StatusCode = %d, want 200", resp.StatusCode)
+	}
+}
+
+func TestDoWithRetryBodyReplay(t *testing.T) {
+	var bodies []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var buf [256]byte
+		n, _ := r.Body.Read(buf[:])
+		bodies = append(bodies, string(buf[:n]))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	rc := NewRetryConfig(0, 10*time.Millisecond, 50*time.Millisecond)
+	logger := slog.Default()
+
+	body := `{"test":"data"}`
+	req, _ := http.NewRequestWithContext(context.Background(), "POST", srv.URL, nil)
+	req.Body = http.NoBody
+	req.ContentLength = int64(len(body))
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(strings.NewReader(body)), nil
+	}
+
+	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	if err != nil {
+		t.Fatalf("doWithRetry: %v", err)
+	}
+	defer resp.Body.Close()
+}
+
+func TestCryptoRandInt64Zero(t *testing.T) {
+	if v := cryptoRandInt64(0); v != 0 {
+		t.Errorf("cryptoRandInt64(0) = %d, want 0", v)
+	}
+}
+
+func TestCryptoRandInt64Negative(t *testing.T) {
+	if v := cryptoRandInt64(-1); v != 0 {
+		t.Errorf("cryptoRandInt64(-1) = %d, want 0", v)
+	}
+}
+
+func TestCryptoRandInt64Range(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		v := cryptoRandInt64(10)
+		if v < 0 || v >= 10 {
+			t.Errorf("cryptoRandInt64(10) = %d, want [0, 10)", v)
+		}
+	}
+}
+
+func TestBackoffDelayRetryAfterDate(t *testing.T) {
+	cfg := NewRetryConfig(0, 100*time.Millisecond, 60*time.Second)
+	resp := &http.Response{Header: http.Header{}}
+	// Set Retry-After to a date 2 seconds in the future
+	future := time.Now().Add(2 * time.Second).UTC().Format(http.TimeFormat)
+	resp.Header.Set("Retry-After", future)
+
+	delay := cfg.backoffDelay(0, resp)
+	if delay < 1*time.Second || delay > 3*time.Second {
+		t.Errorf("backoffDelay with Retry-After date = %v, want ~2s", delay)
+	}
+}
+
+func TestBackoffDelayMaxCap(t *testing.T) {
+	cfg := NewRetryConfig(0, 1*time.Second, 500*time.Millisecond)
+	// Even with large attempt, delay should cap at MaxDelay
+	delay := cfg.backoffDelay(20, nil)
+	if delay > cfg.MaxDelay {
+		t.Errorf("backoffDelay(20) = %v, should be capped at %v", delay, cfg.MaxDelay)
 	}
 }

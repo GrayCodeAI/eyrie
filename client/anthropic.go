@@ -13,12 +13,15 @@ import (
 
 // AnthropicClient implements Provider for the Anthropic Messages API.
 type AnthropicClient struct {
-	apiKey     string
-	baseURL    string
-	version    string
-	httpClient *http.Client
-	retry      RetryConfig
-	logger     *slog.Logger
+	apiKey             string
+	baseURL            string
+	version            string
+	httpClient         *http.Client
+	retry              RetryConfig
+	logger             *slog.Logger
+	defaultModel       string
+	defaultMaxTokens   int
+	defaultTemperature *float64
 }
 
 // Compile-time check that AnthropicClient implements Provider.

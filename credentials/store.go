@@ -65,6 +65,18 @@ func EnvForAccount(account string) string {
 		return "GEMINI_API_KEY"
 	case "grok_api_key", "xai_api_key":
 		return "GROK_API_KEY"
+	case "zai_api_key":
+		return "ZAI_API_KEY"
+	case "canopywave_api_key":
+		return "CANOPYWAVE_API_KEY"
+	case "opencodego_api_key":
+		return "OPENCODEGO_API_KEY"
+	case "kimi_api_key", "moonshot_api_key":
+		return "KIMI_API_KEY"
+	case "xiaomi_api_key", "mimo_api_key":
+		return "XIAOMI_API_KEY"
+	case "ollama_base_url":
+		return "OLLAMA_BASE_URL"
 	default:
 		return strings.ToUpper(strings.ReplaceAll(account, "-", "_"))
 	}

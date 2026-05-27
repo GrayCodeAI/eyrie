@@ -38,7 +38,7 @@ func migrateLegacyEnvFileAt(ctx context.Context, path string) (int, error) {
 	}
 	cs, ok := DefaultStore().(*CombinedStore)
 	if !ok || cs.Keychain == nil {
-		return 0, ErrKeychainUnavailable()
+		return 0, ErrKeychainUnavailable
 	}
 	migrated := 0
 	for _, envKey := range discoveryEnvKeys(ctx) {

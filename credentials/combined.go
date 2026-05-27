@@ -23,7 +23,7 @@ func (c *CombinedStore) Set(ctx context.Context, account, secret string) error {
 		return nil
 	}
 	if c.Keychain == nil {
-		return ErrKeychainUnavailable()
+		return ErrKeychainUnavailable
 	}
 	if err := c.Keychain.Set(ctx, account, secret); err != nil {
 		return fmt.Errorf("%w: %s", err, KeyringUnavailableHelp())

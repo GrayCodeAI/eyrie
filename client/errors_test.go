@@ -22,7 +22,7 @@ func TestAnthropicClient401(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ac := NewAnthropicClient("bad-key", server.URL, WithRetry(RetryConfig{MaxRetries: 0}))
+	ac := NewAnthropicClient("bad-key", server.URL, WithRetry(NewRetryConfig(0, 0, 0)))
 	_, err := ac.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Hi"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
@@ -52,10 +52,7 @@ func TestAnthropicClient429WithRetry(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ac := NewAnthropicClient("key", server.URL, WithRetry(RetryConfig{
-		MaxRetries: 3, BaseDelay: time.Millisecond, MaxDelay: 10 * time.Millisecond,
-		RetryOn: []int{429, 500},
-	}))
+	ac := NewAnthropicClient("key", server.URL, WithRetry(NewRetryConfig(3, time.Millisecond, 10*time.Millisecond, 429, 500)))
 	resp, err := ac.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Hi"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
@@ -77,10 +74,7 @@ func TestAnthropicClient500(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ac := NewAnthropicClient("key", server.URL, WithRetry(RetryConfig{
-		MaxRetries: 1, BaseDelay: time.Millisecond, MaxDelay: time.Millisecond,
-		RetryOn: []int{500},
-	}))
+	ac := NewAnthropicClient("key", server.URL, WithRetry(NewRetryConfig(1, time.Millisecond, time.Millisecond, 500)))
 	_, err := ac.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Hi"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
@@ -99,9 +93,7 @@ func TestAnthropicClientTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ac := NewAnthropicClient("key", server.URL, WithTimeout(50*time.Millisecond), WithRetry(RetryConfig{
-		MaxRetries: 0,
-	}))
+	ac := NewAnthropicClient("key", server.URL, WithTimeout(50*time.Millisecond), WithRetry(NewRetryConfig(0, 0, 0)))
 	_, err := ac.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Hi"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
@@ -117,7 +109,7 @@ func TestAnthropicClientMalformedJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ac := NewAnthropicClient("key", server.URL, WithRetry(RetryConfig{MaxRetries: 0}))
+	ac := NewAnthropicClient("key", server.URL, WithRetry(NewRetryConfig(0, 0, 0)))
 	_, err := ac.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Hi"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
@@ -138,7 +130,7 @@ func TestAnthropicClientContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
 
-	ac := NewAnthropicClient("key", server.URL, WithRetry(RetryConfig{MaxRetries: 0}))
+	ac := NewAnthropicClient("key", server.URL, WithRetry(NewRetryConfig(0, 0, 0)))
 	_, err := ac.Chat(ctx, []EyrieMessage{
 		{Role: "user", Content: "Hi"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
@@ -195,7 +187,7 @@ func TestAnthropicToolCallParsing(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ac := NewAnthropicClient("key", server.URL, WithRetry(RetryConfig{MaxRetries: 0}))
+	ac := NewAnthropicClient("key", server.URL, WithRetry(NewRetryConfig(0, 0, 0)))
 	resp, err := ac.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Read file"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
@@ -237,8 +229,8 @@ func TestFallbackProviderIntegration(t *testing.T) {
 	}))
 	defer okServer.Close()
 
-	primary := NewAnthropicClient("key1", failServer.URL, WithRetry(RetryConfig{MaxRetries: 0}))
-	secondary := NewAnthropicClient("key2", okServer.URL, WithRetry(RetryConfig{MaxRetries: 0}))
+	primary := NewAnthropicClient("key1", failServer.URL, WithRetry(NewRetryConfig(0, 0, 0)))
+	secondary := NewAnthropicClient("key2", okServer.URL, WithRetry(NewRetryConfig(0, 0, 0)))
 	fb := NewFallbackProvider(primary, secondary)
 
 	resp, err := fb.Chat(context.Background(), []EyrieMessage{

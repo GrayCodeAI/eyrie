@@ -9,11 +9,12 @@ import (
 	"github.com/GrayCodeAI/eyrie/types"
 )
 
+// RetryConfig controls retry behavior at the router level.
+// It embeds types.RetryConfig for the core fields and adds an OnRetry
+// callback for observability.
 type RetryConfig struct {
-	MaxRetries int
-	BaseDelay  time.Duration
-	MaxDelay   time.Duration
-	OnRetry    func(RetryEvent)
+	types.RetryConfig
+	OnRetry func(RetryEvent)
 }
 
 type RetryEvent struct {
@@ -23,12 +24,15 @@ type RetryEvent struct {
 	Delay      time.Duration
 }
 
-func DefaultRetryConfig() RetryConfig {
+// NewRetryConfig constructs a router RetryConfig.
+func NewRetryConfig(maxRetries int, baseDelay, maxDelay time.Duration) RetryConfig {
 	return RetryConfig{
-		MaxRetries: 3,
-		BaseDelay:  1 * time.Second,
-		MaxDelay:   30 * time.Second,
+		RetryConfig: types.RetryConfig{MaxRetries: maxRetries, BaseDelay: baseDelay, MaxDelay: maxDelay},
 	}
+}
+
+func DefaultRetryConfig() RetryConfig {
+	return NewRetryConfig(3, 1*time.Second, 30*time.Second)
 }
 
 func IsTransient(err error) bool {

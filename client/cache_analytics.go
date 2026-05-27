@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -84,39 +85,50 @@ func (ca *CacheAnalytics) FormatSummary() string {
 func pricePerToken(model string, isInput bool) float64 {
 	// Simplified pricing (per token, not per million)
 	switch {
-	case contains(model, "opus"):
+	case strings.Contains(model, "opus"):
 		if isInput {
 			return 15.0 / 1_000_000
 		}
 		return 75.0 / 1_000_000
-	case contains(model, "sonnet"):
+	case strings.Contains(model, "sonnet"):
 		if isInput {
 			return 3.0 / 1_000_000
 		}
 		return 15.0 / 1_000_000
-	case contains(model, "haiku"):
+	case strings.Contains(model, "haiku"):
 		if isInput {
 			return 0.25 / 1_000_000
 		}
 		return 1.25 / 1_000_000
-	case contains(model, "gpt-4"):
+	case strings.Contains(model, "gpt-4"):
 		if isInput {
 			return 2.5 / 1_000_000
 		}
 		return 10.0 / 1_000_000
+	case strings.Contains(model, "gemini"):
+		if isInput {
+			return 1.25 / 1_000_000
+		}
+		return 5.0 / 1_000_000
+	case strings.Contains(model, "grok"):
+		if isInput {
+			return 2.0 / 1_000_000
+		}
+		return 10.0 / 1_000_000
+	case strings.Contains(model, "deepseek"):
+		if isInput {
+			return 0.14 / 1_000_000
+		}
+		return 0.28 / 1_000_000
+	case strings.Contains(model, "llama"), strings.Contains(model, "mistral"):
+		if isInput {
+			return 0.20 / 1_000_000
+		}
+		return 0.20 / 1_000_000
 	default:
 		if isInput {
 			return 1.0 / 1_000_000
 		}
 		return 3.0 / 1_000_000
 	}
-}
-
-func contains(s, sub string) bool {
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
-	}
-	return false
 }
