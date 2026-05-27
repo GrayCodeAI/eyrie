@@ -224,11 +224,7 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 	if len(opts.Tools) > 0 {
 		decls := make([]geminiFunctionDecl, len(opts.Tools))
 		for i, t := range opts.Tools {
-			decls[i] = geminiFunctionDecl{
-				Name:        t.Name,
-				Description: t.Description,
-				Parameters:  t.Parameters,
-			}
+			decls[i] = geminiFunctionDecl(t)
 		}
 		req.Tools = []geminiTool{{FunctionDeclarations: decls}}
 	}

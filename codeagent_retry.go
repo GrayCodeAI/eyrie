@@ -236,11 +236,11 @@ func (cr *CodeAgentRetry) Stats() map[string]interface{} {
 		"total_retries":  total,
 		"recovered":      recovered,
 		"fallbacks_used": fallbacks,
-		"recovery_rate":  float64(recovered) / float64(max(1, total)),
+		"recovery_rate":  float64(recovered) / float64(imax(1, total)),
 	}
 }
 
-func max(a, b int) int {
+func imax(a, b int) int {
 	if a > b {
 		return a
 	}
