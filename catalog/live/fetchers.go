@@ -223,7 +223,8 @@ func envOr(env map[string]string, key, def string) string {
 }
 
 func FetchOpenAI(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(context.Background(),
+	return fetchOpenAICompatModels(
+		context.Background(),
 		envOr(env, "OPENAI_BASE_URL", DefaultOpenAIBaseURL),
 		env["OPENAI_API_KEY"], "Bearer",
 	)
@@ -234,28 +235,32 @@ func FetchGrok(env map[string]string) ([]Entry, error) {
 	if key == "" {
 		key = strings.TrimSpace(env["GROK_API_KEY"])
 	}
-	return fetchOpenAICompatModels(context.Background(),
+	return fetchOpenAICompatModels(
+		context.Background(),
 		envOr(env, "GROK_BASE_URL", envOr(env, "XAI_BASE_URL", DefaultGrokBaseURL)),
 		key, "Bearer",
 	)
 }
 
 func FetchZAI(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(context.Background(),
+	return fetchOpenAICompatModels(
+		context.Background(),
 		envOr(env, "ZAI_BASE_URL", DefaultZAIBaseURL),
 		env["ZAI_API_KEY"], "Bearer",
 	)
 }
 
 func FetchCanopyWave(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(context.Background(),
+	return fetchOpenAICompatModels(
+		context.Background(),
 		envOr(env, "CANOPYWAVE_BASE_URL", DefaultCanopyWaveBaseURL),
 		env["CANOPYWAVE_API_KEY"], "Bearer",
 	)
 }
 
 func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(context.Background(),
+	return fetchOpenAICompatModels(
+		context.Background(),
 		envOr(env, "OPENCODEGO_BASE_URL", DefaultOpenCodeGoBaseURL),
 		env["OPENCODEGO_API_KEY"], "Bearer",
 	)
@@ -266,7 +271,8 @@ func FetchKimi(env map[string]string) ([]Entry, error) {
 	if key == "" {
 		key = strings.TrimSpace(env["KIMI_API_KEY"])
 	}
-	return fetchOpenAICompatModels(context.Background(),
+	return fetchOpenAICompatModels(
+		context.Background(),
 		envOr(env, "MOONSHOT_BASE_URL", envOr(env, "KIMI_BASE_URL", DefaultKimiBaseURL)),
 		key, "Bearer",
 	)
@@ -277,7 +283,8 @@ func FetchXiaomi(env map[string]string) ([]Entry, error) {
 	if key == "" {
 		key = strings.TrimSpace(env["MIMO_API_KEY"])
 	}
-	return fetchOpenAICompatModels(context.Background(),
+	return fetchOpenAICompatModels(
+		context.Background(),
 		envOr(env, "XIAOMI_BASE_URL", envOr(env, "MIMO_BASE_URL", DefaultXiaomiBaseURL)),
 		key, "Bearer",
 	)

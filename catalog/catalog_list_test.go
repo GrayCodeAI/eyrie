@@ -129,8 +129,8 @@ func TestServerToolsFromOffering(t *testing.T) {
 			offering: ModelOfferingV1{
 				Capabilities: CapabilitySetV1{
 					ServerTools: map[string]CapabilityState{
-						"":            CapabilitySupported,
-						"web_search":  CapabilitySupported,
+						"":           CapabilitySupported,
+						"web_search": CapabilitySupported,
 					},
 				},
 			},
@@ -257,19 +257,19 @@ func TestModelEntriesForProvider_DeduplicatesByNativeID(t *testing.T) {
 
 func TestDiscoveryEnvKeysFromCatalog(t *testing.T) {
 	tests := []struct {
-		name    string
+		name     string
 		compiled *CompiledCatalogV1
-		wantNil bool
+		wantNil  bool
 	}{
 		{
 			name:     "nil_compiled",
 			compiled: nil,
-			wantNil: true,
+			wantNil:  true,
 		},
 		{
 			name:     "nil_catalog",
 			compiled: &CompiledCatalogV1{},
-			wantNil: true,
+			wantNil:  true,
 		},
 	}
 	for _, tt := range tests {

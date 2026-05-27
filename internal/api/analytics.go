@@ -116,7 +116,7 @@ type providerHealthEntry struct {
 // providerHealthResponse is the JSON shape returned by GET /api/health/providers.
 type providerHealthResponse struct {
 	Generated string                `json:"generated"`
-	Providers []providerHealthEntry  `json:"providers"`
+	Providers []providerHealthEntry `json:"providers"`
 }
 
 func (s *Server) handleProviderHealth(w http.ResponseWriter, r *http.Request) {

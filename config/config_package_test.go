@@ -14,10 +14,10 @@ import (
 
 func TestResolveProviderRequest_UsesEnvBaseURL(t *testing.T) {
 	tests := []struct {
-		name      string
-		envKey    string
-		envValue  string
-		wantBase  string
+		name     string
+		envKey   string
+		envValue string
+		wantBase string
 	}{
 		{
 			name:     "OPENAI_BASE_URL",
@@ -406,7 +406,7 @@ func TestGetProviderModel_TableDriven(t *testing.T) {
 		{ProviderAnthropic, "claude-sonnet-4-6"},
 		{ProviderOpenAI, "gpt-4o"},
 		{ProviderGemini, "gemini-2.0-flash"},
-		{ProviderGrok, "grok-2"},       // falls through GrokModel to XAIModel
+		{ProviderGrok, "grok-2"}, // falls through GrokModel to XAIModel
 		{ProviderCanopyWave, "cw-model"},
 		{ProviderZAI, "zai-model"},
 		{ProviderOpenRouter, "or-model"},
@@ -448,11 +448,11 @@ func TestGetProviderAPIKey_TableDriven(t *testing.T) {
 		{ProviderAnthropic, "sk-ant-key"},
 		{ProviderOpenAI, "sk-openai-key"},
 		{ProviderGemini, "gemini-key"},
-		{ProviderGrok, "xai-key"},       // falls through GrokAPIKey to XAIAPIKey
+		{ProviderGrok, "xai-key"}, // falls through GrokAPIKey to XAIAPIKey
 		{ProviderCanopyWave, "cw-key"},
 		{ProviderZAI, "zai-key"},
 		{ProviderOpenRouter, "or-key"},
-		{ProviderOllama, ""},             // no API key for ollama
+		{ProviderOllama, ""}, // no API key for ollama
 		{ProviderOpenCodeGo, "ocg-key"},
 		{ProviderKimi, "moonshot-key"},
 		{ProviderXiaomi, "xiaomi-key"},

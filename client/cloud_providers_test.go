@@ -1637,8 +1637,8 @@ func TestBedrockModelIDMapping(t *testing.T) {
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
 	tests := []struct {
-		model   string
-		wantID  string
+		model  string
+		wantID string
 	}{
 		{"anthropic.claude-3-5-sonnet-20241022-v2:0", "anthropic.claude-3-5-sonnet-20241022-v2:0"},
 		{"anthropic.claude-3-haiku-20240307-v1:0", "anthropic.claude-3-haiku-20240307-v1:0"},
