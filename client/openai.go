@@ -13,13 +13,16 @@ import (
 
 // OpenAIClient implements Provider for OpenAI and OpenAI-compatible APIs.
 type OpenAIClient struct {
-	apiKey       string
-	baseURL      string
-	providerName string
-	compat       *OpenAICompatConfig
-	httpClient   *http.Client
-	retry        RetryConfig
-	logger       *slog.Logger
+	apiKey             string
+	baseURL            string
+	providerName       string
+	compat             *OpenAICompatConfig
+	httpClient         *http.Client
+	retry              RetryConfig
+	logger             *slog.Logger
+	defaultModel       string
+	defaultMaxTokens   int
+	defaultTemperature *float64
 }
 
 // Compile-time check that OpenAIClient implements Provider.

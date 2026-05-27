@@ -76,3 +76,43 @@ func WithLogger(l *slog.Logger) ClientOption {
 		applyOpenAIFn: func(c *OpenAIClient) { c.logger = l },
 	}
 }
+
+// WithAPIKey sets the API key.
+func WithAPIKey(key string) ClientOption {
+	return ClientOption{
+		applyFn:       func(c *AnthropicClient) { c.apiKey = key },
+		applyOpenAIFn: func(c *OpenAIClient) { c.apiKey = key },
+	}
+}
+
+// WithBaseURL sets the base URL.
+func WithBaseURL(url string) ClientOption {
+	return ClientOption{
+		applyFn:       func(c *AnthropicClient) { c.baseURL = url },
+		applyOpenAIFn: func(c *OpenAIClient) { c.baseURL = url },
+	}
+}
+
+// WithModel sets the default model for requests.
+func WithModel(model string) ClientOption {
+	return ClientOption{
+		applyFn:       func(c *AnthropicClient) { c.defaultModel = model },
+		applyOpenAIFn: func(c *OpenAIClient) { c.defaultModel = model },
+	}
+}
+
+// WithMaxTokens sets the default max tokens for requests.
+func WithMaxTokens(n int) ClientOption {
+	return ClientOption{
+		applyFn:       func(c *AnthropicClient) { c.defaultMaxTokens = n },
+		applyOpenAIFn: func(c *OpenAIClient) { c.defaultMaxTokens = n },
+	}
+}
+
+// WithTemperature sets the default temperature for requests.
+func WithTemperature(t float64) ClientOption {
+	return ClientOption{
+		applyFn:       func(c *AnthropicClient) { c.defaultTemperature = &t },
+		applyOpenAIFn: func(c *OpenAIClient) { c.defaultTemperature = &t },
+	}
+}

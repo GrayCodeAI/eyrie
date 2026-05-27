@@ -363,3 +363,285 @@ func TestClient_StreamPromptReturnsErrorOnNonStream(t *testing.T) {
 		t.Fatal("expected error for stream=true with Prompt")
 	}
 }
+
+func TestClient_PromptWithAllOptions(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req PromptRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatal(err)
+		}
+		if req.Model != "gpt-4" {
+			t.Errorf("expected model 'gpt-4', got %q", req.Model)
+		}
+		if req.SystemPrompt != "be helpful" {
+			t.Errorf("expected system_prompt 'be helpful', got %q", req.SystemPrompt)
+		}
+		if req.MaxTokens != 1024 {
+			t.Errorf("expected max_tokens 1024, got %d", req.MaxTokens)
+		}
+		resp, _ := json.Marshal(PromptResponse{Content: "ok", NodeID: "n1"})
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(resp)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	result, err := c.Prompt(context.Background(), PromptRequest{
+		Message:      "hello",
+		Model:        "gpt-4",
+		SystemPrompt: "be helpful",
+		MaxTokens:    1024,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Content != "ok" {
+		t.Errorf("expected 'ok', got %q", result.Content)
+	}
+}
+
+func TestClient_PromptFromWithStreamError(t *testing.T) {
+	c := NewClient("http://localhost:9999", "key")
+	_, err := c.PromptFrom(context.Background(), "node-1", PromptRequest{Message: "test", Stream: true})
+	if err == nil {
+		t.Fatal("expected error for stream=true with PromptFrom")
+	}
+}
+
+func TestAPIError_String(t *testing.T) {
+	e := &APIError{
+		StatusCode: 500,
+		Path:       "/prompt",
+		Method:     "POST",
+		Body:       "internal server error",
+	}
+	s := e.Error()
+	if !strings.Contains(s, "500") {
+		t.Errorf("error string missing status code: %s", s)
+	}
+	if !strings.Contains(s, "/prompt") {
+		t.Errorf("error string missing path: %s", s)
+	}
+	if !strings.Contains(s, "POST") {
+		t.Errorf("error string missing method: %s", s)
+	}
+	if !strings.Contains(s, "internal server error") {
+		t.Errorf("error string missing body: %s", s)
+	}
+}
+
+func TestClient_ServerError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("something broke"))
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	_, err := c.Prompt(context.Background(), PromptRequest{Message: "test"})
+	if err == nil {
+		t.Fatal("expected error for 500 response")
+	}
+	apiErr, ok := err.(*APIError)
+	if !ok {
+		t.Fatalf("expected *APIError, got %T", err)
+	}
+	if apiErr.StatusCode != 500 {
+		t.Errorf("status = %d, want 500", apiErr.StatusCode)
+	}
+}
+
+func TestClient_NodeFields(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		node, _ := json.Marshal(Node{
+			ID:        "node-1",
+			ParentID:  "parent-1",
+			RootID:    "root-1",
+			Sequence:  3,
+			NodeType:  "assistant",
+			Content:   "hello world",
+			Model:     "claude-3",
+			Title:     "My Node",
+			CreatedAt: "2026-01-01T00:00:00Z",
+		})
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(node)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	node, err := c.GetNode(context.Background(), "node-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if node.ParentID != "parent-1" {
+		t.Errorf("ParentID = %q", node.ParentID)
+	}
+	if node.RootID != "root-1" {
+		t.Errorf("RootID = %q", node.RootID)
+	}
+	if node.Sequence != 3 {
+		t.Errorf("Sequence = %d", node.Sequence)
+	}
+	if node.NodeType != "assistant" {
+		t.Errorf("NodeType = %q", node.NodeType)
+	}
+	if node.Title != "My Node" {
+		t.Errorf("Title = %q", node.Title)
+	}
+	if node.CreatedAt != "2026-01-01T00:00:00Z" {
+		t.Errorf("CreatedAt = %q", node.CreatedAt)
+	}
+}
+
+func TestClient_ConcurrentRequests(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp, _ := json.Marshal(PromptResponse{Content: "ok", NodeID: "n1"})
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(resp)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	errs := make(chan error, 10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			_, err := c.Prompt(context.Background(), PromptRequest{Message: "concurrent"})
+			errs <- err
+		}()
+	}
+	for i := 0; i < 10; i++ {
+		if err := <-errs; err != nil {
+			t.Errorf("concurrent request %d failed: %v", i, err)
+		}
+	}
+}
+
+func TestClient_HealthEndpoint(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/health" {
+			t.Errorf("expected /health, got %s", r.URL.Path)
+		}
+		if r.Method != "GET" {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	err := c.Health(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestClient_PromptFromWithAllOptions(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/nodes/parent-1/prompt" {
+			t.Errorf("expected /nodes/parent-1/prompt, got %s", r.URL.Path)
+		}
+		var req PromptRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatal(err)
+		}
+		if req.Model != "claude-3" {
+			t.Errorf("model = %q", req.Model)
+		}
+		if req.MaxTokens != 512 {
+			t.Errorf("max_tokens = %d", req.MaxTokens)
+		}
+		resp, _ := json.Marshal(PromptResponse{Content: "child", NodeID: "child-1"})
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(resp)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	result, err := c.PromptFrom(context.Background(), "parent-1", PromptRequest{
+		Message:   "continue",
+		Model:     "claude-3",
+		MaxTokens: 512,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Content != "child" {
+		t.Errorf("expected 'child', got %q", result.Content)
+	}
+}
+
+func TestClient_DeleteNodeServerError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("forbidden"))
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	err := c.DeleteNode(context.Background(), "node-1")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*APIError)
+	if !ok {
+		t.Fatalf("expected *APIError, got %T", err)
+	}
+	if apiErr.StatusCode != 403 {
+		t.Errorf("status = %d, want 403", apiErr.StatusCode)
+	}
+}
+
+func TestClient_EmptyNodeList(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("[]"))
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	nodes, err := c.ListConversations(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(nodes) != 0 {
+		t.Errorf("expected 0 nodes, got %d", len(nodes))
+	}
+}
+
+func TestClient_ToolDefSerialization(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req PromptRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatal(err)
+		}
+		if len(req.Tools) != 2 {
+			t.Fatalf("expected 2 tools, got %d", len(req.Tools))
+		}
+		if req.Tools[0].Name != "read_file" {
+			t.Errorf("tool[0].name = %q", req.Tools[0].Name)
+		}
+		if req.Tools[0].Description != "Read a file" {
+			t.Errorf("tool[0].description = %q", req.Tools[0].Description)
+		}
+		if req.Tools[1].Name != "write_file" {
+			t.Errorf("tool[1].name = %q", req.Tools[1].Name)
+		}
+		resp, _ := json.Marshal(PromptResponse{Content: "done", NodeID: "n1"})
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(resp)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "key")
+	_, err := c.Prompt(context.Background(), PromptRequest{
+		Message: "use tools",
+		Tools: []ToolDef{
+			{Name: "read_file", Description: "Read a file", InputSchema: map[string]string{"type": "object"}},
+			{Name: "write_file"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
