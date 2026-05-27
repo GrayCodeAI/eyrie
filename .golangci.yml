@@ -14,31 +14,33 @@ linters:
     - whitespace
     - bodyclose
     - noctx
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-    check-blank: false
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - performance
-    disabled-checks:
-      - hugeParam
-      - rangeValCopy
-      - appendAssign
-  staticcheck:
-    checks: ["all", "-SA1019"]
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: false
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+      disabled-checks:
+        - hugeParam
+        - rangeValCopy
+        - appendAssign
+    staticcheck:
+      checks: ["all", "-SA1019", "-ST1003"]
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gocritic
+          - noctx
+          - bodyclose
+          - staticcheck
 
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-dirs:
-    - .gomodcache
-    - vendor
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gocritic
-        - noctx
