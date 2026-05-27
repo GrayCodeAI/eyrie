@@ -104,7 +104,7 @@ func ownerFromModelID(id string) string {
 	return ""
 }
 
-func fetchOpenAICompatModels(baseURL, apiKey, authHeader string) ([]Entry, error) {
+func fetchOpenAICompatModels(ctx context.Context, baseURL, apiKey, authHeader string) ([]Entry, error) {
 	apiKey = strings.TrimSpace(apiKey)
 	if apiKey == "" {
 		return nil, nil
@@ -113,7 +113,10 @@ func fetchOpenAICompatModels(baseURL, apiKey, authHeader string) ([]Entry, error
 	if baseURL == "" {
 		return nil, fmt.Errorf("live: missing base URL")
 	}
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL+"/models", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/models", nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create request: %w", err)
+	}
 	if authHeader == "x-api-key" {
 		req.Header.Set("x-api-key", apiKey)
 	} else {
@@ -220,7 +223,7 @@ func envOr(env map[string]string, key, def string) string {
 }
 
 func FetchOpenAI(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	return fetchOpenAICompatModels(context.Background(),
 		envOr(env, "OPENAI_BASE_URL", DefaultOpenAIBaseURL),
 		env["OPENAI_API_KEY"], "Bearer",
 	)
@@ -231,28 +234,28 @@ func FetchGrok(env map[string]string) ([]Entry, error) {
 	if key == "" {
 		key = strings.TrimSpace(env["GROK_API_KEY"])
 	}
-	return fetchOpenAICompatModels(
+	return fetchOpenAICompatModels(context.Background(),
 		envOr(env, "GROK_BASE_URL", envOr(env, "XAI_BASE_URL", DefaultGrokBaseURL)),
 		key, "Bearer",
 	)
 }
 
 func FetchZAI(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	return fetchOpenAICompatModels(context.Background(),
 		envOr(env, "ZAI_BASE_URL", DefaultZAIBaseURL),
 		env["ZAI_API_KEY"], "Bearer",
 	)
 }
 
 func FetchCanopyWave(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	return fetchOpenAICompatModels(context.Background(),
 		envOr(env, "CANOPYWAVE_BASE_URL", DefaultCanopyWaveBaseURL),
 		env["CANOPYWAVE_API_KEY"], "Bearer",
 	)
 }
 
 func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	return fetchOpenAICompatModels(context.Background(),
 		envOr(env, "OPENCODEGO_BASE_URL", DefaultOpenCodeGoBaseURL),
 		env["OPENCODEGO_API_KEY"], "Bearer",
 	)
@@ -263,7 +266,7 @@ func FetchKimi(env map[string]string) ([]Entry, error) {
 	if key == "" {
 		key = strings.TrimSpace(env["KIMI_API_KEY"])
 	}
-	return fetchOpenAICompatModels(
+	return fetchOpenAICompatModels(context.Background(),
 		envOr(env, "MOONSHOT_BASE_URL", envOr(env, "KIMI_BASE_URL", DefaultKimiBaseURL)),
 		key, "Bearer",
 	)
@@ -274,7 +277,7 @@ func FetchXiaomi(env map[string]string) ([]Entry, error) {
 	if key == "" {
 		key = strings.TrimSpace(env["MIMO_API_KEY"])
 	}
-	return fetchOpenAICompatModels(
+	return fetchOpenAICompatModels(context.Background(),
 		envOr(env, "XIAOMI_BASE_URL", envOr(env, "MIMO_BASE_URL", DefaultXiaomiBaseURL)),
 		key, "Bearer",
 	)
@@ -286,7 +289,10 @@ func FetchOpenRouter(env map[string]string) ([]Entry, error) {
 		return nil, nil
 	}
 	baseURL := strings.TrimRight(envOr(env, "OPENROUTER_BASE_URL", DefaultOpenRouterBaseURL), "/")
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL+"/models", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL+"/models", nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create request: %w", err)
+	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
@@ -345,7 +351,10 @@ func FetchAnthropic(env map[string]string) ([]Entry, error) {
 		return nil, nil
 	}
 	baseURL := strings.TrimRight(envOr(env, "ANTHROPIC_BASE_URL", "https://api.anthropic.com/v1"), "/")
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL+"/models", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL+"/models", nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create request: %w", err)
+	}
 	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 	req.Header.Set("Accept", "application/json")
@@ -397,7 +406,10 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 	}
 	base := strings.TrimRight(envOr(env, "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com"), "/")
 	url := base + "/v1beta/models?key=" + apiKey
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create request: %w", err)
+	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
 
@@ -468,7 +480,10 @@ func FetchOllama(env map[string]string) ([]Entry, error) {
 		return nil, nil
 	}
 	root := strings.TrimSuffix(strings.TrimRight(baseURL, "/"), "/v1")
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, root+"/api/tags", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, root+"/api/tags", nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create request: %w", err)
+	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
 

@@ -12,31 +12,42 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/conversation"
+	eyrie "github.com/GrayCodeAI/eyrie/internal/health"
 	"github.com/GrayCodeAI/eyrie/storage"
 )
 
 const maxRequestBodyBytes = 1 << 20
 
 type Server struct {
-	engine *conversation.Engine
-	store  storage.Store
-	apiKey string
-	mux    *http.ServeMux
+	engine        *conversation.Engine
+	store         storage.Store
+	analytics     storage.AnalyticsStore
+	healthChecker *eyrie.HealthChecker
+	apiKey        string
+	mux           *http.ServeMux
+	bgCtx         context.Context
 }
 
 type Config struct {
-	Store    storage.Store
-	Provider client.Provider
-	APIKey   string
-	Port     int
+	Store         storage.Store
+	Analytics     storage.AnalyticsStore // optional: enables /api/usage, /api/costs
+	Provider      client.Provider
+	HealthChecker *eyrie.HealthChecker // optional: enables /api/health/providers
+	APIKey        string
+	Port          int
 }
 
 func NewServer(cfg Config) *Server {
+	ctx, cancel := context.WithCancel(context.Background())
+	_ = cancel // cancelled on server shutdown if needed
 	s := &Server{
-		engine: conversation.New(cfg.Store, cfg.Provider),
-		store:  cfg.Store,
-		apiKey: cfg.APIKey,
-		mux:    http.NewServeMux(),
+		engine:        conversation.New(cfg.Store, cfg.Provider),
+		store:         cfg.Store,
+		analytics:     cfg.Analytics,
+		healthChecker: cfg.HealthChecker,
+		apiKey:        cfg.APIKey,
+		mux:           http.NewServeMux(),
+		bgCtx:         ctx,
 	}
 	s.routes()
 	return s
@@ -68,6 +79,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /nodes/{id}", s.auth(s.handleDeleteNode))
 	s.mux.HandleFunc("PUT /nodes/{id}/aliases/{alias}", s.auth(s.handleCreateAlias))
 	s.mux.HandleFunc("DELETE /aliases/{alias}", s.auth(s.handleDeleteAlias))
+
+	// Analytics and health dashboard endpoints.
+	s.mux.HandleFunc("GET /api/usage", s.auth(s.handleUsageAnalytics))
+	s.mux.HandleFunc("GET /api/costs", s.auth(s.handleCostSummary))
+	s.mux.HandleFunc("GET /api/health/providers", s.auth(s.handleProviderHealth))
 }
 
 func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {

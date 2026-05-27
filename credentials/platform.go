@@ -35,7 +35,10 @@ func KeyringUnavailableHelp() string {
 }
 
 // ErrKeychainUnavailable is returned when credentials cannot be stored in the OS secret store.
-func ErrKeychainUnavailable() error {
+var ErrKeychainUnavailable = fmt.Errorf("credentials: OS secret store unavailable")
+
+// KeychainUnavailableDetail returns a detailed error explaining why the keychain is unavailable.
+func KeychainUnavailableDetail() error {
 	return fmt.Errorf("credentials: %s unavailable — %s",
 		PlatformSecretStoreName(), KeyringUnavailableHelp())
 }

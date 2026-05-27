@@ -11,24 +11,30 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/types"
 )
 
-// RetryConfig controls retry behavior.
+// RetryConfig controls retry behavior for HTTP clients.
+// It embeds types.RetryConfig for the core fields and adds RetryOn for
+// HTTP-status-code–driven retry decisions.
 type RetryConfig struct {
-	MaxRetries int
-	BaseDelay  time.Duration
-	MaxDelay   time.Duration
-	RetryOn    []int // HTTP status codes to retry on
+	types.RetryConfig
+	RetryOn []int // HTTP status codes to retry on
+}
+
+// NewRetryConfig constructs a RetryConfig from core fields and optional
+// HTTP status codes to retry on.
+func NewRetryConfig(maxRetries int, baseDelay, maxDelay time.Duration, retryOn ...int) RetryConfig {
+	return RetryConfig{
+		RetryConfig: types.RetryConfig{MaxRetries: maxRetries, BaseDelay: baseDelay, MaxDelay: maxDelay},
+		RetryOn:     retryOn,
+	}
 }
 
 // DefaultRetryConfig returns sensible defaults.
 func DefaultRetryConfig() RetryConfig {
-	return RetryConfig{
-		MaxRetries: 3,
-		BaseDelay:  500 * time.Millisecond,
-		MaxDelay:   30 * time.Second,
-		RetryOn:    []int{429, 500, 502, 503, 529},
-	}
+	return NewRetryConfig(3, 500*time.Millisecond, 30*time.Second, 429, 500, 502, 503, 529)
 }
 
 // shouldRetry checks if a status code is retryable.

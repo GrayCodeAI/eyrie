@@ -6,7 +6,7 @@ import "strings"
 func DefaultEmbeddingParams(model string) EmbeddingParams {
 	m := strings.ToLower(model)
 	switch {
-	case strings.Contains(m, "cohere"), strings.Contains(m, "embed-v"):
+	case strings.Contains(m, "cohere"), strings.Contains(m, "embed-v"), strings.Contains(m, "embed-english"):
 		return EmbeddingParams{
 			Indexing: map[string]string{"input_type": "search_document"},
 			Query:    map[string]string{"input_type": "search_query"},
