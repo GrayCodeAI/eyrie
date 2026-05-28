@@ -171,26 +171,30 @@ config.SaveProviderConfig(cfg, "")               // save changes
 ```
 eyrie/
 ├── cmd/eyrie/              # CLI binary
+├── client/                 # Provider client & streaming interface
+├── config/                 # Provider configuration & routing
+│   └── credential/         # Credential file management
+├── catalog/                # Model catalog & tier system
+│   ├── discover/           # Model discovery
+│   ├── legacy/             # Legacy model support
+│   ├── live/               # Live model data
+│   └── registry/           # Model registry
+├── conversation/           # Conversation engine with branching
+├── credentials/            # Credential management
+├── router/                 # Weighted provider router
+├── runtime/                # Runtime manifest & routing policies
+├── storage/                # SQLite conversation DAG store
+├── types/                  # Branded types & API errors
+├── errors/                 # Error message constants
+├── constants/              # API limits
+├── utils/                  # Error utilities
 ├── internal/
-│   ├── client/             # Provider implementations (51 files)
-│   │   ├── providers/      # Anthropic, OpenAI, Azure, Vertex, etc.
-│   │   ├── middleware/     # Retry, rate limit, cache, fallback
-│   │   └── metrics/        # Cost, call, analytics
-│   ├── server/             # HTTP API and gateway
-│   ├── config/             # Provider configuration & routing
-│   ├── catalog/            # Model catalog & tier system
-│   ├── registry/           # Runtime manifest & routing policies
-│   ├── routing/            # Weighted provider router
-│   ├── storage/            # SQLite conversation DAG store
-│   ├── conversation/       # Conversation engine with branching
-│   ├── observability/      # OpenTelemetry spans & metrics
-│   ├── health/             # Provider health checker
+│   ├── api/                # HTTP API handlers
 │   ├── cache/              # Response cache warmer
-│   ├── types/              # Branded types & API errors
-│   ├── errors/             # Error message constants
-│   ├── constants/          # API limits
-│   ├── utils/              # Error utilities
-│   └── sdk/                # Go, Python, TypeScript client SDKs
+│   ├── health/             # Provider health checker
+│   ├── observability/      # OpenTelemetry spans & metrics
+│   ├── sdk/                # Go, Python, TypeScript client SDKs
+│   └── version/            # Version information
 └── assets/                 # Logo and branding
 ```
 
