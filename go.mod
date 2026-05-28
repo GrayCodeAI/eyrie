@@ -6,6 +6,8 @@ require (
 	github.com/GrayCodeAI/tok v0.3.0
 	github.com/google/uuid v1.6.0
 	github.com/zalando/go-keyring v0.2.6
+	go.opentelemetry.io/otel v1.44.0
+	go.opentelemetry.io/otel/trace v1.44.0
 	modernc.org/sqlite v1.50.1
 )
 
@@ -35,9 +37,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tiktoken-go/tokenizer v0.7.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
-	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect

@@ -203,10 +203,38 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 		if msg.Content != "" {
 			gc.Parts = append(gc.Parts, geminiPart{Text: msg.Content})
 		}
-		for _, img := range msg.Images {
-			gc.Parts = append(gc.Parts, geminiPart{
-				InlineData: &geminiInlineData{MimeType: "image/png", Data: img},
-			})
+		// Handle ContentParts (multi-modal): takes precedence over Images
+		if len(msg.ContentParts) > 0 {
+			for _, part := range msg.ContentParts {
+				switch part.Type {
+				case "text":
+					gc.Parts = append(gc.Parts, geminiPart{Text: part.Text})
+				case "image_url":
+					if part.ImageURL != nil {
+						mimeType, data, isBase64 := parseImageString(part.ImageURL.URL)
+						if !isBase64 {
+							mimeType = "image/png"
+							data = part.ImageURL.URL // fallback
+						}
+						gc.Parts = append(gc.Parts, geminiPart{
+							InlineData: &geminiInlineData{MimeType: mimeType, Data: data},
+						})
+					}
+				case "input_audio":
+					if part.InputAudio != nil {
+						mediaType := audioFormatToMediaType(part.InputAudio.Format)
+						gc.Parts = append(gc.Parts, geminiPart{
+							InlineData: &geminiInlineData{MimeType: mediaType, Data: part.InputAudio.Data},
+						})
+					}
+				}
+			}
+		} else {
+			for _, img := range msg.Images {
+				gc.Parts = append(gc.Parts, geminiPart{
+					InlineData: &geminiInlineData{MimeType: "image/png", Data: img},
+				})
+			}
 		}
 		if len(msg.ToolResults) > 0 {
 			gc.Role = "user"
