@@ -2,8 +2,10 @@ package client
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
-	"math/rand"
+	randv2 "math/rand/v2"
 	"sort"
 	"strings"
 	"sync"
@@ -23,7 +25,7 @@ type WeightedProviderConfig struct {
 type WeightedProvider struct {
 	configs []normalizedConfig // sorted by descending weight
 	mu      sync.Mutex
-	rng     *rand.Rand
+	rng     *randv2.Rand
 
 	// stats tracks how many times each provider served a request.
 	stats map[string]*atomic.Int64
@@ -75,9 +77,17 @@ func NewWeightedProvider(configs []WeightedProviderConfig) *WeightedProvider {
 		}
 	}
 
+	// Seed from crypto/rand to avoid deterministic sequences.
+	var seed [16]byte
+	if _, err := rand.Read(seed[:]); err != nil {
+		panic("eyrie: failed to read crypto entropy: " + err.Error())
+	}
+	s1 := binary.BigEndian.Uint64(seed[:8])
+	s2 := binary.BigEndian.Uint64(seed[8:])
+
 	return &WeightedProvider{
 		configs: normalized,
-		rng:     rand.New(rand.NewSource(rand.Int63())),
+		rng:     randv2.New(randv2.NewPCG(s1, s2)),
 		stats:   stats,
 	}
 }

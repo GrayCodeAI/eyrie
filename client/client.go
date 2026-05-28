@@ -52,11 +52,11 @@ type EyrieConfig struct {
 
 // EyrieMessage represents a chat message.
 type EyrieMessage struct {
-	Role       string      `json:"role"`
-	Content    string      `json:"content,omitempty"`
-	Images     []string    `json:"images,omitempty"`
-	ToolUse    []ToolCall  `json:"tool_use,omitempty"`    // assistant message with tool calls
-	ToolResult *ToolResult `json:"tool_result,omitempty"` // user message with tool result
+	Role        string       `json:"role"`
+	Content     string       `json:"content,omitempty"`
+	Images      []string     `json:"images,omitempty"`
+	ToolUse     []ToolCall   `json:"tool_use,omitempty"`      // assistant message with tool calls
+	ToolResults []ToolResult `json:"tool_results,omitempty"`  // user message with one or more tool results
 }
 
 // ToolResult represents the result of a tool execution.
@@ -161,6 +161,8 @@ type ProviderRegistryConfig struct {
 }
 
 // CoreProviders are providers with dedicated SDKs.
+// This map is populated at package init time and must not be written to
+// afterward. All reads are safe for concurrent use without locking.
 var CoreProviders = map[string]ProviderRegistryConfig{
 	"anthropic": {Name: "anthropic", Type: ProviderTypeAnthropic, EnvKey: "ANTHROPIC_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"openai":    {Name: "openai", Type: ProviderTypeOpenAI, BaseURL: "https://api.openai.com/v1", EnvKey: "OPENAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
@@ -194,7 +196,7 @@ type EyrieClient struct {
 // Client creates an EyrieClient.
 func Client(cfg *EyrieConfig) *EyrieClient {
 	c := &EyrieClient{
-		defaultProvider: "openai",
+		defaultProvider: DetectProvider(),
 		apiKeys:         make(map[string]string),
 		providers:       make(map[string]Provider),
 	}
@@ -252,10 +254,11 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 		return p, nil
 	}
 	hasKey := c.apiKeys[providerName] != ""
+	needsRegistration := !hasKey && c.GetProviderInfo(providerName) == nil
 	c.mu.RUnlock()
 
 	// Register fallback provider BEFORE acquiring c.mu to avoid lock ordering issues.
-	if !hasKey && c.GetProviderInfo(providerName) == nil {
+	if needsRegistration {
 		if fallbackURL := openaiBaseFallbackURL(); fallbackURL != "" {
 			_ = RegisterDynamicProvider(providerName, fallbackURL, "OPENAI_API_KEY")
 		}
@@ -269,6 +272,8 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 		return p, nil
 	}
 
+	// Re-read apiKeys under write lock to avoid TOCTOU: another goroutine
+	// may have added a key between our RUnlock and Lock.
 	apiKey := c.apiKeys[providerName]
 	if apiKey == "" {
 		info := c.GetProviderInfo(providerName)
@@ -483,19 +488,35 @@ func ParseCustomHeaders() map[string]string {
 	for _, line := range strings.Split(raw, "\n") {
 		line = strings.TrimSpace(line)
 		if idx := strings.Index(line, ":"); idx > 0 {
-			result[strings.TrimSpace(line[:idx])] = strings.TrimSpace(line[idx+1:])
+			name := strings.TrimSpace(line[:idx])
+			value := strings.TrimSpace(line[idx+1:])
+			// Reject header names/values containing control characters to prevent injection.
+			if strings.ContainsAny(name, "\r\n") || strings.ContainsAny(value, "\r\n") {
+				continue
+			}
+			result[name] = value
 		}
 	}
 	return result
 }
 
+var (
+	cachedCatalog   *catalog.CompiledCatalogV1
+	catalogLoadOnce sync.Once
+)
+
 // ResolveDefaultModel resolves the default model for a provider from the catalog.
 func ResolveDefaultModel(provider string) string {
-	cat, err := catalog.LoadCatalogV1(context.Background(), catalog.LoadCatalogV1Options{})
-	if err != nil {
+	catalogLoadOnce.Do(func() {
+		cat, err := catalog.LoadCatalogV1(context.Background(), catalog.LoadCatalogV1Options{})
+		if err == nil {
+			cachedCatalog = cat
+		}
+	})
+	if cachedCatalog == nil {
 		return ""
 	}
-	models := catalog.ModelEntriesForProvider(cat, provider)
+	models := catalog.ModelEntriesForProvider(cachedCatalog, provider)
 	if len(models) > 0 {
 		return models[0].ID
 	}

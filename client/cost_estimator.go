@@ -66,8 +66,8 @@ func (ce *CostEstimator) countInputTokens(messages []EyrieMessage) int {
 	total := 0
 	for _, m := range messages {
 		total += tok.EstimateTokens(m.Content)
-		if m.ToolResult != nil {
-			total += tok.EstimateTokens(m.ToolResult.Content)
+		for _, tr := range m.ToolResults {
+			total += tok.EstimateTokens(tr.Content)
 		}
 		for _, tc := range m.ToolUse {
 			total += 50 // tool call overhead

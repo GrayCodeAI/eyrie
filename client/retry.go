@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"log/slog"
 	"math"
 	"math/big"
@@ -144,6 +145,9 @@ func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request
 		}
 
 		if !rc.shouldRetry(resp.StatusCode) {
+			// Drain the body so the underlying connection can be reused.
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
 			return resp, nil
 		}
 

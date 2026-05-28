@@ -210,7 +210,7 @@ func TestExtractHTTPStatus(t *testing.T) {
 		{"nil error", nil, 0, false},
 		{"HTTP 503", fmt.Errorf("HTTP 503 from api"), 503, true},
 		{"http 429 lowercase", fmt.Errorf("http 429 rate limited"), 429, true},
-		{"plain 500", fmt.Errorf("error 500 occurred"), 500, true},
+		{"status 500", fmt.Errorf("server returned status 500"), 500, true},
 		{"no code", fmt.Errorf("something went wrong"), 0, false},
 		{"200 OK", fmt.Errorf("HTTP 200 OK"), 200, true},
 		{"301 redirect", fmt.Errorf("HTTP 301 moved"), 301, true},

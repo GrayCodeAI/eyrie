@@ -48,7 +48,7 @@ func TestBuildAnthropicCachedRequest_ToolUsePropagated(t *testing.T) {
 		{Role: "assistant", Content: "", ToolUse: []ToolCall{
 			{ID: "tc1", Name: "read", Arguments: map[string]interface{}{"path": "file.go"}},
 		}},
-		{Role: "user", Content: "", ToolResult: &ToolResult{ToolUseID: "tc1", Content: "package main"}},
+		{Role: "user", Content: "", ToolResults: []ToolResult{{ToolUseID: "tc1", Content: "package main"}}},
 		{Role: "user", Content: "now edit it"},
 	}
 	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, false, nil)

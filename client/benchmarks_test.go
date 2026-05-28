@@ -34,8 +34,8 @@ func BenchmarkBuildRequestBase_WithToolUse(b *testing.B) {
 			{ID: "tc-1", Name: "search", Arguments: map[string]interface{}{"query": "main.go"}},
 			{ID: "tc-2", Name: "read", Arguments: map[string]interface{}{"path": "main.go"}},
 		}},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "tc-1", Content: "Found 1 file"}},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "tc-2", Content: "package main\nfunc main() {}"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "tc-1", Content: "Found 1 file"}}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "tc-2", Content: "package main\nfunc main() {}"}}},
 	}
 	opts := ChatOptions{
 		Model: "gpt-4",
@@ -114,7 +114,7 @@ func BenchmarkBuildCacheKey_WithToolCalls(b *testing.B) {
 		{Role: "assistant", ToolUse: []ToolCall{
 			{ID: "tc-1", Name: "search", Arguments: map[string]interface{}{"query": "test"}},
 		}},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "tc-1", Content: "result"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "tc-1", Content: "result"}}},
 	}
 	opts := ChatOptions{Model: "gpt-4"}
 	b.ReportAllocs()
@@ -181,7 +181,7 @@ func BenchmarkSanitizeMessages_WithOrphans(b *testing.B) {
 			{ID: "tc-2", Name: "read", Arguments: map[string]interface{}{"path": "main.go"}},
 		}},
 		// tc-1 has result, tc-2 is orphaned
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "tc-1", Content: "Found 1 file"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "tc-1", Content: "Found 1 file"}}},
 	}
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -241,7 +241,7 @@ func BenchmarkMergeConsecutiveRoles_WithToolUse(b *testing.B) {
 	messages := []EyrieMessage{
 		{Role: "assistant", ToolUse: []ToolCall{{ID: "tc-1", Name: "search"}}},
 		{Role: "assistant", Content: "Let me search"},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "tc-1", Content: "result"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "tc-1", Content: "result"}}},
 	}
 	b.ReportAllocs()
 	b.ResetTimer()

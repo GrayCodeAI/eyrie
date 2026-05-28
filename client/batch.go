@@ -102,9 +102,19 @@ func (bc *BatchClient) Submit(ctx context.Context, requests []BatchRequest) (str
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 	req.Header.Set("Anthropic-Beta", "message-batches-2024-09-24")
 
-	resp, err := bc.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("eyrie: batch submit failed: %w", err)
+	// Retry on transient errors (429, 500, 502, 503).
+	var resp *http.Response
+	for attempt := 0; attempt < 3; attempt++ {
+		resp, err = bc.httpClient.Do(req)
+		if err != nil {
+			return "", fmt.Errorf("eyrie: batch submit failed: %w", err)
+		}
+		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+			_ = resp.Body.Close()
+			time.Sleep(time.Duration(attempt+1) * time.Second)
+			continue
+		}
+		break
 	}
 	defer func() { _ = resp.Body.Close() }()
 

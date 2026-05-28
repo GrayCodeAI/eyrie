@@ -4,10 +4,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
@@ -172,7 +174,7 @@ func openStore() storage.Store {
 		os.Exit(1)
 	}
 	dir := filepath.Join(home, ".eyrie")
-	_ = os.MkdirAll(dir, 0o755)
+	_ = os.MkdirAll(dir, 0o700)
 	store, err := storage.Open(filepath.Join(dir, "conversations.db"))
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -325,7 +327,19 @@ func runServe(port string) {
 		APIKey:   apiKey,
 	})
 	fmt.Printf("eyrie server listening on :%s\n", port)
-	if err := srv.ListenAndServe(":" + port); err != nil {
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		<-ctx.Done()
+		fmt.Println("shutting down gracefully...")
+		if err := srv.Shutdown(); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "error during shutdown: %v\n", err)
+		}
+	}()
+
+	if err := srv.ListenAndServe(":" + port); err != nil && err != http.ErrServerClosed {
 		_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}

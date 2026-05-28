@@ -551,8 +551,9 @@ func TestDAGOperations(t *testing.T) {
 	}
 	defer dag.Close()
 
+	ctx := context.Background()
 	// Append root.
-	root, err := dag.Append("", "user", "hello")
+	root, err := dag.Append(ctx, "", "user", "hello")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -561,7 +562,7 @@ func TestDAGOperations(t *testing.T) {
 	}
 
 	// Append child.
-	child, err := dag.Append(root.ID, "assistant", "hi there")
+	child, err := dag.Append(ctx, root.ID, "assistant", "hi there")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -570,7 +571,7 @@ func TestDAGOperations(t *testing.T) {
 	}
 
 	// Head should be the child.
-	head, err := dag.Head()
+	head, err := dag.Head(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -579,7 +580,7 @@ func TestDAGOperations(t *testing.T) {
 	}
 
 	// History from child should return both nodes.
-	history, err := dag.History(child.ID)
+	history, err := dag.History(ctx, child.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -591,7 +592,7 @@ func TestDAGOperations(t *testing.T) {
 	}
 
 	// Branches from root should return child.
-	branches, err := dag.Branches(root.ID)
+	branches, err := dag.Branches(ctx, root.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -609,11 +610,12 @@ func TestDAGFork(t *testing.T) {
 	}
 	defer dag.Close()
 
-	root, _ := dag.Append("", "user", "original")
-	child, _ := dag.Append(root.ID, "assistant", "response")
+	ctx := context.Background()
+	root, _ := dag.Append(ctx, "", "user", "original")
+	child, _ := dag.Append(ctx, root.ID, "assistant", "response")
 
 	// Fork from child.
-	fork, err := dag.Fork(child.ID)
+	fork, err := dag.Fork(ctx, child.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -634,15 +636,16 @@ func TestDAGPrune(t *testing.T) {
 	}
 	defer dag.Close()
 
-	root, _ := dag.Append("", "user", "root")
-	dag.Append(root.ID, "assistant", "child")
+	ctx := context.Background()
+	root, _ := dag.Append(ctx, "", "user", "root")
+	dag.Append(ctx, root.ID, "assistant", "child")
 
-	if err := dag.Prune(root.ID); err != nil {
+	if err := dag.Prune(ctx, root.ID); err != nil {
 		t.Fatal(err)
 	}
 
 	// Root should be gone (child cascade-deleted).
-	_, err = dag.History(root.ID)
+	_, err = dag.History(ctx, root.ID)
 	if err == nil {
 		t.Error("expected error after pruning root")
 	}
@@ -657,13 +660,14 @@ func TestDAGSetHead(t *testing.T) {
 	}
 	defer dag.Close()
 
-	root, _ := dag.Append("", "user", "root")
-	dag.Append(root.ID, "assistant", "child")
+	ctx := context.Background()
+	root, _ := dag.Append(ctx, "", "user", "root")
+	dag.Append(ctx, root.ID, "assistant", "child")
 
-	if err := dag.SetHead(root.ID); err != nil {
+	if err := dag.SetHead(ctx, root.ID); err != nil {
 		t.Fatal(err)
 	}
-	head, err := dag.Head()
+	head, err := dag.Head(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -672,7 +676,7 @@ func TestDAGSetHead(t *testing.T) {
 	}
 
 	// SetHead to non-existent should error.
-	if err := dag.SetHead("nonexistent"); err == nil {
+	if err := dag.SetHead(ctx, "nonexistent"); err == nil {
 		t.Error("expected error for SetHead with non-existent node")
 	}
 }
@@ -686,7 +690,7 @@ func TestDAGHeadBeforeAppend(t *testing.T) {
 	}
 	defer dag.Close()
 
-	_, err = dag.Head()
+	_, err = dag.Head(context.Background())
 	if err == nil {
 		t.Error("expected error calling Head on empty DAG")
 	}
@@ -701,7 +705,7 @@ func TestDAGAppendInvalidParent(t *testing.T) {
 	}
 	defer dag.Close()
 
-	_, err = dag.Append("nonexistent", "user", "content")
+	_, err = dag.Append(context.Background(), "nonexistent", "user", "content")
 	if err == nil {
 		t.Error("expected error appending with non-existent parent")
 	}
@@ -712,7 +716,7 @@ func TestDAGFromStore(t *testing.T) {
 	dag := NewDAGFromStore(s, "from-store-session")
 	ctx := context.Background()
 
-	root, err := dag.Append("", "user", "test")
+	root, err := dag.Append(ctx, "", "user", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
