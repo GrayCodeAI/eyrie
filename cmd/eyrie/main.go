@@ -194,7 +194,7 @@ func getProvider() client.Provider {
 	}
 	detected := client.DetectProvider()
 	c := client.Client(&client.EyrieConfig{Provider: detected})
-	return &clientProviderAdapter{c: c, provider: detected}
+	return client.NewTracingProvider(&clientProviderAdapter{c: c, provider: detected})
 }
 
 type clientProviderAdapter struct {
