@@ -306,7 +306,7 @@ func buildMessages(nodes []*storage.Node) []client.EyrieMessage {
 			}
 			seen[n.OutputGroupID] = true
 		}
-		role := string(n.NodeType)
+		var role string
 		switch n.NodeType {
 		case storage.NodeTypeToolCall:
 			role = "tool_call"
