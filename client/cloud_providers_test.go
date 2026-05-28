@@ -740,7 +740,7 @@ func TestVertexBuildBody_ToolResultMessage(t *testing.T) {
 		{Role: "assistant", ToolUse: []ToolCall{
 			{ID: "toolu_1", Name: "get_weather", Arguments: map[string]interface{}{"city": "NYC"}},
 		}},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "toolu_1", Content: "72F and sunny"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "toolu_1", Content: "72F and sunny"}}},
 	}, ChatOptions{Model: "claude-sonnet-4-6"}, false)
 	if err != nil {
 		t.Fatalf("buildBody error: %v", err)
@@ -1408,7 +1408,7 @@ func TestBedrockBuildBody_ToolResultMessage(t *testing.T) {
 		{Role: "assistant", ToolUse: []ToolCall{
 			{ID: "toolu_1", Name: "get_weather", Arguments: map[string]interface{}{"city": "NYC"}},
 		}},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "toolu_1", Content: "72F and sunny"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "toolu_1", Content: "72F and sunny"}}},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
 	if err != nil {
 		t.Fatalf("buildBody error: %v", err)

@@ -12,8 +12,12 @@ func SanitizeMessages(messages []EyrieMessage) []EyrieMessage {
 	// Collect all tool_result IDs
 	resultIDs := make(map[string]bool)
 	for _, msg := range messages {
-		if msg.Role == "user" && msg.ToolResult != nil && msg.ToolResult.ToolUseID != "" {
-			resultIDs[msg.ToolResult.ToolUseID] = true
+		if msg.Role == "user" {
+			for _, tr := range msg.ToolResults {
+				if tr.ToolUseID != "" {
+					resultIDs[tr.ToolUseID] = true
+				}
+			}
 		}
 	}
 
@@ -28,11 +32,11 @@ func SanitizeMessages(messages []EyrieMessage) []EyrieMessage {
 					// Inject synthetic error result
 					result = append(result, EyrieMessage{
 						Role: "user",
-						ToolResult: &ToolResult{
+						ToolResults: []ToolResult{{
 							ToolUseID: tc.ID,
 							Content:   "Tool execution was interrupted",
 							IsError:   true,
-						},
+						}},
 					})
 					resultIDs[tc.ID] = true
 				}

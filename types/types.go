@@ -264,7 +264,7 @@ type MessageStreamEvent struct {
 }
 
 type ClientOptions struct {
-	APIKey     string `json:"api_key"`
+	APIKey     string `json:"-"`
 	BaseURL    string `json:"base_url"`
 	Timeout    int    `json:"timeout"`
 	MaxRetries int    `json:"max_retries"`
@@ -462,7 +462,7 @@ func IsTransient(err error) bool {
 	return false
 }
 
-var httpStatusRe = regexp.MustCompile(`\b(\d{3})\b`)
+var httpStatusRe = regexp.MustCompile(`(?i)(?:HTTP[/:]?\s*|status[:\s]+|code[:\s]+)(\d{3})`)
 
 // ExtractHTTPStatus attempts to extract an HTTP status code from err's message.
 // Uses the same regex as IsTransient to find 3-digit codes in error text.

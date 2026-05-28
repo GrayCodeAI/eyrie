@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -11,6 +12,7 @@ import (
 // specifically for code agent workloads. Unlike generic retry, this
 // understands code-specific failures and adapts accordingly.
 type CodeAgentRetry struct {
+	mu         sync.Mutex
 	strategies map[string]*RetryStrategy
 	history    []RetryRecord
 }
@@ -104,6 +106,9 @@ func (cr *CodeAgentRetry) registerDefaults() {
 
 // DecideRetry determines how to handle a failure.
 func (cr *CodeAgentRetry) DecideRetry(ctx context.Context, err error, provider, model string) *RetryDecision {
+	cr.mu.Lock()
+	defer cr.mu.Unlock()
+
 	errorType := classifyError(err)
 
 	strategy, exists := cr.strategies[errorType]
@@ -219,6 +224,9 @@ func classifyError(err error) string {
 
 // Stats returns retry statistics.
 func (cr *CodeAgentRetry) Stats() map[string]interface{} {
+	cr.mu.Lock()
+	defer cr.mu.Unlock()
+
 	total := len(cr.history)
 	recovered := 0
 	fallbacks := 0

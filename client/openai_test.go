@@ -1042,7 +1042,7 @@ func TestOpenAIChat_ToolResultMessage(t *testing.T) {
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "Read main.go"},
 		{Role: "assistant", ToolUse: []ToolCall{{ID: "call_xyz", Name: "read_file", Arguments: map[string]interface{}{"path": "main.go"}}}},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "call_xyz", Content: "file contents here"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "call_xyz", Content: "file contents here"}}},
 	}
 	resp, err := c.Chat(context.Background(), msgs, defaultChatOpts())
 	if err != nil {
