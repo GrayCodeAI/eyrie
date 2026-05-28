@@ -25,6 +25,7 @@ type Server struct {
 	healthChecker *eyrie.HealthChecker
 	apiKey        string
 	mux           *http.ServeMux
+	handler       http.Handler // traced handler wrapping mux
 	bgCtx         context.Context
 	httpSrv       *http.Server
 }
@@ -51,17 +52,18 @@ func NewServer(cfg Config) *Server {
 		bgCtx:         ctx,
 	}
 	s.routes()
+	s.handler = TracingMiddleware(s.mux)
 	return s
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
+	s.handler.ServeHTTP(w, r)
 }
 
 func (s *Server) ListenAndServe(addr string) error {
 	s.httpSrv = &http.Server{
 		Addr:              addr,
-		Handler:           s,
+		Handler:           s.handler,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      10 * time.Minute, // long for streaming LLM responses
