@@ -55,8 +55,8 @@ type EyrieMessage struct {
 	Role        string       `json:"role"`
 	Content     string       `json:"content,omitempty"`
 	Images      []string     `json:"images,omitempty"`
-	ToolUse     []ToolCall   `json:"tool_use,omitempty"`      // assistant message with tool calls
-	ToolResults []ToolResult `json:"tool_results,omitempty"`  // user message with one or more tool results
+	ToolUse     []ToolCall   `json:"tool_use,omitempty"`     // assistant message with tool calls
+	ToolResults []ToolResult `json:"tool_results,omitempty"` // user message with one or more tool results
 }
 
 // ToolResult represents the result of a tool execution.
