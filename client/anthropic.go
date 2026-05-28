@@ -132,7 +132,54 @@ func buildAnthropicMessages(messages []EyrieMessage) ([]map[string]interface{}, 
 			msgs = append(msgs, map[string]interface{}{"role": "user", "content": content})
 			continue
 		}
-		// Handle messages with images: build multi-part content array
+		// Handle ContentParts (multi-modal): takes precedence over Content/Images
+		if len(m.ContentParts) > 0 {
+			content := make([]map[string]interface{}, 0, len(m.ContentParts))
+			for _, part := range m.ContentParts {
+				switch part.Type {
+				case "text":
+					content = append(content, map[string]interface{}{"type": "text", "text": part.Text})
+				case "image_url":
+					if part.ImageURL != nil {
+						mediaType, data, isBase64 := parseImageString(part.ImageURL.URL)
+						if isBase64 {
+							content = append(content, map[string]interface{}{
+								"type": "image",
+								"source": map[string]interface{}{
+									"type":       "base64",
+									"media_type": mediaType,
+									"data":       data,
+								},
+							})
+						} else {
+							content = append(content, map[string]interface{}{
+								"type": "image",
+								"source": map[string]interface{}{
+									"type": "url",
+									"url":  part.ImageURL.URL,
+								},
+							})
+						}
+					}
+				case "input_audio":
+					if part.InputAudio != nil {
+						// Anthropic expects audio as an "audio" content block with base64 source
+						mediaType := audioFormatToMediaType(part.InputAudio.Format)
+						content = append(content, map[string]interface{}{
+							"type": "audio",
+							"source": map[string]interface{}{
+								"type":       "base64",
+								"media_type": mediaType,
+								"data":       part.InputAudio.Data,
+							},
+						})
+					}
+				}
+			}
+			msgs = append(msgs, map[string]interface{}{"role": m.Role, "content": content})
+			continue
+		}
+		// Handle legacy Images field: build multi-part content array
 		if len(m.Images) > 0 {
 			content := make([]map[string]interface{}, 0, 1+len(m.Images))
 			if m.Content != "" {
@@ -182,6 +229,30 @@ func parseImageString(img string) (mediaType, data string, isBase64 bool) {
 	}
 	// Treat as URL
 	return "", img, false
+}
+
+// audioFormatToMediaType converts a short audio format string to a full MIME type.
+func audioFormatToMediaType(format string) string {
+	switch strings.ToLower(format) {
+	case "wav":
+		return "audio/wav"
+	case "mp3":
+		return "audio/mpeg"
+	case "flac":
+		return "audio/flac"
+	case "ogg":
+		return "audio/ogg"
+	case "aac":
+		return "audio/aac"
+	case "webm":
+		return "audio/webm"
+	default:
+		// If it looks like a full MIME type already, pass through
+		if strings.Contains(format, "/") {
+			return format
+		}
+		return "audio/" + format
+	}
 }
 
 // Chat sends a non-streaming message to Anthropic.

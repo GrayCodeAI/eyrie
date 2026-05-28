@@ -117,8 +117,41 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 			continue
 		}
 		msg := map[string]interface{}{"role": m.Role, "content": m.Content}
-		// Handle messages with images: build multi-part content array
-		if len(m.Images) > 0 {
+		// Handle ContentParts (multi-modal): takes precedence over Content/Images
+		if len(m.ContentParts) > 0 {
+			content := make([]map[string]interface{}, 0, len(m.ContentParts))
+			for _, part := range m.ContentParts {
+				switch part.Type {
+				case "text":
+					content = append(content, map[string]interface{}{"type": "text", "text": part.Text})
+				case "image_url":
+					if part.ImageURL != nil {
+						urlVal := part.ImageURL.URL
+						detail := part.ImageURL.Detail
+						entry := map[string]interface{}{
+							"type":      "image_url",
+							"image_url": map[string]interface{}{"url": urlVal},
+						}
+						if detail != "" {
+							entry["image_url"].(map[string]interface{})["detail"] = detail
+						}
+						content = append(content, entry)
+					}
+				case "input_audio":
+					if part.InputAudio != nil {
+						content = append(content, map[string]interface{}{
+							"type": "input_audio",
+							"input_audio": map[string]interface{}{
+								"data":   part.InputAudio.Data,
+								"format": part.InputAudio.Format,
+							},
+						})
+					}
+				}
+			}
+			msg["content"] = content
+		} else if len(m.Images) > 0 {
+			// Legacy Images field: build multi-part content array
 			content := make([]map[string]interface{}, 0, 1+len(m.Images))
 			if m.Content != "" {
 				content = append(content, map[string]interface{}{"type": "text", "text": m.Content})

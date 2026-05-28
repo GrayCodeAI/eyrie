@@ -6,11 +6,16 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/storage"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
+
+var tracer = otel.Tracer("eyrie/conversation")
 
 type Engine struct {
 	store    storage.Store
@@ -44,6 +49,13 @@ const (
 )
 
 func (e *Engine) Prompt(ctx context.Context, message string, opts PromptOpts) (<-chan Event, error) {
+	ctx, span := tracer.Start(ctx, "conversation.Prompt",
+		trace.WithAttributes(
+			attribute.String("model", opts.Model),
+			attribute.Int("message_length", len(message)),
+		),
+	)
+
 	rootID := uuid.New().String()
 	rootNode := &storage.Node{
 		ID:           rootID,
@@ -57,19 +69,44 @@ func (e *Engine) Prompt(ctx context.Context, message string, opts PromptOpts) (<
 		CreatedAt:    time.Now(),
 	}
 	if err := e.store.CreateNode(ctx, rootNode); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.End()
 		return nil, fmt.Errorf("conversation: create root: %w", err)
 	}
 
 	messages := []client.EyrieMessage{{Role: "user", Content: message}}
-	return e.streamAndSave(ctx, rootNode, messages, opts)
+	ch, err := e.streamAndSave(ctx, rootNode, messages, opts)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.End()
+		return nil, err
+	}
+	span.SetStatus(codes.Ok, "")
+	span.End()
+	return ch, nil
 }
 
 func (e *Engine) PromptFrom(ctx context.Context, parentNodeID, message string, opts PromptOpts) (<-chan Event, error) {
+	ctx, span := tracer.Start(ctx, "conversation.PromptFrom",
+		trace.WithAttributes(
+			attribute.String("parent_node_id", parentNodeID),
+			attribute.String("model", opts.Model),
+			attribute.Int("message_length", len(message)),
+		),
+	)
+
 	ancestors, err := e.store.GetAncestors(ctx, parentNodeID)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.End()
 		return nil, fmt.Errorf("conversation: get ancestors: %w", err)
 	}
 	if len(ancestors) == 0 {
+		span.SetStatus(codes.Error, "node not found")
+		span.End()
 		return nil, fmt.Errorf("conversation: node not found: %s", parentNodeID)
 	}
 
@@ -93,6 +130,9 @@ func (e *Engine) PromptFrom(ctx context.Context, parentNodeID, message string, o
 		Status:   "completed",
 	}
 	if err := e.store.CreateNode(ctx, userNode); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.End()
 		return nil, fmt.Errorf("conversation: create user node: %w", err)
 	}
 
@@ -108,6 +148,9 @@ func (e *Engine) PromptFrom(ctx context.Context, parentNodeID, message string, o
 
 	orphans, err := e.store.GetOrphanedToolUses(ctx, ancestorIDs)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.End()
 		return nil, fmt.Errorf("conversation: check orphaned tool uses: %w", err)
 	}
 	if len(orphans) > 0 {
@@ -117,7 +160,16 @@ func (e *Engine) PromptFrom(ctx context.Context, parentNodeID, message string, o
 	messages := buildMessages(ancestors)
 	messages = append(messages, client.EyrieMessage{Role: "user", Content: message})
 
-	return e.streamAndSave(ctx, userNode, messages, opts)
+	ch, err := e.streamAndSave(ctx, userNode, messages, opts)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.End()
+		return nil, err
+	}
+	span.SetStatus(codes.Ok, "")
+	span.End()
+	return ch, nil
 }
 
 func (e *Engine) ResolveNode(ctx context.Context, ref string) (*storage.Node, error) {
@@ -147,6 +199,14 @@ func (e *Engine) DeleteNode(ctx context.Context, id string) error {
 const defaultGroupBudgetMultiplier = 4
 
 func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, messages []client.EyrieMessage, opts PromptOpts) (<-chan Event, error) {
+	_, span := tracer.Start(ctx, "conversation.streamAndSave",
+		trace.WithAttributes(
+			attribute.String("model", opts.Model),
+			attribute.String("provider", e.provider.Name()),
+			attribute.Int("message_count", len(messages)),
+		),
+	)
+
 	maxTokens := opts.MaxTokens
 	if maxTokens <= 0 {
 		maxTokens = 4096
@@ -162,6 +222,9 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 
 	sr, err := e.provider.StreamChat(ctx, messages, chatOpts)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.End()
 		return nil, fmt.Errorf("conversation: stream: %w", err)
 	}
 
@@ -170,6 +233,7 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 
 	go func() {
 		defer close(events)
+		defer span.End()
 
 		var (
 			groupID         string
