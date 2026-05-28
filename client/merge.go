@@ -46,5 +46,5 @@ func MergeConsecutiveRoles(messages []EyrieMessage) []EyrieMessage {
 
 // hasToolData returns true if the message contains tool use or tool result data.
 func hasToolData(msg EyrieMessage) bool {
-	return len(msg.ToolUse) > 0 || msg.ToolResult != nil
+	return len(msg.ToolUse) > 0 || len(msg.ToolResults) > 0
 }

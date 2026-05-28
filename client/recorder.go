@@ -145,18 +145,13 @@ func (r *RecorderProvider) Chat(ctx context.Context, messages []EyrieMessage, op
 // then a synthetic stream is created to return to the caller.
 // In replay mode, a synthetic stream is created from the stored response.
 func (r *RecorderProvider) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
-	r.mu.Lock()
-	hash := requestHash(messages, opts)
-
-	if r.mode == RecordModeReplay {
-		resp, err := r.replay(hash)
-		r.mu.Unlock()
-		if err != nil {
-			return nil, err
-		}
-		return r.syntheticStream(ctx, resp), nil
+	hash, replayResult, err := r.checkReplay(messages, opts)
+	if err != nil {
+		return nil, err
 	}
-	r.mu.Unlock()
+	if replayResult != nil {
+		return replayResult, nil
+	}
 
 	// Record mode: call the inner provider's StreamChat
 	result, err := r.inner.StreamChat(ctx, messages, opts)
@@ -179,6 +174,23 @@ func (r *RecorderProvider) StreamChat(ctx context.Context, messages []EyrieMessa
 
 	// Drain events from the real stream and accumulate the response
 	return r.recordStream(ctx, result, messages, opts, hash), nil
+}
+
+// checkReplay checks if we're in replay mode and returns the replay result.
+// Returns (hash, nil, nil) if not in replay mode.
+func (r *RecorderProvider) checkReplay(messages []EyrieMessage, opts ChatOptions) (string, *StreamResult, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	hash := requestHash(messages, opts)
+	if r.mode == RecordModeReplay {
+		resp, err := r.replay(hash)
+		if err != nil {
+			return hash, nil, err
+		}
+		return hash, r.syntheticStream(context.Background(), resp), nil
+	}
+	return hash, nil, nil
 }
 
 // Save writes the cassette to its file path.

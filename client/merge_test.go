@@ -52,7 +52,7 @@ func TestMergeConsecutiveRoles_SkipToolUse(t *testing.T) {
 func TestMergeConsecutiveRoles_SkipToolResult(t *testing.T) {
 	messages := []EyrieMessage{
 		{Role: "user", Content: "Run the tool"},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "abc", Content: "done"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "abc", Content: "done"}}},
 	}
 
 	merged := MergeConsecutiveRoles(messages)

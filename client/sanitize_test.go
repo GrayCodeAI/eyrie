@@ -22,7 +22,7 @@ func TestSanitizeMessagesNil(t *testing.T) {
 func TestSanitizeMessagesNoOrphans(t *testing.T) {
 	msgs := []EyrieMessage{
 		{Role: "assistant", ToolUse: []ToolCall{{ID: "tc-1", Name: "search", Arguments: map[string]interface{}{"q": "test"}}}},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "tc-1", Content: "result"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "tc-1", Content: "result"}}},
 	}
 	result := SanitizeMessages(msgs)
 	if len(result) != 2 {
@@ -48,17 +48,17 @@ func TestSanitizeMessagesOrphanedToolUse(t *testing.T) {
 	if injected.Role != "user" {
 		t.Errorf("injected message role = %q, want %q", injected.Role, "user")
 	}
-	if injected.ToolResult == nil {
-		t.Fatal("injected message has nil ToolResult")
+	if len(injected.ToolResults) == 0 {
+		t.Fatal("injected message has no ToolResults")
 	}
-	if injected.ToolResult.ToolUseID != "orphan-1" {
-		t.Errorf("injected ToolResult.ToolUseID = %q, want %q", injected.ToolResult.ToolUseID, "orphan-1")
+	if injected.ToolResults[0].ToolUseID != "orphan-1" {
+		t.Errorf("injected ToolResults[0].ToolUseID = %q, want %q", injected.ToolResults[0].ToolUseID, "orphan-1")
 	}
-	if !injected.ToolResult.IsError {
-		t.Error("injected ToolResult.IsError should be true")
+	if !injected.ToolResults[0].IsError {
+		t.Error("injected ToolResults[0].IsError should be true")
 	}
-	if injected.ToolResult.Content != "Tool execution was interrupted" {
-		t.Errorf("injected ToolResult.Content = %q, want %q", injected.ToolResult.Content, "Tool execution was interrupted")
+	if injected.ToolResults[0].Content != "Tool execution was interrupted" {
+		t.Errorf("injected ToolResults[0].Content = %q, want %q", injected.ToolResults[0].Content, "Tool execution was interrupted")
 	}
 }
 
@@ -75,11 +75,11 @@ func TestSanitizeMessagesMultipleOrphans(t *testing.T) {
 	if len(result) != 3 {
 		t.Fatalf("SanitizeMessages(multiple orphans) returned %d messages, want 3", len(result))
 	}
-	if result[1].ToolResult.ToolUseID != "tc-a" {
-		t.Errorf("first injected ID = %q, want %q", result[1].ToolResult.ToolUseID, "tc-a")
+	if result[1].ToolResults[0].ToolUseID != "tc-a" {
+		t.Errorf("first injected ID = %q, want %q", result[1].ToolResults[0].ToolUseID, "tc-a")
 	}
-	if result[2].ToolResult.ToolUseID != "tc-b" {
-		t.Errorf("second injected ID = %q, want %q", result[2].ToolResult.ToolUseID, "tc-b")
+	if result[2].ToolResults[0].ToolUseID != "tc-b" {
+		t.Errorf("second injected ID = %q, want %q", result[2].ToolResults[0].ToolUseID, "tc-b")
 	}
 }
 
@@ -89,7 +89,7 @@ func TestSanitizeMessagesMixedOrphanAndMatched(t *testing.T) {
 			{ID: "matched", Name: "tool1", Arguments: map[string]interface{}{}},
 			{ID: "orphan", Name: "tool2", Arguments: map[string]interface{}{}},
 		}},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "matched", Content: "ok"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "matched", Content: "ok"}}},
 	}
 	result := SanitizeMessages(msgs)
 
@@ -99,12 +99,12 @@ func TestSanitizeMessagesMixedOrphanAndMatched(t *testing.T) {
 	}
 	// result[0] = assistant, result[1] = injected for "orphan", result[2] = original user with "matched"
 	injected := result[1]
-	if injected.ToolResult.ToolUseID != "orphan" {
-		t.Errorf("injected ID = %q, want %q", injected.ToolResult.ToolUseID, "orphan")
+	if injected.ToolResults[0].ToolUseID != "orphan" {
+		t.Errorf("injected ID = %q, want %q", injected.ToolResults[0].ToolUseID, "orphan")
 	}
 	matched := result[2]
-	if matched.ToolResult.ToolUseID != "matched" {
-		t.Errorf("matched ID = %q, want %q", matched.ToolResult.ToolUseID, "matched")
+	if matched.ToolResults[0].ToolUseID != "matched" {
+		t.Errorf("matched ID = %q, want %q", matched.ToolResults[0].ToolUseID, "matched")
 	}
 }
 

@@ -48,7 +48,7 @@ func NewFallbackProvider(providers ...Provider) *FallbackProvider {
 	}
 	return &FallbackProvider{
 		providers: providers,
-		logger:    slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})),
+		logger:    slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn})),
 		stats:     stats,
 	}
 }

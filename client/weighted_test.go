@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"math/rand"
+	randv2 "math/rand/v2"
 	"testing"
 )
 
@@ -249,12 +249,11 @@ func TestWeightedProviderPanicOnZeroWeight(t *testing.T) {
 // zeroRandSource always yields 0 from Float64(), so weighted selection picks the highest-weight provider.
 type zeroRandSource struct{}
 
-func (zeroRandSource) Int63() int64 { return 0 }
-func (zeroRandSource) Seed(int64)   {}
+func (zeroRandSource) Uint64() uint64 { return 0 }
 
 func newWeightedProviderForTest(configs []WeightedProviderConfig) *WeightedProvider {
 	wp := NewWeightedProvider(configs)
-	wp.rng = rand.New(zeroRandSource{})
+	wp.rng = randv2.New(zeroRandSource{})
 	return wp
 }
 

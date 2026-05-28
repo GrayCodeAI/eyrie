@@ -26,6 +26,7 @@ type Server struct {
 	apiKey        string
 	mux           *http.ServeMux
 	bgCtx         context.Context
+	httpSrv       *http.Server
 }
 
 type Config struct {
@@ -58,7 +59,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ListenAndServe(addr string) error {
-	srv := &http.Server{
+	s.httpSrv = &http.Server{
 		Addr:              addr,
 		Handler:           s,
 		ReadHeaderTimeout: 10 * time.Second,
@@ -66,7 +67,17 @@ func (s *Server) ListenAndServe(addr string) error {
 		WriteTimeout:      10 * time.Minute, // long for streaming LLM responses
 		IdleTimeout:       120 * time.Second,
 	}
-	return srv.ListenAndServe()
+	return s.httpSrv.ListenAndServe()
+}
+
+// Shutdown gracefully shuts down the HTTP server without interrupting active connections.
+func (s *Server) Shutdown() error {
+	if s.httpSrv == nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	return s.httpSrv.Shutdown(ctx)
 }
 
 func (s *Server) routes() {

@@ -159,6 +159,5 @@ func (c *AzureClient) Ping(ctx context.Context) error {
 }
 
 func (c *AzureClient) buildRequest(messages []EyrieMessage, opts ChatOptions, stream bool) openaiRequest {
-	oaiReq := buildOpenAIRequest(messages, opts, stream)
-	return oaiReq
+	return buildRequestBase(messages, opts, stream, &AzureCompat)
 }
