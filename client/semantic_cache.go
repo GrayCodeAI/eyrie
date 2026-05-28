@@ -116,7 +116,7 @@ func (cp *CachedProvider) Chat(ctx context.Context, messages []EyrieMessage, opt
 
 	// Fast path: read lock lookup.
 	if resp, ok := cp.get(key); ok {
-		return copyResponse(resp), nil
+		return resp, nil
 	}
 
 	// Cache miss: call the inner provider.
@@ -193,7 +193,7 @@ func (cp *CachedProvider) get(key string) (*EyrieResponse, bool) {
 	entry.lastAccess = time.Now()
 	cp.promoteToHeadLocked(entry)
 
-	return entry.response, true
+	return copyResponse(entry.response), true
 }
 
 // put stores a response in the cache, evicting the LRU entry if necessary.
@@ -327,8 +327,8 @@ func buildCacheKey(messages []EyrieMessage, opts ChatOptions) string {
 			b, _ := json.Marshal(m.ToolUse)
 			h.Write(b)
 		}
-		if m.ToolResult != nil {
-			b, _ := json.Marshal(m.ToolResult)
+		if len(m.ToolResults) > 0 {
+			b, _ := json.Marshal(m.ToolResults)
 			h.Write(b)
 		}
 		h.Write([]byte{0})

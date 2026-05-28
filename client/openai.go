@@ -106,12 +106,14 @@ type openaiResponse struct {
 func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, compat *OpenAICompatConfig) openaiRequest {
 	var msgs []map[string]interface{}
 	for _, m := range messages {
-		if m.ToolResult != nil {
-			msgs = append(msgs, map[string]interface{}{
-				"role":         "tool",
-				"content":      m.ToolResult.Content,
-				"tool_call_id": m.ToolResult.ToolUseID,
-			})
+		if len(m.ToolResults) > 0 {
+			for _, tr := range m.ToolResults {
+				msgs = append(msgs, map[string]interface{}{
+					"role":         "tool",
+					"content":      tr.Content,
+					"tool_call_id": tr.ToolUseID,
+				})
+			}
 			continue
 		}
 		msg := map[string]interface{}{"role": m.Role, "content": m.Content}

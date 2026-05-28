@@ -91,11 +91,11 @@ func TestAnthropicBuildMessages_ToolUseNoText(t *testing.T) {
 
 func TestAnthropicBuildMessages_ToolResult(t *testing.T) {
 	msgs := []EyrieMessage{
-		{Role: "user", ToolResult: &ToolResult{
+		{Role: "user", ToolResults: []ToolResult{{
 			ToolUseID: "call_1",
 			Content:   "Temperature: 72F",
 			IsError:   false,
-		}},
+		}}},
 	}
 	result, _ := buildAnthropicMessages(msgs)
 	if len(result) != 1 {
@@ -122,11 +122,11 @@ func TestAnthropicBuildMessages_ToolResult(t *testing.T) {
 
 func TestAnthropicBuildMessages_ToolResultError(t *testing.T) {
 	msgs := []EyrieMessage{
-		{Role: "user", ToolResult: &ToolResult{
+		{Role: "user", ToolResults: []ToolResult{{
 			ToolUseID: "call_err",
 			Content:   "connection refused",
 			IsError:   true,
-		}},
+		}}},
 	}
 	result, _ := buildAnthropicMessages(msgs)
 	content := result[0]["content"].([]map[string]interface{})
@@ -1331,7 +1331,7 @@ func TestAnthropicChat_FullToolRoundTrip(t *testing.T) {
 	resp2, err := client.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "What time is it?"},
 		{Role: "assistant", ToolUse: resp1.ToolCalls},
-		{Role: "user", ToolResult: &ToolResult{ToolUseID: "toolu_rt", Content: "15:00 UTC"}},
+		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "toolu_rt", Content: "15:00 UTC"}}},
 	}, ChatOptions{
 		Model: "claude-sonnet-4-6",
 		Tools: []EyrieTool{{Name: "get_time", Description: "Get current time", Parameters: map[string]interface{}{"type": "object"}}},

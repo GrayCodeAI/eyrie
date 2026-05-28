@@ -115,15 +115,19 @@ func buildAnthropicMessages(messages []EyrieMessage) ([]map[string]interface{}, 
 			msgs = append(msgs, map[string]interface{}{"role": "assistant", "content": content})
 			continue
 		}
-		// User message with tool_result
-		if m.Role == "user" && m.ToolResult != nil {
-			content := []map[string]interface{}{{
-				"type":        "tool_result",
-				"tool_use_id": m.ToolResult.ToolUseID,
-				"content":     m.ToolResult.Content,
-			}}
-			if m.ToolResult.IsError {
-				content[0]["is_error"] = true
+		// User message with tool results
+		if m.Role == "user" && len(m.ToolResults) > 0 {
+			content := make([]map[string]interface{}, 0, len(m.ToolResults))
+			for _, tr := range m.ToolResults {
+				block := map[string]interface{}{
+					"type":        "tool_result",
+					"tool_use_id": tr.ToolUseID,
+					"content":     tr.Content,
+				}
+				if tr.IsError {
+					block["is_error"] = true
+				}
+				content = append(content, block)
 			}
 			msgs = append(msgs, map[string]interface{}{"role": "user", "content": content})
 			continue

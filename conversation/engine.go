@@ -2,6 +2,7 @@ package conversation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -294,7 +295,10 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 
 func buildMessages(nodes []*storage.Node) []client.EyrieMessage {
 	seen := map[string]bool{}
-	var messages []client.EyrieMessage
+	var raw []struct {
+		role string
+		node *storage.Node
+	}
 	for _, n := range nodes {
 		if n.OutputGroupID != "" {
 			if seen[n.OutputGroupID] {
@@ -303,16 +307,80 @@ func buildMessages(nodes []*storage.Node) []client.EyrieMessage {
 			seen[n.OutputGroupID] = true
 		}
 		role := string(n.NodeType)
-		switch role {
-		case "tool_call":
-			role = "assistant"
-		case "tool_result":
+		switch n.NodeType {
+		case storage.NodeTypeToolCall:
+			role = "tool_call"
+		case storage.NodeTypeToolResult:
+			role = "tool_result"
+		case storage.NodeTypeUser:
 			role = "user"
-		}
-		if role != "user" && role != "assistant" && role != "system" {
+		case storage.NodeTypeAssistant:
+			role = "assistant"
+		case storage.NodeTypeSystem:
+			role = "system"
+		default:
 			continue
 		}
-		messages = append(messages, client.EyrieMessage{Role: role, Content: n.Content})
+		raw = append(raw, struct {
+			role string
+			node *storage.Node
+		}{role, n})
+	}
+
+	var messages []client.EyrieMessage
+	for _, r := range raw {
+		switch r.role {
+		case "tool_call":
+			msg := client.EyrieMessage{Role: "assistant", Content: r.node.Content}
+			if len(r.node.Metadata) > 0 {
+				var meta struct {
+					ToolID   string                 `json:"tool_id"`
+					ToolName string                 `json:"tool_name"`
+					Input    map[string]interface{} `json:"input"`
+				}
+				if err := json.Unmarshal(r.node.Metadata, &meta); err == nil {
+					name := meta.ToolName
+					if name == "" {
+						name = meta.ToolID
+					}
+					if name != "" {
+						msg.ToolUse = append(msg.ToolUse, client.ToolCall{
+							ID:        meta.ToolID,
+							Name:      name,
+							Arguments: meta.Input,
+						})
+					}
+				}
+			}
+			messages = append(messages, msg)
+		case "tool_result":
+			tr := client.ToolResult{Content: r.node.Content}
+			if len(r.node.Metadata) > 0 {
+				var meta struct {
+					ToolUseID string `json:"tool_use_id"`
+					IsError   bool   `json:"is_error"`
+				}
+				if err := json.Unmarshal(r.node.Metadata, &meta); err == nil && meta.ToolUseID != "" {
+					tr.ToolUseID = meta.ToolUseID
+					tr.IsError = meta.IsError
+				}
+			}
+			// If the last message is a user message with tool results, append
+			// this result to it rather than creating a separate message.
+			if n := len(messages); n > 0 && messages[n-1].Role == "user" && len(messages[n-1].ToolResults) > 0 {
+				messages[n-1].ToolResults = append(messages[n-1].ToolResults, tr)
+			} else {
+				messages = append(messages, client.EyrieMessage{
+					Role:        "user",
+					ToolResults: []client.ToolResult{tr},
+				})
+			}
+		default:
+			messages = append(messages, client.EyrieMessage{
+				Role:    r.role,
+				Content: r.node.Content,
+			})
+		}
 	}
 	return messages
 }

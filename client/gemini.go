@@ -38,6 +38,12 @@ func NewGeminiClient(apiKey, baseURL string) *GeminiClient {
 
 func (c *GeminiClient) Name() string { return "gemini" }
 
+func (c *GeminiClient) setHeaders(req *http.Request) {
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("User-Agent", userAgent())
+}
+
 func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for gemini")
@@ -46,12 +52,12 @@ func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s", c.baseURL, opts.Model, c.apiKey)
+	url := fmt.Sprintf("%s/models/%s:generateContent", c.baseURL, opts.Model)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: gemini request creation failed: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	c.setHeaders(req)
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
 	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
@@ -81,12 +87,12 @@ func (c *GeminiClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("%s/models/%s:streamGenerateContent?key=%s&alt=sse", c.baseURL, opts.Model, c.apiKey)
+	url := fmt.Sprintf("%s/models/%s:streamGenerateContent?alt=sse", c.baseURL, opts.Model)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: gemini stream request creation failed: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	c.setHeaders(req)
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
 	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
@@ -94,8 +100,8 @@ func (c *GeminiClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 		return nil, fmt.Errorf("eyrie: gemini stream request failed: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		_ = resp.Body.Close()
 		respBody, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
 		return nil, fmt.Errorf("eyrie: gemini stream returned %d: %s", resp.StatusCode, string(respBody))
 	}
 
@@ -107,11 +113,12 @@ func (c *GeminiClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 }
 
 func (c *GeminiClient) Ping(ctx context.Context) error {
-	url := fmt.Sprintf("%s/models?key=%s", c.baseURL, c.apiKey)
+	url := fmt.Sprintf("%s/models", c.baseURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("eyrie: gemini ping request creation failed: %w", err)
 	}
+	c.setHeaders(req)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("eyrie: gemini ping failed: %w", err)
@@ -129,6 +136,7 @@ type geminiRequest struct {
 	Contents         []geminiContent         `json:"contents"`
 	GenerationConfig *geminiGenerationConfig `json:"generationConfig,omitempty"`
 	Tools            []geminiTool            `json:"tools,omitempty"`
+	SystemInstruction *geminiContent         `json:"system_instruction,omitempty"`
 }
 
 type geminiContent struct {
@@ -177,6 +185,7 @@ type geminiFunctionDecl struct {
 
 func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]byte, error) {
 	contents := make([]geminiContent, 0, len(messages))
+	var systemInstruction *geminiContent
 	for _, msg := range messages {
 		gc := geminiContent{Parts: make([]geminiPart, 0, 2)}
 		switch msg.Role {
@@ -184,6 +193,10 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 			gc.Role = "user"
 		case "assistant":
 			gc.Role = "model"
+		case "system":
+			// Use Gemini's system_instruction field for system messages.
+			systemInstruction = &geminiContent{Parts: []geminiPart{{Text: msg.Content}}}
+			continue
 		default:
 			gc.Role = "user"
 		}
@@ -195,14 +208,16 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 				InlineData: &geminiInlineData{MimeType: "image/png", Data: img},
 			})
 		}
-		if msg.ToolResult != nil {
+		if len(msg.ToolResults) > 0 {
 			gc.Role = "user"
-			gc.Parts = append(gc.Parts, geminiPart{
-				FunctionResponse: &geminiFunctionResponse{
-					Name:     msg.ToolResult.ToolUseID,
-					Response: map[string]string{"content": msg.ToolResult.Content},
-				},
-			})
+			for _, tr := range msg.ToolResults {
+				gc.Parts = append(gc.Parts, geminiPart{
+					FunctionResponse: &geminiFunctionResponse{
+						Name:     tr.ToolUseID,
+						Response: map[string]string{"content": tr.Content},
+					},
+				})
+			}
 		}
 		for _, tc := range msg.ToolUse {
 			gc.Parts = append(gc.Parts, geminiPart{
@@ -212,7 +227,7 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 		contents = append(contents, gc)
 	}
 
-	req := geminiRequest{Contents: contents}
+	req := geminiRequest{Contents: contents, SystemInstruction: systemInstruction}
 
 	if opts.MaxTokens > 0 || opts.Temperature != nil {
 		req.GenerationConfig = &geminiGenerationConfig{

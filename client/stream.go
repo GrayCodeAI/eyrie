@@ -21,7 +21,7 @@ const (
 	sseChannelBuffer    = 128
 	sseScannerInitBuf   = 64 * 1024
 	sseScannerMaxBuf    = 2 * 1024 * 1024
-	streamChannelBuffer = 128
+	streamChannelBuffer = 256
 )
 
 // parseSSEStream reads an SSE stream and sends events to a channel.

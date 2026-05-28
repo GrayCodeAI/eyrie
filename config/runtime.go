@@ -43,15 +43,13 @@ func envValue(key string) string {
 	if key == "" {
 		return ""
 	}
-	if isCredentialEnvKey(key) {
-		return credentials.LookupSecret(context.Background(), key)
+	// Always check the credential store first for ALL keys.
+	if v := credentials.LookupSecret(context.Background(), key); v != "" {
+		return v
 	}
+	// Fall back to process environment only when the credential store has
+	// nothing for this key.
 	return strings.TrimSpace(os.Getenv(key))
-}
-
-func isCredentialEnvKey(key string) bool {
-	u := strings.ToUpper(key)
-	return strings.Contains(u, "API_KEY") || strings.Contains(u, "_TOKEN")
 }
 
 func asTrimmedEnv(key string) string {

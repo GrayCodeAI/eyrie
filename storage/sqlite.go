@@ -98,7 +98,9 @@ func (s *SQLiteStore) GetNode(ctx context.Context, id string) (*Node, error) {
 }
 
 func (s *SQLiteStore) GetNodeByPrefix(ctx context.Context, prefix string) (*Node, error) {
-	return s.scanNode(s.db.QueryRowContext(ctx, `SELECT id, parent_id, root_id, sequence, node_type, content, provider, model, tokens_in, tokens_out, tokens_cache_read, tokens_cache_creation, tokens_reasoning, latency_ms, stop_reason, output_group_id, status, title, system_prompt, metadata, created_at FROM nodes WHERE id LIKE ? LIMIT 1`, prefix+"%"))
+	// Escape SQL LIKE wildcards in the prefix to prevent false matches.
+	escaped := strings.NewReplacer("%", "\\%", "_", "\\_").Replace(prefix)
+	return s.scanNode(s.db.QueryRowContext(ctx, `SELECT id, parent_id, root_id, sequence, node_type, content, provider, model, tokens_in, tokens_out, tokens_cache_read, tokens_cache_creation, tokens_reasoning, latency_ms, stop_reason, output_group_id, status, title, system_prompt, metadata, created_at FROM nodes WHERE id LIKE ? ESCAPE '\' LIMIT 1`, escaped+"%"))
 }
 
 func (s *SQLiteStore) GetNodeChildren(ctx context.Context, id string) ([]*Node, error) {

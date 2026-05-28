@@ -5,9 +5,11 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"log/slog"
 	"net/http"
@@ -309,11 +311,28 @@ func (es *eventStreamReader) ReadEvent() (*eventStreamFrame, error) {
 		return nil, fmt.Errorf("eventstream: headers length %d exceeds total %d", headersLen, totalLen)
 	}
 
+	// Validate prelude CRC: bytes 8-11 should be CRC32 of bytes 0-7
+	preludeCRCExpected := binary.BigEndian.Uint32(prelude[8:12])
+	preludeCRCComputed := crc32.ChecksumIEEE(prelude[0:8])
+	if preludeCRCExpected != preludeCRCComputed {
+		return nil, fmt.Errorf("eventstream: prelude CRC mismatch (expected %08x, got %08x)", preludeCRCExpected, preludeCRCComputed)
+	}
+
 	// Read remaining bytes: headers + payload + message_crc(4)
 	remaining := totalLen - 12
 	buf := make([]byte, remaining)
 	if _, err := io.ReadFull(es.r, buf); err != nil {
 		return nil, err
+	}
+
+	// Validate message CRC: last 4 bytes should be CRC32 of (prelude + headers + payload)
+	msgCRCExpected := binary.BigEndian.Uint32(buf[len(buf)-4:])
+	crcInput := make([]byte, 0, totalLen-4)
+	crcInput = append(crcInput, prelude[:8]...)
+	crcInput = append(crcInput, buf[:len(buf)-4]...)
+	msgCRCComputed := crc32.ChecksumIEEE(crcInput)
+	if msgCRCExpected != msgCRCComputed {
+		return nil, fmt.Errorf("eventstream: message CRC mismatch (expected %08x, got %08x)", msgCRCExpected, msgCRCComputed)
 	}
 
 	// Parse headers (skip for now, we only need the payload)

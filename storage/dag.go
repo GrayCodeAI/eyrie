@@ -42,8 +42,7 @@ func NewDAGFromStore(store Store, sessionID string) *DAG {
 }
 
 // Append adds a new node as a child of the given parent and advances the head.
-func (d *DAG) Append(parentID string, role string, content string) (*DAGNode, error) {
-	ctx := context.Background()
+func (d *DAG) Append(ctx context.Context, parentID string, role string, content string) (*DAGNode, error) {
 	if parentID != "" {
 		if _, err := d.store.GetNode(ctx, parentID); err != nil {
 			return nil, fmt.Errorf("parent node %q not found", parentID)
@@ -68,8 +67,7 @@ func (d *DAG) Append(parentID string, role string, content string) (*DAGNode, er
 }
 
 // Fork creates a new branch from the given node.
-func (d *DAG) Fork(nodeID string) (*DAGNode, error) {
-	ctx := context.Background()
+func (d *DAG) Fork(ctx context.Context, nodeID string) (*DAGNode, error) {
 	src, err := d.store.GetNode(ctx, nodeID)
 	if err != nil {
 		return nil, fmt.Errorf("get fork point: %w", err)
@@ -94,8 +92,7 @@ func (d *DAG) Fork(nodeID string) (*DAGNode, error) {
 }
 
 // History returns the linear path from root to the given node.
-func (d *DAG) History(nodeID string) ([]*DAGNode, error) {
-	ctx := context.Background()
+func (d *DAG) History(ctx context.Context, nodeID string) ([]*DAGNode, error) {
 	if _, err := d.store.GetNode(ctx, nodeID); err != nil {
 		return nil, fmt.Errorf("node %q not found", nodeID)
 	}
@@ -111,8 +108,7 @@ func (d *DAG) History(nodeID string) ([]*DAGNode, error) {
 }
 
 // Branches returns all child nodes. If nodeID is empty, returns session roots.
-func (d *DAG) Branches(nodeID string) ([]*DAGNode, error) {
-	ctx := context.Background()
+func (d *DAG) Branches(ctx context.Context, nodeID string) ([]*DAGNode, error) {
 	if nodeID == "" {
 		all, err := d.store.ListRootNodes(ctx)
 		if err != nil {
@@ -138,11 +134,10 @@ func (d *DAG) Branches(nodeID string) ([]*DAGNode, error) {
 }
 
 // Head returns the most recent node in the current branch.
-func (d *DAG) Head() (*DAGNode, error) {
+func (d *DAG) Head(ctx context.Context) (*DAGNode, error) {
 	if d.headID == "" {
 		return nil, fmt.Errorf("no head for session %q", d.sessionID)
 	}
-	ctx := context.Background()
 	sn, err := d.store.GetNode(ctx, d.headID)
 	if err != nil {
 		return nil, err
@@ -151,8 +146,7 @@ func (d *DAG) Head() (*DAGNode, error) {
 }
 
 // SetHead moves the head pointer to a specific node.
-func (d *DAG) SetHead(nodeID string) error {
-	ctx := context.Background()
+func (d *DAG) SetHead(ctx context.Context, nodeID string) error {
 	if _, err := d.store.GetNode(ctx, nodeID); err != nil {
 		return fmt.Errorf("node %q not found", nodeID)
 	}
@@ -161,8 +155,7 @@ func (d *DAG) SetHead(nodeID string) error {
 }
 
 // Prune removes a node and all its descendants.
-func (d *DAG) Prune(nodeID string) error {
-	ctx := context.Background()
+func (d *DAG) Prune(ctx context.Context, nodeID string) error {
 	sn, err := d.store.GetNode(ctx, nodeID)
 	if err != nil {
 		return fmt.Errorf("node %q not found", nodeID)
