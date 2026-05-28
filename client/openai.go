@@ -210,11 +210,6 @@ func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, s
 	return buildRequestBase(messages, opts, stream, c.compat)
 }
 
-// buildOpenAIRequest builds the shared OpenAI-compatible request body.
-func buildOpenAIRequest(messages []EyrieMessage, opts ChatOptions, stream bool) openaiRequest {
-	return buildRequestBase(messages, opts, stream, nil)
-}
-
 // Chat sends a non-streaming request.
 func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
 	messages = SanitizeMessages(messages)
