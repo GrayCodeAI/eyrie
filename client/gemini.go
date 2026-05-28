@@ -133,10 +133,10 @@ func (c *GeminiClient) Ping(ctx context.Context) error {
 // --- Request building ---
 
 type geminiRequest struct {
-	Contents         []geminiContent         `json:"contents"`
-	GenerationConfig *geminiGenerationConfig `json:"generationConfig,omitempty"`
-	Tools            []geminiTool            `json:"tools,omitempty"`
-	SystemInstruction *geminiContent         `json:"system_instruction,omitempty"`
+	Contents          []geminiContent         `json:"contents"`
+	GenerationConfig  *geminiGenerationConfig `json:"generationConfig,omitempty"`
+	Tools             []geminiTool            `json:"tools,omitempty"`
+	SystemInstruction *geminiContent          `json:"system_instruction,omitempty"`
 }
 
 type geminiContent struct {
