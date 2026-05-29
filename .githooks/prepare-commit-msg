@@ -1,3 +1,23 @@
 #!/bin/sh
-# Strip Co-authored-by trailers added by tools/agents.
-sed '/^[Cc]o-[Aa]uthored-[Bb]y:/d' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+# Auto-strip Co-authored-by trailers and enforce conventional commits
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Skip merge commits, amend, etc.
+if [ "$COMMIT_SOURCE" = "merge" ] || [ "$COMMIT_SOURCE" = "squash" ]; then
+  exit 0
+fi
+
+# Strip Co-authored-by lines
+sed -i.bak "/^Co-authored-by:/d" "$COMMIT_MSG_FILE" 2>/dev/null || \
+  sed -i  "/^Co-authored-by:/d" "$COMMIT_MSG_FILE"
+
+# Remove trailing blank lines
+sed -i.bak -e :a -e "/^
+*$/{$d;N;ba" -e "}" "$COMMIT_MSG_FILE" 2>/dev/null || \
+  sed -i  -e :a -e "/^
+*$/{$d;N;ba" -e "}" "$COMMIT_MSG_FILE"
+
+# Clean up backup files
+rm -f "${COMMIT_MSG_FILE}.bak"
+
