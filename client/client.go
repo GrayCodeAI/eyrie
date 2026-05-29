@@ -65,8 +65,8 @@ type ImageURLPart struct {
 
 // InputAudioPart represents an audio content part (base64 encoded).
 type InputAudioPart struct {
-	Data   string `json:"data"`           // base64 encoded audio
-	Format string `json:"format"`         // "wav", "mp3" (OpenAI) or used to derive media_type (Anthropic)
+	Data   string `json:"data"`   // base64 encoded audio
+	Format string `json:"format"` // "wav", "mp3" (OpenAI) or used to derive media_type (Anthropic)
 }
 
 // EyrieMessage represents a chat message.
