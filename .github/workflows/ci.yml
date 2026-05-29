@@ -36,7 +36,7 @@ jobs:
           cache: true
       - name: gofumpt
         run: |
-          go install mvdan.cc/gofumpt@latest
+          go install mvdan.cc/gofumpt@v0.7.0
           out=$(gofumpt -l .)
           if [ -n "$out" ]; then
             echo "::error::gofumpt would reformat:"
@@ -45,7 +45,7 @@ jobs:
           fi
       - name: goimports
         run: |
-          go install golang.org/x/tools/cmd/goimports@latest
+          go install golang.org/x/tools/cmd/goimports@v0.30.0
           out=$(goimports -l .)
           if [ -n "$out" ]; then
             echo "::error::goimports would reformat:"
@@ -113,7 +113,7 @@ jobs:
         run: rm -f go.work go.work.sum
       - name: Run golangci-lint
         run: |
-          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.0
           golangci-lint run --timeout=5m --disable=noctx,staticcheck
         env:
           GOWORK: "off"
@@ -138,10 +138,10 @@ jobs:
           coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%' | tail -1)
           echo "Coverage: ${coverage}%"
           echo "COVERAGE=${coverage}" >> "$GITHUB_ENV"
-      - name: Coverage threshold (minimum 10%)
+      - name: Coverage threshold (minimum 60%)
         run: |
-          if (( $(echo "${COVERAGE} < 10" | bc -l) )); then
-            echo "::error::Coverage ${COVERAGE}% is below minimum 10%"
+          if (( $(echo "${COVERAGE} < 60" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below minimum 60%"
             exit 1
           fi
       - name: Upload coverage
@@ -166,11 +166,11 @@ jobs:
           cache: true
       - name: govulncheck
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.3
           govulncheck ./...
       - name: gosec (report only)
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
           gosec -exclude=G104,G703,G704,G101,G107,G112,G114,G115,G201,G202,G203,G204,G301,G302,G304,G305,G306,G307,G401,G402,G403,G404,G501,G502,G503,G504,G505,G601,G602 -confidence=medium -severity=high ./... || true
 
   # -------------------------------------------------------------------------
