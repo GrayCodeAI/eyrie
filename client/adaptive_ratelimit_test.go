@@ -12,12 +12,12 @@ import (
 
 // mockProvider is a minimal Provider for testing.
 type mockProvider struct {
-	name      string
-	chatFn    func(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error)
-	streamFn  func(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error)
+	name     string
+	chatFn   func(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error)
+	streamFn func(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error)
 }
 
-func (m *mockProvider) Name() string { return m.name }
+func (m *mockProvider) Name() string                   { return m.name }
 func (m *mockProvider) Ping(ctx context.Context) error { return nil }
 func (m *mockProvider) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
 	if m.chatFn != nil {
@@ -28,6 +28,7 @@ func (m *mockProvider) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		Usage:   &EyrieUsage{TotalTokens: 100},
 	}, nil
 }
+
 func (m *mockProvider) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
 	if m.streamFn != nil {
 		return m.streamFn(ctx, messages, opts)
@@ -487,9 +488,9 @@ func ExampleAdaptiveRateLimitProvider() {
 
 	// Wrap with adaptive rate limiting
 	provider := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
-		RPMLimit:         60,  // 60 requests per minute
+		RPMLimit:         60,    // 60 requests per minute
 		TPMLimit:         90000, // 90k tokens per minute
-		ThresholdPercent: 10,  // throttle when <10% remaining
+		ThresholdPercent: 10,    // throttle when <10% remaining
 		MaxDelay:         5 * time.Second,
 		HeaderExtractor:  CommonHeaderExtractor, // parse rate limit headers
 	})
