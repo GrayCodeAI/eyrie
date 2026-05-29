@@ -36,13 +36,14 @@ func (e *errorProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _
 }
 
 // slowProvider simulates a provider that takes time to respond.
+//
 //nolint:unused
 type slowProvider struct { //nolint:unused
 	delay time.Duration
 }
 
 func (s *slowProvider) Name() string                 { return "slow-provider" } //nolint:unused
-func (s *slowProvider) Ping(_ context.Context) error { return nil }            //nolint:unused
+func (s *slowProvider) Ping(_ context.Context) error { return nil }             //nolint:unused
 
 //nolint:unused
 func (s *slowProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.EyrieResponse, error) {
