@@ -12,14 +12,14 @@ import (
 // RateLimitState holds the current rate limit tracking state for a provider.
 type RateLimitState struct {
 	// RPM tracking
-	RPMUsed     int       // requests used in the current window
-	RPMLimit    int       // maximum requests per minute (0 = unknown)
-	RPMResetAt  time.Time // when the RPM window resets
+	RPMUsed    int       // requests used in the current window
+	RPMLimit   int       // maximum requests per minute (0 = unknown)
+	RPMResetAt time.Time // when the RPM window resets
 
 	// TPM tracking
-	TPMUsed     int       // tokens used in the current window
-	TPMLimit    int       // maximum tokens per minute (0 = unknown)
-	TPMResetAt  time.Time // when the TPM window resets
+	TPMUsed    int       // tokens used in the current window
+	TPMLimit   int       // maximum tokens per minute (0 = unknown)
+	TPMResetAt time.Time // when the TPM window resets
 
 	// Header-derived remaining counts (from x-ratelimit-remaining)
 	RPMRemaining int // -1 if unknown
@@ -178,9 +178,9 @@ type AdaptiveRateLimitConfig struct {
 //
 // AdaptiveRateLimitProvider is safe for concurrent use.
 type AdaptiveRateLimitProvider struct {
-	inner   Provider
-	config  AdaptiveRateLimitConfig
-	mu      sync.Mutex
+	inner  Provider
+	config AdaptiveRateLimitConfig
+	mu     sync.Mutex
 
 	// RPM tracking: timestamps of requests in the current window
 	rpmWindow    []time.Time
@@ -196,9 +196,9 @@ type AdaptiveRateLimitProvider struct {
 	resetTime time.Time
 
 	// Lifetime counters
-	totalRequests  int64
-	totalTokens    int64
-	throttleCount  int64
+	totalRequests int64
+	totalTokens   int64
+	throttleCount int64
 }
 
 // tpmEntry tracks a token usage event.

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/storage"
 	"github.com/google/uuid"
@@ -49,7 +50,8 @@ const (
 )
 
 func (e *Engine) Prompt(ctx context.Context, message string, opts PromptOpts) (<-chan Event, error) {
-	ctx, span := tracer.Start(ctx, "conversation.Prompt",
+	ctx, span := tracer.Start(
+		ctx, "conversation.Prompt",
 		trace.WithAttributes(
 			attribute.String("model", opts.Model),
 			attribute.Int("message_length", len(message)),
@@ -89,7 +91,8 @@ func (e *Engine) Prompt(ctx context.Context, message string, opts PromptOpts) (<
 }
 
 func (e *Engine) PromptFrom(ctx context.Context, parentNodeID, message string, opts PromptOpts) (<-chan Event, error) {
-	ctx, span := tracer.Start(ctx, "conversation.PromptFrom",
+	ctx, span := tracer.Start(
+		ctx, "conversation.PromptFrom",
 		trace.WithAttributes(
 			attribute.String("parent_node_id", parentNodeID),
 			attribute.String("model", opts.Model),
@@ -199,7 +202,8 @@ func (e *Engine) DeleteNode(ctx context.Context, id string) error {
 const defaultGroupBudgetMultiplier = 4
 
 func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, messages []client.EyrieMessage, opts PromptOpts) (<-chan Event, error) {
-	_, span := tracer.Start(ctx, "conversation.streamAndSave",
+	_, span := tracer.Start(
+		ctx, "conversation.streamAndSave",
 		trace.WithAttributes(
 			attribute.String("model", opts.Model),
 			attribute.String("provider", e.provider.Name()),
