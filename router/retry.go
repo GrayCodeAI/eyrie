@@ -1,8 +1,6 @@
 package router
 
 import (
-	"crypto/rand"
-	"math/big"
 	"strings"
 	"time"
 
@@ -56,27 +54,9 @@ func ShouldTryNextDeployment(err error) bool {
 	return false
 }
 
+// BackoffDelay calculates exponential backoff delay with jitter using the shared implementation.
 func BackoffDelay(attempt int, cfg RetryConfig) time.Duration {
-	base := cfg.BaseDelay
-	for i := 0; i < attempt; i++ {
-		base *= 2
-	}
-	if base > cfg.MaxDelay {
-		base = cfg.MaxDelay
-	}
-	return cryptoRandDuration(base)
-}
-
-func cryptoRandDuration(max time.Duration) time.Duration {
-	if max <= 0 {
-		return 0
-	}
-	bigN := big.NewInt(int64(max))
-	result, err := rand.Int(rand.Reader, bigN)
-	if err != nil {
-		return 0
-	}
-	return time.Duration(result.Int64())
+	return types.BackoffDelay(attempt, cfg.BaseDelay, cfg.MaxDelay)
 }
 
 var afterFunc = time.After

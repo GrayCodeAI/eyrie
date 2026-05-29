@@ -2,11 +2,8 @@ package client
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"log/slog"
-	"math"
-	"math/big"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -48,6 +45,7 @@ func (rc RetryConfig) shouldRetry(statusCode int) bool {
 }
 
 // backoffDelay calculates delay with exponential backoff + jitter.
+// Respects Retry-After headers from HTTP responses when present.
 func (rc RetryConfig) backoffDelay(attempt int, resp *http.Response) time.Duration {
 	// Respect Retry-After header if present
 	if resp != nil {
@@ -71,14 +69,8 @@ func (rc RetryConfig) backoffDelay(attempt int, resp *http.Response) time.Durati
 		}
 	}
 
-	// Exponential backoff with full jitter
-	exp := math.Pow(2, float64(attempt))
-	delay := time.Duration(float64(rc.BaseDelay) * exp)
-	if delay > rc.MaxDelay {
-		delay = rc.MaxDelay
-	}
-	jitter := time.Duration(cryptoRandInt64(int64(delay)))
-	return jitter
+	// Use shared exponential backoff with full jitter
+	return types.BackoffDelay(attempt, rc.BaseDelay, rc.MaxDelay)
 }
 
 var retryDelayRe = regexp.MustCompile(`(?i)(?:retry|try again)\s+(?:in|after)\s+(\d+(?:\.\d+)?)\s*(ms|milliseconds?|s|seconds?)`)
@@ -154,17 +146,4 @@ func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request
 	}
 
 	return nil, fmt.Errorf("max retries (%d) exceeded: %w", rc.MaxRetries, lastErr)
-}
-
-// cryptoRandInt64 returns a cryptographically random int64 in [0, n).
-func cryptoRandInt64(n int64) int64 {
-	if n <= 0 {
-		return 0
-	}
-	bigN := big.NewInt(n)
-	result, err := rand.Int(rand.Reader, bigN)
-	if err != nil {
-		return 0
-	}
-	return result.Int64()
 }
