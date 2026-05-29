@@ -26,10 +26,11 @@ type errorProvider struct {
 }
 
 func (e *errorProvider) Name() string                 { return "error-provider" }
-func (e *errorProvider) Ping(_ context.Context) error  { return nil }
+func (e *errorProvider) Ping(_ context.Context) error { return nil }
 func (e *errorProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.EyrieResponse, error) {
 	return nil, e.err
 }
+
 func (e *errorProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
 	return nil, e.err
 }
@@ -40,11 +41,12 @@ type slowProvider struct {
 }
 
 func (s *slowProvider) Name() string                 { return "slow-provider" }
-func (s *slowProvider) Ping(_ context.Context) error  { return nil }
+func (s *slowProvider) Ping(_ context.Context) error { return nil }
 func (s *slowProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.EyrieResponse, error) {
 	time.Sleep(s.delay)
 	return &client.EyrieResponse{Content: "slow response", FinishReason: "end_turn", Usage: &client.EyrieUsage{CompletionTokens: 2}}, nil
 }
+
 func (s *slowProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
 	ch := make(chan client.EyrieStreamEvent, 2)
 	go func() {
@@ -59,11 +61,12 @@ func (s *slowProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ 
 // streamingProvider returns multiple content chunks.
 type streamingProvider struct{}
 
-func (s *streamingProvider) Name() string                { return "streaming-provider" }
+func (s *streamingProvider) Name() string                 { return "streaming-provider" }
 func (s *streamingProvider) Ping(_ context.Context) error { return nil }
 func (s *streamingProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.EyrieResponse, error) {
 	return &client.EyrieResponse{Content: "hello world", FinishReason: "end_turn", Usage: &client.EyrieUsage{CompletionTokens: 2}}, nil
 }
+
 func (s *streamingProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
 	ch := make(chan client.EyrieStreamEvent, 5)
 	go func() {
@@ -80,11 +83,12 @@ func (s *streamingProvider) StreamChat(_ context.Context, _ []client.EyrieMessag
 // errorStreamProvider streams a content chunk then emits an error.
 type errorStreamProvider struct{}
 
-func (e *errorStreamProvider) Name() string                { return "error-stream" }
+func (e *errorStreamProvider) Name() string                 { return "error-stream" }
 func (e *errorStreamProvider) Ping(_ context.Context) error { return nil }
 func (e *errorStreamProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.EyrieResponse, error) {
 	return nil, fmt.Errorf("provider error")
 }
+
 func (e *errorStreamProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
 	ch := make(chan client.EyrieStreamEvent, 3)
 	go func() {
@@ -917,7 +921,7 @@ type rateLimitProvider struct {
 	limit     int
 }
 
-func (r *rateLimitProvider) Name() string                { return "ratelimit" }
+func (r *rateLimitProvider) Name() string                 { return "ratelimit" }
 func (r *rateLimitProvider) Ping(_ context.Context) error { return nil }
 func (r *rateLimitProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.EyrieResponse, error) {
 	r.callCount++
@@ -926,6 +930,7 @@ func (r *rateLimitProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ c
 	}
 	return &client.EyrieResponse{Content: "ok", FinishReason: "end_turn", Usage: &client.EyrieUsage{CompletionTokens: 1}}, nil
 }
+
 func (r *rateLimitProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
 	r.callCount++
 	if r.callCount > r.limit {

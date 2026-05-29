@@ -314,23 +314,23 @@ func TestDoWithRetryBodyReplay(t *testing.T) {
 	defer resp.Body.Close()
 }
 
-func TestCryptoRandInt64Zero(t *testing.T) {
-	if v := cryptoRandInt64(0); v != 0 {
-		t.Errorf("cryptoRandInt64(0) = %d, want 0", v)
+func TestCryptoRandDurationZero(t *testing.T) {
+	if v := types.CryptoRandDuration(0); v != 0 {
+		t.Errorf("CryptoRandDuration(0) = %v, want 0", v)
 	}
 }
 
-func TestCryptoRandInt64Negative(t *testing.T) {
-	if v := cryptoRandInt64(-1); v != 0 {
-		t.Errorf("cryptoRandInt64(-1) = %d, want 0", v)
+func TestCryptoRandDurationNegative(t *testing.T) {
+	if v := types.CryptoRandDuration(-1); v != 0 {
+		t.Errorf("CryptoRandDuration(-1) = %v, want 0", v)
 	}
 }
 
-func TestCryptoRandInt64Range(t *testing.T) {
+func TestCryptoRandDurationRange(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		v := cryptoRandInt64(10)
-		if v < 0 || v >= 10 {
-			t.Errorf("cryptoRandInt64(10) = %d, want [0, 10)", v)
+		v := types.CryptoRandDuration(10 * time.Second)
+		if v < 0 || v >= 10*time.Second {
+			t.Errorf("CryptoRandDuration(10s) = %v, want [0, 10s)", v)
 		}
 	}
 }
