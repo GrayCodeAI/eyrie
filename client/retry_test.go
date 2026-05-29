@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/types"
 )
 
 func TestRetryDefaultRetryConfig(t *testing.T) {
