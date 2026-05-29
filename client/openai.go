@@ -133,7 +133,7 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 							"image_url": map[string]interface{}{"url": urlVal},
 						}
 						if detail != "" {
-							entry["image_url"].(map[string]interface{})["detail"] = detail
+							entry["image_url"].(map[string]interface{})["detail"] = detail //nolint:errcheck
 						}
 						content = append(content, entry)
 					}
