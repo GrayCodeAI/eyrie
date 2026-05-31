@@ -21,6 +21,21 @@ func (c *EyrieClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 	if opts.Model == "" {
 		opts.Model = ResolveDefaultModel(provider)
 	}
+
+	// Use coalescing if enabled
+	if c.coalescer != nil {
+		key := CoalesceKey{
+			Provider:    provider,
+			Model:       opts.Model,
+			Messages:    messages,
+			Temperature: opts.Temperature,
+			MaxTokens:   opts.MaxTokens,
+		}
+		return c.coalescer.Coalesce(ctx, key, func() (*EyrieResponse, error) {
+			return p.Chat(ctx, messages, opts)
+		})
+	}
+
 	return p.Chat(ctx, messages, opts)
 }
 
