@@ -161,10 +161,11 @@ type EyrieClient struct {
 	defaultProvider string
 	apiKeys         map[string]string
 	providers       map[string]Provider // cached provider clients
+	coalescer       *Coalescer         // optional request coalescing
 }
 
 // Client creates an EyrieClient.
-func Client(cfg *EyrieConfig) *EyrieClient {
+func Client(cfg *EyrieConfig, opts ...ClientOption) *EyrieClient {
 	c := &EyrieClient{
 		defaultProvider: DetectProvider(),
 		apiKeys:         make(map[string]string),
@@ -177,6 +178,10 @@ func Client(cfg *EyrieConfig) *EyrieClient {
 		if cfg.APIKey != "" {
 			c.apiKeys[c.defaultProvider] = cfg.APIKey
 		}
+	}
+	// Apply options (including coalescing)
+	for _, opt := range opts {
+		opt.applyEyrie(c)
 	}
 	return c
 }
