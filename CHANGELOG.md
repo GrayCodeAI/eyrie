@@ -31,6 +31,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
   Aligns eyrie with the rest of the hawk-eco ecosystem (`hawk`, `tok`,
   `yaad`, `sight`, `inspect`).
 
+### Added
+- Output guardrails framework (PII, secrets, injection, harmful content)
+- Request coalescing for identical concurrent LLM requests
+- Lifecycle callback hooks (8 events)
+- Structured output validation with retry-on-failure
+
 ### Added — Production Hardening (top-50 OSS parity)
 - Same-style hardening pass already on this branch:
   strict `golangci-lint` v2 config, unchecked-error fixes across
