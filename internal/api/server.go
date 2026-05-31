@@ -24,6 +24,7 @@ type Server struct {
 	analytics     storage.AnalyticsStore
 	healthChecker *eyrie.HealthChecker
 	apiKey        string
+	virtualKeyFor func(token string) string // optional: maps a bearer token to a virtual key id
 	mux           *http.ServeMux
 	handler       http.Handler // traced handler wrapping mux
 	bgCtx         context.Context
@@ -37,6 +38,11 @@ type Config struct {
 	HealthChecker *eyrie.HealthChecker // optional: enables /api/health/providers
 	APIKey        string
 	Port          int
+	// VirtualKeyResolver optionally maps an inbound bearer/API-key token to a
+	// logical virtual key id. When set, the resolved id is injected into the
+	// request context so a BudgetProvider in the provider chain can enforce
+	// per-key budgets. When nil, requests are unmetered (existing behavior).
+	VirtualKeyResolver func(token string) string
 }
 
 func NewServer(cfg Config) *Server {
@@ -48,6 +54,7 @@ func NewServer(cfg Config) *Server {
 		analytics:     cfg.Analytics,
 		healthChecker: cfg.HealthChecker,
 		apiKey:        cfg.APIKey,
+		virtualKeyFor: cfg.VirtualKeyResolver,
 		mux:           http.NewServeMux(),
 		bgCtx:         ctx,
 	}
@@ -101,19 +108,27 @@ func (s *Server) routes() {
 
 func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.apiKey == "" {
-			next(w, r)
-			return
-		}
 		token := r.Header.Get("Authorization")
 		token = strings.TrimPrefix(token, "Bearer ")
 		if token == "" {
 			token = r.Header.Get("X-API-Key")
 		}
-		if !constantTimeEqual(token, s.apiKey) {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-			return
+
+		if s.apiKey != "" {
+			if !constantTimeEqual(token, s.apiKey) {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+				return
+			}
 		}
+
+		// Attribute the request to a virtual key for downstream budget
+		// enforcement, if a resolver is configured.
+		if s.virtualKeyFor != nil {
+			if vk := s.virtualKeyFor(token); vk != "" {
+				r = r.WithContext(client.WithVirtualKey(r.Context(), vk))
+			}
+		}
+
 		next(w, r)
 	}
 }
