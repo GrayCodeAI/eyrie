@@ -10,8 +10,8 @@ import (
 
 func TestCoalesceKeyString(t *testing.T) {
 	key1 := CoalesceKey{
-		Provider: "anthropic",
-		Model:    "claude-3-5-haiku",
+		Provider:  "anthropic",
+		Model:     "claude-3-5-haiku",
 		MaxTokens: 1024,
 		Messages: []EyrieMessage{
 			{Role: "user", Content: "Hello"},
@@ -19,8 +19,8 @@ func TestCoalesceKeyString(t *testing.T) {
 	}
 
 	key2 := CoalesceKey{
-		Provider: "anthropic",
-		Model:    "claude-3-5-haiku",
+		Provider:  "anthropic",
+		Model:     "claude-3-5-haiku",
 		MaxTokens: 1024,
 		Messages: []EyrieMessage{
 			{Role: "user", Content: "Hello"},
@@ -28,8 +28,8 @@ func TestCoalesceKeyString(t *testing.T) {
 	}
 
 	key3 := CoalesceKey{
-		Provider: "openai",
-		Model:    "gpt-4",
+		Provider:  "openai",
+		Model:     "gpt-4",
 		MaxTokens: 512,
 		Messages: []EyrieMessage{
 			{Role: "user", Content: "Hello"},
@@ -69,9 +69,9 @@ func TestCoalesceDeduplicatesIdenticalRequests(t *testing.T) {
 				Content:      response,
 				FinishReason: "end_turn",
 				Usage: &EyrieUsage{
-					PromptTokens:    10,
+					PromptTokens:     10,
 					CompletionTokens: 15,
-					TotalTokens:     25,
+					TotalTokens:      25,
 				},
 			}, nil
 		}
@@ -81,8 +81,8 @@ func TestCoalesceDeduplicatesIdenticalRequests(t *testing.T) {
 	coalescer := NewCoalescer(100 * time.Millisecond)
 
 	key := CoalesceKey{
-		Provider: "anthropic",
-		Model:    "claude-3-5-haiku",
+		Provider:  "anthropic",
+		Model:     "claude-3-5-haiku",
 		MaxTokens: 1024,
 		Messages: []EyrieMessage{
 			{Role: "user", Content: "Hello"},
@@ -391,4 +391,3 @@ func TestCoalesceDisabledByDefault(t *testing.T) {
 		t.Errorf("Expected 3 calls to mock (no coalescing), got %d", mock.CallCount())
 	}
 }
-
