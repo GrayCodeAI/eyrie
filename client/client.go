@@ -161,7 +161,7 @@ type EyrieClient struct {
 	defaultProvider string
 	apiKeys         map[string]string
 	providers       map[string]Provider // cached provider clients
-	coalescer       *Coalescer         // optional request coalescing
+	coalescer       *Coalescer          // optional request coalescing
 }
 
 // Client creates an EyrieClient.
