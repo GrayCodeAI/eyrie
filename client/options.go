@@ -25,6 +25,10 @@ type ChatOptions struct {
 	System         string          `json:"system,omitempty"`
 	EnableCaching  bool            `json:"enable_caching,omitempty"`
 	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
+	// VirtualKeyID optionally attributes the request to a logical virtual key
+	// for budget enforcement and cost accounting (see BudgetProvider). When
+	// empty, the BudgetProvider also checks the request context.
+	VirtualKeyID string `json:"virtual_key_id,omitempty"`
 }
 
 // ClientOption configures clients.
