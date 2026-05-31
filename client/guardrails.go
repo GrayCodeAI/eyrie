@@ -48,12 +48,12 @@ const (
 
 // GuardrailRule defines a single guardrail check.
 type GuardrailRule struct {
-	Type     GuardrailType    `json:"type"`
-	Name     string           `json:"name"`
-	Pattern  string           `json:"pattern"`
-	Action   GuardrailAction  `json:"action"`
+	Type     GuardrailType     `json:"type"`
+	Name     string            `json:"name"`
+	Pattern  string            `json:"pattern"`
+	Action   GuardrailAction   `json:"action"`
 	Severity GuardrailSeverity `json:"severity"`
-	compiled *regexp.Regexp   // lazily compiled
+	compiled *regexp.Regexp    // lazily compiled
 }
 
 // GuardrailViolation records a single rule match in the response.
