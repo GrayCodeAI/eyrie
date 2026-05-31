@@ -12,7 +12,7 @@ import (
 // ---------------------------------------------------------------------------
 
 const (
-	safeShortResponse = "The weather today is sunny with a high of 75 degrees."
+	safeShortResponse  = "The weather today is sunny with a high of 75 degrees."
 	safeMediumResponse = `Here is a summary of the quarterly results:
 Revenue grew by 12% year over year, driven primarily by the enterprise segment.
 Operating margins improved to 18.5% from 16.2% in the prior period.
