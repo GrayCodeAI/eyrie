@@ -31,6 +31,12 @@ type ChatOptions struct {
 type ClientOption struct {
 	applyFn       func(*AnthropicClient)
 	applyOpenAIFn func(*OpenAIClient)
+	applyEyrieFn  func(*EyrieClient)
+
+	// Structured output configuration (used by WithStructuredOutput)
+	structuredSchema     map[string]interface{}
+	structuredMaxRetries int
+	structuredSchemaJSON string
 }
 
 func (o ClientOption) apply(c *AnthropicClient) {
@@ -42,6 +48,12 @@ func (o ClientOption) apply(c *AnthropicClient) {
 func (o ClientOption) applyOpenAI(c *OpenAIClient) {
 	if o.applyOpenAIFn != nil {
 		o.applyOpenAIFn(c)
+	}
+}
+
+func (o ClientOption) applyEyrie(c *EyrieClient) {
+	if o.applyEyrieFn != nil {
+		o.applyEyrieFn(c)
 	}
 }
 
@@ -115,4 +127,42 @@ func WithTemperature(t float64) ClientOption {
 		applyFn:       func(c *AnthropicClient) { c.defaultTemperature = &t },
 		applyOpenAIFn: func(c *OpenAIClient) { c.defaultTemperature = &t },
 	}
+}
+
+// WithCoalescing enables request coalescing for identical concurrent requests.
+// When enabled, multiple goroutines sending identical requests (same provider,
+// model, messages, temperature, max_tokens) will be deduplicated into a single
+// API call, with the result broadcast to all waiters.
+//
+// The ttl parameter controls how long completed requests remain in the coalescer
+// for potential reuse. A typical value is 100-500ms.
+func WithCoalescing(ttl time.Duration) ClientOption {
+	return ClientOption{
+		applyEyrieFn: func(c *EyrieClient) {
+			c.coalescer = NewCoalescer(ttl)
+		},
+	}
+}
+
+// WithGuardrails attaches output guardrails to the client. Guardrails run
+// after the LLM response but before returning to the caller. Blocked
+// responses are replaced with an error; redacted responses have matches
+// replaced with asterisks.
+func WithGuardrails(rules ...GuardrailRule) ClientOption {
+	g := NewGuardrails(rules...)
+	return ClientOption{
+		applyFn:       func(c *AnthropicClient) { c.guardrails = g },
+		applyOpenAIFn: func(c *OpenAIClient) { c.guardrails = g },
+	}
+}
+
+// WithGuardrailType attaches output guardrails using built-in rules for the
+// specified types. For example, WithGuardrailType(GuardrailPII, GuardrailSecretLeak)
+// enables PII redaction and secret leak blocking with default patterns.
+func WithGuardrailType(types ...GuardrailType) ClientOption {
+	var rules []GuardrailRule
+	for _, t := range types {
+		rules = append(rules, RulesForType(t)...)
+	}
+	return WithGuardrails(rules...)
 }

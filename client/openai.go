@@ -23,6 +23,7 @@ type OpenAIClient struct {
 	defaultModel       string
 	defaultMaxTokens   int
 	defaultTemperature *float64
+	guardrails         *Guardrails
 }
 
 // Compile-time check that OpenAIClient implements Provider.
@@ -299,6 +300,11 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 			result.Usage.CacheReadTokens = or.Usage.PromptTokensDetails.CachedTokens
 		}
 	}
+
+	if err := applyGuardrails(ctx, result, c.guardrails); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 

@@ -22,6 +22,7 @@ type AnthropicClient struct {
 	defaultModel       string
 	defaultMaxTokens   int
 	defaultTemperature *float64
+	guardrails         *Guardrails
 }
 
 // Compile-time check that AnthropicClient implements Provider.
@@ -336,7 +337,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 		}
 	}
 
-	return &EyrieResponse{
+	eyrieResp := &EyrieResponse{
 		Content: content, FinishReason: ar.StopReason, ToolCalls: toolCalls,
 		RequestID: requestID,
 		Usage: &EyrieUsage{
@@ -346,7 +347,13 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 			CacheCreationTokens: ar.Usage.CacheCreationInputTokens,
 			CacheReadTokens:     ar.Usage.CacheReadInputTokens,
 		},
-	}, nil
+	}
+
+	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
+		return nil, err
+	}
+
+	return eyrieResp, nil
 }
 
 // StreamChat sends a streaming message to Anthropic.
