@@ -19,8 +19,9 @@
 <p align="center">
   <a href="#quick-start">Quick Start</a> ·
   <a href="#features">Features</a> ·
+  <a href="#documentation">Docs</a> ·
+  <a href="#examples">Examples</a> ·
   <a href="#supported-providers">Providers</a> ·
-  <a href="#usage">Usage</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#contributing">Contributing</a>
 </p>
@@ -99,6 +100,28 @@ Token bucket rate limiter per provider — prevents hitting API limits before th
 ### Cost Tracking
 
 Built-in cost estimation per call, with per-provider pricing from the embedded model catalog.
+
+## Documentation
+
+Detailed documentation is available in the [docs/](docs/) directory:
+
+- **[Architecture](docs/ARCHITECTURE.md)** — System design, data flow, and reliability features
+- **[Provider Setup Guide](docs/guides/CREDENTIAL-SETUP-FLOW.md)** — Credential configuration and provider setup
+- **[Dynamic Model Discovery](docs/guides/DYNAMIC-MODEL-DISCOVERY.md)** — Live model discovery architecture
+
+## Examples
+
+Runnable examples are in the [examples/](examples/) directory:
+
+- **[Basic Chat](examples/basic/)** — Simple synchronous chat
+- **[Streaming](examples/streaming/)** — SSE streaming with event handling
+- **[Multi-Provider](examples/multi-provider/)** — Fallback chains across providers
+
+Run any example with:
+
+```bash
+ANTHROPIC_API_KEY=sk-... go run ./examples/basic/
+```
 
 ## Supported Providers
 
@@ -179,8 +202,11 @@ eyrie/
 │   ├── legacy/             # Legacy model support
 │   ├── live/               # Live model data
 │   └── registry/           # Model registry
+├── codeagent/              # Code agent retry & fallback strategies
 ├── conversation/           # Conversation engine with branching
 ├── credentials/            # Credential management
+├── docs/                   # Documentation & guides
+├── examples/               # Runnable code examples
 ├── router/                 # Weighted provider router
 ├── runtime/                # Runtime manifest & routing policies
 ├── storage/                # SQLite conversation DAG store
@@ -197,6 +223,8 @@ eyrie/
 │   └── version/            # Version information
 └── assets/                 # Logo and branding
 ```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system design and data flows.
 
 ## Ecosystem
 
