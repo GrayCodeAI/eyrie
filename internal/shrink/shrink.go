@@ -203,22 +203,6 @@ func replaceCI(s, from, to string) string {
 	return string(out)
 }
 
-// indexCI returns the index of the first case-insensitive match
-// of needle in s, or -1 if not found.
-func indexCI(s, needle string) int {
-	if len(needle) == 0 {
-		return 0
-	}
-	if len(needle) > len(s) {
-		return -1
-	}
-	for i := 0; i+len(needle) <= len(s); i++ {
-		if matchCI(s[i:i+len(needle)], needle) {
-			return i
-		}
-	}
-	return -1
-}
 
 // removeWordCI removes all case-insensitive occurrences of word
 // in s as a whole word (with word-boundary checks). Returns the
