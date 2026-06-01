@@ -203,7 +203,6 @@ func replaceCI(s, from, to string) string {
 	return string(out)
 }
 
-
 // removeWordCI removes all case-insensitive occurrences of word
 // in s as a whole word (with word-boundary checks). Returns the
 // result. Uses position tracking (not string mutation) to avoid
