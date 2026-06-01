@@ -1,0 +1,12 @@
+.git
+.github
+.gitignore
+*.md
+.env
+.env.*
+Dockerfile
+.dockerignore
+coverage.out
+docs/
+deploy/
+api/
