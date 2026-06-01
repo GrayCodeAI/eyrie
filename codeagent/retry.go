@@ -1,14 +1,8 @@
-// Package eyrie is a universal LLM provider runtime. It routes requests to
-// multiple AI providers (Anthropic, OpenAI, Gemini, Azure, Bedrock, Vertex,
-// and OpenAI-compatible endpoints) with reliability features: circuit breaker,
-// request coalescing, output guardrails (PII / secrets / injection),
-// structured-output validation with retry, request-scoped lifecycle callbacks,
-// and code-agent–specific retry strategies.
-//
-// This file (codeagent_retry.go) implements intelligent retry and fallback
-// policies tailored to code agent workloads, distinguishing rate-limit errors,
-// context window overflows, and tool-call failures from generic errors.
-package eyrie
+// Package codeagent provides intelligent retry and fallback strategies
+// tailored to code agent workloads. It distinguishes rate-limit errors,
+// context window overflows, and tool-call failures from generic errors,
+// applying appropriate retry or model-fallback behavior for each.
+package codeagent
 
 import (
 	"context"
