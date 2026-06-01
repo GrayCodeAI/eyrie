@@ -28,6 +28,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 ### Changed
 - **Version re-baselined to `0.2.0`** in `eyrie.go` (`const Version`) and
   `client/client.go` (`var Version`, used in the `User-Agent` header).
+
+### Added — Round 2 of rtk + caveman porting (2026-06-01)
+- **`internal/shrink`** package: caveman-shrink pattern for LLM tool
+  description compression, ported from `JuliusBrussee/caveman/
+  skills/caveman-mcp-shrink/scripts/shrink-tool-descriptions.js`.
+  Compresses `[]types.Tool` descriptions before they are sent to
+  the provider. Stages:
+  1. Auto-clarity safety check (security/destructive keywords pass
+     through verbatim)
+  2. Dictionary substitution (long phrases → short equivalents)
+  3. Drop-list (articles, filler, second-person pronouns)
+  4. 200-char length cap
+  5. Whitespace collapse
+  Reports aggregate `BytesSaved` and `PercentOff` across all tools
+  in the slice. Safe to call concurrently.
   Aligns eyrie with the rest of the hawk-eco ecosystem (`hawk`, `tok`,
   `yaad`, `sight`, `inspect`).
 
