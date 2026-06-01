@@ -1,0 +1,340 @@
+openapi: "3.1.0"
+info:
+  title: Eyrie API
+  description: LLM provider runtime — conversation graph, provider routing, streaming, and caching.
+  version: "0.1.0"
+  license:
+    name: MIT
+    url: https://github.com/GrayCodeAI/eyrie/blob/main/LICENSE
+  contact:
+    url: https://github.com/GrayCodeAI/eyrie
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    PromptRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        model:
+          type: string
+          description: Model identifier (e.g. gpt-4o, claude-sonnet-4-5)
+        stream:
+          type: boolean
+          default: false
+
+    PromptResponse:
+      type: object
+      properties:
+        node_id:
+          type: string
+        content:
+          type: string
+        model:
+          type: string
+        usage:
+          $ref: "#/components/schemas/Usage"
+
+    Node:
+      type: object
+      properties:
+        id:
+          type: string
+        alias:
+          type: string
+        model:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        parent_id:
+          type: string
+
+    Usage:
+      type: object
+      properties:
+        input_tokens:
+          type: integer
+        output_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+        cost_usd:
+          type: number
+          format: double
+
+    ProviderHealth:
+      type: object
+      properties:
+        provider:
+          type: string
+        healthy:
+          type: boolean
+        latency_ms:
+          type: integer
+        error:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+
+tags:
+  - name: health
+    description: Health and readiness checks
+  - name: prompt
+    description: LLM prompt execution
+  - name: nodes
+    description: Conversation node management
+  - name: aliases
+    description: Node alias management
+  - name: analytics
+    description: Usage and cost analytics
+  - name: providers
+    description: Provider health
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /prompt:
+    post:
+      tags: [prompt]
+      summary: Execute a prompt at the root of a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "200":
+          description: Prompt executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromptResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /nodes/{id}/prompt:
+    post:
+      tags: [prompt]
+      summary: Continue a conversation from a specific node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "200":
+          description: Prompt executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromptResponse"
+        "404":
+          description: Node not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /nodes:
+    get:
+      tags: [nodes]
+      summary: List root conversation nodes
+      responses:
+        "200":
+          description: List of root nodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Node"
+
+  /nodes/{id}:
+    get:
+      tags: [nodes]
+      summary: Get a specific node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Node details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Node"
+        "404":
+          description: Node not found
+    delete:
+      tags: [nodes]
+      summary: Delete a node and all its descendants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted successfully
+        "404":
+          description: Node not found
+
+  /nodes/{id}/tree:
+    get:
+      tags: [nodes]
+      summary: Get the full subtree rooted at a node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Subtree of nodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Node"
+
+  /nodes/{id}/aliases/{alias}:
+    put:
+      tags: [aliases]
+      summary: Create a named alias for a node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: alias
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Alias created
+        "409":
+          description: Alias already exists
+
+  /aliases/{alias}:
+    delete:
+      tags: [aliases]
+      summary: Delete a node alias
+      parameters:
+        - name: alias
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Alias deleted
+        "404":
+          description: Alias not found
+
+  /api/usage:
+    get:
+      tags: [analytics]
+      summary: Token usage analytics
+      responses:
+        "200":
+          description: Usage data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_tokens:
+                    type: integer
+                  total_cost_usd:
+                    type: number
+                  by_model:
+                    type: object
+                    additionalProperties:
+                      $ref: "#/components/schemas/Usage"
+
+  /api/costs:
+    get:
+      tags: [analytics]
+      summary: Cost summary by provider and model
+      responses:
+        "200":
+          description: Cost breakdown
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/health/providers:
+    get:
+      tags: [providers]
+      summary: Health status of all configured providers
+      responses:
+        "200":
+          description: Provider health statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderHealth"
