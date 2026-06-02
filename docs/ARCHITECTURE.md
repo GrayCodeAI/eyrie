@@ -1,240 +1,144 @@
-# Eyrie Architecture
+<div align="center">
 
-Eyrie is a Universal LLM Provider Runtime — the middleware layer between applications and LLM APIs. It handles provider routing, authentication, streaming, retries, caching, cost tracking, and conversation management.
+# 🦅 eyrie Architecture
 
----
+**Universal LLM Provider Runtime**
 
-## System Overview
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
+[![Port](https://img.shields.io/badge/Port-8080-orange)](https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml)
+[![Protocol](https://img.shields.io/badge/Protocol-REST-blue)](https://swagger.io/specification/)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Application Layer                         │
-│                    (hawk, custom apps, CLI)                       │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-┌────────────────────────────▼────────────────────────────────────┐
-│                         Eyrie Runtime                            │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
-│  │  Router   │ │  Cache   │ │ Retry    │ │ Cost Tracker     │   │
-│  │ (weighted │ │ (LRU +   │ │ (exp.   │ │ (per-call        │   │
-│  │  + fallback│ │  semantic│ │  backoff │ │  estimation)     │   │
-│  │  + circuit│ │  sim.)   │ │  + jitter│ │                  │   │
-│  │  breaker) │ │          │ │          │ │                  │   │
-│  └─────┬─────┘ └────┬─────┘ └────┬─────┘ └────────┬─────────┘   │
-│        │            │            │                │             │
-│  ┌─────▼────────────▼────────────▼────────────────▼─────────┐   │
-│  │              Provider Interface                            │   │
-│  │  Chat() | StreamChat() | Ping() | Name()                  │   │
-│  └─────┬────────────┬────────────┬──────────────────────────┘   │
-│        │            │            │                               │
-│  ┌─────▼─────┐ ┌────▼─────┐ ┌───▼──────┐ ┌──────────────┐     │
-│  │ Anthropic │ │  OpenAI  │ │  Gemini  │ │   Ollama     │     │
-│  │  Client   │ │  Client  │ │  Client  │ │   Client     │     │
-│  └───────────┘ └──────────┘ └──────────┘ └──────────────┘     │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-┌────────────────────────────▼────────────────────────────────────┐
-│                      LLM Provider APIs                          │
-│         Anthropic | OpenAI | Google | xAI | Ollama | ...        │
-└─────────────────────────────────────────────────────────────────┘
-```
+</div>
 
 ---
 
-## Core Abstractions
+## 🎯 Overview
 
-### Provider Interface
+eyrie is the LLM provider runtime for the hawk ecosystem. It sits between the application and LLM APIs, handling **authentication**, **model resolution**, **streaming**, **retries**, **rate limiting**, and **caching**.
 
-The central abstraction — all LLM interactions go through this interface:
+> 💡 No hawk ecosystem component talks to an LLM API directly — all communication goes through eyrie.
+
+---
+
+## 🧱 Components
+
+```
+eyrie/
+├── cmd/eyrie/               ⚡ Entry point — CLI arg parsing, server startup
+├── api/openapi.yaml         📜 REST API contract (OpenAPI 3.1)
+├── client/
+│   ├── client.go            🔌 Provider interface + EyrieClient factory
+│   ├── anthropic.go         🟠 Anthropic Claude provider
+│   ├── openai.go            🟢 OpenAI / OpenAI-compat provider
+│   ├── gemini.go            🔵 Google Gemini provider
+│   ├── bedrock.go           🟡 AWS Bedrock provider
+│   ├── vertex.go            🔵 Google Vertex AI provider
+│   ├── azure.go             🔷 Azure OpenAI provider
+│   ├── provider_registry.go 🔍 Auto-detection + registration
+│   ├── compat.go            🔧 Compatibility configs (Grok, OpenRouter, etc.)
+│   ├── stream.go            📡 SSE stream parsing
+│   ├── retry.go             🔄 Exponential backoff + Retry-After
+│   ├── ratelimit.go         🪣 Token-bucket rate limiting per provider
+│   ├── cache.go             💾 Response caching
+│   ├── semantic_cache.go    🧠 Similarity-based cache lookup
+│   ├── fallback.go          🔀 Provider fallback chains
+│   └── errors.go            ❌ EyrieError type
+├── catalog/                 📋 Model catalog — pricing, context windows, tiers
+├── config/                  ⚙️ Configuration and credential resolution
+├── conversation/            🌳 Conversation graph engine (branching DAG)
+├── credentials/             🔑 API key management and env detection
+├── router/                  🚦 Weighted provider routing
+├── storage/                 🗄️ Conversation store (SQLite DAG)
+└── internal/
+    ├── api/                 🌐 HTTP server, route handlers, auth middleware
+    ├── cache/               💾 Cache infrastructure
+    ├── health/              💚 Provider health checker
+    ├── observability/       📊 OpenTelemetry spans and metrics
+    ├── shrink/              📦 Response compression
+    └── version/             🏷️ Version constants
+```
+
+---
+
+## 🌐 API
+
+| | |
+|---|---|
+| **Contract** | [`api/openapi.yaml`](../api/openapi.yaml) |
+| **Port** | `:8080` (default). Override: `eyrie serve <port>` |
+| **Auth** | Bearer token or `X-API-Key` header. Set via `EYRIE_API_KEY` |
+
+<details>
+<summary><b>📡 Endpoint Summary</b></summary>
+
+| Method | Path | Tag | Description |
+|--------|------|-----|-------------|
+| `GET` | `/health` | health | Health check |
+| `POST` | `/prompt` | prompt | Execute a prompt at root |
+| `POST` | `/nodes/{id}/prompt` | prompt | Continue from a node |
+| `GET` | `/nodes` | nodes | List root nodes |
+| `GET` | `/nodes/{id}` | nodes | Get a specific node |
+| `DELETE` | `/nodes/{id}` | nodes | Delete node + descendants |
+| `GET` | `/nodes/{id}/tree` | nodes | Get subtree |
+| `PUT` | `/nodes/{id}/aliases/{alias}` | aliases | Create alias |
+| `DELETE` | `/aliases/{alias}` | aliases | Delete alias |
+| `GET` | `/api/usage` | analytics | Token usage analytics |
+| `GET` | `/api/costs` | analytics | Cost breakdown |
+| `GET` | `/api/health/providers` | providers | Provider health |
+
+</details>
+
+---
+
+## 🔍 Provider Detection
+
+Auto-detects active provider from env vars in priority order:
+
+| Priority | Env Var | Provider |
+|:--------:|---------|----------|
+| 1 | `ANTHROPIC_API_KEY` | 🟠 Anthropic Claude |
+| 2 | `OPENAI_API_KEY` | 🟢 OpenAI |
+| 3 | `GEMINI_API_KEY` | 🔵 Google Gemini |
+| 4 | `OPENROUTER_API_KEY` | 🔀 OpenRouter |
+| 5 | `CANOPYWAVE_API_KEY` | 📡 CanopyWave |
+| 6 | `XAI_API_KEY` | ⚡ Grok (xAI) |
+| 7 | `ZAI_API_KEY` | 🤖 ZAI |
+| 8 | — | 🦙 Ollama (localhost socket) |
+
+---
+
+## 📡 Streaming
+
+All responses are streamed via **SSE**. Blocking responses wrap the stream internally.
 
 ```go
-type Provider interface {
-    Chat(ctx context.Context, params MessageCreateParams) (*Message, error)
-    StreamChat(ctx context.Context, params MessageCreateParams) (<-chan StreamEvent, error)
-    Ping(ctx context.Context) error
-    Name() string
-}
-```
-
-### Decorator Pattern
-
-Capabilities are composed via decoration:
-
-```
-Provider (base)
-├── TracingProvider (adds OpenTelemetry spans)
-├── CachedProvider (adds LRU response cache)
-├── FallbackProvider (chains providers, tries next on transient errors)
-├── Router (weighted load balancing + circuit breaker)
-└── MockProvider (for testing)
+sr, err := client.StreamChat(ctx, messages, opts)
+defer sr.Close()
+for event := range sr.Events() { ... }
 ```
 
 ---
 
-## Package Structure
+## 🔄 Retry & Rate Limiting
 
-| Package | Purpose | Key Types |
-|---------|---------|-----------|
-| `client/` | Provider implementations, streaming, retry, caching | `AnthropicClient`, `OpenAIClient`, `CachedProvider` |
-| `catalog/` | Model catalog, tiers, pricing, deprecation | `ModelCatalog`, `Tier`, `ModelInfo` |
-| `config/` | Provider config, credentials, routing, profiles | `Config`, `ProviderConfig`, `Profile` |
-| `conversation/` | Conversation engine with DAG branching | `Engine`, `Branch` |
-| `credentials/` | Credential storage (keyring, env, map) | `Store`, `KeyringStore` |
-| `router/` | Weighted provider routing, circuit breaker | `Router`, `CircuitBreaker` |
-| `runtime/` | Runtime manifest, preflight checks | `Manifest`, `Preflight` |
-| `storage/` | SQLite conversation DAG store | `Store`, `DAGNode` |
-| `types/` | Branded types, API errors, retry config | `Message`, `APIError`, `TransientError` |
-| `internal/` | API server, cache warmer, health checker, SDKs | `Server`, `CacheWarmer` |
-| `setup/` | Setup UI, credential flow, deployment | `Setup`, `CredentialFlow` |
+| Feature | Behavior |
+|---------|----------|
+| **Retries** | HTTP 429, 500, 502, 503, 529 |
+| **Backoff** | Exponential + jitter |
+| **Retry-After** | Respected on 429 responses |
+| **Rate Limiting** | Per-provider token-bucket |
 
 ---
 
-## Data Flow
+## 💾 Caching
 
-### Chat Request
-
-```
-1. Application calls eyrie.Chat(params)
-2. Router selects provider (weighted random + circuit breaker state)
-3. CachedProvider checks LRU cache → cache hit? return cached response
-4. Provider.Chat() makes HTTP request to LLM API
-5. Retry middleware handles transient errors (429, 500, 529)
-6. Response parsed, cost estimated, cache updated
-7. TracingProvider records OpenTelemetry span
-8. Response returned to application
-```
-
-### Streaming Request
-
-```
-1. Application calls eyrie.StreamChat(params)
-2. Router selects provider
-3. Provider.StreamChat() opens SSE connection
-4. Events parsed from SSE stream (Anthropic or OpenAI format)
-5. Events forwarded to application via channel
-6. On max_tokens: auto-continuation (new request with conversation so far)
-7. TracingProvider records span on completion
-```
+| Layer | Strategy | Key |
+|-------|----------|-----|
+| **Exact** | Hash match | provider + model + message hash |
+| **Semantic** | Cosine similarity | Prompt embeddings (optional, configurable TTL) |
 
 ---
 
-## Reliability
+## 🌳 Conversation Graph
 
-### Retry Strategy
-
-- **Transient errors**: 429, 500, 502, 503, 504, 529
-- **Backoff**: Exponential with jitter (base 1s, max 60s)
-- **Max retries**: Configurable (default 3)
-- **Retry-After**: Respects server-provided delay headers
-
-### Circuit Breaker
-
-- **States**: Closed → Open → Half-Open
-- **Trip threshold**: 5 consecutive failures
-- **Reset timeout**: 30 seconds
-- **Half-open**: Single probe request
-
-### Fallback Chain
-
-```
-Primary (Anthropic) → Secondary (OpenAI) → Tertiary (Gemini)
-     ↓ (transient)         ↓ (transient)         ↓ (transient)
-   Try next              Try next              Return error
-```
-
----
-
-## Caching
-
-### Response Cache
-
-- **Type**: LRU with TTL
-- **Key**: Hash of (model, messages, tools, temperature)
-- **TTL**: Configurable (default 5 minutes)
-- **Max entries**: Configurable (default 1000)
-
-### Semantic Similarity Cache
-
-- **Type**: Vector similarity search
-- **Threshold**: Configurable cosine similarity (default 0.95)
-- **Backend**: In-memory with periodic persistence
-
-### Anthropic Prompt Caching
-
-- **Breakpoints**: Configurable cache control markers
-- **Automatic**: Inserts breakpoints at system message and tool definitions
-
----
-
-## Cost Tracking
-
-### Per-Call Estimation
-
-```go
-type CostEstimate struct {
-    InputCost    float64  // Based on input tokens × model price
-    OutputCost   float64  // Based on output tokens × model price
-    CacheSavings float64  // Savings from cache hits
-    TotalCost    float64  // Net cost
-}
-```
-
-### Model Catalog
-
-Embedded catalog with pricing for all supported models:
-
-```
-Model                    Input $/1M   Output $/1M
-claude-sonnet-4-20250514    3.00        15.00
-gpt-4o                      2.50        10.00
-gemini-2.0-flash            0.10         0.40
-...
-```
-
----
-
-## Conversation DAG
-
-Branching conversation storage in SQLite:
-
-```
-Root Message
-├── Branch A (user edit)
-│   ├── Assistant response
-│   └── Branch A.1
-└── Branch B (retry)
-    └── Assistant response
-```
-
-- **Storage**: SQLite with WAL mode
-- **Branching**: Prefix-based message IDs
-- **Orphan detection**: Automatic cleanup of abandoned branches
-
----
-
-## Security
-
-- **Credential storage**: OS keyring (macOS Keychain, Linux Secret Service)
-- **API key redaction**: Automatic in logs and error messages
-- **TLS**: Configurable for API server mode
-- **Rate limiting**: Token bucket per provider
-
----
-
-## Observability
-
-### OpenTelemetry Integration
-
-- **Traces**: Per-request spans with provider, model, tokens, latency
-- **Metrics**: Request count, latency histogram, error rate, cache hit rate
-- **Exporters**: OTLP, Jaeger, Prometheus (configurable)
-
----
-
-## Build & Release
-
-- **Language**: Go 1.26+, zero CGO
-- **Binary**: Single static binary (~15MB)
-- **Platforms**: linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64
-- **Release**: GoReleaser with SHA-256 checksums
-- **CI**: GitHub Actions (9 jobs: format, module, vet, lint, test, security, secrets, markdown, build matrix)
+Conversations are stored as a **DAG** in SQLite. Each prompt creates a `Node`; branching is first-class. Nodes are addressable by ID or named alias.
