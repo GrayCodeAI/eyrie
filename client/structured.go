@@ -108,19 +108,19 @@ func validateObject(value interface{}, schema map[string]interface{}) error {
 	// Validate properties
 	properties, _ := schema["properties"].(map[string]interface{})
 	for propName, propSchemaRaw := range properties {
-			propSchema, ok := propSchemaRaw.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			propValue, exists := obj[propName]
-			if !exists {
-				continue // Skip optional fields
-			}
-			propType, _ := propSchema["type"].(string)
-			if err := validateValue(propValue, propSchema, propType); err != nil {
-				return fmt.Errorf("field %q: %w", propName, err)
-			}
+		propSchema, ok := propSchemaRaw.(map[string]interface{})
+		if !ok {
+			continue
 		}
+		propValue, exists := obj[propName]
+		if !exists {
+			continue // Skip optional fields
+		}
+		propType, _ := propSchema["type"].(string)
+		if err := validateValue(propValue, propSchema, propType); err != nil {
+			return fmt.Errorf("field %q: %w", propName, err)
+		}
+	}
 
 	return nil
 }
