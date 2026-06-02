@@ -36,7 +36,7 @@ make ci                          # Full CI suite
 - Conventional Commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
 - No `Co-authored-by:` trailers (auto-stripped by githook)
 - `gofumpt` formatting enforced in CI
-- Credential setup flow documented in `plans/CREDENTIAL-SETUP-FLOW.md`
+- Credential setup flow documented in `docs/guides/CREDENTIAL-SETUP-FLOW.md`
 
 ## Common Pitfalls
 
