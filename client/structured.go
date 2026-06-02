@@ -107,20 +107,18 @@ func validateObject(value interface{}, schema map[string]interface{}) error {
 
 	// Validate properties
 	properties, _ := schema["properties"].(map[string]interface{})
-	if properties != nil {
-		for propName, propSchemaRaw := range properties {
-			propSchema, ok := propSchemaRaw.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			propValue, exists := obj[propName]
-			if !exists {
-				continue // Skip optional fields
-			}
-			propType, _ := propSchema["type"].(string)
-			if err := validateValue(propValue, propSchema, propType); err != nil {
-				return fmt.Errorf("field %q: %w", propName, err)
-			}
+	for propName, propSchemaRaw := range properties {
+		propSchema, ok := propSchemaRaw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		propValue, exists := obj[propName]
+		if !exists {
+			continue // Skip optional fields
+		}
+		propType, _ := propSchema["type"].(string)
+		if err := validateValue(propValue, propSchema, propType); err != nil {
+			return fmt.Errorf("field %q: %w", propName, err)
 		}
 	}
 
@@ -252,13 +250,14 @@ func (c *EyrieClient) ChatWithStructuredOutput(ctx context.Context, messages []E
 	structuredMessages := BuildStructuredPrompt(messages, validation.Schema)
 
 	// Configure response format based on provider
-	if provider == "openai" || provider == "" {
+	switch provider {
+	case "openai", "":
 		schemaJSON, _ := json.Marshal(validation.Schema)
 		opts.ResponseFormat = &ResponseFormat{
 			Type:   "json_schema",
 			Schema: string(schemaJSON),
 		}
-	} else if provider == "anthropic" {
+	case "anthropic":
 		// For Anthropic, we'll use prefill technique by adding assistant message
 		structuredMessages = addAnthropicPrefill(structuredMessages)
 	}
