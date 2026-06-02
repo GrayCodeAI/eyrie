@@ -119,7 +119,7 @@ make ci                          # Full CI suite
 | Error types | `client/errors.go` (`EyrieError`, `IsRetriable()`, `IsAuthError()`) |
 | Error constants | `errors/errors.go` (API error messages, prompt-too-long parsing) |
 | Model catalog | `catalog/` (pricing, context windows, capabilities per provider) |
-| Credentials | `credentials/` (key storage, env detection, scrubbing) |
+| Credentials | `credentials/` (key storage, env detection, scrubbing) — `HasSecret` is silent on miss (boolean predicate); `LookupSecret` logs `Debug` on `ErrNotFound` and `Warn` on real backend errors |
 | Mock provider | `client/mock.go` |
 | Main test file | `client/client_test.go` (httptest servers, provider detection) |
 | Linter config | `.golangci.yml` (govet, ineffassign, misspell — minimal) |
