@@ -22,11 +22,26 @@ See also: [DYNAMIC-MODEL-DISCOVERY.md](./DYNAMIC-MODEL-DISCOVERY.md)
 
 Single source: `eyrie/catalog/registry/providers.go`
 
+### Key shape hints (optional; hawk uses provider-first paste)
+
+Hawk Keys tab does **not** guess the gateway from key shape. User picks the gateway, then pastes; eyrie runs **one** probe for that provider. Local learning (`~/.hawk/learned_credential_prefixes.json`) still records short prefixes after successful saves for future tooling.
+
+| Prefix / pattern | Gateway |
+|------------------|---------|
+| `sk-ant-` | Anthropic |
+| `sk-proj-`, `sk-svcacct-` | OpenAI |
+| `AIza`, `AQ.` | Google Gemini (AI Studio; `AQ.` is newer) |
+| `sk-or-v1-`, `sk-or-` | OpenRouter |
+| `xai-` | xAI (Grok) |
+| `cw_` | CanopyWave |
+| `ocg_` | OpenCode Go |
+| `tp-` | Xiaomi (MiMo) |
+
 ## Flow
 
 ```
-/config hub
-  → Paste API key → ResolveCredential → pick provider → SaveCredential → Discover → ListModels → pick model
+/config hub (Keys tab — provider first)
+  → Select gateway (Add key · Anthropic, …) → paste API key → SaveCredential (single probe) → Models tab
   → Ollama local  → URL → SaveCredential → Discover → ListModels (live) → pick model
   → Pick model    → ListModels (auto) when credentials exist
 ```

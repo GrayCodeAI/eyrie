@@ -83,3 +83,8 @@ func LooksLikePlaceholderSecret(secret string) bool {
 func ValidateCredentialSecret(envKey, secret string) error {
 	return credential.ValidateCredentialSecret(envKey, secret)
 }
+
+// RecordLearnedCredential stores a short prefix fingerprint after a successful key save.
+func RecordLearnedCredential(providerID, secret string) {
+	credential.RecordLearnedCredential(providerID, secret)
+}
