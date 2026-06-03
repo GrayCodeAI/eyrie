@@ -10,8 +10,8 @@ import (
 
 func TestAllProviders_LiveFetchParity(t *testing.T) {
 	specs := registry.All()
-	if len(specs) != 11 {
-		t.Fatalf("expected 11 providers, got %d", len(specs))
+	if len(specs) != 15 {
+		t.Fatalf("expected 15 providers, got %d", len(specs))
 	}
 	for _, spec := range specs {
 		t.Run(spec.ProviderID, func(t *testing.T) {
@@ -24,9 +24,6 @@ func TestAllProviders_LiveFetchParity(t *testing.T) {
 			if _, ok := live.Registry[spec.LiveFetcherKey]; !ok {
 				t.Fatalf("live.Registry missing fetcher %q", spec.LiveFetcherKey)
 			}
-			if !spec.PreferLiveMerge {
-				t.Fatal("PreferLiveMerge should be true")
-			}
 			dep := catalog.DeploymentIDForLiveCatalogKey(spec.LiveCatalogKey)
 			if dep != spec.DeploymentID {
 				t.Fatalf("DeploymentIDForLiveCatalogKey = %q, want %q", dep, spec.DeploymentID)
@@ -38,9 +35,6 @@ func TestAllProviders_LiveFetchParity(t *testing.T) {
 func TestAllProviders_LiveOnlySkipHardcodedDefaults(t *testing.T) {
 	empty := &catalog.ModelCatalog{}
 	for _, spec := range registry.All() {
-		if spec.ModelStrategy != registry.StrategyLiveOnly {
-			continue
-		}
 		got := catalog.GetProviderDefaultModel(spec.ProviderID, empty)
 		if got != "" {
 			t.Errorf("%s: expected empty default without catalog, got %q", spec.ProviderID, got)
@@ -52,12 +46,20 @@ func TestAllProviders_FirstModelFromCompiledCache(t *testing.T) {
 	base := catalog.TestSeedCatalogV1()
 	for _, spec := range registry.All() {
 		native := "live-" + spec.ProviderID + "-model"
-		canonical := spec.ProviderID + "/" + native
-		if spec.ProviderID == "gemini" {
+		owner := catalog.CanonicalProviderID(spec.ProviderID)
+		canonical := owner + "/" + native
+		if spec.ProviderID == "gemini" || spec.ProviderID == "vertex" {
+			owner = "google"
 			canonical = "google/" + native
+		} else if spec.ProviderID == "azure" {
+			owner = "openai"
+			canonical = "openai/" + native
+		} else if spec.ProviderID == "bedrock" {
+			owner = "anthropic"
+			canonical = "anthropic/" + native
 		}
 		base.Models[canonical] = catalog.ModelV1{
-			ID: canonical, ProviderID: catalog.CanonicalProviderID(spec.ProviderID), Name: native,
+			ID: canonical, ProviderID: owner, Name: native,
 		}
 	}
 	compiled, err := catalog.CompileCatalogV1(&base)

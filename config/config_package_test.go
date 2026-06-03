@@ -413,7 +413,7 @@ func TestGetProviderModel_TableDriven(t *testing.T) {
 		{ProviderOllama, "llama3.1:8b"},
 		{ProviderOpenCodeGo, "ocg-model"},
 		{ProviderKimi, "kimi-k2.6"},
-		{ProviderXiaomi, "mimo-v2-flash"},
+		{ProviderXiaomiMimoPayg, "mimo-v2-flash"},
 		{"nonexistent-provider", ""},
 	}
 
@@ -455,7 +455,7 @@ func TestGetProviderAPIKey_TableDriven(t *testing.T) {
 		{ProviderOllama, ""}, // no API key for ollama
 		{ProviderOpenCodeGo, "ocg-key"},
 		{ProviderKimi, "moonshot-key"},
-		{ProviderXiaomi, "xiaomi-key"},
+		{ProviderXiaomiMimoPayg, "xiaomi-key"},
 		{"nonexistent-provider", ""},
 	}
 
@@ -912,7 +912,7 @@ func TestProviderDetectionOrder_AllProvidersCovered(t *testing.T) {
 		ProviderAnthropic, ProviderOpenAI, ProviderCanopyWave,
 		ProviderZAI, ProviderOpenRouter, ProviderGrok,
 		ProviderGemini, ProviderOllama, ProviderOpenCodeGo,
-		ProviderKimi, ProviderXiaomi,
+		ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan,
 	}
 
 	for _, p := range allProviders {

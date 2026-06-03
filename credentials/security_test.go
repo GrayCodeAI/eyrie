@@ -133,7 +133,7 @@ func TestEnvForAccount_DoesNotReturnSecretValues(t *testing.T) {
 		{"openai_api_key", "OPENAI_API_KEY"},
 		{"openrouter_api_key", "OPENROUTER_API_KEY"},
 		{"gemini_api_key", "GEMINI_API_KEY"},
-		{"grok_api_key", "GROK_API_KEY"},
+		{"xai_api_key", "XAI_API_KEY"},
 	}
 
 	for _, tt := range tests {

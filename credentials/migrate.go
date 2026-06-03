@@ -9,9 +9,29 @@ import (
 
 // MigrateLegacyEnvFile imports API keys from legacy plaintext credential files
 // (~/.hawk/env, ~/.hawk/.env) into the OS secret store and removes them.
+// It also copies legacy keychain account names (e.g. xiaomi_mimo_api_key → payg).
+func legacyEnvMigrationMarkerPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".hawk", ".legacy-env-migrated")
+}
+
+func legacyEnvMigrationDone() bool {
+	_, err := os.Stat(legacyEnvMigrationMarkerPath())
+	return err == nil
+}
+
+func markLegacyEnvMigrationDone() {
+	_ = os.MkdirAll(filepath.Dir(legacyEnvMigrationMarkerPath()), 0o700)
+	_ = os.WriteFile(legacyEnvMigrationMarkerPath(), []byte("ok\n"), 0o600)
+}
+
 func MigrateLegacyEnvFile(ctx context.Context) (int, error) {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+	if legacyEnvMigrationDone() {
+		n, _ := MigrateLegacyKeychainAccounts(ctx)
+		return n, nil
 	}
 	total := 0
 	for _, path := range []string{legacyEnvPath(), legacyHawkDotEnvPath()} {
@@ -21,7 +41,44 @@ func MigrateLegacyEnvFile(ctx context.Context) (int, error) {
 		}
 		total += n
 	}
+	n, err := MigrateLegacyKeychainAccounts(ctx)
+	if err != nil {
+		return total, err
+	}
+	total += n
+	markLegacyEnvMigrationDone()
 	return total, nil
+}
+
+var legacyKeychainAccountCopies = []struct{ from, to string }{
+	{"xiaomi_mimo_api_key", "xiaomi_mimo_payg_api_key"},
+}
+
+// MigrateLegacyKeychainAccounts copies secrets from deprecated keychain accounts when the new account is empty.
+func MigrateLegacyKeychainAccounts(ctx context.Context) (int, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cs, ok := DefaultStore().(*CombinedStore)
+	if !ok || cs.Keychain == nil {
+		return 0, nil
+	}
+	migrated := 0
+	for _, pair := range legacyKeychainAccountCopies {
+		existing, err := cs.Keychain.Get(ctx, pair.to)
+		if err == nil && strings.TrimSpace(existing) != "" {
+			continue
+		}
+		legacy, err := cs.Keychain.Get(ctx, pair.from)
+		if err != nil || strings.TrimSpace(legacy) == "" {
+			continue
+		}
+		if err := cs.Keychain.Set(ctx, pair.to, strings.TrimSpace(legacy)); err != nil {
+			continue
+		}
+		migrated++
+	}
+	return migrated, nil
 }
 
 func migrateLegacyEnvFileAt(ctx context.Context, path string) (int, error) {

@@ -37,14 +37,14 @@ User → Hawk /config
 
 | Area | Problem |
 |------|---------|
-| **Live fetch** | All 11 providers have fetchers, but 4 have zero test coverage (z-ai, opencodego, kimi, xiaomi) and 3 lack RawJSON preservation (Anthropic, Gemini, Ollama) |
+| **Live fetch** | All 12 setup gateways have fetchers; some older gateways still have thin test coverage (z-ai, opencodego, kimi). MiMo split: `xiaomi_mimo_payg`, `xiaomi_mimo_token_plan` (`catalog/live/xiaomi_test.go`, `catalog/xiaomi/`). Anthropic, Gemini, Ollama RawJSON gaps remain |
 | **Ollama** | No longer bypasses `ListModels`; RetryConfig moved to ProviderSpec. Remaining: hardcoded `== "ollama"` in validation |
 | **Registry drift** | ✅ Fixed — `CredentialProviderRegistry` and `liveDiscoverableDeployments` removed; `DefaultDeploymentEnvFallbacks` consolidated (Item 1) |
 | **Layering** | Hawk still has ~112 files with direct eyrie imports (Phase A facade done, B-D remain) |
 | **Legacy API** | `FetchModelCatalog` / `providers.go` slices coexist with catalog v1 |
-| **Merge policy** | ✅ Fixed — strategy-aware merge with `LiveOnlyProviders` and unconditional pricing for prefer-live (Item 2) |
+| **Merge policy** | ✅ Live replace — prefer-live providers fully replace models; offerings merge pricing/metadata |
 | **Display names** | `BuildSetupUI` has partial hardcoded provider labels |
-| **Docs** | `CREDENTIAL-SETUP-FLOW.md` out of date (7 vs 8 providers, Ollama wording) |
+| **Docs** | ✅ `CREDENTIAL-SETUP-FLOW.md` lists all 12 gateways (incl. MiMo payg + token plan) with live-only picker |
 
 ---
 
@@ -115,8 +115,7 @@ type ProviderSpec struct {
     // Credentials
     RequiresKey      bool
     CredentialEnv    string            // e.g. ANTHROPIC_API_KEY
-    KeyPrefixes      []string
-    LocalEnv         []string          // e.g. OLLAMA_BASE_URL (non-secret)
+    BaseURLEnv       []string          // e.g. OLLAMA_BASE_URL (non-secret)
 
     // Validation
     Probe            ProbeSpec         // kind, base URL, timeout
@@ -127,8 +126,7 @@ type ProviderSpec struct {
 }
 
 type ModelSourceSpec struct {
-    Strategy   string // "remote_catalog" | "live_api" | "remote_then_live" | "live_only"
-    PreferLive bool   // when both exist, live wins on conflict
+    LiveOnly bool // all setup providers: models from live list API only
 }
 ```
 
@@ -277,23 +275,24 @@ Provider-specific friendly text lives in eyrie, not hawk cmd.
 
 ## 6. Model discovery strategy per provider
 
-| Provider | Credential | Probe | Model strategy | Live API | Edge notes |
-|----------|------------|-------|----------------|----------|------------|
-| **Anthropic** | `ANTHROPIC_API_KEY` | `GET /v1/models` | `remote_then_live` | Add `/v1/models` fetcher | Prefix `sk-ant-`; rate limits on list |
-| **OpenAI** | `OPENAI_API_KEY` | `GET /v1/models` | `remote_then_live` | `/v1/models` | Org-scoped model lists differ |
-| **Gemini** | `GEMINI_API_KEY` | `GET /v1beta/models` | `remote_then_live` | Gemini models API | Key in query param |
-| **OpenRouter** | `OPENROUTER_API_KEY` | `GET /models` | `live_only` (fallback remote) | Already live | Largest dynamic catalog |
-| **Grok/xAI** | `XAI_API_KEY` | `GET /v1/models` | `remote_then_live` | `/v1/models` | OpenAI-compatible |
-| **CanopyWave** | `CANOPYWAVE_API_KEY` | Add probe | `live_only` | Already live | Provider ID `z-ai` alias |
-| **OpenCode Go** | `OPENCODEGO_API_KEY` | Add probe | `remote_then_live` | OpenAI-compat `/models` | Custom base URL env |
-| **Ollama** | `OLLAMA_BASE_URL` | `GET /api/tags` | `live_only` | Already live | Zero models = error; no remote fallback in picker |
+| Provider | Credential | Probe | Live API | Edge notes |
+|----------|------------|-------|----------|------------|
+| **Anthropic** | `ANTHROPIC_API_KEY` | `GET /v1/models` | `/v1/models` fetcher | Rate limits on list |
+| **OpenAI** | `OPENAI_API_KEY` | `GET /v1/models` | `/v1/models` | Org-scoped model lists differ |
+| **Gemini** | `GEMINI_API_KEY` | `GET /v1beta/models` | Gemini models API | Key in query param |
+| **OpenRouter** | `OPENROUTER_API_KEY` | `GET /models` | Already live | Largest dynamic catalog |
+| **Grok/xAI** | `XAI_API_KEY` | `GET /v1/models` | `/v1/models` | OpenAI-compatible |
+| **Z.AI** | `ZAI_API_KEY` | `GET /models` | OpenAI-compat `/models` | Base URL env fallbacks |
+| **CanopyWave** | `CANOPYWAVE_API_KEY` | `GET /models` | OpenAI-compat `/models` | Aggregator; not `z-ai` owner slug |
+| **OpenCode Go** | `OPENCODEGO_API_KEY` | `GET /models` | OpenAI-compat `/models` | Custom base URL env |
+| **Kimi (Moonshot)** | `MOONSHOT_API_KEY` | `GET /models` | OpenAI-compat `/models` | Provider id `kimi` |
+| **Xiaomi (MiMo) Pay-as-you-go** | `XIAOMI_MIMO_PAYG_API_KEY` | `GET /v1/models` (`api-key`; Bearer on 401) | OpenAI: `api.xiaomimimo.com/v1` · Anthropic: `api.xiaomimimo.com/anthropic` | `xiaomi_mimo_payg`; chat via `MiMoClient` |
+| **Xiaomi (MiMo) Token Plan** | `XIAOMI_MIMO_TOKEN_PLAN_API_KEY` | `GET /v1/models` (region host) | OpenAI + Anthropic per region (`token-plan-{cn,sgp,ams}.xiaomimimo.com`) | `xiaomi_mimo_token_plan` + `xiaomi_mimo_token_plan_region` in provider.json |
+| **Ollama** | `OLLAMA_BASE_URL` | `GET /api/tags` | `/api/tags` | Zero models = error; no remote fallback in picker |
 
-### Strategy definitions
+### Model discovery (all setup providers)
 
-- **`remote_catalog`** — Use compiled cache from remote JSON only.
-- **`live_only`** — Must fetch from provider; empty/error fails setup (Ollama, OpenRouter primary).
-- **`remote_then_live`** — Remote bootstrap for metadata; live merge adds/updates IDs user can actually call.
-- **`live_only` picker filter** — For Ollama: never show remote catalog models user hasn't installed.
+Every registered setup provider lists models from its live API only. Without credentials (or Ollama URL), the picker shows zero models. After key save, discover replaces that deployment’s offerings from the live fetch. Remote catalog JSON still supplies deployment/protocol metadata, not picker model IDs.
 
 ---
 
@@ -325,23 +324,11 @@ DiscoverCatalog(ctx, opts)
 
 ---
 
-## 8. Merge policy (fix staleness)
+## 8. Merge policy
 
-Current: **add-only** — live never updates existing IDs.
+**Implemented:** `discover.MergeCatalogV1WithPolicy` replaces deployment offerings from live fetch, then **fully replaces** model rows for prefer-live providers (all 12 setup gateways). Offerings merge pricing, capabilities, and `live_metadata` from the live catalog.
 
-Target: **strategy-aware merge**
-
-```go
-type MergePolicy struct {
-    OnIDConflict   string // "keep_remote" | "prefer_live" | "union"
-    UpdateFields   []string // pricing, context_window, max_output when prefer_live
-}
-```
-
-Default per provider from `ModelSourceSpec`:
-- OpenRouter, Ollama: `prefer_live`
-- Anthropic, OpenAI: `prefer_live` for pricing/context when live returns data
-- Remote-only providers: `keep_remote`
+Remote catalog JSON still supplies deployments, protocols, and bootstrap metadata — not picker model IDs for setup gateways.
 
 ---
 
@@ -452,7 +439,7 @@ SetupUI(ctx, providerFilter)
 ## 11. Implementation phases
 
 ### Phase 0 — Hygiene (1–2 days)
-- [x] Update `CREDENTIAL-SETUP-FLOW.md` to match code (11 providers, Ollama URL flow)
+- [x] Update `CREDENTIAL-SETUP-FLOW.md` to match code (12 gateways, MiMo payg + token plan, Ollama URL flow)
 - [x] Fix `displayNameForProvider` to read registry (removed dead z-ai case)
 - [x] Document current API in `hawk/docs/DYNAMIC-MODELS.md`
 
@@ -472,12 +459,12 @@ SetupUI(ctx, providerFilter)
 - [x] Hawk picker uses single `eyrieclient.ListModels` path
 
 ### Phase 4 — Live fetchers for all cloud providers (~80% done)
-- [x] All 11 providers have live fetchers (Anthropic, OpenAI, Gemini, Grok, OpenRouter, CanopyWave, z-ai, opencodego, kimi, xiaomi, ollama)
+- [x] All 12 setup gateways have live fetchers (Anthropic, OpenAI, Gemini, Grok, OpenRouter, CanopyWave, z-ai, opencodego, kimi, xiaomi_mimo_payg, xiaomi_mimo_token_plan, ollama)
 - [x] OpenCode Go probe + live fetch
 - [x] CanopyWave probe (was already `ProbeOpenAIModels`, plan doc was stale)
 - [x] Register all in `catalog/live/registry.go`
 - [x] RawJSON preserved in Anthropic, Gemini, Ollama; hardcoded context/max removed
-- [x] 9 new tests added for z-ai, opencodego, kimi, xiaomi
+- [x] Tests for z-ai, opencodego, kimi; MiMo payg/token plan (`catalog/live/xiaomi_test.go`, `catalog/xiaomi/endpoints_test.go`, `client/mimo.go`)
 - [x] Minimize provider-specific branches in `hawk/cmd/chat_config_*.go` (Ollama URL screen is intentional UX)
 - [x] Minimize hawk imports of `eyrie/catalog`, `eyrie/setup`, `eyrie/config` outside `eyrieclient` (~30 remain, need interface extraction for circular deps)
 - [x] Full `/config` flow tested: hub → credential → discover → picker → chat (script exists at `scripts/test-config-flow.sh`)

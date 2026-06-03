@@ -89,7 +89,15 @@ func LiveCatalogKeyForFetcher(fetcherKey string) string {
 // CredentialPresent reports whether env satisfies this provider's discovery requirements.
 func CredentialPresent(spec ProviderSpec, env map[string]string) bool {
 	if spec.RequiresKey {
-		return strings.TrimSpace(env[spec.CredentialEnv]) != ""
+		if strings.TrimSpace(env[spec.CredentialEnv]) != "" {
+			return true
+		}
+		for _, key := range spec.CredentialEnvFallbacks {
+			if strings.TrimSpace(env[key]) != "" {
+				return true
+			}
+		}
+		return false
 	}
 	return strings.TrimSpace(env[spec.CredentialEnv]) != ""
 }

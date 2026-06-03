@@ -14,7 +14,7 @@ func TestAccountForEnv(t *testing.T) {
 		{name: "mixed_case", input: "OpenAi_API_Key", want: "openai_api_key"},
 		{name: "already_lower", input: "openrouter_api_key", want: "openrouter_api_key"},
 		{name: "leading_trailing_spaces", input: "  GEMINI_API_KEY  ", want: "gemini_api_key"},
-		{name: "tab_whitespace", input: "\tGROK_API_KEY\t", want: "grok_api_key"},
+		{name: "tab_whitespace", input: "\tXAI_API_KEY\t", want: "xai_api_key"},
 		{name: "empty", input: "", want: ""},
 		{name: "only_spaces", input: "   ", want: ""},
 		{name: "with_hyphens", input: "MY-CUSTOM-KEY", want: "my-custom-key"},
@@ -40,15 +40,13 @@ func TestEnvForAccount(t *testing.T) {
 		{name: "openai", account: "openai_api_key", want: "OPENAI_API_KEY"},
 		{name: "openrouter", account: "openrouter_api_key", want: "OPENROUTER_API_KEY"},
 		{name: "gemini", account: "gemini_api_key", want: "GEMINI_API_KEY"},
-		{name: "grok_alias", account: "grok_api_key", want: "GROK_API_KEY"},
-		{name: "xai_alias", account: "xai_api_key", want: "GROK_API_KEY"},
+		{name: "grok", account: "xai_api_key", want: "XAI_API_KEY"},
 		{name: "zai", account: "zai_api_key", want: "ZAI_API_KEY"},
 		{name: "canopywave", account: "canopywave_api_key", want: "CANOPYWAVE_API_KEY"},
 		{name: "opencodego", account: "opencodego_api_key", want: "OPENCODEGO_API_KEY"},
-		{name: "kimi_alias", account: "kimi_api_key", want: "KIMI_API_KEY"},
-		{name: "moonshot_alias", account: "moonshot_api_key", want: "KIMI_API_KEY"},
-		{name: "xiaomi_alias", account: "xiaomi_api_key", want: "XIAOMI_API_KEY"},
-		{name: "mimo_alias", account: "mimo_api_key", want: "XIAOMI_API_KEY"},
+		{name: "moonshot", account: "moonshot_api_key", want: "MOONSHOT_API_KEY"},
+		{name: "xiaomi_mimo_payg", account: "xiaomi_mimo_payg_api_key", want: "XIAOMI_MIMO_PAYG_API_KEY"},
+		{name: "xiaomi_mimo_token_plan", account: "xiaomi_mimo_token_plan_api_key", want: "XIAOMI_MIMO_TOKEN_PLAN_API_KEY"},
 		{name: "ollama_base_url", account: "ollama_base_url", want: "OLLAMA_BASE_URL"},
 		{name: "unknown_passthrough", account: "custom_api_key", want: "CUSTOM_API_KEY"},
 		{name: "unknown_with_hyphens", account: "my-custom-key", want: "MY_CUSTOM_KEY"},
@@ -69,7 +67,7 @@ func TestAccountForEnv_EnvForAccount_RoundTrip(t *testing.T) {
 	canonical := []string{
 		"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY",
 		"GEMINI_API_KEY", "ZAI_API_KEY", "CANOPYWAVE_API_KEY",
-		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
+		"OPENCODEGO_API_KEY", "XAI_API_KEY", "MOONSHOT_API_KEY", "XIAOMI_MIMO_API_KEY", "OLLAMA_BASE_URL",
 	}
 	for _, envKey := range canonical {
 		t.Run(envKey, func(t *testing.T) {

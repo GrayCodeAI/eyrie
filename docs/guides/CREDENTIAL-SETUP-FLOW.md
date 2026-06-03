@@ -4,38 +4,58 @@
 
 See also: [DYNAMIC-MODEL-DISCOVERY.md](./DYNAMIC-MODEL-DISCOVERY.md)
 
-## Supported providers (11 — from `catalog/registry`)
+## Supported providers (12 — from `catalog/registry`)
 
-| Provider | Credential | Model strategy |
-|----------|------------|----------------|
-| Anthropic | `ANTHROPIC_API_KEY` | remote + live `/models` |
-| OpenAI | `OPENAI_API_KEY` | remote + live `/models` |
-| Google Gemini | `GEMINI_API_KEY` | remote + live API |
-| OpenRouter | `OPENROUTER_API_KEY` | live-only (fallback remote) |
-| xAI (Grok) | `XAI_API_KEY` | remote + live `/models` |
-| Z.AI | `ZAI_API_KEY` | live-only |
-| CanopyWave | `CANOPYWAVE_API_KEY` | live-only |
-| OpenCode Go | `OPENCODEGO_API_KEY` | remote + live `/models` |
-| Kimi (Moonshot) | `MOONSHOT_API_KEY` | live-only |
-| Xiaomi (MiMo) | `XIAOMI_API_KEY` | live-only |
-| Ollama (local) | `OLLAMA_BASE_URL` | live-only (`/api/tags`) |
+| Provider | ID | Credential | Picker models |
+|----------|-----|------------|---------------|
+| Anthropic | `anthropic` | `ANTHROPIC_API_KEY` | live `/v1/models` only |
+| OpenAI | `openai` | `OPENAI_API_KEY` | live `/v1/models` only |
+| Google Gemini | `gemini` | `GEMINI_API_KEY` | live models API only |
+| OpenRouter | `openrouter` | `OPENROUTER_API_KEY` | live `/models` only |
+| xAI (Grok) | `grok` | `XAI_API_KEY` | live `/v1/models` only |
+| Z.AI | `z-ai` | `ZAI_API_KEY` | live `/models` only |
+| CanopyWave | `canopywave` | `CANOPYWAVE_API_KEY` | live `/models` only |
+| OpenCode Go | `opencodego` | `OPENCODEGO_API_KEY` | live `/models` only |
+| Kimi (Moonshot) | `kimi` | `MOONSHOT_API_KEY` | live `/models` only |
+| Xiaomi (MiMo) Pay-as-you-go | `xiaomi_mimo_payg` | `XIAOMI_MIMO_PAYG_API_KEY` | `https://api.xiaomimimo.com/v1` (`sk-` keys) |
+| Xiaomi (MiMo) Token Plan | `xiaomi_mimo_token_plan` | `XIAOMI_MIMO_TOKEN_PLAN_API_KEY` | region: `cn` / `sgp` / `ams` (`tp-` keys) |
+| Ollama (local) | `ollama` | `OLLAMA_BASE_URL` | live `/api/tags` only |
 
 Single source: `eyrie/catalog/registry/providers.go`
 
-### Key shape hints (optional; hawk uses provider-first paste)
+### Xiaomi MiMo (two gateways, one key each)
 
-Hawk setup does **not** guess the gateway from key shape. User picks the gateway on the Gateways tab, then pastes; eyrie runs **one** probe for that provider only.
+MiMo exposes **OpenAI-compatible** and **Anthropic-compatible** APIs on the same host. You store **one API key per product** (not separate OpenAI vs Anthropic keys). Chat uses OpenAI first; Anthropic compat is a fallback on retryable errors (401/403/5xx/timeout).
 
-| Prefix / pattern | Gateway |
-|------------------|---------|
-| `sk-ant-` | Anthropic |
-| `sk-proj-`, `sk-svcacct-` | OpenAI |
-| `AIza`, `AQ.` | Google Gemini (AI Studio; `AQ.` is newer) |
-| `sk-or-v1-`, `sk-or-` | OpenRouter |
-| `xai-` | xAI (Grok) |
-| `cw_` | CanopyWave |
-| `ocg_` | OpenCode Go |
-| `tp-` | Xiaomi (MiMo) |
+| Product | Gateway ID | Env var | Key shape (hint only) | OpenAI base | Anthropic base |
+|---------|------------|---------|----------------------|-------------|----------------|
+| Pay-as-you-go | `xiaomi_mimo_payg` | `XIAOMI_MIMO_PAYG_API_KEY` | `sk-*` | `https://api.xiaomimimo.com/v1` | `https://api.xiaomimimo.com/anthropic` |
+| Token Plan | `xiaomi_mimo_token_plan` | `XIAOMI_MIMO_TOKEN_PLAN_API_KEY` | `tp-*` | `https://token-plan-{cn,sgp,ams}.xiaomimimo.com/v1` | `https://token-plan-{cn,sgp,ams}.xiaomimimo.com/anthropic` |
+
+Token Plan region (`cn`, `sgp`, `ams`) is stored in `~/.hawk/provider.json` as `xiaomi_mimo_token_plan_region`. Hawk `/config` prompts for region before key paste on the Token Plan row.
+
+**Auth:** `api-key` header on probe, live fetch, and chat; OpenAI paths also retry once with `Authorization: Bearer` on HTTP 401 (per [OpenAI API](https://platform.xiaomimimo.com/docs/en-US/api/chat/openai-api)).
+
+**Paths (must match Console / docs):**
+
+| Protocol | Pay-as-you-go | Token Plan (per region) |
+|----------|---------------|-------------------------|
+| OpenAI | `POST https://api.xiaomimimo.com/v1/chat/completions` | `POST {token-plan-*}/v1/chat/completions` |
+| Anthropic | `POST https://api.xiaomimimo.com/anthropic/v1/messages` | `POST {token-plan-*}/anthropic/v1/messages` |
+
+Eyrie stores Anthropic **base** as `…/anthropic` (no `/v1`); `AnthropicClient` appends `/v1/messages`, matching [Anthropic API](https://platform.xiaomimimo.com/docs/en-US/api/chat/anthropic-api) and the Python SDK `base_url="https://api.xiaomimimo.com/anthropic"`.
+
+**Legacy:** `xiaomi_mimo` / `XIAOMI_MIMO_API_KEY` / keychain account `xiaomi_mimo_api_key` migrate to pay-as-you-go (`XIAOMI_MIMO_PAYG_API_KEY` / `xiaomi_mimo_payg_api_key`) on load and startup.
+
+**Code:** `eyrie/catalog/xiaomi/` (URLs), `eyrie/client/mimo.go` (dual-protocol client), `hawk/cmd/chat_config_xiaomi.go` (region UI).
+
+**Not implemented (out of scope):** ASR/TTS ([Speech Recognition](https://platform.xiaomimimo.com/docs/en-US/api/audio/Speech-Recognition), speech synthesis guides), web-search billing plugins, user toggle for Anthropic-primary routing.
+
+Official: [Token Plan quick access](https://platform.xiaomimimo.com/docs/en-US/price/tokenplan/quick-access), [Pay-as-you-go](https://platform.xiaomimimo.com/docs/en-US/price/pay-as-you-go), [First API call](https://platform.xiaomimimo.com/docs/en-US/quick-start/first-api-call).
+
+### API keys (no prefix rules)
+
+Setup is **gateway-first**: pick the gateway on the Gateways tab, paste any non-empty secret (min length 8; placeholders rejected). Eyrie does **not** validate or infer provider from key prefixes (`sk-ant-`, `tp-`, etc.). Live probe runs only for the selected gateway.
 
 ## Flow
 
@@ -57,6 +77,6 @@ Hawk setup does **not** guess the gateway from key shape. User picks the gateway
 ## Adding a new provider
 
 1. Add one `ProviderSpec` row in `catalog/registry/providers.go`
-2. If live list API exists: implement fetcher in `catalog/live/fetchers.go` and register key
-3. Ensure models exist in remote catalog JSON (unless live-only)
-4. No hawk changes
+2. Implement fetcher in `catalog/live/fetchers.go` and register in `Registry`
+3. Add deployment row to remote catalog JSON (metadata only; picker uses live list)
+4. No hawk changes (registry-driven `/config`)

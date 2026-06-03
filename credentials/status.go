@@ -25,7 +25,13 @@ func StorageReportFor(ctx context.Context) StorageReport {
 		PlatformStore: PlatformSecretStoreName(),
 		StoredEnvKeys: stored,
 	}
-	ok, detail := KeychainWriteAvailable(ctx)
+	// Read probe only on hot paths (status/doctor). Write probe is expensive on macOS Keychain.
+	if ok, detail := StorageStatus(ctx); ok {
+		report.KeychainWritable = true
+		report.KeychainDetail = detail
+		return report
+	}
+	ok, detail := CachedKeychainWriteAvailable(ctx)
 	report.KeychainWritable = ok
 	report.KeychainDetail = detail
 	return report
@@ -36,11 +42,10 @@ func StoredEnvKeys(ctx context.Context) []string {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	var keys []string
-	for _, envKey := range discoveryEnvKeys(ctx) {
-		if HasSecret(ctx, envKey) {
-			keys = append(keys, envKey)
-		}
+	stored := APIKeysMap(ctx, DefaultStore())
+	keys := make([]string, 0, len(stored))
+	for envKey := range stored {
+		keys = append(keys, envKey)
 	}
 	sort.Strings(keys)
 	return keys

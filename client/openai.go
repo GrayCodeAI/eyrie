@@ -24,6 +24,7 @@ type OpenAIClient struct {
 	defaultMaxTokens   int
 	defaultTemperature *float64
 	guardrails         *Guardrails
+	useMimoAuth        bool
 }
 
 // Compile-time check that OpenAIClient implements Provider.
@@ -57,8 +58,41 @@ func (c *OpenAIClient) Name() string { return c.providerName }
 
 func (c *OpenAIClient) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
+	if c.useMimoAuth {
+		mimoAuthHeaders(req, c.apiKey)
+	} else {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+	req.Header.Set("User-Agent", userAgent())
+}
+
+func (c *OpenAIClient) setBearerHeaders(req *http.Request) {
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Del("api-key")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("User-Agent", userAgent())
+}
+
+// doRequestWithMimoAuthRetry runs the HTTP request; on 401 with MiMo api-key auth, retries once with Bearer.
+func (c *OpenAIClient) doRequestWithMimoAuthRetry(ctx context.Context, req *http.Request, body []byte) (*http.Response, error) {
+	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	if err != nil {
+		return nil, err
+	}
+	if !c.useMimoAuth || resp.StatusCode != http.StatusUnauthorized {
+		return resp, nil
+	}
+	_ = resp.Body.Close()
+	req2, err := http.NewRequestWithContext(ctx, req.Method, req.URL.String(), bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	c.setBearerHeaders(req2)
+	if req.Header.Get("Accept") != "" {
+		req2.Header.Set("Accept", req.Header.Get("Accept"))
+	}
+	req2.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
+	return doWithRetry(ctx, c.httpClient, req2, c.retry, c.logger)
 }
 
 type openaiRequest struct {
@@ -262,7 +296,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 
 	c.logger.Debug("openai chat", "provider", c.providerName, "model", opts.Model, "base_url", c.baseURL)
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := c.doRequestWithMimoAuthRetry(ctx, req, body)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: %s request failed: %w", c.providerName, err)
 	}
@@ -325,7 +359,7 @@ func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	req.Header.Set("Accept", "text/event-stream")
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := c.doRequestWithMimoAuthRetry(ctx, req, body)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: %s stream request failed: %w", c.providerName, err)
 	}
@@ -355,6 +389,18 @@ func (c *OpenAIClient) Ping(ctx context.Context) error {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("eyrie: %s ping failed: %w", c.providerName, err)
+	}
+	if c.useMimoAuth && resp.StatusCode == http.StatusUnauthorized {
+		_ = resp.Body.Close()
+		req2, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/models", nil)
+		if err != nil {
+			return fmt.Errorf("eyrie: %s ping failed: %w", c.providerName, err)
+		}
+		c.setBearerHeaders(req2)
+		resp, err = c.httpClient.Do(req2)
+		if err != nil {
+			return fmt.Errorf("eyrie: %s ping failed: %w", c.providerName, err)
+		}
 	}
 	_ = resp.Body.Close()
 	if resp.StatusCode == 401 {

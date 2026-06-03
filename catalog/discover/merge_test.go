@@ -41,7 +41,7 @@ func TestMergeCatalogV1WithPolicy_ReplacesDeploymentOfferings(t *testing.T) {
 	}
 }
 
-func TestMergeCatalogV1WithPolicy_PreferLiveUpdatesExistingModel(t *testing.T) {
+func TestMergeCatalogV1WithPolicy_PreferLiveReplacesExistingModel(t *testing.T) {
 	dst := catalog.TestSeedCatalogV1()
 	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
 		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet",
@@ -66,8 +66,8 @@ func TestMergeCatalogV1WithPolicy_PreferLiveUpdatesExistingModel(t *testing.T) {
 	if got.Name != "Claude Sonnet 4.6" {
 		t.Fatalf("name = %q", got.Name)
 	}
-	if len(got.Aliases) != 2 {
-		t.Fatalf("aliases = %#v", got.Aliases)
+	if len(got.Aliases) != 1 || got.Aliases[0] != "sonnet-4-6" {
+		t.Fatalf("aliases = %#v (expected live replacement)", got.Aliases)
 	}
 }
 
@@ -127,7 +127,7 @@ func TestMergeCatalogV1WithPolicy_PreferLiveUpdatesExistingOffering(t *testing.T
 	}
 }
 
-func TestMergeCatalogV1WithPolicy_LiveOnlyFullReplace(t *testing.T) {
+func TestMergeCatalogV1WithPolicy_PreferLiveFullReplace(t *testing.T) {
 	dst := catalog.TestSeedCatalogV1()
 	dst.Models["openrouter/model-a"] = catalog.ModelV1{
 		ID: "openrouter/model-a", ProviderID: "openrouter", Name: "Model A (old)",
@@ -143,7 +143,6 @@ func TestMergeCatalogV1WithPolicy_LiveOnlyFullReplace(t *testing.T) {
 	}
 	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{
 		PreferLiveProviders: []string{"openrouter"},
-		LiveOnlyProviders:   []string{"openrouter"},
 	})
 	got := out.Models["openrouter/model-a"]
 	if got.Name != "Model A (live)" {

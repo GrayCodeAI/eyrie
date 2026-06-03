@@ -269,7 +269,7 @@ func TestDefaultDeploymentForProvider(t *testing.T) {
 		{config.ProviderOllama, "ollama-local"},
 		{config.ProviderOpenCodeGo, "opencodego"},
 		{config.ProviderKimi, "kimi-direct"},
-		{config.ProviderXiaomi, "xiaomi-direct"},
+		{config.ProviderXiaomiMimoPayg, "xiaomi_mimo_payg-direct"},
 		{"unknown", ""},
 		{"", ""},
 	}
@@ -545,12 +545,35 @@ func TestProviderForDeployment_KimiDirect(t *testing.T) {
 }
 
 func TestProviderForDeployment_XiaomiDirect(t *testing.T) {
-	p, ok := ProviderForDeployment("xiaomi-direct", config.DeploymentConfig{APIKey: "xiaomi-key"})
+	p, ok := ProviderForDeployment("xiaomi_mimo_payg-direct", config.DeploymentConfig{APIKey: "xiaomi-key"})
 	if !ok {
-		t.Fatal("expected xiaomi-direct to be configured")
+		t.Fatal("expected xiaomi_mimo_payg-direct to be configured")
 	}
-	if p.Name() != "openai" {
-		t.Fatalf("provider name = %q, want openai", p.Name())
+	if p.Name() != config.ProviderXiaomiMimoPayg {
+		t.Fatalf("provider name = %q, want %s", p.Name(), config.ProviderXiaomiMimoPayg)
+	}
+}
+
+func TestProviderForDeployment_XiaomiTokenPlanDirect(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HAWK_CONFIG_DIR", dir)
+	cfg := &config.ProviderConfig{
+		Version:                   "2",
+		XiaomiMimoTokenPlanRegion: "sgp",
+		XiaomiMimoTokenPlanBaseURL: "https://token-plan-cn.xiaomimimo.com/v1",
+	}
+	if err := config.SaveProviderConfig(cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	p, ok := ProviderForDeployment("xiaomi_mimo_token_plan-direct", config.DeploymentConfig{
+		APIKey:  "tp-test-key",
+		BaseURL: "https://token-plan-cn.xiaomimimo.com/v1",
+	})
+	if !ok {
+		t.Fatal("expected token plan direct to be configured")
+	}
+	if p.Name() != config.ProviderXiaomiMimoTokenPlan {
+		t.Fatalf("provider name = %q", p.Name())
 	}
 }
 

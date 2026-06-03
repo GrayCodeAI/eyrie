@@ -56,7 +56,7 @@ func TestDiscoverCatalog_MergesProviderModelsWithAPIKey(t *testing.T) {
 	if _, err := os.Stat(cachePath); err != nil {
 		t.Fatalf("cache not written: %v", err)
 	}
-	if len(result.LiveProviders) != 11 {
+	if len(result.LiveProviders) != 12 {
 		t.Fatalf("LiveProviders: got %d want 11", len(result.LiveProviders))
 	}
 	var openrouter *catalog.LiveProviderEnrichment

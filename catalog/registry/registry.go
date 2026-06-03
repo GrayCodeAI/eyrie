@@ -61,6 +61,11 @@ func (r *ProviderRegistry) GetByEnv(env string) (ProviderSpec, bool) {
 		if s.CredentialEnv == env {
 			return s, true
 		}
+		for _, fallback := range s.CredentialEnvFallbacks {
+			if fallback == env {
+				return s, true
+			}
+		}
 	}
 	return ProviderSpec{}, false
 }

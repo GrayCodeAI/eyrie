@@ -332,3 +332,26 @@ func TestMigrateLegacyEnvFileAt_NilKeychain(t *testing.T) {
 		t.Fatalf("expected ErrKeychainUnavailable, got: %v", err)
 	}
 }
+
+func TestMigrateLegacyKeychainAccounts_XiaomiPayg(t *testing.T) {
+	ms := &MapStore{}
+	cs := &CombinedStore{Keychain: ms}
+	SetDefaultStore(cs)
+	t.Cleanup(func() { SetDefaultStore(nil) })
+
+	ctx := context.Background()
+	if err := ms.Set(ctx, "xiaomi_mimo_api_key", "sk-legacy-mimo"); err != nil {
+		t.Fatal(err)
+	}
+	n, err := MigrateLegacyKeychainAccounts(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("expected 1 migrated, got %d", n)
+	}
+	got, err := ms.Get(ctx, "xiaomi_mimo_payg_api_key")
+	if err != nil || got != "sk-legacy-mimo" {
+		t.Fatalf("payg account = %q err=%v", got, err)
+	}
+}

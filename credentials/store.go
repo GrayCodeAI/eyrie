@@ -63,18 +63,22 @@ func EnvForAccount(account string) string {
 		return "OPENROUTER_API_KEY"
 	case "gemini_api_key":
 		return "GEMINI_API_KEY"
-	case "grok_api_key", "xai_api_key":
-		return "GROK_API_KEY"
+	case "xai_api_key":
+		return "XAI_API_KEY"
 	case "zai_api_key":
 		return "ZAI_API_KEY"
 	case "canopywave_api_key":
 		return "CANOPYWAVE_API_KEY"
 	case "opencodego_api_key":
 		return "OPENCODEGO_API_KEY"
-	case "kimi_api_key", "moonshot_api_key":
-		return "KIMI_API_KEY"
-	case "xiaomi_api_key", "mimo_api_key":
-		return "XIAOMI_API_KEY"
+	case "moonshot_api_key":
+		return "MOONSHOT_API_KEY"
+	case "xiaomi_mimo_api_key":
+		return "XIAOMI_MIMO_API_KEY"
+	case "xiaomi_mimo_payg_api_key":
+		return "XIAOMI_MIMO_PAYG_API_KEY"
+	case "xiaomi_mimo_token_plan_api_key":
+		return "XIAOMI_MIMO_TOKEN_PLAN_API_KEY"
 	case "ollama_base_url":
 		return "OLLAMA_BASE_URL"
 	default:
@@ -107,8 +111,8 @@ func discoveryEnvKeys(ctx context.Context) []string {
 	}
 	return []string{
 		"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY",
-		"GEMINI_API_KEY", "GROK_API_KEY", "XAI_API_KEY",
-		"MOONSHOT_API_KEY", "KIMI_API_KEY", "MIMO_API_KEY",
+		"GEMINI_API_KEY", "XAI_API_KEY",
+		"MOONSHOT_API_KEY", "XIAOMI_MIMO_API_KEY", "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
 		"CANOPYWAVE_API_KEY", "OPENCODEGO_API_KEY",
 		"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
 		"VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN",

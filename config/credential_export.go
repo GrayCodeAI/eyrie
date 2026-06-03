@@ -6,6 +6,10 @@ import (
 	"github.com/GrayCodeAI/eyrie/config/credential"
 )
 
+func init() {
+	credential.SetMimoProbeConfigLoader(mimoProbeConfigFromProvider)
+}
+
 // Credential types and helpers — implemented in config/credential.
 
 type (
@@ -54,6 +58,16 @@ func InferCredentialsFromAPIKey(ctx context.Context, secret string) []Credential
 	return credential.InferCredentialsFromAPIKey(ctx, secret)
 }
 
+// ValidateCredentialBeforeSave checks format without a live API probe.
+func ValidateCredentialBeforeSave(inference CredentialInference, secret string) error {
+	return credential.ValidateCredentialBeforeSave(inference, secret)
+}
+
+// PrepareCredentialForSave validates and returns the normalized value to persist.
+func PrepareCredentialForSave(inference CredentialInference, secret string) (string, error) {
+	return credential.PrepareCredentialForSave(inference, secret)
+}
+
 // CommitCredential validates and probes a credential before persistence.
 func CommitCredential(ctx context.Context, inference CredentialInference, secret string) error {
 	return credential.CommitCredential(ctx, inference, secret)
@@ -66,7 +80,21 @@ func CommitLocalCredential(ctx context.Context, inference CredentialInference, v
 
 // ProbeCredential verifies a key against the provider API when a probe is configured.
 func ProbeCredential(ctx context.Context, envKey, secret string) error {
-	return credential.ProbeCredential(ctx, envKey, secret)
+	return credential.ProbeCredentialWithMimo(ctx, envKey, secret, mimoProbeConfigFromProvider())
+}
+
+func mimoProbeConfigFromProvider() credential.MimoProbeConfig {
+	cfg := LoadProviderConfig("")
+	if cfg == nil {
+		return credential.MimoProbeConfig{}
+	}
+	region := XiaomiTokenPlanRegionFromConfig(cfg)
+	base, _ := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg)
+	return credential.MimoProbeConfig{
+		TokenPlanRegion: string(region),
+		TokenPlanBase:   base,
+		PaygBase:        cfg.XiaomiMimoPaygBaseURL,
+	}
 }
 
 // ProbeLocalCredential verifies a local provider endpoint when configured.

@@ -160,6 +160,7 @@ type EyrieClient struct {
 	mu              sync.RWMutex
 	defaultProvider string
 	apiKeys         map[string]string
+	baseURLs        map[string]string
 	providers       map[string]Provider // cached provider clients
 	coalescer       *Coalescer          // optional request coalescing
 }
@@ -169,6 +170,7 @@ func Client(cfg *EyrieConfig, opts ...ClientOption) *EyrieClient {
 	c := &EyrieClient{
 		defaultProvider: DetectProvider(),
 		apiKeys:         make(map[string]string),
+		baseURLs:        make(map[string]string),
 		providers:       make(map[string]Provider),
 	}
 	if cfg != nil {
@@ -177,6 +179,9 @@ func Client(cfg *EyrieConfig, opts ...ClientOption) *EyrieClient {
 		}
 		if cfg.APIKey != "" {
 			c.apiKeys[c.defaultProvider] = cfg.APIKey
+		}
+		if cfg.BaseURL != "" {
+			c.baseURLs[c.defaultProvider] = cfg.BaseURL
 		}
 	}
 	// Apply options (including coalescing)
