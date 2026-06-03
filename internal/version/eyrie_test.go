@@ -71,7 +71,7 @@ func TestClientSetVersionEmpty(t *testing.T) {
 }
 
 func TestVersionStartsWithV0(t *testing.T) {
-	// The initial version is 0.2.0; verify it starts with 0.
+	// The initial version is 0.1.0; verify it starts with 0.
 	if !strings.HasPrefix(Version, "0.") {
 		t.Errorf("expected Version to start with '0.', got %q", Version)
 	}
