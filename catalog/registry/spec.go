@@ -39,7 +39,6 @@ type ProviderSpec struct {
 	RequiresKey            bool
 	CredentialEnv          string
 	CredentialEnvFallbacks []string // additional env var names for the same credential
-	KeyPrefixes            []string
 	BaseURLEnv             []string
 	ProbeKind              ProbeKind
 	ProbeBaseURL           string

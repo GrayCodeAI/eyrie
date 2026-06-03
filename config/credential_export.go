@@ -29,9 +29,14 @@ func ListCredentialProviders() []CredentialProviderOption {
 	return credential.ListCredentialProviders()
 }
 
-// ResolveCredential validates format and lists all providers (inferred ranked first).
+// ResolveCredential validates format and lists registered providers (gateway must be chosen first).
 func ResolveCredential(ctx context.Context, secret string) CredentialResolveResult {
 	return credential.ResolveCredential(ctx, secret)
+}
+
+// InferenceForProvider returns save metadata for a gateway selected in setup UI.
+func InferenceForProvider(providerID string) (CredentialInference, error) {
+	return credential.InferenceForProvider(providerID)
 }
 
 // InferenceFromOption converts a provider picker row to persistence metadata.
@@ -44,7 +49,7 @@ func LocalCredentialInference(providerID string) (CredentialInference, error) {
 	return credential.LocalCredentialInference(providerID)
 }
 
-// InferCredentialsFromAPIKey returns prefix-inferred candidates only.
+// InferCredentialsFromAPIKey is deprecated; use InferenceForProvider after gateway selection.
 func InferCredentialsFromAPIKey(ctx context.Context, secret string) []CredentialInference {
 	return credential.InferCredentialsFromAPIKey(ctx, secret)
 }
@@ -84,7 +89,4 @@ func ValidateCredentialSecret(envKey, secret string) error {
 	return credential.ValidateCredentialSecret(envKey, secret)
 }
 
-// RecordLearnedCredential stores a short prefix fingerprint after a successful key save.
-func RecordLearnedCredential(providerID, secret string) {
-	credential.RecordLearnedCredential(providerID, secret)
-}
+
