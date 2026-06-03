@@ -45,6 +45,13 @@ func TestInferCredentialsFromAPIKey_OpenAI(t *testing.T) {
 	}
 }
 
+func TestInferCredentialsFromAPIKey_GenericOpenAICompatible(t *testing.T) {
+	got := InferCredentialsFromAPIKey(ContextWithoutProbeDisambiguation(context.Background()), "sk-test-key-that-could-belong-to-any-compatible-provider")
+	if len(got) != 0 {
+		t.Fatalf("generic sk- keys should not infer a provider, got %#v", got)
+	}
+}
+
 func TestInferCredentialsFromAPIKey_Gemini(t *testing.T) {
 	got := InferCredentialsFromAPIKey(context.Background(), "AIzaSyD-test-key-1234567890")
 	if len(got) == 0 {

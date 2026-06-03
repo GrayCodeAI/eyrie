@@ -33,6 +33,9 @@ func TestOpenCodeGo_HasProbeBaseURL(t *testing.T) {
 	if spec.ProbeBaseURL == "" {
 		t.Fatal("opencodego must have a ProbeBaseURL")
 	}
+	if spec.ProbeBaseURL != "https://opencode.ai/zen/go/v1" {
+		t.Fatalf("opencodego probe base URL = %q", spec.ProbeBaseURL)
+	}
 	if spec.ProbeKind != registry.ProbeOpenAIModels {
 		t.Fatalf("opencodego probe kind = %q", spec.ProbeKind)
 	}
