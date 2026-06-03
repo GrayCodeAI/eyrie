@@ -44,50 +44,32 @@ func ValidateKeyFormat(secret string) error {
 	return nil
 }
 
-// ListCredentialProviders returns all registered API-key providers for host pickers.
+// ListCredentialProviders returns all registered setup providers (including local gateways).
 func ListCredentialProviders() []CredentialProviderOption {
-	specs := registry.DefaultRegistry.CredentialProviders()
-	out := make([]CredentialProviderOption, len(specs))
-	for i, spec := range specs {
-		out[i] = optionFromSpec(spec, false, spec.SortOrder)
+	return listCredentialProviders(false)
+}
+
+func listCredentialProviders(apiKeyOnly bool) []CredentialProviderOption {
+	var out []CredentialProviderOption
+	for _, spec := range registry.DefaultRegistry.CredentialProviders() {
+		if apiKeyOnly && !spec.RequiresKey {
+			continue
+		}
+		out = append(out, optionFromSpec(spec, false, spec.SortOrder))
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Rank < out[j].Rank })
 	return out
 }
 
-// ResolveCredential validates format and returns all providers with inferred matches ranked first.
+// ResolveCredential validates format and lists API-key gateways in registry order.
+// Host apps must select the gateway first; key shape is not used for provider inference.
 func ResolveCredential(ctx context.Context, secret string) CredentialResolveResult {
+	_ = ctx
 	secret = strings.TrimSpace(secret)
 	if err := ValidateKeyFormat(secret); err != nil {
 		return CredentialResolveResult{FormatOK: false, FormatError: err.Error()}
 	}
-	matches := rankedProviderMatches(secret)
-	inferredSet := inferredSetFromMatches(matches)
-	var out []CredentialProviderOption
-	for _, spec := range registry.DefaultRegistry.CredentialProviders() {
-		if !spec.RequiresKey {
-			continue
-		}
-		rank, inf := inferredSet[spec.ProviderID]
-		if inf {
-			rank = spec.SortOrder*100 + rank
-		} else {
-			rank = spec.SortOrder + 1000
-		}
-		out = append(out, optionFromSpec(spec, inf, rank))
-	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Inferred != out[j].Inferred {
-			return out[i].Inferred
-		}
-		if out[i].Rank != out[j].Rank {
-			return out[i].Rank < out[j].Rank
-		}
-		return out[i].DisplayName < out[j].DisplayName
-	})
-	var probeUsed bool
-	out, probeUsed = applyProbeDisambiguation(ctx, secret, out)
-	return CredentialResolveResult{FormatOK: true, Providers: out, ProbeDisambiguationUsed: probeUsed}
+	return CredentialResolveResult{FormatOK: true, Providers: listCredentialProviders(true)}
 }
 
 // InferenceFromOption converts a picker row back to persistence metadata.
@@ -126,14 +108,19 @@ func LocalCredentialInference(providerID string) (CredentialInference, error) {
 	}, nil
 }
 
-// matchedProviderIDsFromRegistry returns provider IDs ranked by pattern match (registry + learned).
-func matchedProviderIDsFromRegistry(secret string) []string {
-	matches := rankedProviderMatches(secret)
-	out := make([]string, 0, len(matches))
-	for _, m := range matches {
-		if m.inferred {
-			out = append(out, m.providerID)
-		}
+// InferenceForProvider returns save metadata for a gateway chosen in setup UI.
+func InferenceForProvider(providerID string) (CredentialInference, error) {
+	spec, ok := registry.DefaultRegistry.Get(strings.TrimSpace(providerID))
+	if !ok {
+		return CredentialInference{}, fmt.Errorf("unknown provider %q", providerID)
 	}
-	return out
+	if !spec.RequiresKey {
+		return LocalCredentialInference(providerID)
+	}
+	return CredentialInference{
+		ProviderID:   spec.ProviderID,
+		DeploymentID: spec.DeploymentID,
+		EnvVar:       spec.CredentialEnv,
+		DisplayName:  spec.DisplayName,
+	}, nil
 }

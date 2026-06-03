@@ -133,7 +133,6 @@ func TestResolveCredential(t *testing.T) {
 		name          string
 		secret        string
 		wantFormatOK  bool
-		wantInferred  string // expected inferred provider prefix, empty if none
 		wantProviders bool
 	}{
 		{
@@ -152,21 +151,13 @@ func TestResolveCredential(t *testing.T) {
 			wantFormatOK: false,
 		},
 		{
-			name:          "anthropic prefix",
+			name:          "valid key",
 			secret:        "sk-ant-api03-valid-key-format-12345",
 			wantFormatOK:  true,
-			wantInferred:  "anthropic",
 			wantProviders: true,
 		},
 		{
-			name:          "openai prefix",
-			secret:        "sk-proj-abcdef0123456789abcdef01",
-			wantFormatOK:  true,
-			wantInferred:  "openai",
-			wantProviders: true,
-		},
-		{
-			name:          "generic valid key no prefix",
+			name:          "generic valid key",
 			secret:        "gsk_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ",
 			wantFormatOK:  true,
 			wantProviders: true,
@@ -181,76 +172,41 @@ func TestResolveCredential(t *testing.T) {
 			if tt.wantProviders && len(result.Providers) == 0 {
 				t.Fatal("expected non-empty providers list")
 			}
-			if tt.wantInferred != "" {
-				found := false
-				for _, p := range result.Providers {
-					if p.Inferred && p.ProviderID == tt.wantInferred {
-						found = true
-						break
-					}
-				}
-				if !found {
-					t.Fatalf("expected inferred provider %q, providers: %+v", tt.wantInferred, result.Providers)
+			for _, p := range result.Providers {
+				if p.Inferred {
+					t.Fatalf("unexpected inferred provider %q", p.ProviderID)
 				}
 			}
 		})
 	}
 }
 
-func TestResolveCredential_InferredRankedFirst(t *testing.T) {
-	result := ResolveCredential(context.Background(), "sk-ant-api03-valid-key-format-12345")
-	if !result.FormatOK {
-		t.Fatal("expected FormatOK=true")
-	}
-	if len(result.Providers) < 2 {
-		t.Fatal("expected at least 2 providers")
-	}
-	// First provider should be inferred
-	if !result.Providers[0].Inferred {
-		t.Fatalf("expected first provider to be inferred, got %+v", result.Providers[0])
-	}
-}
-
-// --- InferCredentialsFromAPIKey ---
-
 func TestInferCredentialsFromAPIKey(t *testing.T) {
 	tests := []struct {
-		name     string
-		secret   string
-		wantZero bool
-		wantID   string
+		name   string
+		secret string
 	}{
-		{"empty", "", true, ""},
-		{"placeholder", "your-api-key-here", true, ""},
-		{"too short", "short", true, ""},
-		{"anthropic prefix", "sk-ant-api03-valid-key-format-12345", false, "anthropic"},
-		{"openai prefix", "sk-proj-abcdef0123456789abcdef01", false, "openai"},
+		{"empty", ""},
+		{"placeholder", "your-api-key-here"},
+		{"anthropic shaped", "sk-ant-api03-valid-key-format-12345"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			inferences := InferCredentialsFromAPIKey(context.Background(), tt.secret)
-			if tt.wantZero {
-				if len(inferences) != 0 {
-					t.Fatalf("expected 0 inferences, got %d", len(inferences))
-				}
-				return
-			}
-			if len(inferences) == 0 {
-				t.Fatal("expected non-empty inferences")
-			}
-			found := false
-			for _, inf := range inferences {
-				if inf.ProviderID == tt.wantID {
-					found = true
-				}
-				if inf.EnvVar == "" {
-					t.Fatal("expected non-empty EnvVar in inference")
-				}
-			}
-			if !found {
-				t.Fatalf("expected inference with ProviderID=%q, got %+v", tt.wantID, inferences)
+			if len(inferences) != 0 {
+				t.Fatalf("expected no prefix inference, got %d", len(inferences))
 			}
 		})
+	}
+}
+
+func TestInferenceForProvider_OpenAI(t *testing.T) {
+	inf, err := InferenceForProvider("openai")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inf.ProviderID != "openai" || inf.DeploymentID != "openai-direct" {
+		t.Fatalf("unexpected inference: %+v", inf)
 	}
 }
 

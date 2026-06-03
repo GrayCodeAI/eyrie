@@ -18,9 +18,14 @@ func ValidateKeyFormat(secret string) error {
 	return config.ValidateKeyFormat(secret)
 }
 
-// ResolveCredential validates format and lists all providers (inferred ranked first).
+// ResolveCredential validates format and lists registered providers (gateway must be chosen first).
 func ResolveCredential(ctx context.Context, secret string) CredentialResolveResult {
 	return config.ResolveCredential(ctx, secret)
+}
+
+// InferenceForProvider returns save metadata for a gateway selected in setup UI.
+func InferenceForProvider(providerID string) (CredentialInference, error) {
+	return config.InferenceForProvider(providerID)
 }
 
 // ListCredentialProviders returns all registry providers for setup UIs.
@@ -28,7 +33,7 @@ func ListCredentialProviders() []CredentialProviderOption {
 	return config.ListCredentialProviders()
 }
 
-// InferCredentialsFromAPIKey returns prefix-inferred candidates only.
+// InferCredentialsFromAPIKey is deprecated; use InferenceForProvider after gateway selection.
 func InferCredentialsFromAPIKey(ctx context.Context, secret string) []CredentialInference {
 	return config.InferCredentialsFromAPIKey(ctx, secret)
 }
@@ -53,9 +58,5 @@ func SaveCredential(ctx context.Context, inference CredentialInference, secret s
 	if err := config.CommitCredential(ctx, inference, secret); err != nil {
 		return err
 	}
-	if err := SetCredential(ctx, inference.EnvVar, secret); err != nil {
-		return err
-	}
-	config.RecordLearnedCredential(inference.ProviderID, secret)
-	return nil
+	return SetCredential(ctx, inference.EnvVar, secret)
 }
