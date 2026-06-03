@@ -25,6 +25,8 @@ type CredentialResolveResult struct {
 	FormatOK    bool                       `json:"format_ok"`
 	FormatError string                     `json:"format_error,omitempty"`
 	Providers   []CredentialProviderOption `json:"providers"`
+	// ProbeDisambiguationUsed is true when ambiguous keys were verified via live provider probes.
+	ProbeDisambiguationUsed bool `json:"probe_disambiguation_used,omitempty"`
 }
 
 // ValidateKeyFormat checks a pasted secret before any provider is chosen.
@@ -59,17 +61,17 @@ func ResolveCredential(ctx context.Context, secret string) CredentialResolveResu
 	if err := ValidateKeyFormat(secret); err != nil {
 		return CredentialResolveResult{FormatOK: false, FormatError: err.Error()}
 	}
-	inferredSet := map[string]int{}
-	for rank, pid := range matchedProviderIDsFromRegistry(secret) {
-		inferredSet[pid] = rank
-	}
+	matches := rankedProviderMatches(secret)
+	inferredSet := inferredSetFromMatches(matches)
 	var out []CredentialProviderOption
 	for _, spec := range registry.DefaultRegistry.CredentialProviders() {
 		if !spec.RequiresKey {
 			continue
 		}
 		rank, inf := inferredSet[spec.ProviderID]
-		if !inf {
+		if inf {
+			rank = spec.SortOrder*100 + rank
+		} else {
 			rank = spec.SortOrder + 1000
 		}
 		out = append(out, optionFromSpec(spec, inf, rank))
@@ -83,7 +85,9 @@ func ResolveCredential(ctx context.Context, secret string) CredentialResolveResu
 		}
 		return out[i].DisplayName < out[j].DisplayName
 	})
-	return CredentialResolveResult{FormatOK: true, Providers: out}
+	var probeUsed bool
+	out, probeUsed = applyProbeDisambiguation(ctx, secret, out)
+	return CredentialResolveResult{FormatOK: true, Providers: out, ProbeDisambiguationUsed: probeUsed}
 }
 
 // InferenceFromOption converts a picker row back to persistence metadata.
@@ -122,37 +126,14 @@ func LocalCredentialInference(providerID string) (CredentialInference, error) {
 	}, nil
 }
 
+// matchedProviderIDsFromRegistry returns provider IDs ranked by pattern match (registry + learned).
 func matchedProviderIDsFromRegistry(secret string) []string {
-	type match struct {
-		id     string
-		prefix string
-		rank   int
-	}
-	var matches []match
-	for _, spec := range registry.DefaultRegistry.CredentialProviders() {
-		for pi, prefix := range spec.KeyPrefixes {
-			if prefix != "" && strings.HasPrefix(secret, prefix) {
-				matches = append(matches, match{id: spec.ProviderID, prefix: prefix, rank: spec.SortOrder*100 + pi})
-			}
-		}
-	}
-	if len(matches) == 0 {
-		return nil
-	}
-	sort.Slice(matches, func(i, j int) bool {
-		if len(matches[i].prefix) != len(matches[j].prefix) {
-			return len(matches[i].prefix) > len(matches[j].prefix)
-		}
-		return matches[i].rank < matches[j].rank
-	})
-	seen := map[string]bool{}
-	var out []string
+	matches := rankedProviderMatches(secret)
+	out := make([]string, 0, len(matches))
 	for _, m := range matches {
-		if seen[m.id] {
-			continue
+		if m.inferred {
+			out = append(out, m.providerID)
 		}
-		seen[m.id] = true
-		out = append(out, m.id)
 	}
 	return out
 }

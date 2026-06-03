@@ -53,5 +53,9 @@ func SaveCredential(ctx context.Context, inference CredentialInference, secret s
 	if err := config.CommitCredential(ctx, inference, secret); err != nil {
 		return err
 	}
-	return SetCredential(ctx, inference.EnvVar, secret)
+	if err := SetCredential(ctx, inference.EnvVar, secret); err != nil {
+		return err
+	}
+	config.RecordLearnedCredential(inference.ProviderID, secret)
+	return nil
 }

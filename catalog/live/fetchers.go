@@ -17,7 +17,7 @@ const (
 	DefaultZAIBaseURL        = "https://api.z.ai/api/paas/v4"
 	DefaultOpenAIBaseURL     = "https://api.openai.com/v1"
 	DefaultGrokBaseURL       = "https://api.x.ai/v1"
-	DefaultOpenCodeGoBaseURL = "https://api.opencodego.ai/v1"
+	DefaultOpenCodeGoBaseURL = "https://opencode.ai/zen/go/v1"
 	DefaultKimiBaseURL       = "https://api.moonshot.ai/v1"
 	DefaultXiaomiBaseURL     = "https://api.xiaomimimo.com/v1"
 )
