@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
@@ -140,7 +141,7 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 		}
 		return client.NewAzureClient(apiKey, endpoint, apiVersion), true
 	case "grok-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("XAI_API_KEY", "GROK_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("XAI_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
@@ -151,6 +152,14 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultGeminiOpenAIBaseURL), &client.GeminiCompat), true
+	case "gemini-vertex":
+		projectID := FirstNonEmpty(deployment.ProjectID, os.Getenv("VERTEX_PROJECT_ID"))
+		region := FirstNonEmpty(deployment.Region, os.Getenv("VERTEX_REGION"))
+		token := FirstNonEmpty(deployment.Token, deployment.APIKey, storeSecret("VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"))
+		if projectID == "" || region == "" || token == "" {
+			return nil, false
+		}
+		return client.NewGeminiClient(token, config.VertexGeminiBaseURL(projectID, region)), true
 	case "openrouter":
 		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("OPENROUTER_API_KEY"))
 		if apiKey == "" {
@@ -184,15 +193,33 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultKimiOpenAIBaseURL), &client.KimiCompat), true
-	case "xiaomi-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("XIAOMI_API_KEY"))
-		if apiKey == "" {
-			return nil, false
-		}
-		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultXiaomiOpenAIBaseURL), &client.XiaomiCompat), true
+	case "xiaomi_mimo_payg-direct":
+		return newMiMoDeploymentClient(deployment, config.ProviderXiaomiMimoPayg, "XIAOMI_MIMO_PAYG_API_KEY", storeSecret)
+	case "xiaomi_mimo_token_plan-direct":
+		return newMiMoDeploymentClient(deployment, config.ProviderXiaomiMimoTokenPlan, "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", storeSecret)
 	default:
 		return nil, false
 	}
+}
+
+func newMiMoDeploymentClient(deployment config.DeploymentConfig, providerID, envKey string, lookup func(...string) string) (client.Provider, bool) {
+	apiKey := FirstNonEmpty(deployment.APIKey, lookup(envKey, "XIAOMI_MIMO_API_KEY"))
+	if apiKey == "" {
+		return nil, false
+	}
+	cfg := config.LoadProviderConfig("")
+	openBase, err := config.ResolveXiaomiOpenAIBase(providerID, cfg)
+	if err != nil || openBase == "" {
+		openBase = FirstNonEmpty(deployment.BaseURL, config.DefaultXiaomiOpenAIBaseURL)
+	}
+	// Token Plan hosts are region-specific; do not let stale deployment.BaseURL override provider.json routing.
+	if billing, ok := xiaomi.BillingForProvider(providerID); !ok || billing != xiaomi.BillingTokenPlan {
+		if override := FirstNonEmpty(deployment.BaseURL); override != "" {
+			openBase = override
+		}
+	}
+	anthropicBase, _ := config.ResolveXiaomiAnthropicBase(providerID, cfg)
+	return client.NewMiMoClient(apiKey, openBase, anthropicBase, &client.XiaomiCompat, providerID), true
 }
 
 // DefaultDeploymentForProvider maps a logical provider name to a deployment ID.
@@ -202,10 +229,16 @@ func DefaultDeploymentForProvider(provider string) string {
 		return "anthropic-direct"
 	case config.ProviderOpenAI:
 		return "openai-direct"
+	case config.ProviderAzure:
+		return "openai-azure"
 	case config.ProviderGrok:
 		return "grok-direct"
 	case config.ProviderGemini:
 		return "gemini-direct"
+	case config.ProviderVertex:
+		return "gemini-vertex"
+	case config.ProviderBedrock:
+		return "anthropic-bedrock"
 	case config.ProviderOpenRouter:
 		return "openrouter"
 	case config.ProviderCanopyWave:
@@ -218,8 +251,10 @@ func DefaultDeploymentForProvider(provider string) string {
 		return "opencodego"
 	case config.ProviderKimi:
 		return "kimi-direct"
-	case config.ProviderXiaomi:
-		return "xiaomi-direct"
+	case config.ProviderXiaomiMimoPayg:
+		return "xiaomi_mimo_payg-direct"
+	case config.ProviderXiaomiMimoTokenPlan:
+		return "xiaomi_mimo_token_plan-direct"
 	default:
 		return ""
 	}
@@ -251,8 +286,14 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 		return config.DeploymentConfig{APIKey: cfg.OpenCodeGoAPIKey, BaseURL: cfg.OpenCodeGoBaseURL}
 	case config.ProviderKimi:
 		return config.DeploymentConfig{APIKey: cfg.MoonshotAPIKey, BaseURL: cfg.MoonshotBaseURL}
-	case config.ProviderXiaomi:
-		return config.DeploymentConfig{APIKey: cfg.XiaomiAPIKey, BaseURL: cfg.XiaomiBaseURL}
+	case config.ProviderXiaomiMimoPayg:
+		return config.DeploymentConfig{
+			APIKey:  FirstNonEmpty(cfg.XiaomiMimoPaygAPIKey, cfg.XiaomiAPIKey),
+			BaseURL: FirstNonEmpty(cfg.XiaomiMimoPaygBaseURL, cfg.XiaomiBaseURL),
+		}
+	case config.ProviderXiaomiMimoTokenPlan:
+		base, _ := config.ResolveXiaomiOpenAIBase(config.ProviderXiaomiMimoTokenPlan, cfg)
+		return config.DeploymentConfig{APIKey: cfg.XiaomiMimoTokenPlanAPIKey, BaseURL: base}
 	default:
 		return config.DeploymentConfig{}
 	}

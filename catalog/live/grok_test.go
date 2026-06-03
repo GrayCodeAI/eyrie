@@ -26,31 +26,16 @@ func TestFetchGrok_MockHTTPServer(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	t.Run("XAI_API_KEY", func(t *testing.T) {
-		entries, err := FetchGrok(map[string]string{
-			"XAI_API_KEY":  "xai-test123",
-			"XAI_BASE_URL": srv.URL,
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(entries) != 2 {
-			t.Fatalf("expected 2 models, got %d", len(entries))
-		}
+	entries, err := FetchGrok(map[string]string{
+		"XAI_API_KEY":  "xai-test123",
+		"XAI_BASE_URL": srv.URL,
 	})
-
-	t.Run("GROK_API_KEY", func(t *testing.T) {
-		entries, err := FetchGrok(map[string]string{
-			"GROK_API_KEY":  "xai-test456",
-			"GROK_BASE_URL": srv.URL,
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(entries) != 2 {
-			t.Fatalf("expected 2 models, got %d", len(entries))
-		}
-	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 models, got %d", len(entries))
+	}
 }
 
 func TestFetchGrok_NoKey(t *testing.T) {

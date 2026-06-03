@@ -8,21 +8,43 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
-// CommitCredential validates and probes a credential before persistence (host calls before SetCredential).
-func CommitCredential(ctx context.Context, inference CredentialInference, secret string) error {
+// ValidateCredentialBeforeSave checks format/placeholders without a live API probe.
+func ValidateCredentialBeforeSave(inference CredentialInference, secret string) error {
 	secret = strings.TrimSpace(secret)
 	envKey := strings.TrimSpace(inference.EnvVar)
 	if secret == "" || envKey == "" {
-		return fmt.Errorf("commit credential: key and env var required")
+		return fmt.Errorf("credential: key and env var required")
 	}
 	if spec, ok := registry.DefaultRegistry.Get(inference.ProviderID); ok && !spec.RequiresKey {
-		return CommitLocalCredential(ctx, inference, secret)
+		return validateLocalCredentialValue(envKey, normalizeLocalCredentialValue(inference.ProviderID, secret))
 	}
 	if err := ValidateKeyFormat(secret); err != nil {
 		return err
 	}
-	if err := ValidateCredentialSecret(envKey, secret); err != nil {
+	return ValidateCredentialSecret(envKey, secret)
+}
+
+// PrepareCredentialForSave returns the normalized secret to persist (e.g. Ollama base URL).
+func PrepareCredentialForSave(inference CredentialInference, secret string) (string, error) {
+	secret = strings.TrimSpace(secret)
+	if err := ValidateCredentialBeforeSave(inference, secret); err != nil {
+		return "", err
+	}
+	if spec, ok := registry.DefaultRegistry.Get(inference.ProviderID); ok && !spec.RequiresKey {
+		return normalizeLocalCredentialValue(inference.ProviderID, secret), nil
+	}
+	return secret, nil
+}
+
+// CommitCredential validates and probes a credential before persistence (host calls before SetCredential).
+func CommitCredential(ctx context.Context, inference CredentialInference, secret string) error {
+	if err := ValidateCredentialBeforeSave(inference, secret); err != nil {
 		return err
+	}
+	envKey := strings.TrimSpace(inference.EnvVar)
+	if spec, ok := registry.DefaultRegistry.Get(inference.ProviderID); ok && !spec.RequiresKey {
+		value := normalizeLocalCredentialValue(inference.ProviderID, secret)
+		return ProbeLocalCredential(ctx, envKey, value)
 	}
 	return ProbeCredential(ctx, envKey, secret)
 }

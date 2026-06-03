@@ -7,6 +7,7 @@ func EnsureDeploymentConfigV2(cfg *ProviderConfig) *ProviderConfig {
 	if cfg == nil {
 		return nil
 	}
+	MigrateLegacyXiaomiProvider(cfg)
 	if cfg.ConfigVersion >= 2 || len(cfg.Deployments) > 0 || cfg.Routing != nil {
 		if cfg.ConfigVersion < 2 && (len(cfg.Deployments) > 0 || cfg.Routing != nil) {
 			cfg.ConfigVersion = 2
@@ -28,7 +29,8 @@ func EnsureDeploymentConfigV2(cfg *ProviderConfig) *ProviderConfig {
 		{ProviderOllama, "ollama-local"},
 		{ProviderOpenCodeGo, "opencodego"},
 		{ProviderKimi, "kimi-direct"},
-		{ProviderXiaomi, "xiaomi-direct"},
+		{ProviderXiaomiMimoPayg, "xiaomi_mimo_payg-direct"},
+		{ProviderXiaomiMimoTokenPlan, "xiaomi_mimo_token_plan-direct"},
 	}
 	for _, item := range legacy {
 		dep := legacyDeploymentConfig(cfg, item.provider)
@@ -72,8 +74,14 @@ func legacyDeploymentConfig(cfg *ProviderConfig, provider string) DeploymentConf
 		return DeploymentConfig{APIKey: cfg.OpenCodeGoAPIKey, BaseURL: cfg.OpenCodeGoBaseURL}
 	case ProviderKimi:
 		return DeploymentConfig{APIKey: cfg.MoonshotAPIKey, BaseURL: cfg.MoonshotBaseURL}
-	case ProviderXiaomi:
-		return DeploymentConfig{APIKey: cfg.XiaomiAPIKey, BaseURL: cfg.XiaomiBaseURL}
+	case ProviderXiaomiMimoPayg:
+		return DeploymentConfig{
+			APIKey:  legacyFirstNonEmpty(cfg.XiaomiMimoPaygAPIKey, cfg.XiaomiAPIKey),
+			BaseURL: legacyFirstNonEmpty(cfg.XiaomiMimoPaygBaseURL, cfg.XiaomiBaseURL),
+		}
+	case ProviderXiaomiMimoTokenPlan:
+		base, _ := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg)
+		return DeploymentConfig{APIKey: cfg.XiaomiMimoTokenPlanAPIKey, BaseURL: base}
 	default:
 		return DeploymentConfig{}
 	}
@@ -158,8 +166,10 @@ func deploymentOwnerProviderID(deploymentID string) string {
 		return "opencodego"
 	case "kimi-direct":
 		return "kimi"
-	case "xiaomi-direct":
-		return "xiaomi"
+	case "xiaomi_mimo_payg-direct", "xiaomi_mimo-direct":
+		return "xiaomi_mimo_payg"
+	case "xiaomi_mimo_token_plan-direct":
+		return "xiaomi_mimo_token_plan"
 	default:
 		return ""
 	}

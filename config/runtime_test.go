@@ -77,7 +77,7 @@ func TestModelEnvKeysCorrectForEachProvider(t *testing.T) {
 		ProviderOpenAI:     "OPENAI_MODEL",
 		ProviderCanopyWave: "CANOPYWAVE_MODEL",
 		ProviderOpenRouter: "OPENROUTER_MODEL",
-		ProviderGrok:       "GROK_MODEL",
+		ProviderGrok:       "XAI_MODEL",
 		ProviderGemini:     "GEMINI_MODEL",
 		ProviderOllama:     "OLLAMA_MODEL",
 		ProviderOpenCodeGo: "OPENCODEGO_MODEL",
@@ -138,14 +138,14 @@ func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
-	_ = store.Set(context.Background(), credentials.AccountForEnv("GROK_API_KEY"), "grok-test-key-1234567890")
+	_ = store.Set(context.Background(), credentials.AccountForEnv("XAI_API_KEY"), "xai-test-key-1234567890")
 
 	result := ResolveOpenAICompatibleRuntime("", "", "")
 	if result.Mode != "grok" {
 		t.Errorf("expected mode 'grok', got %q", result.Mode)
 	}
-	if result.APIKey != "grok-test-key-1234567890" {
-		t.Errorf("expected grok API key, got %q", result.APIKey)
+	if result.APIKey != "xai-test-key-1234567890" {
+		t.Errorf("expected xAI API key, got %q", result.APIKey)
 	}
 	if result.APIKeySource != "grok" {
 		t.Errorf("expected source 'grok', got %q", result.APIKeySource)
@@ -154,7 +154,7 @@ func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
 
 func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
 	clearKeys := []string{
-		"OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
+		"OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
 		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
 		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
 		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
@@ -202,7 +202,7 @@ func TestOpenAICompatibleRuntimeProfiles_Complete(t *testing.T) {
 		if profile.Mode == "" {
 			t.Errorf("profile %q has empty Mode", key)
 		}
-		if profile.DefaultBaseURL == "" {
+		if profile.DefaultBaseURL == "" && key != "xiaomi_mimo_token_plan" {
 			t.Errorf("profile %q has empty DefaultBaseURL", key)
 		}
 		if profile.DefaultModel == "" && key != "canopywave" && key != "z-ai" && key != "openrouter" {

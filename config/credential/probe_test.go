@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	eyriecfg "github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/config/credential"
 )
 
@@ -29,6 +30,73 @@ func TestProbeGemini_UsesHeaderNotQuery(t *testing.T) {
 		t.Logf("probe returned (expected in offline CI): %v", err)
 	}
 	_ = gotKey
+}
+
+func TestProbeCredential_XiaomiTokenPlan_ResolvesBaseFromProviderConfig(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/models" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Header.Get("api-key") == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":[]}`))
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	t.Setenv("HAWK_CONFIG_DIR", dir)
+	mockBase := strings.TrimRight(srv.URL, "/") + "/v1"
+	cfg := &eyriecfg.ProviderConfig{
+		Version:                    "2",
+		XiaomiMimoTokenPlanBaseURL: mockBase,
+	}
+	if err := eyriecfg.SaveProviderConfig(cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	err := credential.ProbeCredentialWithMimo(context.Background(), "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", "tp-test-key-12345678901234", credential.MimoProbeConfig{
+		TokenPlanBase: mockBase,
+	})
+	if err != nil {
+		t.Fatalf("ProbeCredential: %v", err)
+	}
+
+	err = credential.ProbeCredential(context.Background(), "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", "tp-test-key-12345678901234")
+	if err != nil {
+		t.Fatalf("ProbeCredential via loader: %v", err)
+	}
+}
+
+func TestProbeCredential_XiaomiTokenPlan_StaleBaseUsesRegion(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/models" {
+			http.NotFound(w, r)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":[]}`))
+	}))
+	defer srv.Close()
+	mockBase := strings.TrimRight(srv.URL, "/") + "/v1"
+
+	err := credential.ProbeCredentialWithMimo(context.Background(), "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", "tp-test-key-12345678901234", credential.MimoProbeConfig{
+		TokenPlanRegion: "sgp",
+		TokenPlanBase:   "https://token-plan-cn.xiaomimimo.com/v1",
+	})
+	if err == nil {
+		t.Fatal("expected probe against production SGP host to fail in CI")
+	}
+
+	err = credential.ProbeCredentialWithMimo(context.Background(), "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", "tp-test-key-12345678901234", credential.MimoProbeConfig{
+		TokenPlanBase: mockBase,
+	})
+	if err != nil {
+		t.Fatalf("ProbeCredential with explicit mock base: %v", err)
+	}
 }
 
 func TestProbeHTTPError_NoResponseBodyLeak(t *testing.T) {

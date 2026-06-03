@@ -125,18 +125,24 @@ ANTHROPIC_API_KEY=sk-... go run ./examples/basic/
 
 ## Supported Providers
 
-| Provider | Env Variable | Notes |
-|---|---|---|
-| **Anthropic** | `ANTHROPIC_API_KEY` | Default · thinking, caching |
-| **OpenAI** | `OPENAI_API_KEY` | Full tool use + reasoning |
-| **OpenRouter** | `OPENROUTER_API_KEY` | 200+ models via one key |
-| **Grok (xAI)** | `XAI_API_KEY` | |
-| **Gemini** | `GEMINI_API_KEY` | |
-| **CanopyWave** | `CANOPYWAVE_API_KEY` | |
-| **Ollama** | `OLLAMA_BASE_URL` | Local models, no key needed |
-| **OpenCodeGo** | `OPENCODEGO_API_KEY` | |
+12 setup gateways in `catalog/registry/providers.go` (hawk `/config` uses the same list):
 
-Providers are detected automatically in the order listed above.
+| Provider | ID | Env variable |
+|---|---|---|
+| **Anthropic** | `anthropic` | `ANTHROPIC_API_KEY` |
+| **OpenAI** | `openai` | `OPENAI_API_KEY` |
+| **Google Gemini** | `gemini` | `GEMINI_API_KEY` |
+| **OpenRouter** | `openrouter` | `OPENROUTER_API_KEY` |
+| **xAI (Grok)** | `grok` | `XAI_API_KEY` |
+| **Z.AI** | `z-ai` | `ZAI_API_KEY` |
+| **CanopyWave** | `canopywave` | `CANOPYWAVE_API_KEY` |
+| **OpenCode Go** | `opencodego` | `OPENCODEGO_API_KEY` |
+| **Kimi (Moonshot)** | `kimi` | `MOONSHOT_API_KEY` |
+| **Xiaomi (MiMo) Pay-as-you-go** | `xiaomi_mimo_payg` | `XIAOMI_MIMO_PAYG_API_KEY` |
+| **Xiaomi (MiMo) Token Plan** | `xiaomi_mimo_token_plan` | `XIAOMI_MIMO_TOKEN_PLAN_API_KEY` (+ region `cn` / `sgp` / `ams`) |
+| **Ollama** | `ollama` | `OLLAMA_BASE_URL` (local; no API key) |
+
+Runtime auto-detection uses a separate priority order for chat when no deployment is pinned; see `config` profiles.
 
 ## Usage
 

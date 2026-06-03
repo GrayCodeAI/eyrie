@@ -19,16 +19,7 @@ func ModelEntriesForProvider(compiled *CompiledCatalogV1, provider string) []Mod
 		return nil
 	}
 	if spec, ok := registry.SpecByProviderID(provider); ok {
-		entries := modelEntriesForDeployment(compiled, spec.DeploymentID)
-		if spec.ModelStrategy == registry.StrategyLiveOnly {
-			return entries
-		}
-		if len(entries) > 0 {
-			return entries
-		}
-	}
-	if dep := listingDeploymentForProvider(provider); dep != "" {
-		return modelEntriesForDeployment(compiled, dep)
+		return modelEntriesForDeployment(compiled, spec.DeploymentID)
 	}
 	return modelEntriesByProviderID(compiled, provider)
 }
@@ -55,11 +46,28 @@ func modelEntriesByProviderID(compiled *CompiledCatalogV1, provider string) []Mo
 	return out
 }
 
-func listingDeploymentForProvider(provider string) string {
-	if spec, ok := registry.SpecByProviderID(provider); ok && spec.ModelStrategy == registry.StrategyLiveOnly {
-		return spec.DeploymentID
+// CanonicalModelForProviderNative maps a picker native id to the canonical model for that provider's
+// deployment, without using global catalog aliases (e.g. mimo-v2.5-pro → xiaomi, not opencodego).
+func CanonicalModelForProviderNative(compiled *CompiledCatalogV1, providerID, modelID string) (string, bool) {
+	if compiled == nil {
+		return "", false
 	}
-	return ""
+	modelID = strings.TrimSpace(modelID)
+	providerID = CanonicalProviderID(providerID)
+	if modelID == "" || providerID == "" {
+		return "", false
+	}
+	if model, ok := compiled.ModelsByID[modelID]; ok && CanonicalProviderID(model.ProviderID) == providerID {
+		return modelID, true
+	}
+	if spec, ok := registry.SpecByProviderID(providerID); ok {
+		for _, offering := range compiled.OfferingsByDeployment[spec.DeploymentID] {
+			if strings.TrimSpace(offering.NativeModelID) == modelID {
+				return offering.CanonicalModelID, true
+			}
+		}
+	}
+	return "", false
 }
 
 func modelEntriesForDeployment(compiled *CompiledCatalogV1, deploymentID string) []ModelCatalogEntry {

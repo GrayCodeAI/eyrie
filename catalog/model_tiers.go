@@ -148,11 +148,16 @@ var fallbackKeys = map[ModelTier][]ModelKey{
 	TierHaiku:  {"haiku45", "haiku35"},
 }
 
-// GetProviderModelCandidates returns ordered candidate model IDs for a provider/tier.
+// GetProviderModelCandidates returns tier candidates for picker UIs.
+// Setup providers use live list APIs only, so this returns nil for them.
 func GetProviderModelCandidates(provider string, tier ModelTier) []ModelName {
 	if usesLiveCatalogOnly(provider) {
 		return nil
 	}
+	return tierModelCandidates(provider, tier)
+}
+
+func tierModelCandidates(provider string, tier ModelTier) []ModelName {
 	seen := make(map[string]bool)
 	var ordered []ModelName
 
@@ -218,17 +223,15 @@ func providerModelPool(provider string) []ModelName {
 // GetPreferredProviderModel returns the preferred model for a provider/tier.
 func GetPreferredProviderModel(provider string, tier ModelTier, catalog *ModelCatalog) ModelName {
 	if catalog == nil {
-		candidates := GetProviderModelCandidates(provider, tier)
-		if len(candidates) > 0 {
-			return candidates[0]
+		if c := tierModelCandidates(provider, tier); len(c) > 0 {
+			return c[0]
 		}
 		return ""
 	}
 
 	ids := catalogModelIDs(catalog, provider)
 	if len(ids) > 0 {
-		candidates := GetProviderModelCandidates(provider, tier)
-		for _, c := range candidates {
+		for _, c := range tierModelCandidates(provider, tier) {
 			if contains(ids, c) {
 				return c
 			}
@@ -236,9 +239,8 @@ func GetPreferredProviderModel(provider string, tier ModelTier, catalog *ModelCa
 		return ids[0]
 	}
 
-	candidates := GetProviderModelCandidates(provider, tier)
-	if len(candidates) > 0 {
-		return candidates[0]
+	if c := tierModelCandidates(provider, tier); len(c) > 0 {
+		return c[0]
 	}
 
 	if usesLiveCatalogOnly(provider) {

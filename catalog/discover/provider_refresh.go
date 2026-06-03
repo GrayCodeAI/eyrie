@@ -70,7 +70,7 @@ func refreshProvider(ctx context.Context, providerID string, creds catalog.Crede
 	}
 	enriched := catalog.CatalogV1FromLegacy(legacy)
 	base = MergeCatalogV1WithPolicy(base, &enriched, MergePolicy{
-		PreferLive:                 spec.PreferLiveMerge,
+		PreferLive:                 true,
 		PreferLiveProviders:        []string{catalog.CanonicalProviderID(spec.ProviderID)},
 		ReplaceDeploymentOfferings: []string{spec.DeploymentID},
 	})

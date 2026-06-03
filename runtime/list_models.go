@@ -66,19 +66,7 @@ func ListModels(ctx context.Context, opts ListModelsOpts) ([]ModelEntry, error) 
 }
 
 func listModelsAuto(ctx context.Context, spec registry.ProviderSpec) ([]ModelEntry, error) {
-	switch spec.ModelStrategy {
-	case registry.StrategyLiveOnly:
-		return listModelsLive(ctx, spec)
-	default:
-		cached, err := listModelsFromCache(ctx, spec.ProviderID, "cache")
-		if err != nil {
-			return nil, err
-		}
-		if len(cached) > 0 {
-			return cached, nil
-		}
-		return listModelsLive(ctx, spec)
-	}
+	return listModelsLive(ctx, spec)
 }
 
 func listModelsFromCache(ctx context.Context, providerID, source string) ([]ModelEntry, error) {
@@ -103,14 +91,13 @@ func listModelsLive(ctx context.Context, spec registry.ProviderSpec) ([]ModelEnt
 	if err != nil {
 		return nil, FormatSetupError(spec.ProviderID, err)
 	}
-	if len(entries) == 0 && spec.ModelStrategy == registry.StrategyLiveOnly {
+	if len(entries) == 0 {
 		if spec.ProviderID == "ollama" {
 			return nil, FormatSetupError("ollama", fmt.Errorf("ollama is running but no models are installed — run: ollama pull llama3.2"))
 		}
 		return nil, fmt.Errorf("runtime: no live models returned for %s", spec.ProviderID)
 	}
-	installed := spec.ModelStrategy == registry.StrategyLiveOnly
-	return liveEntriesToModelList(entries, spec.ProviderID, "live", installed), nil
+	return liveEntriesToModelList(entries, spec.ProviderID, "live", true), nil
 }
 
 func liveEntriesToModelList(entries []live.Entry, providerID, source string, installed bool) []ModelEntry {

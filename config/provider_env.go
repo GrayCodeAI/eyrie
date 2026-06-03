@@ -12,49 +12,54 @@ import (
 
 // ProviderConfig mirrors ~/.hawk/provider.json.
 type ProviderConfig struct {
-	ConfigVersion     int                         `json:"config_version,omitempty"`
-	Version           string                      `json:"_version,omitempty"`
-	ActiveProvider    string                      `json:"active_provider,omitempty"`
-	AnthropicAPIKey   string                      `json:"anthropic_api_key,omitempty"`
-	GrokAPIKey        string                      `json:"grok_api_key,omitempty"`
-	XAIAPIKey         string                      `json:"xai_api_key,omitempty"`
-	OpenAIAPIKey      string                      `json:"openai_api_key,omitempty"`
-	CanopyWaveAPIKey  string                      `json:"canopywave_api_key,omitempty"`
-	ZAIAPIKey         string                      `json:"zai_api_key,omitempty"`
-	OpenRouterAPIKey  string                      `json:"openrouter_api_key,omitempty"`
-	GeminiAPIKey      string                      `json:"gemini_api_key,omitempty"`
-	OllamaBaseURL     string                      `json:"ollama_base_url,omitempty"`
-	OpenCodeGoAPIKey  string                      `json:"opencodego_api_key,omitempty"`
-	MoonshotAPIKey    string                      `json:"moonshot_api_key,omitempty"`
-	XiaomiAPIKey      string                      `json:"xiaomi_api_key,omitempty"`
-	AnthropicBaseURL  string                      `json:"anthropic_base_url,omitempty"`
-	CanopyWaveBaseURL string                      `json:"canopywave_base_url,omitempty"`
-	ZAIBaseURL        string                      `json:"zai_base_url,omitempty"`
-	GrokBaseURL       string                      `json:"grok_base_url,omitempty"`
-	XAIBaseURL        string                      `json:"xai_base_url,omitempty"`
-	OpenAIBaseURL     string                      `json:"openai_base_url,omitempty"`
-	OpenRouterBaseURL string                      `json:"openrouter_base_url,omitempty"`
-	GeminiBaseURL     string                      `json:"gemini_base_url,omitempty"`
-	OpenCodeGoBaseURL string                      `json:"opencodego_base_url,omitempty"`
-	MoonshotBaseURL   string                      `json:"moonshot_base_url,omitempty"`
-	XiaomiBaseURL     string                      `json:"xiaomi_base_url,omitempty"`
-	AnthropicModel    string                      `json:"anthropic_model,omitempty"`
-	OpenAIModel       string                      `json:"openai_model,omitempty"`
-	CanopyWaveModel   string                      `json:"canopywave_model,omitempty"`
-	ZAIModel          string                      `json:"zai_model,omitempty"`
-	GrokModel         string                      `json:"grok_model,omitempty"`
-	XAIModel          string                      `json:"xai_model,omitempty"`
-	OpenRouterModel   string                      `json:"openrouter_model,omitempty"`
-	GeminiModel       string                      `json:"gemini_model,omitempty"`
-	OllamaModel       string                      `json:"ollama_model,omitempty"`
-	OpenCodeGoModel   string                      `json:"opencodego_model,omitempty"`
-	MoonshotModel     string                      `json:"moonshot_model,omitempty"`
-	XiaomiModel       string                      `json:"xiaomi_model,omitempty"`
-	ActiveModel       string                      `json:"active_model,omitempty"`
-	ExplorationModel  string                      `json:"exploration_model,omitempty"`
-	AnthropicVersion  string                      `json:"anthropic_version,omitempty"`
-	Deployments       map[string]DeploymentConfig `json:"deployments,omitempty"`
-	Routing           *RoutingPolicy              `json:"routing,omitempty"`
+	ConfigVersion              int                         `json:"config_version,omitempty"`
+	Version                    string                      `json:"_version,omitempty"`
+	ActiveProvider             string                      `json:"active_provider,omitempty"`
+	AnthropicAPIKey            string                      `json:"anthropic_api_key,omitempty"`
+	GrokAPIKey                 string                      `json:"grok_api_key,omitempty"`
+	XAIAPIKey                  string                      `json:"xai_api_key,omitempty"`
+	OpenAIAPIKey               string                      `json:"openai_api_key,omitempty"`
+	CanopyWaveAPIKey           string                      `json:"canopywave_api_key,omitempty"`
+	ZAIAPIKey                  string                      `json:"zai_api_key,omitempty"`
+	OpenRouterAPIKey           string                      `json:"openrouter_api_key,omitempty"`
+	GeminiAPIKey               string                      `json:"gemini_api_key,omitempty"`
+	OllamaBaseURL              string                      `json:"ollama_base_url,omitempty"`
+	OpenCodeGoAPIKey           string                      `json:"opencodego_api_key,omitempty"`
+	MoonshotAPIKey             string                      `json:"moonshot_api_key,omitempty"`
+	XiaomiAPIKey               string                      `json:"xiaomi_mimo_api_key,omitempty"`
+	XiaomiMimoPaygAPIKey       string                      `json:"xiaomi_mimo_payg_api_key,omitempty"`
+	XiaomiMimoTokenPlanAPIKey  string                      `json:"xiaomi_mimo_token_plan_api_key,omitempty"`
+	AnthropicBaseURL           string                      `json:"anthropic_base_url,omitempty"`
+	CanopyWaveBaseURL          string                      `json:"canopywave_base_url,omitempty"`
+	ZAIBaseURL                 string                      `json:"zai_base_url,omitempty"`
+	GrokBaseURL                string                      `json:"grok_base_url,omitempty"`
+	XAIBaseURL                 string                      `json:"xai_base_url,omitempty"`
+	OpenAIBaseURL              string                      `json:"openai_base_url,omitempty"`
+	OpenRouterBaseURL          string                      `json:"openrouter_base_url,omitempty"`
+	GeminiBaseURL              string                      `json:"gemini_base_url,omitempty"`
+	OpenCodeGoBaseURL          string                      `json:"opencodego_base_url,omitempty"`
+	MoonshotBaseURL            string                      `json:"moonshot_base_url,omitempty"`
+	XiaomiBaseURL              string                      `json:"xiaomi_mimo_base_url,omitempty"`
+	XiaomiMimoPaygBaseURL      string                      `json:"xiaomi_mimo_payg_base_url,omitempty"`
+	XiaomiMimoTokenPlanBaseURL string                      `json:"xiaomi_mimo_token_plan_base_url,omitempty"`
+	XiaomiMimoTokenPlanRegion  string                      `json:"xiaomi_mimo_token_plan_region,omitempty"`
+	AnthropicModel             string                      `json:"anthropic_model,omitempty"`
+	OpenAIModel                string                      `json:"openai_model,omitempty"`
+	CanopyWaveModel            string                      `json:"canopywave_model,omitempty"`
+	ZAIModel                   string                      `json:"zai_model,omitempty"`
+	GrokModel                  string                      `json:"grok_model,omitempty"`
+	XAIModel                   string                      `json:"xai_model,omitempty"`
+	OpenRouterModel            string                      `json:"openrouter_model,omitempty"`
+	GeminiModel                string                      `json:"gemini_model,omitempty"`
+	OllamaModel                string                      `json:"ollama_model,omitempty"`
+	OpenCodeGoModel            string                      `json:"opencodego_model,omitempty"`
+	MoonshotModel              string                      `json:"moonshot_model,omitempty"`
+	XiaomiModel                string                      `json:"xiaomi_mimo_model,omitempty"`
+	ActiveModel                string                      `json:"active_model,omitempty"`
+	ExplorationModel           string                      `json:"exploration_model,omitempty"`
+	AnthropicVersion           string                      `json:"anthropic_version,omitempty"`
+	Deployments                map[string]DeploymentConfig `json:"deployments,omitempty"`
+	Routing                    *RoutingPolicy              `json:"routing,omitempty"`
 }
 
 type DeploymentConfig struct {
@@ -150,10 +155,17 @@ var providerFields = map[string]providerFieldMap{
 		Models:  func(c *ProviderConfig) []string { return []string{c.MoonshotModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.MoonshotBaseURL },
 	},
-	ProviderXiaomi: {
-		APIKeys: func(c *ProviderConfig) []string { return []string{c.XiaomiAPIKey} },
+	ProviderXiaomiMimoPayg: {
+		APIKeys: func(c *ProviderConfig) []string {
+			return []string{firstNonEmpty(c.XiaomiMimoPaygAPIKey, c.XiaomiAPIKey)}
+		},
 		Models:  func(c *ProviderConfig) []string { return []string{c.XiaomiModel} },
-		BaseURL: func(c *ProviderConfig) string { return c.XiaomiBaseURL },
+		BaseURL: func(c *ProviderConfig) string { return firstNonEmpty(c.XiaomiMimoPaygBaseURL, c.XiaomiBaseURL) },
+	},
+	ProviderXiaomiMimoTokenPlan: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.XiaomiMimoTokenPlanAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.XiaomiModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.XiaomiMimoTokenPlanBaseURL },
 	},
 }
 
@@ -332,7 +344,25 @@ func IsProviderConfigured(config *ProviderConfig, provider string) bool {
 	if provider == ProviderOllama {
 		return AsNonEmptyString(config.OllamaBaseURL) != ""
 	}
+	if depID := cloudDeploymentForProvider(provider); depID != "" {
+		if dep, ok := config.Deployments[depID]; ok {
+			return deploymentHasLiveCredentials(depID, dep)
+		}
+	}
 	return GetProviderAPIKey(config, provider) != ""
+}
+
+func cloudDeploymentForProvider(provider string) string {
+	switch provider {
+	case ProviderAzure:
+		return "openai-azure"
+	case ProviderBedrock:
+		return "anthropic-bedrock"
+	case ProviderVertex:
+		return "gemini-vertex"
+	default:
+		return ""
+	}
 }
 
 // DefaultProviderFromConfig determines the default provider from config.
@@ -380,16 +410,20 @@ func ClearProviderRuntimeEnv() {
 	keys := []string{
 		"ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "ANTHROPIC_BASE_URL", "ANTHROPIC_VERSION",
 		"OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL",
+		"AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_VERSION", "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_MODEL",
+		"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION", "AWS_DEFAULT_REGION", "BEDROCK_MODEL",
+		"VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN", "VERTEX_PROJECT_ID", "VERTEX_REGION", "VERTEX_MODEL",
 		"OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL",
 		"CANOPYWAVE_API_KEY", "CANOPYWAVE_MODEL", "CANOPYWAVE_BASE_URL",
 		"ZAI_API_KEY", "ZAI_MODEL", "ZAI_BASE_URL", "ZAI_API_BASE",
-		"GROK_API_KEY", "GROK_MODEL", "GROK_BASE_URL",
 		"XAI_API_KEY", "XAI_MODEL", "XAI_BASE_URL",
 		"GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL",
 		"OLLAMA_BASE_URL",
 		"OPENCODEGO_API_KEY", "OPENCODEGO_MODEL", "OPENCODEGO_BASE_URL",
-		"MOONSHOT_API_KEY", "MOONSHOT_MODEL", "MOONSHOT_BASE_URL", "KIMI_API_KEY", "KIMI_MODEL", "KIMI_BASE_URL",
-		"XIAOMI_API_KEY", "XIAOMI_MODEL", "XIAOMI_BASE_URL", "MIMO_API_KEY", "MIMO_MODEL", "MIMO_BASE_URL",
+		"MOONSHOT_API_KEY", "MOONSHOT_MODEL", "MOONSHOT_BASE_URL",
+		"XIAOMI_MIMO_API_KEY", "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
+		"XIAOMI_MIMO_TOKEN_PLAN_REGION", "XIAOMI_MODEL", "XIAOMI_BASE_URL",
+		"XIAOMI_MIMO_PAYG_BASE_URL", "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL",
 	}
 	for _, k := range keys {
 		_ = os.Unsetenv(k)
@@ -452,16 +486,47 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 			m = catalog.GetProviderDefaultModel("gemini", cat)
 		}
 		collectOpenAICompatibleProvider(env, "GEMINI", apiKey, m, base, overwrite)
+	case ProviderVertex:
+		dep := config.Deployments["gemini-vertex"]
+		token := firstNonEmpty(dep.Token, dep.APIKey)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("vertex", cat)
+		}
+		collectEnvValue(env, "VERTEX_ACCESS_TOKEN", token, overwrite)
+		collectEnvValue(env, "VERTEX_PROJECT_ID", dep.ProjectID, overwrite)
+		collectEnvValue(env, "VERTEX_REGION", dep.Region, overwrite)
+		collectEnvValue(env, "VERTEX_MODEL", m, overwrite)
+	case ProviderAzure:
+		dep := config.Deployments["openai-azure"]
+		m := activeModel
+		if m == "" {
+			m = firstNonEmptyDeploymentMapping(dep.ModelMappings)
+		}
+		collectEnvValue(env, "AZURE_OPENAI_API_KEY", dep.APIKey, overwrite)
+		collectEnvValue(env, "AZURE_OPENAI_ENDPOINT", dep.Endpoint, overwrite)
+		collectEnvValue(env, "AZURE_OPENAI_API_VERSION", dep.APIVersion, overwrite)
+		collectEnvValue(env, "AZURE_OPENAI_DEPLOYMENT", m, overwrite)
+	case ProviderBedrock:
+		dep := config.Deployments["anthropic-bedrock"]
+		m := activeModel
+		if m == "" {
+			m = firstNonEmptyDeploymentMapping(dep.ModelMappings)
+		}
+		collectEnvValue(env, "AWS_ACCESS_KEY_ID", dep.AccessKeyID, overwrite)
+		collectEnvValue(env, "AWS_SECRET_ACCESS_KEY", dep.SecretAccessKey, overwrite)
+		collectEnvValue(env, "AWS_SESSION_TOKEN", dep.SessionToken, overwrite)
+		collectEnvValue(env, "AWS_REGION", dep.Region, overwrite)
+		collectEnvValue(env, "BEDROCK_MODEL", m, overwrite)
 	case ProviderGrok:
-		apiKey := firstNonEmpty(config.GrokAPIKey, config.XAIAPIKey)
-		base := firstNonEmpty(config.GrokBaseURL, config.XAIBaseURL, DefaultGrokOpenAIBaseURL)
+		apiKey := firstNonEmpty(config.XAIAPIKey, config.GrokAPIKey)
+		base := firstNonEmpty(config.XAIBaseURL, config.GrokBaseURL, DefaultGrokOpenAIBaseURL)
 		m := activeModel
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("grok", cat)
 		}
-		collectEnvValue(env, "GROK_API_KEY", AsNonEmptyString(config.GrokAPIKey), overwrite)
-		collectEnvValue(env, "XAI_API_KEY", AsNonEmptyString(config.XAIAPIKey), overwrite)
-		collectOpenAICompatibleProvider(env, "GROK", apiKey, m, base, overwrite)
+		collectEnvValue(env, "XAI_API_KEY", apiKey, overwrite)
+		collectOpenAICompatibleProvider(env, "XAI", apiKey, m, base, overwrite)
 	case ProviderCanopyWave:
 		apiKey := AsNonEmptyString(config.CanopyWaveAPIKey)
 		base := firstNonEmpty(config.CanopyWaveBaseURL, DefaultCanopyWaveOpenAIBaseURL)
@@ -520,18 +585,42 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		}
 		collectEnvValue(env, "MOONSHOT_API_KEY", apiKey, overwrite)
 		collectOpenAICompatibleProvider(env, "MOONSHOT", apiKey, m, base, overwrite)
-	case ProviderXiaomi:
-		apiKey := AsNonEmptyString(config.XiaomiAPIKey)
-		base := firstNonEmpty(config.XiaomiBaseURL, DefaultXiaomiOpenAIBaseURL)
+	case ProviderXiaomiMimoPayg:
+		apiKey := firstNonEmpty(config.XiaomiMimoPaygAPIKey, config.XiaomiAPIKey)
+		base, _ := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoPayg, config)
+		if base == "" {
+			base = DefaultXiaomiOpenAIBaseURL
+		}
 		m := activeModel
 		if m == "" {
-			m = catalog.GetProviderDefaultModel("xiaomi", cat)
+			m = catalog.GetProviderDefaultModel("xiaomi_mimo_payg", cat)
 		}
 		if m == "" {
 			m = XiaomiDefaultModel
 		}
-		collectEnvValue(env, "XIAOMI_API_KEY", apiKey, overwrite)
+		collectEnvValue(env, EnvXiaomiPaygAPIKey, apiKey, overwrite)
+		collectEnvValue(env, EnvXiaomiPaygBaseURL, base, overwrite)
 		collectOpenAICompatibleProvider(env, "XIAOMI", apiKey, m, base, overwrite)
+	case ProviderXiaomiMimoTokenPlan:
+		apiKey := AsNonEmptyString(config.XiaomiMimoTokenPlanAPIKey)
+		base, err := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoTokenPlan, config)
+		if err == nil && base != "" {
+			collectEnvValue(env, EnvXiaomiTokenPlanBaseURL, base, overwrite)
+		}
+		if r := strings.TrimSpace(config.XiaomiMimoTokenPlanRegion); r != "" {
+			collectEnvValue(env, EnvXiaomiTokenPlanRegion, r, overwrite)
+		}
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("xiaomi_mimo_token_plan", cat)
+		}
+		if m == "" {
+			m = XiaomiDefaultModel
+		}
+		collectEnvValue(env, EnvXiaomiTokenPlanAPIKey, apiKey, overwrite)
+		if base != "" {
+			collectOpenAICompatibleProvider(env, "XIAOMI", apiKey, m, base, overwrite)
+		}
 	}
 	return env
 }

@@ -289,6 +289,9 @@ func TestCanonicalProviderID(t *testing.T) {
 		{"grok", "xai"},
 		{"zai", "z-ai"},
 		{"ollama", "ollama"},
+		{"xiaomi-mimo", "xiaomi_mimo_payg"},
+		{"xiaomi-mimo-payg", "xiaomi_mimo_payg"},
+		{"xiaomi-mimo-token-plan", "xiaomi_mimo_token_plan"},
 	}
 	for _, tt := range tests {
 		got := CanonicalProviderID(tt.input)

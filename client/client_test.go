@@ -17,10 +17,10 @@ func TestDetectProvider(t *testing.T) {
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
 
-	for _, k := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENCODEGO_API_KEY", "OLLAMA_BASE_URL"} {
+	for _, k := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENCODEGO_API_KEY", "OLLAMA_BASE_URL"} {
 		_ = os.Unsetenv(k)
 	}
-	credentials.ScrubProcessEnv([]string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "GROK_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENCODEGO_API_KEY"})
+	credentials.ScrubProcessEnv([]string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENCODEGO_API_KEY"})
 
 	ctx := context.Background()
 	if p := DetectProvider(); p != "anthropic" {
@@ -54,6 +54,36 @@ func TestClient(t *testing.T) {
 	providers := c.GetProviders()
 	if len(providers) == 0 {
 		t.Error("expected providers list")
+	}
+}
+
+func TestClientConfigBaseURL_OpenAICompatible(t *testing.T) {
+	c := Client(&EyrieConfig{Provider: "openrouter", APIKey: "test-key", BaseURL: "https://proxy.example/v1"})
+	p, err := c.getOrCreateProvider("openrouter")
+	if err != nil {
+		t.Fatalf("getOrCreateProvider: %v", err)
+	}
+	oc, ok := p.(*OpenAIClient)
+	if !ok {
+		t.Fatalf("provider type = %T, want *OpenAIClient", p)
+	}
+	if oc.baseURL != "https://proxy.example/v1" {
+		t.Fatalf("baseURL = %q, want override", oc.baseURL)
+	}
+}
+
+func TestClientConfigBaseURL_Anthropic(t *testing.T) {
+	c := Client(&EyrieConfig{Provider: "anthropic", APIKey: "test-key", BaseURL: "https://anthropic-proxy.example"})
+	p, err := c.getOrCreateProvider("anthropic")
+	if err != nil {
+		t.Fatalf("getOrCreateProvider: %v", err)
+	}
+	ac, ok := p.(*AnthropicClient)
+	if !ok {
+		t.Fatalf("provider type = %T, want *AnthropicClient", p)
+	}
+	if ac.baseURL != "https://anthropic-proxy.example" {
+		t.Fatalf("baseURL = %q, want override", ac.baseURL)
 	}
 }
 

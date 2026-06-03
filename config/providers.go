@@ -1,10 +1,21 @@
 package config
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
 )
+
+// VertexGeminiBaseURL returns the Google Vertex AI publisher endpoint for Gemini.
+func VertexGeminiBaseURL(projectID, region string) string {
+	projectID = strings.TrimSpace(projectID)
+	region = strings.TrimSpace(region)
+	if projectID == "" || region == "" {
+		return ""
+	}
+	return fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google", region, projectID, region)
+}
 
 // Default base URLs for each provider.
 const (

@@ -13,8 +13,8 @@ func TestIsLiveOnlyProvider(t *testing.T) {
 	if !catalog.IsLiveOnlyProvider("z-ai") {
 		t.Fatal("z-ai should be live-only")
 	}
-	if catalog.IsLiveOnlyProvider("anthropic") {
-		t.Fatal("anthropic should not be live-only")
+	if !catalog.IsLiveOnlyProvider("anthropic") {
+		t.Fatal("anthropic should be live-only")
 	}
 }
 
