@@ -49,7 +49,7 @@ var (
 		MaxTokensField: "max_tokens",
 	}
 	XiaomiCompat = OpenAICompatConfig{
-		MaxTokensField: "max_tokens",
+		MaxTokensField: "max_completion_tokens",
 	}
 	AzureCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens",
@@ -101,9 +101,11 @@ func init() {
 		p.Compat = &KimiCompat
 		OpenAICompatibleProviders["kimi"] = p
 	}
-	if p, ok := OpenAICompatibleProviders["xiaomi"]; ok {
-		p.Compat = &XiaomiCompat
-		OpenAICompatibleProviders["xiaomi"] = p
+	for _, id := range []string{"xiaomi_mimo", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan"} {
+		if p, ok := OpenAICompatibleProviders[id]; ok {
+			p.Compat = &XiaomiCompat
+			OpenAICompatibleProviders[id] = p
+		}
 	}
 	if p, ok := CoreProviders["openai"]; ok {
 		p.Compat = &OpenAICompat

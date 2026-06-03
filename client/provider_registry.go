@@ -51,15 +51,16 @@ var CoreProviders = map[string]ProviderRegistryConfig{
 
 // OpenAICompatibleProviders use the OpenAI SDK with custom baseUrl.
 var OpenAICompatibleProviders = map[string]ProviderRegistryConfig{
-	"grok":       {Name: "grok", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.x.ai/v1", EnvKey: "XAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"openrouter": {Name: "openrouter", Type: ProviderTypeOpenAICompatible, BaseURL: "https://openrouter.ai/api/v1", EnvKey: "OPENROUTER_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"z-ai":       {Name: "z-ai", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.z.ai/api/paas/v4", EnvKey: "ZAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"canopywave": {Name: "canopywave", Type: ProviderTypeOpenAICompatible, BaseURL: "https://inference.canopywave.io/v1", EnvKey: "CANOPYWAVE_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"gemini":     {Name: "gemini", Type: ProviderTypeOpenAICompatible, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", EnvKey: "GEMINI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"ollama":     {Name: "ollama", Type: ProviderTypeOpenAICompatible, BaseURL: "http://localhost:11434/v1", EnvKey: "OLLAMA_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: false},
-	"opencodego": {Name: "opencodego", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultOpenCodeGoBaseURL, EnvKey: "OPENCODEGO_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"kimi":       {Name: "kimi", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultKimiOpenAIBaseURL, EnvKey: "MOONSHOT_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"xiaomi":     {Name: "xiaomi", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultXiaomiOpenAIBaseURL, EnvKey: "XIAOMI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"grok":                   {Name: "grok", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.x.ai/v1", EnvKey: "XAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"openrouter":             {Name: "openrouter", Type: ProviderTypeOpenAICompatible, BaseURL: "https://openrouter.ai/api/v1", EnvKey: "OPENROUTER_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"z-ai":                   {Name: "z-ai", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.z.ai/api/paas/v4", EnvKey: "ZAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"canopywave":             {Name: "canopywave", Type: ProviderTypeOpenAICompatible, BaseURL: "https://inference.canopywave.io/v1", EnvKey: "CANOPYWAVE_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"gemini":                 {Name: "gemini", Type: ProviderTypeOpenAICompatible, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", EnvKey: "GEMINI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"ollama":                 {Name: "ollama", Type: ProviderTypeOpenAICompatible, BaseURL: "http://localhost:11434/v1", EnvKey: "OLLAMA_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: false},
+	"opencodego":             {Name: "opencodego", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultOpenCodeGoBaseURL, EnvKey: "OPENCODEGO_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"kimi":                   {Name: "kimi", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultKimiOpenAIBaseURL, EnvKey: "MOONSHOT_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"xiaomi_mimo_payg":       {Name: "xiaomi_mimo_payg", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultXiaomiOpenAIBaseURL, EnvKey: config.EnvXiaomiPaygAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"xiaomi_mimo_token_plan": {Name: "xiaomi_mimo_token_plan", Type: ProviderTypeOpenAICompatible, BaseURL: "", EnvKey: config.EnvXiaomiTokenPlanAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 }
 
 // GetProviders lists all available providers.
@@ -124,14 +125,16 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 			return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
 		}
 		apiKey = resolveEnvSecret(info.EnvKey)
-		if apiKey == "" && providerName == "grok" {
-			apiKey = resolveEnvSecret("GROK_API_KEY")
-		}
+
 	}
 
 	info := c.GetProviderInfo(providerName)
 	if info == nil {
 		return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
+	}
+	baseURL := c.baseURLs[providerName]
+	if baseURL == "" {
+		baseURL = info.BaseURL
 	}
 
 	if apiKey == "" && providerName != "ollama" {
@@ -141,11 +144,11 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 	var p Provider
 	switch info.Type {
 	case ProviderTypeAnthropic:
-		p = NewAnthropicClient(apiKey, info.BaseURL)
+		p = NewAnthropicClient(apiKey, baseURL)
 	case ProviderTypeAzure:
 		endpoint := resolveEnvSecret("AZURE_OPENAI_ENDPOINT")
 		if endpoint == "" {
-			endpoint = info.BaseURL
+			endpoint = baseURL
 		}
 		apiVersion := resolveEnvSecret("AZURE_OPENAI_API_VERSION")
 		p = NewAzureClient(apiKey, endpoint, apiVersion)
@@ -166,9 +169,26 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 		if region == "" {
 			region = "us-central1"
 		}
-		p = NewVertexClient(projectID, region, apiKey)
+		baseURL := config.VertexGeminiBaseURL(projectID, region)
+		if baseURL == "" {
+			return nil, fmt.Errorf("eyrie: vertex requires VERTEX_PROJECT_ID and VERTEX_REGION")
+		}
+		p = NewGeminiClient(apiKey, baseURL)
 	default:
-		p = NewOpenAIClient(apiKey, info.BaseURL, info.Compat)
+		if config.IsXiaomiMimoProvider(providerName) {
+			providerCfg := config.LoadProviderConfig("")
+			openAIBase, err := config.ResolveXiaomiOpenAIBase(providerName, providerCfg)
+			if err != nil {
+				return nil, err
+			}
+			anthropicBase, err := config.ResolveXiaomiAnthropicBase(providerName, providerCfg)
+			if err != nil {
+				return nil, err
+			}
+			p = NewMiMoClient(apiKey, openAIBase, anthropicBase, info.Compat, providerName)
+			break
+		}
+		p = NewOpenAIClient(apiKey, baseURL, info.Compat)
 	}
 
 	c.providers[providerName] = p
@@ -181,9 +201,7 @@ func DetectProvider() string {
 	checks := map[string]func() bool{
 		"anthropic":  func() bool { return credentials.HasSecret(ctx, "ANTHROPIC_API_KEY") },
 		"openrouter": func() bool { return credentials.HasSecret(ctx, "OPENROUTER_API_KEY") },
-		"grok": func() bool {
-			return credentials.HasSecret(ctx, "GROK_API_KEY") || credentials.HasSecret(ctx, "XAI_API_KEY")
-		},
+		"grok":       func() bool { return credentials.HasSecret(ctx, "XAI_API_KEY") },
 		"gemini":     func() bool { return credentials.HasSecret(ctx, "GEMINI_API_KEY") },
 		"z-ai":       func() bool { return credentials.HasSecret(ctx, "ZAI_API_KEY") },
 		"canopywave": func() bool { return credentials.HasSecret(ctx, "CANOPYWAVE_API_KEY") },

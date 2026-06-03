@@ -6,9 +6,9 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
-// DiscoveryEnvMap returns merged credential env (OS + keychain) for status UI and routing.
+// DiscoveryEnvMap returns merged credential env (keychain + provider.json routing) for status UI.
 func DiscoveryEnvMap(ctx context.Context) map[string]string {
-	return DiscoveryCredentials(ctx).APIKeys
+	return DiscoveryCredentials(ctx).Env()
 }
 
 // HasAnyConfiguredDeployment reports whether catalog env + keychain satisfy any deployment.

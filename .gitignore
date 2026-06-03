@@ -3,37 +3,18 @@
 bin/
 *.exe
 
-# Test artifacts
-*.test
-*.out
-coverage.html
-coverage.txt
+# Secrets / local config
+.env
+.env.*
+!.env.example
 
-# Cache
-/tmp/
-.cache/
+# Build / cache / seed artifacts
+*.seeds.json
+elrond*.db
+*.codegraph.db
+*.tsbuildinfo
+.next/
+dist/
 
-# Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Go
-vendor/
-go.work
-go.work.sum
-
-# CodeGraph local index
-.codegraph/
-
-# AI/IDE tool configs
-.cursor/
-.openclaude/
-.commandcode/
-.antigravitycli/
-.pi/
+# Dev tool state
+.claude/

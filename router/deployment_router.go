@@ -247,6 +247,11 @@ func (r *DeploymentRouter) resolveTarget(requested string) (deploymentTarget, er
 	if requested == "" {
 		return deploymentTarget{}, fmt.Errorf("deployment router: model is required")
 	}
+	requested = strings.TrimSpace(requested)
+	// Prefer offerings on configured deployments over global aliases (native mimo-v2.5-pro → xiaomi token plan).
+	if target, ok := r.resolveViaConfiguredDeployments(requested); ok {
+		return target, nil
+	}
 	if canonical, ok := r.catalog.CanonicalModelForAliasOrID(requested); ok {
 		return deploymentTarget{canonicalModelID: canonical}, nil
 	}
@@ -275,6 +280,22 @@ func (r *DeploymentRouter) resolveTarget(requested string) (deploymentTarget, er
 		return deploymentTarget{canonicalModelID: requested, nativeHint: requested}, nil
 	}
 	return deploymentTarget{}, fmt.Errorf("deployment router: model %q is not in catalog", requested)
+}
+
+func (r *DeploymentRouter) resolveViaConfiguredDeployments(requested string) (deploymentTarget, bool) {
+	var matches []string
+	for depID := range r.deployments {
+		for _, offering := range r.catalog.OfferingsByDeployment[depID] {
+			if offering.NativeModelID == requested || offering.CanonicalModelID == requested {
+				matches = append(matches, offering.CanonicalModelID)
+			}
+		}
+	}
+	matches = uniqueStrings(matches)
+	if len(matches) != 1 {
+		return deploymentTarget{}, false
+	}
+	return deploymentTarget{canonicalModelID: matches[0]}, true
 }
 
 func (r *DeploymentRouter) routeFor(canonicalModelID string) []RoutingStage {

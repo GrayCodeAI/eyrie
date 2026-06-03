@@ -35,24 +35,18 @@ func TestGetModelMarketingName(t *testing.T) {
 	}
 }
 
-func TestGetProviderModelCandidates(t *testing.T) {
-	candidates := GetProviderModelCandidates("anthropic", TierSonnet)
-	if len(candidates) == 0 {
-		t.Fatal("expected candidates for anthropic sonnet")
-	}
-	if candidates[0] != "claude-sonnet-4-6" {
-		t.Errorf("expected first candidate claude-sonnet-4-6, got %s", candidates[0])
+func TestGetProviderModelCandidates_LiveSetupProvidersEmpty(t *testing.T) {
+	if got := GetProviderModelCandidates("anthropic", TierSonnet); len(got) != 0 {
+		t.Fatalf("anthropic tier candidates should be empty, got %v", got)
 	}
 }
 
-func TestGetProviderDefaultModel(t *testing.T) {
-	model := GetProviderDefaultModel("anthropic", nil)
-	if model == "" {
-		t.Error("expected non-empty default model for anthropic")
+func TestGetProviderDefaultModel_LiveSetupProvidersEmptyWithoutCatalog(t *testing.T) {
+	if got := GetProviderDefaultModel("anthropic", nil); got != "" {
+		t.Fatalf("anthropic default should be empty without catalog, got %q", got)
 	}
-	model = GetProviderDefaultModel("openai", nil)
-	if model == "" {
-		t.Error("expected non-empty default model for openai")
+	if got := GetProviderDefaultModel("openai", nil); got != "" {
+		t.Fatalf("openai default should be empty without catalog, got %q", got)
 	}
 }
 

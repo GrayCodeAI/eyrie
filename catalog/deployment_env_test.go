@@ -25,24 +25,24 @@ func TestDefaultDeploymentEnvFallbacks_ExtraDeployments(t *testing.T) {
 	}
 }
 
-func TestDefaultDeploymentEnvFallbacks_GrokHasGROKAPIKey(t *testing.T) {
+func TestDefaultDeploymentEnvFallbacks_GrokHasXAIAPIKey(t *testing.T) {
 	fbs := DefaultDeploymentEnvFallbacks
 	grok, ok := fbs["grok-direct"]
 	if !ok {
 		t.Fatal("grok-direct not found in env fallbacks")
 	}
-	hasGROK := false
+	hasXAI := false
 	for _, fb := range grok {
 		if fb.Field == "api_key" {
 			for _, env := range fb.Env {
-				if env == "GROK_API_KEY" {
-					hasGROK = true
+				if env == "XAI_API_KEY" {
+					hasXAI = true
 				}
 			}
 		}
 	}
-	if !hasGROK {
-		t.Error("grok-direct api_key fallbacks should include GROK_API_KEY")
+	if !hasXAI {
+		t.Error("grok-direct api_key fallbacks should include XAI_API_KEY")
 	}
 }
 

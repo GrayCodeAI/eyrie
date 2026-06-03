@@ -39,9 +39,7 @@ func FetchLiveProviderCatalog(env map[string]string) (ModelCatalog, []LiveProvid
 			continue
 		}
 		if len(models) == 0 {
-			if spec.ModelStrategy == registry.StrategyLiveOnly {
-				enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: "no models returned", DurationMs: duration})
-			}
+			enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: "no models returned", DurationMs: duration})
 			continue
 		}
 		cat.Providers[catalogKey] = LiveEntriesToCatalog(models)

@@ -4,17 +4,21 @@ package config
 type APIProvider = string
 
 const (
-	ProviderAnthropic  APIProvider = "anthropic"
-	ProviderOpenAI     APIProvider = "openai"
-	ProviderCanopyWave APIProvider = "canopywave"
-	ProviderZAI        APIProvider = "z-ai"
-	ProviderOpenRouter APIProvider = "openrouter"
-	ProviderGrok       APIProvider = "grok"
-	ProviderGemini     APIProvider = "gemini"
-	ProviderOllama     APIProvider = "ollama"
-	ProviderOpenCodeGo APIProvider = "opencodego"
-	ProviderKimi       APIProvider = "kimi"
-	ProviderXiaomi     APIProvider = "xiaomi"
+	ProviderAnthropic           APIProvider = "anthropic"
+	ProviderOpenAI              APIProvider = "openai"
+	ProviderAzure               APIProvider = "azure"
+	ProviderCanopyWave          APIProvider = "canopywave"
+	ProviderZAI                 APIProvider = "z-ai"
+	ProviderOpenRouter          APIProvider = "openrouter"
+	ProviderGrok                APIProvider = "grok"
+	ProviderGemini              APIProvider = "gemini"
+	ProviderBedrock             APIProvider = "bedrock"
+	ProviderVertex              APIProvider = "vertex"
+	ProviderOllama              APIProvider = "ollama"
+	ProviderOpenCodeGo          APIProvider = "opencodego"
+	ProviderKimi                APIProvider = "kimi"
+	ProviderXiaomiMimoPayg      APIProvider = "xiaomi_mimo_payg"
+	ProviderXiaomiMimoTokenPlan APIProvider = "xiaomi_mimo_token_plan"
 )
 
 // RuntimeProviderProfile defines how a provider is detected and configured at runtime.
@@ -52,10 +56,10 @@ var (
 	}
 	GrokRuntimeProfile = RuntimeProviderProfile{
 		Mode: "grok", DefaultBaseURL: DefaultGrokOpenAIBaseURL, DefaultModel: "grok-2",
-		DetectionEnv: []string{"GROK_API_KEY", "XAI_API_KEY"},
-		ModelEnv:     []string{"GROK_MODEL", "XAI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"GROK_BASE_URL", "XAI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
-		APIKeys:      []APIKeyDef{{Env: "GROK_API_KEY", Source: "grok"}, {Env: "XAI_API_KEY", Source: "xai"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
+		DetectionEnv: []string{"XAI_API_KEY"},
+		ModelEnv:     []string{"XAI_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"XAI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "XAI_API_KEY", Source: "grok"}},
 	}
 	GeminiRuntimeProfile = RuntimeProviderProfile{
 		Mode: "gemini", DefaultBaseURL: DefaultGeminiOpenAIBaseURL, DefaultModel: "gemini-2.0-flash",
@@ -63,6 +67,27 @@ var (
 		ModelEnv:     []string{"GEMINI_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{"GEMINI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "GEMINI_API_KEY", Source: "gemini"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
+	}
+	VertexRuntimeProfile = RuntimeProviderProfile{
+		Mode: "gemini-vertex", DefaultBaseURL: "", DefaultModel: "gemini-2.0-flash",
+		DetectionEnv: []string{"VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"},
+		ModelEnv:     []string{"VERTEX_MODEL", "GEMINI_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"VERTEX_PROJECT_ID", "VERTEX_REGION"},
+		APIKeys:      []APIKeyDef{{Env: "VERTEX_ACCESS_TOKEN", Source: "vertex"}, {Env: "GOOGLE_OAUTH_ACCESS_TOKEN", Source: "google"}},
+	}
+	AzureRuntimeProfile = RuntimeProviderProfile{
+		Mode: "azure", DefaultBaseURL: "", DefaultModel: "",
+		DetectionEnv: []string{"AZURE_OPENAI_API_KEY"},
+		ModelEnv:     []string{"AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"AZURE_OPENAI_ENDPOINT"},
+		APIKeys:      []APIKeyDef{{Env: "AZURE_OPENAI_API_KEY", Source: "azure"}},
+	}
+	BedrockRuntimeProfile = RuntimeProviderProfile{
+		Mode: "bedrock", DefaultBaseURL: "", DefaultModel: "",
+		DetectionEnv: []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"},
+		ModelEnv:     []string{"BEDROCK_MODEL", "ANTHROPIC_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"AWS_REGION", "AWS_DEFAULT_REGION"},
+		APIKeys:      []APIKeyDef{{Env: "AWS_SECRET_ACCESS_KEY", Source: "bedrock"}, {Env: "AWS_ACCESS_KEY_ID", Source: "bedrock"}},
 	}
 	OpenRouterRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openrouter", DefaultBaseURL: DefaultOpenRouterOpenAIBaseURL,
@@ -94,40 +119,51 @@ var (
 	}
 	KimiRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultKimiOpenAIBaseURL, DefaultModel: "kimi-k2.6",
-		DetectionEnv: []string{"MOONSHOT_API_KEY", "KIMI_API_KEY"},
-		ModelEnv:     []string{"MOONSHOT_MODEL", "KIMI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"MOONSHOT_BASE_URL", "KIMI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		DetectionEnv: []string{"MOONSHOT_API_KEY"},
+		ModelEnv:     []string{"MOONSHOT_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"MOONSHOT_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "MOONSHOT_API_KEY", Source: "kimi"}},
 	}
-	XiaomiRuntimeProfile = RuntimeProviderProfile{
-		Mode: "openai", DefaultBaseURL: DefaultXiaomiOpenAIBaseURL, DefaultModel: "mimo-v2-flash",
-		DetectionEnv: []string{"XIAOMI_API_KEY", "MIMO_API_KEY"},
-		ModelEnv:     []string{"XIAOMI_MODEL", "MIMO_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"XIAOMI_BASE_URL", "MIMO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
-		APIKeys:      []APIKeyDef{{Env: "XIAOMI_API_KEY", Source: "xiaomi"}},
+	XiaomiPaygRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultXiaomiOpenAIBaseURL, DefaultModel: "mimo-v2.5-pro",
+		DetectionEnv: []string{EnvXiaomiPaygAPIKey},
+		ModelEnv:     []string{"XIAOMI_MIMO_PAYG_MODEL", "XIAOMI_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{EnvXiaomiPaygBaseURL, "XIAOMI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: EnvXiaomiPaygAPIKey, Source: "xiaomi_mimo_payg"}},
+	}
+	XiaomiTokenPlanRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: "", DefaultModel: "mimo-v2.5-pro",
+		DetectionEnv: []string{EnvXiaomiTokenPlanAPIKey},
+		ModelEnv:     []string{"XIAOMI_MIMO_TOKEN_PLAN_MODEL", "XIAOMI_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{EnvXiaomiTokenPlanBaseURL, "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: EnvXiaomiTokenPlanAPIKey, Source: "xiaomi_mimo_token_plan"}},
 	}
 )
 
 // APIProviderDetectionOrder is the priority order for provider detection.
 var APIProviderDetectionOrder = []APIProvider{
 	ProviderAnthropic, ProviderOpenRouter, ProviderGrok, ProviderGemini,
-	ProviderZAI, ProviderCanopyWave, ProviderOpenAI, ProviderOpenCodeGo,
-	ProviderKimi, ProviderXiaomi, ProviderOllama,
+	ProviderVertex, ProviderBedrock, ProviderZAI, ProviderCanopyWave, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
+	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderOllama,
 }
 
 // ProviderModelEnvKeys maps each provider to its model env var keys.
 var ProviderModelEnvKeys = map[APIProvider][]string{
-	ProviderAnthropic:  AnthropicRuntimeProfile.ModelEnv,
-	ProviderOpenAI:     OpenAIRuntimeProfile.ModelEnv,
-	ProviderCanopyWave: CanopyWaveRuntimeProfile.ModelEnv,
-	ProviderZAI:        ZAIRuntimeProfile.ModelEnv,
-	ProviderOpenRouter: OpenRouterRuntimeProfile.ModelEnv,
-	ProviderGrok:       GrokRuntimeProfile.ModelEnv,
-	ProviderGemini:     GeminiRuntimeProfile.ModelEnv,
-	ProviderOllama:     {"OLLAMA_MODEL", "OPENAI_MODEL"},
-	ProviderOpenCodeGo: OpenCodeGoRuntimeProfile.ModelEnv,
-	ProviderKimi:       KimiRuntimeProfile.ModelEnv,
-	ProviderXiaomi:     XiaomiRuntimeProfile.ModelEnv,
+	ProviderAnthropic:           AnthropicRuntimeProfile.ModelEnv,
+	ProviderOpenAI:              OpenAIRuntimeProfile.ModelEnv,
+	ProviderAzure:               AzureRuntimeProfile.ModelEnv,
+	ProviderCanopyWave:          CanopyWaveRuntimeProfile.ModelEnv,
+	ProviderZAI:                 ZAIRuntimeProfile.ModelEnv,
+	ProviderOpenRouter:          OpenRouterRuntimeProfile.ModelEnv,
+	ProviderGrok:                GrokRuntimeProfile.ModelEnv,
+	ProviderGemini:              GeminiRuntimeProfile.ModelEnv,
+	ProviderBedrock:             BedrockRuntimeProfile.ModelEnv,
+	ProviderVertex:              VertexRuntimeProfile.ModelEnv,
+	ProviderOllama:              {"OLLAMA_MODEL", "OPENAI_MODEL"},
+	ProviderOpenCodeGo:          OpenCodeGoRuntimeProfile.ModelEnv,
+	ProviderKimi:                KimiRuntimeProfile.ModelEnv,
+	ProviderXiaomiMimoPayg:      XiaomiPaygRuntimeProfile.ModelEnv,
+	ProviderXiaomiMimoTokenPlan: XiaomiTokenPlanRuntimeProfile.ModelEnv,
 }
 
 const (
@@ -141,19 +177,20 @@ const (
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.
 var OpenAICompatibleRuntimeProfileOrder = []string{
-	"openrouter", "grok", "gemini", "anthropic", "z-ai", "canopywave", "openai", "opencodego", "kimi", "xiaomi",
+	"openrouter", "grok", "gemini", "anthropic", "z-ai", "canopywave", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan",
 }
 
 // OpenAICompatibleRuntimeProfiles maps profile key to its runtime profile.
 var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
-	"anthropic":  AnthropicRuntimeProfile,
-	"grok":       GrokRuntimeProfile,
-	"gemini":     GeminiRuntimeProfile,
-	"z-ai":       ZAIRuntimeProfile,
-	"canopywave": CanopyWaveRuntimeProfile,
-	"openai":     OpenAIRuntimeProfile,
-	"openrouter": OpenRouterRuntimeProfile,
-	"opencodego": OpenCodeGoRuntimeProfile,
-	"kimi":       KimiRuntimeProfile,
-	"xiaomi":     XiaomiRuntimeProfile,
+	"anthropic":              AnthropicRuntimeProfile,
+	"grok":                   GrokRuntimeProfile,
+	"gemini":                 GeminiRuntimeProfile,
+	"z-ai":                   ZAIRuntimeProfile,
+	"canopywave":             CanopyWaveRuntimeProfile,
+	"openai":                 OpenAIRuntimeProfile,
+	"openrouter":             OpenRouterRuntimeProfile,
+	"opencodego":             OpenCodeGoRuntimeProfile,
+	"kimi":                   KimiRuntimeProfile,
+	"xiaomi_mimo_payg":       XiaomiPaygRuntimeProfile,
+	"xiaomi_mimo_token_plan": XiaomiTokenPlanRuntimeProfile,
 }

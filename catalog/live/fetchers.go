@@ -2,11 +2,18 @@ package live
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"sort"
 	"strings"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 )
 
 var httpClient = &http.Client{Timeout: 30 * time.Second}
@@ -27,17 +34,21 @@ type FetchFunc func(env map[string]string) ([]Entry, error)
 
 // Registry maps fetcher keys to implementations.
 var Registry = map[string]FetchFunc{
-	"anthropic":  FetchAnthropic,
-	"openai":     FetchOpenAI,
-	"gemini":     FetchGemini,
-	"openrouter": FetchOpenRouter,
-	"grok":       FetchGrok,
-	"z-ai":       FetchZAI,
-	"canopywave": FetchCanopyWave,
-	"opencodego": FetchOpenCodeGo,
-	"kimi":       FetchKimi,
-	"xiaomi":     FetchXiaomi,
-	"ollama":     FetchOllama,
+	"anthropic":              FetchAnthropic,
+	"openai":                 FetchOpenAI,
+	"azure":                  FetchAzure,
+	"gemini":                 FetchGemini,
+	"bedrock":                FetchBedrock,
+	"vertex":                 FetchVertex,
+	"openrouter":             FetchOpenRouter,
+	"grok":                   FetchGrok,
+	"z-ai":                   FetchZAI,
+	"canopywave":             FetchCanopyWave,
+	"opencodego":             FetchOpenCodeGo,
+	"kimi":                   FetchKimi,
+	"xiaomi_mimo_payg":       FetchXiaomiPayg,
+	"xiaomi_mimo_token_plan": FetchXiaomiTokenPlan,
+	"ollama":                 FetchOllama,
 }
 
 // Fetch runs a registered live fetcher.
@@ -222,6 +233,15 @@ func envOr(env map[string]string, key, def string) string {
 	return def
 }
 
+func firstEnv(env map[string]string, keys ...string) string {
+	for _, key := range keys {
+		if v := strings.TrimSpace(env[key]); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 func FetchOpenAI(env map[string]string) ([]Entry, error) {
 	return fetchOpenAICompatModels(
 		context.Background(),
@@ -230,15 +250,222 @@ func FetchOpenAI(env map[string]string) ([]Entry, error) {
 	)
 }
 
-func FetchGrok(env map[string]string) ([]Entry, error) {
-	key := strings.TrimSpace(env["XAI_API_KEY"])
-	if key == "" {
-		key = strings.TrimSpace(env["GROK_API_KEY"])
+func FetchAzure(env map[string]string) ([]Entry, error) {
+	if id := firstEnv(env, "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_MODEL", "OPENAI_MODEL"); id != "" {
+		return []Entry{{ID: id, DisplayName: id}}, nil
 	}
+	token := firstEnv(env, "AZURE_OPENAI_MANAGEMENT_TOKEN", "AZURE_ACCESS_TOKEN")
+	subscriptionID := strings.TrimSpace(env["AZURE_SUBSCRIPTION_ID"])
+	resourceGroup := strings.TrimSpace(env["AZURE_RESOURCE_GROUP"])
+	accountName := firstEnv(env, "AZURE_OPENAI_ACCOUNT_NAME", "AZURE_OPENAI_ACCOUNT")
+	if token == "" || subscriptionID == "" || resourceGroup == "" || accountName == "" {
+		return nil, nil
+	}
+	apiVersion := envOr(env, "AZURE_OPENAI_MANAGEMENT_API_VERSION", "2024-10-01")
+	path := fmt.Sprintf("https://management.azure.com/subscriptions/%s/resourceGroups/%s/providers/Microsoft.CognitiveServices/accounts/%s/deployments",
+		url.PathEscape(subscriptionID), url.PathEscape(resourceGroup), url.PathEscape(accountName))
+	reqURL := path + "?api-version=" + url.QueryEscape(apiVersion)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create azure request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("azure deployment fetch failed (%d)", resp.StatusCode)
+	}
+	var payload struct {
+		Value []json.RawMessage `json:"value"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+	var entries []Entry
+	for _, raw := range payload.Value {
+		entry, ok := entryFromAzureDeploymentJSON(raw)
+		if ok {
+			entries = append(entries, entry)
+		}
+	}
+	return entries, nil
+}
+
+func entryFromAzureDeploymentJSON(raw json.RawMessage) (Entry, bool) {
+	var dep struct {
+		Name       string `json:"name"`
+		Properties struct {
+			Model struct {
+				Name    string `json:"name"`
+				Format  string `json:"format"`
+				Version string `json:"version"`
+			} `json:"model"`
+			ProvisioningState string `json:"provisioningState"`
+		} `json:"properties"`
+	}
+	if err := json.Unmarshal(raw, &dep); err != nil {
+		return Entry{}, false
+	}
+	id := strings.TrimSpace(dep.Name)
+	if id == "" || !strings.EqualFold(strings.TrimSpace(dep.Properties.ProvisioningState), "Succeeded") {
+		return Entry{}, false
+	}
+	label := id
+	if model := strings.TrimSpace(dep.Properties.Model.Name); model != "" {
+		label = id + " (" + model + ")"
+	}
+	return Entry{ID: id, DisplayName: label, OwnedBy: "azure", RawJSON: append(json.RawMessage(nil), raw...)}, true
+}
+
+func FetchBedrock(env map[string]string) ([]Entry, error) {
+	accessKeyID := strings.TrimSpace(env["AWS_ACCESS_KEY_ID"])
+	secretAccessKey := strings.TrimSpace(env["AWS_SECRET_ACCESS_KEY"])
+	region := firstEnv(env, "AWS_REGION", "AWS_DEFAULT_REGION")
+	if accessKeyID == "" || secretAccessKey == "" || region == "" {
+		return nil, nil
+	}
+	reqURL := fmt.Sprintf("https://bedrock.%s.amazonaws.com/foundation-models?byProvider=Anthropic", region)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create bedrock request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+	signAWSV4(req, accessKeyID, secretAccessKey, strings.TrimSpace(env["AWS_SESSION_TOKEN"]), region, "bedrock", nil)
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bedrock model fetch failed (%d)", resp.StatusCode)
+	}
+	var payload struct {
+		ModelSummaries []json.RawMessage `json:"modelSummaries"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+	var entries []Entry
+	for _, raw := range payload.ModelSummaries {
+		entry, ok := entryFromBedrockModelJSON(raw)
+		if ok {
+			entries = append(entries, entry)
+		}
+	}
+	return entries, nil
+}
+
+func entryFromBedrockModelJSON(raw json.RawMessage) (Entry, bool) {
+	var m struct {
+		ModelID                    string   `json:"modelId"`
+		ModelName                  string   `json:"modelName"`
+		ProviderName               string   `json:"providerName"`
+		ResponseStreamingSupported bool     `json:"responseStreamingSupported"`
+		InputModalities            []string `json:"inputModalities"`
+		OutputModalities           []string `json:"outputModalities"`
+	}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return Entry{}, false
+	}
+	id := strings.TrimSpace(m.ModelID)
+	if id == "" {
+		return Entry{}, false
+	}
+	if provider := strings.TrimSpace(m.ProviderName); provider != "" && !strings.EqualFold(provider, "Anthropic") {
+		return Entry{}, false
+	}
+	label := strings.TrimSpace(m.ModelName)
+	if label == "" {
+		label = id
+	}
+	features := append([]string(nil), m.InputModalities...)
+	features = append(features, m.OutputModalities...)
+	if m.ResponseStreamingSupported {
+		features = append(features, "streaming")
+	}
+	return Entry{ID: id, DisplayName: label, OwnedBy: "anthropic", Features: features, RawJSON: append(json.RawMessage(nil), raw...)}, true
+}
+
+func FetchVertex(env map[string]string) ([]Entry, error) {
+	projectID := strings.TrimSpace(env["VERTEX_PROJECT_ID"])
+	region := strings.TrimSpace(env["VERTEX_REGION"])
+	token := firstEnv(env, "VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN")
+	if projectID == "" || region == "" || token == "" {
+		return nil, nil
+	}
+	reqURL := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models",
+		region, url.PathEscape(projectID), url.PathEscape(region))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create vertex request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("vertex model fetch failed (%d)", resp.StatusCode)
+	}
+	var payload struct {
+		PublisherModels []json.RawMessage `json:"publisherModels"`
+		Models          []json.RawMessage `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+	rawModels := payload.PublisherModels
+	if len(rawModels) == 0 {
+		rawModels = payload.Models
+	}
+	var entries []Entry
+	for _, raw := range rawModels {
+		entry, ok := entryFromVertexModelJSON(raw)
+		if ok {
+			entries = append(entries, entry)
+		}
+	}
+	return entries, nil
+}
+
+func entryFromVertexModelJSON(raw json.RawMessage) (Entry, bool) {
+	var m struct {
+		Name        string   `json:"name"`
+		DisplayName string   `json:"displayName"`
+		VersionID   string   `json:"versionId"`
+		Frameworks  []string `json:"frameworks"`
+	}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return Entry{}, false
+	}
+	id := strings.TrimSpace(m.Name)
+	if id == "" {
+		return Entry{}, false
+	}
+	if i := strings.LastIndex(id, "/models/"); i >= 0 {
+		id = id[i+len("/models/"):]
+	}
+	label := strings.TrimSpace(m.DisplayName)
+	if label == "" {
+		label = id
+	}
+	return Entry{ID: id, DisplayName: label, OwnedBy: "google", Features: append([]string(nil), m.Frameworks...), RawJSON: append(json.RawMessage(nil), raw...)}, true
+}
+
+func FetchGrok(env map[string]string) ([]Entry, error) {
 	return fetchOpenAICompatModels(
 		context.Background(),
-		envOr(env, "GROK_BASE_URL", envOr(env, "XAI_BASE_URL", DefaultGrokBaseURL)),
-		key, "Bearer",
+		envOr(env, "XAI_BASE_URL", DefaultGrokBaseURL),
+		env["XAI_API_KEY"], "Bearer",
 	)
 }
 
@@ -267,27 +494,78 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 }
 
 func FetchKimi(env map[string]string) ([]Entry, error) {
-	key := strings.TrimSpace(env["MOONSHOT_API_KEY"])
-	if key == "" {
-		key = strings.TrimSpace(env["KIMI_API_KEY"])
-	}
 	return fetchOpenAICompatModels(
 		context.Background(),
-		envOr(env, "MOONSHOT_BASE_URL", envOr(env, "KIMI_BASE_URL", DefaultKimiBaseURL)),
-		key, "Bearer",
+		envOr(env, "MOONSHOT_BASE_URL", DefaultKimiBaseURL),
+		env["MOONSHOT_API_KEY"], "Bearer",
 	)
 }
 
-func FetchXiaomi(env map[string]string) ([]Entry, error) {
-	key := strings.TrimSpace(env["XIAOMI_API_KEY"])
-	if key == "" {
-		key = strings.TrimSpace(env["MIMO_API_KEY"])
+func FetchXiaomiPayg(env map[string]string) ([]Entry, error) {
+	return fetchMimoOpenAIModels(env, "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_PAYG_BASE_URL", DefaultXiaomiBaseURL)
+}
+
+func FetchXiaomiTokenPlan(env map[string]string) ([]Entry, error) {
+	base := resolveTokenPlanOpenAIBase(env)
+	if base != "" {
+		env2 := make(map[string]string, len(env)+1)
+		for k, v := range env {
+			env2[k] = v
+		}
+		env2["XIAOMI_MIMO_TOKEN_PLAN_BASE_URL"] = base
+		env = env2
 	}
-	return fetchOpenAICompatModels(
-		context.Background(),
-		envOr(env, "XIAOMI_BASE_URL", envOr(env, "MIMO_BASE_URL", DefaultXiaomiBaseURL)),
-		key, "Bearer",
-	)
+	return fetchMimoOpenAIModels(env, "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL", "")
+}
+
+func resolveTokenPlanOpenAIBase(env map[string]string) string {
+	region, err := xiaomi.NormalizeRegion(env["XIAOMI_MIMO_TOKEN_PLAN_REGION"])
+	if err != nil {
+		region = ""
+	}
+	override := strings.TrimSpace(env["XIAOMI_MIMO_TOKEN_PLAN_BASE_URL"])
+	base, err := xiaomi.ResolveOpenAIBasePreferRegion(xiaomi.BillingTokenPlan, region, override)
+	if err != nil {
+		return ""
+	}
+	return base
+}
+
+func fetchMimoOpenAIModels(env map[string]string, keyEnv, baseEnv, defaultBase string) ([]Entry, error) {
+	apiKey := strings.TrimSpace(env[keyEnv])
+	if apiKey == "" {
+		apiKey = strings.TrimSpace(env["XIAOMI_MIMO_API_KEY"])
+	}
+	if apiKey == "" {
+		return nil, nil
+	}
+	base := strings.TrimSpace(env[baseEnv])
+	if base == "" {
+		base = strings.TrimSpace(env["XIAOMI_BASE_URL"])
+	}
+	if base == "" {
+		base = defaultBase
+	}
+	if base == "" {
+		return nil, fmt.Errorf("live: missing MiMo base URL (set %s or token plan region)", baseEnv)
+	}
+	return fetchMimoModels(context.Background(), base, apiKey, env)
+}
+
+func fetchMimoModels(ctx context.Context, baseURL, apiKey string, env map[string]string) ([]Entry, error) {
+	raw, err := xiaomi.FetchOpenAIModelsJSON(ctx, baseURL, apiKey)
+	if err != nil {
+		return nil, err
+	}
+	platform, _ := xiaomi.FetchPlatformModelsIndex(ctx, xiaomi.PlatformModelsURLFromEnv(env))
+	var entries []Entry
+	for _, r := range raw {
+		entry, ok := entryFromOpenAICompatJSON(r)
+		if ok {
+			entries = append(entries, enrichMimoEntry(entry, platform))
+		}
+	}
+	return entries, nil
 }
 
 func FetchOpenRouter(env map[string]string) ([]Entry, error) {
@@ -328,13 +606,13 @@ func FetchOpenRouter(env map[string]string) ([]Entry, error) {
 		if id == "" {
 			continue
 		}
-		ctx := 128000
+		ctx := 0
 		if m.ContextLength != nil {
 			ctx = *m.ContextLength
 		} else if m.TopProvider != nil && m.TopProvider.ContextLength != nil {
 			ctx = *m.TopProvider.ContextLength
 		}
-		maxOut := 16384
+		maxOut := 0
 		if m.TopProvider != nil && m.TopProvider.MaxCompletionTokens != nil {
 			maxOut = *m.TopProvider.MaxCompletionTokens
 		}
@@ -465,16 +743,8 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 		if label == "" {
 			label = id
 		}
-		ctxWin := m.InputTokenLimit
-		if ctxWin <= 0 {
-			ctxWin = 128000
-		}
-		maxOut := m.OutputTokenLimit
-		if maxOut <= 0 {
-			maxOut = 8192
-		}
 		entries = append(entries, Entry{
-			ID: id, DisplayName: label, ContextWindow: ctxWin, MaxOutput: maxOut,
+			ID: id, DisplayName: label, ContextWindow: m.InputTokenLimit, MaxOutput: m.OutputTokenLimit,
 			RawJSON: append(json.RawMessage(nil), raw...),
 		})
 	}
@@ -526,4 +796,75 @@ func FetchOllama(env map[string]string) ([]Entry, error) {
 		})
 	}
 	return entries, nil
+}
+
+func signAWSV4(req *http.Request, accessKeyID, secretAccessKey, sessionToken, region, service string, body []byte) {
+	now := time.Now().UTC()
+	dateStamp := now.Format("20060102")
+	amzDate := now.Format("20060102T150405Z")
+	payloadHash := sha256Hex(body)
+	req.Header.Set("X-Amz-Date", amzDate)
+	req.Header.Set("X-Amz-Content-Sha256", payloadHash)
+	if sessionToken != "" {
+		req.Header.Set("X-Amz-Security-Token", sessionToken)
+	}
+	req.Header.Set("Host", req.URL.Host)
+	canonicalHeaders, signedHeaders := canonicalAWSHeaders(req.Header)
+	canonicalQuery := req.URL.Query().Encode()
+	canonicalRequest := strings.Join([]string{
+		req.Method,
+		req.URL.EscapedPath(),
+		canonicalQuery,
+		canonicalHeaders,
+		signedHeaders,
+		payloadHash,
+	}, "\n")
+	scope := strings.Join([]string{dateStamp, region, service, "aws4_request"}, "/")
+	stringToSign := strings.Join([]string{
+		"AWS4-HMAC-SHA256",
+		amzDate,
+		scope,
+		sha256Hex([]byte(canonicalRequest)),
+	}, "\n")
+	signature := hex.EncodeToString(hmacSHA256(awsSigningKey(secretAccessKey, dateStamp, region, service), []byte(stringToSign)))
+	req.Header.Set("Authorization", fmt.Sprintf("AWS4-HMAC-SHA256 Credential=%s/%s, SignedHeaders=%s, Signature=%s",
+		accessKeyID, scope, signedHeaders, signature))
+}
+
+func canonicalAWSHeaders(headers http.Header) (string, string) {
+	var names []string
+	for name := range headers {
+		names = append(names, strings.ToLower(name))
+	}
+	sort.Strings(names)
+	var b strings.Builder
+	for _, name := range names {
+		values := headers.Values(name)
+		for i, v := range values {
+			values[i] = strings.Join(strings.Fields(v), " ")
+		}
+		b.WriteString(name)
+		b.WriteByte(':')
+		b.WriteString(strings.Join(values, ","))
+		b.WriteByte('\n')
+	}
+	return b.String(), strings.Join(names, ";")
+}
+
+func awsSigningKey(secret, dateStamp, region, service string) []byte {
+	kDate := hmacSHA256([]byte("AWS4"+secret), []byte(dateStamp))
+	kRegion := hmacSHA256(kDate, []byte(region))
+	kService := hmacSHA256(kRegion, []byte(service))
+	return hmacSHA256(kService, []byte("aws4_request"))
+}
+
+func hmacSHA256(key, data []byte) []byte {
+	mac := hmac.New(sha256.New, key)
+	_, _ = mac.Write(data)
+	return mac.Sum(nil)
+}
+
+func sha256Hex(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }

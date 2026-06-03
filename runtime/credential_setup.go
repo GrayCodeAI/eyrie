@@ -2,7 +2,11 @@ package runtime
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
+	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 	"github.com/GrayCodeAI/eyrie/config"
 )
 
@@ -53,10 +57,29 @@ func LocalCredentialInference(providerID string) (CredentialInference, error) {
 	return config.LocalCredentialInference(providerID)
 }
 
-// SaveCredential validates, probes, and stores a credential in keychain.
+// SaveCredential validates, stores in the OS secret store, then probes the provider API.
+// The key is persisted before the probe so a network or auth failure does not discard user input.
 func SaveCredential(ctx context.Context, inference CredentialInference, secret string) error {
-	if err := config.CommitCredential(ctx, inference, secret); err != nil {
+	secret, err := config.PrepareCredentialForSave(inference, secret)
+	if err != nil {
 		return err
 	}
-	return SetCredential(ctx, inference.EnvVar, secret)
+	envKey := strings.TrimSpace(inference.EnvVar)
+	if envKey == "" {
+		return fmt.Errorf("runtime: env key required")
+	}
+	if err := SetCredential(ctx, envKey, secret); err != nil {
+		return err
+	}
+	if spec, ok := registry.DefaultRegistry.Get(inference.ProviderID); ok && !spec.RequiresKey {
+		if err := config.ProbeLocalCredential(ctx, envKey, secret); err != nil {
+			return fmt.Errorf("%w (value saved in keychain)", err)
+		}
+		return nil
+	}
+	if err := config.ProbeCredential(ctx, envKey, secret); err != nil {
+		err = xiaomi.AppendKeyMismatchHint(err, inference.ProviderID, secret)
+		return fmt.Errorf("%w (key saved in keychain)", err)
+	}
+	return nil
 }

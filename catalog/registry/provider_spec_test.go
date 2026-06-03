@@ -7,8 +7,8 @@ import (
 )
 
 func TestAllProviders_Count(t *testing.T) {
-	if n := len(registry.All()); n != 11 {
-		t.Fatalf("expected 11 providers, got %d", n)
+	if n := len(registry.All()); n != 15 {
+		t.Fatalf("expected 15 providers, got %d", n)
 	}
 }
 
@@ -20,8 +20,8 @@ func TestCredentialRegistry_MatchesAll(t *testing.T) {
 
 func TestLiveFetcherKeys_AllProviders(t *testing.T) {
 	keys := registry.LiveFetcherKeys()
-	if len(keys) != 11 {
-		t.Fatalf("expected 11 live fetcher keys, got %d", len(keys))
+	if len(keys) != 15 {
+		t.Fatalf("expected 15 live fetcher keys, got %d", len(keys))
 	}
 }
 
@@ -41,37 +41,30 @@ func TestOpenCodeGo_HasProbeBaseURL(t *testing.T) {
 	}
 }
 
-func TestOllamaStrategy_LiveOnly(t *testing.T) {
-	spec, ok := registry.SpecByProviderID("ollama")
-	if !ok {
-		t.Fatal("missing ollama spec")
-	}
-	if spec.ModelStrategy != registry.StrategyLiveOnly {
-		t.Fatalf("ollama strategy = %q", spec.ModelStrategy)
-	}
-}
-
 func TestProviderSpecs_TableDriven(t *testing.T) {
 	tests := []struct {
 		name             string
 		providerID       string
 		wantKey          bool
-		wantStrategy     registry.ModelStrategy
 		wantProbeKind    registry.ProbeKind
 		wantLiveFetcher  bool
 		wantDeploymentID string
 	}{
-		{"anthropic", "anthropic", true, registry.StrategyRemoteThenLive, registry.ProbeAnthropic, true, "anthropic-direct"},
-		{"openai", "openai", true, registry.StrategyRemoteThenLive, registry.ProbeOpenAIModels, true, "openai-direct"},
-		{"gemini", "gemini", true, registry.StrategyRemoteThenLive, registry.ProbeGemini, true, "gemini-direct"},
-		{"openrouter", "openrouter", true, registry.StrategyLiveOnly, registry.ProbeOpenAIModels, true, "openrouter"},
-		{"grok", "grok", true, registry.StrategyRemoteThenLive, registry.ProbeOpenAIModels, true, "grok-direct"},
-		{"z-ai", "z-ai", true, registry.StrategyLiveOnly, registry.ProbeOpenAIModels, true, "z-ai-direct"},
-		{"canopywave", "canopywave", true, registry.StrategyLiveOnly, registry.ProbeOpenAIModels, true, "canopywave"},
-		{"opencodego", "opencodego", true, registry.StrategyRemoteThenLive, registry.ProbeOpenAIModels, true, "opencodego"},
-		{"kimi", "kimi", true, registry.StrategyLiveOnly, registry.ProbeOpenAIModels, true, "kimi-direct"},
-		{"xiaomi", "xiaomi", true, registry.StrategyLiveOnly, registry.ProbeOpenAIModels, true, "xiaomi-direct"},
-		{"ollama", "ollama", false, registry.StrategyLiveOnly, registry.ProbeOllama, true, "ollama-local"},
+		{"anthropic", "anthropic", true, registry.ProbeAnthropic, true, "anthropic-direct"},
+		{"openai", "openai", true, registry.ProbeOpenAIModels, true, "openai-direct"},
+		{"azure", "azure", true, registry.ProbeNone, true, "openai-azure"},
+		{"gemini", "gemini", true, registry.ProbeGemini, true, "gemini-direct"},
+		{"bedrock", "bedrock", true, registry.ProbeNone, true, "anthropic-bedrock"},
+		{"vertex", "vertex", true, registry.ProbeNone, true, "gemini-vertex"},
+		{"openrouter", "openrouter", true, registry.ProbeOpenAIModels, true, "openrouter"},
+		{"grok", "grok", true, registry.ProbeOpenAIModels, true, "grok-direct"},
+		{"z-ai", "z-ai", true, registry.ProbeOpenAIModels, true, "z-ai-direct"},
+		{"canopywave", "canopywave", true, registry.ProbeOpenAIModels, true, "canopywave"},
+		{"opencodego", "opencodego", true, registry.ProbeOpenAIModels, true, "opencodego"},
+		{"kimi", "kimi", true, registry.ProbeOpenAIModels, true, "kimi-direct"},
+		{"xiaomi_mimo_payg", "xiaomi_mimo_payg", true, registry.ProbeOpenAIModels, true, "xiaomi_mimo_payg-direct"},
+		{"xiaomi_mimo_token_plan", "xiaomi_mimo_token_plan", true, registry.ProbeOpenAIModels, true, "xiaomi_mimo_token_plan-direct"},
+		{"ollama", "ollama", false, registry.ProbeOllama, true, "ollama-local"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -81,9 +74,6 @@ func TestProviderSpecs_TableDriven(t *testing.T) {
 			}
 			if spec.RequiresKey != tt.wantKey {
 				t.Errorf("RequiresKey = %v, want %v", spec.RequiresKey, tt.wantKey)
-			}
-			if spec.ModelStrategy != tt.wantStrategy {
-				t.Errorf("ModelStrategy = %q, want %q", spec.ModelStrategy, tt.wantStrategy)
 			}
 			if spec.ProbeKind != tt.wantProbeKind {
 				t.Errorf("ProbeKind = %q, want %q", spec.ProbeKind, tt.wantProbeKind)
@@ -97,7 +87,7 @@ func TestProviderSpecs_TableDriven(t *testing.T) {
 			if spec.CredentialEnv == "" && spec.RequiresKey {
 				t.Error("RequiresKey=true but CredentialEnv is empty")
 			}
-			if spec.ProbeBaseURL == "" && spec.ProbeKind != registry.ProbeAnthropic && spec.ProbeKind != registry.ProbeGemini && spec.ProbeKind != registry.ProbeOllama && spec.ProbeKind != registry.ProbeNone {
+			if spec.ProbeBaseURL == "" && spec.ProbeKind != registry.ProbeAnthropic && spec.ProbeKind != registry.ProbeGemini && spec.ProbeKind != registry.ProbeOllama && spec.ProbeKind != registry.ProbeNone && spec.ProviderID != "xiaomi_mimo_token_plan" {
 				t.Error("ProbeBaseURL is empty for probe kind that requires it")
 			}
 		})

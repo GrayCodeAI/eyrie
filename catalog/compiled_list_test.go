@@ -70,15 +70,47 @@ func TestModelEntriesForProvider_GeminiUsesDirectDeploymentOfferings(t *testing.
 	}
 }
 
-func TestModelEntriesForProvider_AnthropicFiltersByProvider(t *testing.T) {
+func TestCanonicalModelForProviderNative_PrefersDeploymentOverGlobalAlias(t *testing.T) {
+	compiled := &CompiledCatalogV1{
+		Catalog: &CatalogV1{
+			Aliases: map[string]string{
+				"mimo-v2.5-pro": "opencodego/mimo-v2.5-pro",
+			},
+		},
+		ModelsByID: map[string]ModelV1{
+			"opencodego/mimo-v2.5-pro":        {ID: "opencodego/mimo-v2.5-pro", ProviderID: "opencodego"},
+			"xiaomi_mimo_token_plan/mimo-v2.5-pro": {ID: "xiaomi_mimo_token_plan/mimo-v2.5-pro", ProviderID: "xiaomi_mimo_token_plan"},
+		},
+		OfferingsByDeployment: map[string][]ModelOfferingV1{
+			"xiaomi_mimo_token_plan-direct": {{
+				CanonicalModelID: "xiaomi_mimo_token_plan/mimo-v2.5-pro",
+				DeploymentID:     "xiaomi_mimo_token_plan-direct",
+				NativeModelID:    "mimo-v2.5-pro",
+			}},
+		},
+	}
+	canonical, ok := CanonicalModelForProviderNative(compiled, "xiaomi_mimo_token_plan", "mimo-v2.5-pro")
+	if !ok || canonical != "xiaomi_mimo_token_plan/mimo-v2.5-pro" {
+		t.Fatalf("canonical=%q ok=%v", canonical, ok)
+	}
+}
+
+func TestModelEntriesForProvider_AnthropicUsesDirectDeploymentOfferings(t *testing.T) {
 	compiled := &CompiledCatalogV1{
 		ModelsByID: map[string]ModelV1{
 			"anthropic/claude-sonnet-4-6": {ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet", ProviderID: "anthropic"},
 			"openai/gpt-4o":               {ID: "openai/gpt-4o", Name: "GPT-4o", ProviderID: "openai"},
 		},
+		OfferingsByDeployment: map[string][]ModelOfferingV1{
+			"anthropic-direct": {{
+				CanonicalModelID: "anthropic/claude-sonnet-4-6",
+				DeploymentID:     "anthropic-direct",
+				NativeModelID:    "claude-sonnet-4-6",
+			}},
+		},
 	}
 	entries := ModelEntriesForProvider(compiled, "anthropic")
-	if len(entries) != 1 || entries[0].ID != "anthropic/claude-sonnet-4-6" {
+	if len(entries) != 1 || entries[0].ID != "claude-sonnet-4-6" {
 		t.Fatalf("anthropic entries: %+v", entries)
 	}
 }

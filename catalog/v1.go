@@ -601,18 +601,19 @@ func SplitOfferingIDV1(id string) (deploymentID, nativeModelID string, ok bool) 
 
 func defaultProvidersV1() map[string]ProviderV1 {
 	return map[string]ProviderV1{
-		"anthropic":  {ID: "anthropic", Name: "Anthropic"},
-		"openai":     {ID: "openai", Name: "OpenAI"},
-		"google":     {ID: "google", Name: "Google"},
-		"xai":        {ID: "xai", Name: "xAI"},
-		"openrouter": {ID: "openrouter", Name: "OpenRouter"},
-		"canopywave": {ID: "canopywave", Name: "CanopyWave"},
-		"z-ai":       {ID: "z-ai", Name: "Z.AI"},
-		"ollama":     {ID: "ollama", Name: "Ollama"},
-		"opencodego": {ID: "opencodego", Name: "OpenCode Go"},
-		"moonshotai": {ID: "moonshotai", Name: "Moonshot AI"},
-		"kimi":       {ID: "kimi", Name: "Kimi (Moonshot)"},
-		"xiaomi":     {ID: "xiaomi", Name: "Xiaomi"},
+		"anthropic":              {ID: "anthropic", Name: "Anthropic"},
+		"openai":                 {ID: "openai", Name: "OpenAI"},
+		"google":                 {ID: "google", Name: "Google"},
+		"xai":                    {ID: "xai", Name: "xAI"},
+		"openrouter":             {ID: "openrouter", Name: "OpenRouter"},
+		"canopywave":             {ID: "canopywave", Name: "CanopyWave"},
+		"z-ai":                   {ID: "z-ai", Name: "Z.AI"},
+		"ollama":                 {ID: "ollama", Name: "Ollama"},
+		"opencodego":             {ID: "opencodego", Name: "OpenCode Go"},
+		"moonshotai":             {ID: "moonshotai", Name: "Moonshot AI"},
+		"kimi":                   {ID: "kimi", Name: "Kimi (Moonshot)"},
+		"xiaomi_mimo_payg":       {ID: "xiaomi_mimo_payg", Name: "Xiaomi MiMo (Pay-as-you-go)"},
+		"xiaomi_mimo_token_plan": {ID: "xiaomi_mimo_token_plan", Name: "Xiaomi MiMo (Token Plan)"},
 	}
 }
 
@@ -626,21 +627,22 @@ func defaultAPIProtocolsV1() map[string]APIProtocolV1 {
 
 func defaultDeploymentsV1() map[string]DeploymentV1 {
 	return map[string]DeploymentV1{
-		"anthropic-direct":  deployment("anthropic-direct", "Anthropic", "anthropic", "anthropic-messages", "anthropic", NativeModelIDCatalogKnown),
-		"anthropic-bedrock": deployment("anthropic-bedrock", "Anthropic on Bedrock", "anthropic", "anthropic-messages", "anthropic-bedrock", NativeModelIDCatalogKnown),
-		"anthropic-vertex":  deployment("anthropic-vertex", "Anthropic on Vertex", "anthropic", "anthropic-messages", "anthropic-vertex", NativeModelIDCatalogKnown),
-		"openai-direct":     deployment("openai-direct", "OpenAI", "openai", "openai-chat-completions", "openai", NativeModelIDCatalogKnown),
-		"openai-azure":      azureDeployment(),
-		"gemini-direct":     deployment("gemini-direct", "Gemini", "google", "gemini-generate-content", "gemini", NativeModelIDCatalogKnown),
-		"gemini-vertex":     deployment("gemini-vertex", "Gemini on Vertex", "google", "gemini-generate-content", "gemini-vertex", NativeModelIDCatalogKnown),
-		"grok-direct":       deployment("grok-direct", "Grok", "xai", "openai-chat-completions", "grok", NativeModelIDCatalogKnown),
-		"openrouter":        deployment("openrouter", "OpenRouter", "openrouter", "openai-chat-completions", "openrouter", NativeModelIDDiscovered),
-		"z-ai-direct":       deployment("z-ai-direct", "Z.AI", "z-ai", "openai-chat-completions", "z-ai", NativeModelIDCatalogKnown),
-		"canopywave":        deployment("canopywave", "CanopyWave", "canopywave", "openai-chat-completions", "canopywave", NativeModelIDCatalogKnown),
-		"ollama-local":      localDeployment(),
-		"opencodego":        deployment("opencodego", "OpenCode Go", "opencodego", "openai-chat-completions", "opencodego", NativeModelIDCatalogKnown),
-		"kimi-direct":       deployment("kimi-direct", "Kimi (Moonshot)", "kimi", "openai-chat-completions", "kimi", NativeModelIDDiscovered),
-		"xiaomi-direct":     deployment("xiaomi-direct", "Xiaomi (MiMo)", "xiaomi", "openai-chat-completions", "xiaomi", NativeModelIDDiscovered),
+		"anthropic-direct":              deployment("anthropic-direct", "Anthropic", "anthropic", "anthropic-messages", "anthropic", NativeModelIDCatalogKnown),
+		"anthropic-bedrock":             deployment("anthropic-bedrock", "Anthropic on Bedrock", "anthropic", "anthropic-messages", "anthropic-bedrock", NativeModelIDCatalogKnown),
+		"anthropic-vertex":              deployment("anthropic-vertex", "Anthropic on Vertex", "anthropic", "anthropic-messages", "anthropic-vertex", NativeModelIDCatalogKnown),
+		"openai-direct":                 deployment("openai-direct", "OpenAI", "openai", "openai-chat-completions", "openai", NativeModelIDCatalogKnown),
+		"openai-azure":                  azureDeployment(),
+		"gemini-direct":                 deployment("gemini-direct", "Gemini", "google", "gemini-generate-content", "gemini", NativeModelIDCatalogKnown),
+		"gemini-vertex":                 deployment("gemini-vertex", "Gemini on Vertex", "google", "gemini-generate-content", "gemini-vertex", NativeModelIDCatalogKnown),
+		"grok-direct":                   deployment("grok-direct", "Grok", "xai", "openai-chat-completions", "grok", NativeModelIDCatalogKnown),
+		"openrouter":                    deployment("openrouter", "OpenRouter", "openrouter", "openai-chat-completions", "openrouter", NativeModelIDDiscovered),
+		"z-ai-direct":                   deployment("z-ai-direct", "Z.AI", "z-ai", "openai-chat-completions", "z-ai", NativeModelIDCatalogKnown),
+		"canopywave":                    deployment("canopywave", "CanopyWave", "canopywave", "openai-chat-completions", "canopywave", NativeModelIDCatalogKnown),
+		"ollama-local":                  localDeployment(),
+		"opencodego":                    deployment("opencodego", "OpenCode Go", "opencodego", "openai-chat-completions", "opencodego", NativeModelIDCatalogKnown),
+		"kimi-direct":                   deployment("kimi-direct", "Kimi (Moonshot)", "kimi", "openai-chat-completions", "kimi", NativeModelIDDiscovered),
+		"xiaomi_mimo_payg-direct":       deployment("xiaomi_mimo_payg-direct", "Xiaomi MiMo Pay-as-you-go", "xiaomi_mimo_payg", "openai-chat-completions", "xiaomi_mimo", NativeModelIDDiscovered),
+		"xiaomi_mimo_token_plan-direct": deployment("xiaomi_mimo_token_plan-direct", "Xiaomi MiMo Token Plan", "xiaomi_mimo_token_plan", "openai-chat-completions", "xiaomi_mimo", NativeModelIDDiscovered),
 	}
 }
 
@@ -709,10 +711,16 @@ func legacyDeploymentAndOwner(provider string) (deploymentID, ownerProviderID st
 		return "anthropic-direct", "anthropic"
 	case "openai":
 		return "openai-direct", "openai"
+	case "azure":
+		return "openai-azure", "openai"
 	case "grok":
 		return "grok-direct", "xai"
 	case "gemini":
 		return "gemini-direct", "google"
+	case "bedrock":
+		return "anthropic-bedrock", "anthropic"
+	case "vertex":
+		return "gemini-vertex", "google"
 	case "openrouter":
 		return "openrouter", "openrouter"
 	case "z-ai", "zai":
@@ -725,8 +733,10 @@ func legacyDeploymentAndOwner(provider string) (deploymentID, ownerProviderID st
 		return "opencodego", "opencodego"
 	case "kimi", "moonshotai":
 		return "kimi-direct", "kimi"
-	case "xiaomi", "mimo":
-		return "xiaomi-direct", "xiaomi"
+	case "xiaomi_mimo", "xiaomi_mimo_payg":
+		return "xiaomi_mimo_payg-direct", "xiaomi_mimo_payg"
+	case "xiaomi_mimo_token_plan":
+		return "xiaomi_mimo_token_plan-direct", "xiaomi_mimo_token_plan"
 	default:
 		return "", ""
 	}
@@ -760,6 +770,10 @@ func canonicalProviderID(providerID string) string {
 		return "z-ai"
 	case "moonshotai":
 		return "moonshotai"
+	case "xiaomi-mimo", "xiaomi_mimo", "xiaomi-mimo-payg":
+		return "xiaomi_mimo_payg"
+	case "xiaomi-mimo-token-plan":
+		return "xiaomi_mimo_token_plan"
 	default:
 		return providerID
 	}

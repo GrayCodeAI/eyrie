@@ -298,3 +298,56 @@ func TestDeploymentRouterStreamFallbackBeforeOutput(t *testing.T) {
 		t.Fatalf("content = %q, want fallback output", content)
 	}
 }
+
+func TestDeploymentRouterNativeMimoUsesConfiguredXiaomiDeployment(t *testing.T) {
+	mimo := &deploymentMockProvider{name: "xiaomi"}
+	compiled := &catalog.CompiledCatalogV1{
+		Catalog: &catalog.CatalogV1{
+			Aliases: map[string]string{"mimo-v2.5-pro": "opencodego/mimo-v2.5-pro"},
+		},
+		ModelsByID: map[string]catalog.ModelV1{
+			"opencodego/mimo-v2.5-pro": {ID: "opencodego/mimo-v2.5-pro", ProviderID: "opencodego"},
+			"xiaomi_mimo_token_plan/mimo-v2.5-pro": {
+				ID: "xiaomi_mimo_token_plan/mimo-v2.5-pro", ProviderID: "xiaomi_mimo_token_plan",
+			},
+		},
+		DeploymentsByID: map[string]catalog.DeploymentV1{
+			"xiaomi_mimo_token_plan-direct": {ID: "xiaomi_mimo_token_plan-direct", ProviderID: "xiaomi_mimo_token_plan"},
+		},
+		OfferingsByDeployment: map[string][]catalog.ModelOfferingV1{
+			"xiaomi_mimo_token_plan-direct": {{
+				CanonicalModelID: "xiaomi_mimo_token_plan/mimo-v2.5-pro",
+				DeploymentID:     "xiaomi_mimo_token_plan-direct",
+				NativeModelID:    "mimo-v2.5-pro",
+			}},
+		},
+		OfferingsByCanonicalModel: map[string][]catalog.ModelOfferingV1{
+			"xiaomi_mimo_token_plan/mimo-v2.5-pro": {{
+				CanonicalModelID: "xiaomi_mimo_token_plan/mimo-v2.5-pro",
+				DeploymentID:     "xiaomi_mimo_token_plan-direct",
+				NativeModelID:    "mimo-v2.5-pro",
+			}},
+		},
+	}
+	r, err := NewDeploymentRouter(DeploymentRouterOptions{
+		Catalog: compiled,
+		Deployments: map[string]DeploymentAdapter{
+			"xiaomi_mimo_token_plan-direct": {DeploymentID: "xiaomi_mimo_token_plan-direct", Provider: mimo},
+		},
+		Routing: RoutingPolicy{Providers: map[string][]RoutingStage{
+			"xiaomi_mimo_token_plan": {{Deployments: []DeploymentChoice{
+				{DeploymentID: "xiaomi_mimo_token_plan-direct", Weight: 100},
+			}}},
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{Model: "mimo-v2.5-pro"})
+	if err != nil {
+		t.Fatalf("chat: %v", err)
+	}
+	if mimo.lastModel != "mimo-v2.5-pro" {
+		t.Fatalf("native model = %q", mimo.lastModel)
+	}
+}

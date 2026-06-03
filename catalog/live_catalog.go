@@ -10,13 +10,10 @@ import (
 // LiveCatalogStaleDuration is how long a cache remains fresh after live provider APIs were merged.
 const LiveCatalogStaleDuration = 24 * time.Hour
 
-// IsLiveOnlyProvider reports providers whose models come from live list APIs (not static tiers).
+// IsLiveOnlyProvider reports setup providers that list models from live APIs only (not static tiers).
 func IsLiveOnlyProvider(providerID string) bool {
-	spec, ok := registry.SpecByProviderID(normalizeLiveProviderID(providerID))
-	if !ok {
-		return false
-	}
-	return spec.ModelStrategy == registry.StrategyLiveOnly
+	_, ok := registry.SpecByProviderID(normalizeLiveProviderID(providerID))
+	return ok
 }
 
 // DeploymentIDForLiveCatalogKey maps a live fetch catalog key to a deployment ID.
@@ -49,5 +46,13 @@ func FirstModelForProvider(compiled *CompiledCatalogV1, providerID string) strin
 }
 
 func normalizeLiveProviderID(providerID string) string {
+	switch providerID {
+	case "azure":
+		return "openai"
+	case "bedrock":
+		return "anthropic"
+	case "vertex":
+		return "google"
+	}
 	return CanonicalProviderID(providerID)
 }

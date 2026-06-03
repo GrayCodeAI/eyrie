@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -26,6 +27,8 @@ func TestValidateKeyFormat(t *testing.T) {
 		{"valid anthropic key", "sk-ant-api03-valid-key-format-12345", false},
 		{"valid generic key", "sk-proj-abcdef0123456789abcdef01", false},
 		{"valid long key", "gsk_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ", false},
+		{"valid without vendor prefix", "mimo-token-no-tp-prefix-12", false},
+		{"valid numeric secret", "0123456789abcdef", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -347,6 +350,53 @@ func TestSaveCredential_EmptyEnvVar(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty env var")
 	}
+}
+
+func TestSaveCredential_StoresBeforeProbeFails(t *testing.T) {
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+
+	secret := "sk-ant-api03-test-valid-key-format-12345"
+	inf := CredentialInference{
+		ProviderID:   "anthropic",
+		DeploymentID: "anthropic-direct",
+		EnvVar:       "ANTHROPIC_API_KEY",
+		DisplayName:  "Anthropic",
+	}
+
+	// Force probe failure without blocking on real network.
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusUnauthorized,
+			Body:       http.NoBody,
+			Header:     make(http.Header),
+			Request:    req,
+		}, nil
+	})
+	t.Cleanup(func() { http.DefaultTransport = oldTransport })
+
+	err := SaveCredential(context.Background(), inf, secret)
+	if err == nil {
+		t.Fatal("expected probe error")
+	}
+	if !strings.Contains(err.Error(), "key saved in keychain") {
+		t.Fatalf("expected saved hint in error, got: %v", err)
+	}
+	if !credentials.HasSecret(context.Background(), "ANTHROPIC_API_KEY") {
+		t.Fatal("expected key in store after probe failure")
+	}
+	got, _ := store.Get(context.Background(), credentials.AccountForEnv("ANTHROPIC_API_KEY"))
+	if got != secret {
+		t.Fatalf("stored secret = %q, want %q", got, secret)
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
 
 // --- Credential types re-exported ---

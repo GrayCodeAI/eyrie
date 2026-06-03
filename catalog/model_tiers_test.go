@@ -57,15 +57,14 @@ func TestGetPreferredProviderModel_AllTiers(t *testing.T) {
 }
 
 func TestGetPreferredProviderModel_NilCatalog(t *testing.T) {
-	// With nil catalog, function should still return a model (loads default internally)
 	model := GetPreferredProviderModel("anthropic", TierSonnet, nil)
 	if model == "" {
-		t.Error("expected non-empty model with nil catalog")
+		t.Error("expected bootstrap model with nil catalog")
 	}
 }
 
 func TestLiveOnlyProvidersHaveNoTierHardcode(t *testing.T) {
-	for _, provider := range []string{"canopywave", "z-ai", "openrouter", "ollama"} {
+	for _, provider := range []string{"anthropic", "openai", "gemini", "grok", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "canopywave", "z-ai", "openrouter", "ollama"} {
 		if got := GetProviderModelCandidates(provider, TierSonnet); len(got) != 0 {
 			t.Fatalf("%s tier candidates should be empty, got %v", provider, got)
 		}
@@ -81,9 +80,8 @@ func TestAllProvidersHaveAtLeastOneModelPerTier(t *testing.T) {
 
 	for _, provider := range providers {
 		for _, tier := range tiers {
-			candidates := GetProviderModelCandidates(provider, tier)
-			if len(candidates) == 0 {
-				t.Errorf("provider %q tier %q has no model candidates", provider, tier)
+			if len(tierModelCandidates(provider, tier)) == 0 {
+				t.Errorf("provider %q tier %q has no bootstrap candidates", provider, tier)
 			}
 		}
 	}
@@ -103,23 +101,16 @@ func TestUnknownProviderReturnsEmpty(t *testing.T) {
 }
 
 func TestGetProviderModelCandidates_Ordering(t *testing.T) {
-	// Preferred model should come first
-	candidates := GetProviderModelCandidates("anthropic", TierOpus)
-	if len(candidates) == 0 {
-		t.Fatal("expected candidates")
+	if len(GetProviderModelCandidates("anthropic", TierOpus)) != 0 {
+		t.Fatal("picker tier candidates should be empty for live setup provider")
 	}
-	// The preferred key for anthropic opus is opus46 -> "claude-opus-4-6"
-	if candidates[0] != "claude-opus-4-6" {
-		t.Errorf("expected first candidate to be claude-opus-4-6, got %s", candidates[0])
+	candidates := tierModelCandidates("anthropic", TierOpus)
+	if len(candidates) == 0 || candidates[0] != "claude-opus-4-6" {
+		t.Fatalf("bootstrap opus = %v", candidates)
 	}
-
-	// Haiku tier should have haiku45 first
-	candidates = GetProviderModelCandidates("anthropic", TierHaiku)
-	if len(candidates) == 0 {
-		t.Fatal("expected candidates for haiku")
-	}
-	if candidates[0] != "claude-haiku-4-5-20251001" {
-		t.Errorf("expected first haiku candidate to be claude-haiku-4-5-20251001, got %s", candidates[0])
+	candidates = tierModelCandidates("anthropic", TierHaiku)
+	if len(candidates) == 0 || candidates[0] != "claude-haiku-4-5-20251001" {
+		t.Fatalf("bootstrap haiku = %v", candidates)
 	}
 }
 
@@ -142,20 +133,13 @@ func TestGetProviderModelCandidates_NoDuplicates(t *testing.T) {
 }
 
 func TestProviderModelPool(t *testing.T) {
-	pool := providerModelPool("anthropic")
-	if len(pool) == 0 {
-		t.Fatal("expected non-empty pool for anthropic")
+	if len(providerModelPool("anthropic")) != 0 {
+		t.Fatal("expected empty pool for live setup provider")
 	}
-	// Should contain all unique anthropic model IDs
-	seen := make(map[string]bool)
-	for _, m := range pool {
-		if seen[m] {
-			t.Errorf("duplicate in pool: %s", m)
-		}
-		seen[m] = true
+	if len(tierModelCandidates("anthropic", TierSonnet)) == 0 {
+		t.Fatal("expected bootstrap tier candidates")
 	}
-
-	pool = providerModelPool("nonexistent")
+	pool := providerModelPool("nonexistent")
 	if len(pool) != 0 {
 		t.Errorf("expected empty pool for nonexistent provider, got %v", pool)
 	}
