@@ -23,7 +23,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "openai", DisplayName: "OpenAI", DeploymentID: "openai-direct", SortOrder: 2,
-			RequiresKey: true, CredentialEnv: "OPENAI_API_KEY", KeyPrefixes: []string{"sk-proj-", "sk-svcacct-", "sk-"},
+			RequiresKey: true, CredentialEnv: "OPENAI_API_KEY", KeyPrefixes: []string{"sk-proj-", "sk-svcacct-"},
 			BaseURLEnv: []string{"OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.openai.com/v1",
 			ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
@@ -32,7 +32,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "gemini", DisplayName: "Google Gemini", DeploymentID: "gemini-direct", SortOrder: 3,
-			RequiresKey: true, CredentialEnv: "GEMINI_API_KEY", KeyPrefixes: []string{"AIza"},
+			RequiresKey: true, CredentialEnv: "GEMINI_API_KEY", KeyPrefixes: []string{"AIza", "AQ."},
 			BaseURLEnv: []string{"GEMINI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeGemini, ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
 			LiveFetcherKey: "gemini", LiveCatalogKey: "gemini",
@@ -79,7 +79,7 @@ func providerSpecs() []ProviderSpec {
 			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY", KeyPrefixes: []string{"ocg_"},
 			BaseURLEnv:    []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:     ProbeOpenAIModels,
-			ProbeBaseURL:  "https://api.opencodego.ai/v1",
+			ProbeBaseURL:  "https://opencode.ai/zen/go/v1",
 			ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
 			LiveFetcherKey: "opencodego", LiveCatalogKey: "opencodego",
 			APIProtocolID: "openai-chat-completions", AdapterID: "opencodego",
