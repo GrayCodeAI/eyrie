@@ -11,7 +11,6 @@ type CredentialSpec struct {
 	DisplayName  string
 	DeploymentID string
 	EnvVar       string
-	KeyPrefixes  []string
 	ProbeKind    string
 	ProbeBaseURL string
 	RequiresKey  bool
@@ -57,7 +56,6 @@ func CredentialRegistry() []CredentialSpec {
 			DisplayName:  s.DisplayName,
 			DeploymentID: s.DeploymentID,
 			EnvVar:       s.CredentialEnv,
-			KeyPrefixes:  append([]string(nil), s.KeyPrefixes...),
 			ProbeKind:    string(s.ProbeKind),
 			ProbeBaseURL: s.ProbeBaseURL,
 			RequiresKey:  s.RequiresKey,

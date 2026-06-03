@@ -24,7 +24,7 @@ Single source: `eyrie/catalog/registry/providers.go`
 
 ### Key shape hints (optional; hawk uses provider-first paste)
 
-Hawk Keys tab does **not** guess the gateway from key shape. User picks the gateway, then pastes; eyrie runs **one** probe for that provider. Local learning (`~/.hawk/learned_credential_prefixes.json`) still records short prefixes after successful saves for future tooling.
+Hawk setup does **not** guess the gateway from key shape. User picks the gateway on the Gateways tab, then pastes; eyrie runs **one** probe for that provider only.
 
 | Prefix / pattern | Gateway |
 |------------------|---------|
