@@ -23,22 +23,15 @@ func TestResolveCredential_ListsAllProviders(t *testing.T) {
 		t.Fatalf("format should be ok: %s", res.FormatError)
 	}
 	if len(res.Providers) != 10 {
-		t.Fatalf("expected 10 key-required catalog providers, got %d", len(res.Providers))
+		t.Fatalf("expected 10 key-required providers, got %d", len(res.Providers))
 	}
-	inferred := 0
 	for _, p := range res.Providers {
 		if p.Inferred {
-			inferred++
+			t.Fatalf("provider %q should not be inferred without gateway selection", p.ProviderID)
 		}
 	}
-	if inferred == 0 {
-		t.Fatal("expected at least one inferred provider")
-	}
-	if !res.Providers[0].Inferred {
-		t.Fatal("inferred providers should be ranked first")
-	}
 	if res.Providers[0].ProviderID != "anthropic" {
-		t.Fatalf("top inferred = %q, want anthropic", res.Providers[0].ProviderID)
+		t.Fatalf("first provider = %q, want anthropic (registry order)", res.Providers[0].ProviderID)
 	}
 }
 

@@ -15,7 +15,7 @@ func providerSpecs() []ProviderSpec {
 	return []ProviderSpec{
 		{
 			ProviderID: "anthropic", DisplayName: "Anthropic", DeploymentID: "anthropic-direct", SortOrder: 1,
-			RequiresKey: true, CredentialEnv: "ANTHROPIC_API_KEY", KeyPrefixes: []string{"sk-ant-"},
+			RequiresKey: true, CredentialEnv: "ANTHROPIC_API_KEY",
 			BaseURLEnv: []string{"ANTHROPIC_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeAnthropic, ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
 			LiveFetcherKey: "anthropic", LiveCatalogKey: "anthropic",
@@ -23,7 +23,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "openai", DisplayName: "OpenAI", DeploymentID: "openai-direct", SortOrder: 2,
-			RequiresKey: true, CredentialEnv: "OPENAI_API_KEY", KeyPrefixes: []string{"sk-proj-", "sk-svcacct-"},
+			RequiresKey: true, CredentialEnv: "OPENAI_API_KEY",
 			BaseURLEnv: []string{"OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.openai.com/v1",
 			ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
@@ -32,7 +32,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "gemini", DisplayName: "Google Gemini", DeploymentID: "gemini-direct", SortOrder: 3,
-			RequiresKey: true, CredentialEnv: "GEMINI_API_KEY", KeyPrefixes: []string{"AIza", "AQ."},
+			RequiresKey: true, CredentialEnv: "GEMINI_API_KEY",
 			BaseURLEnv: []string{"GEMINI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeGemini, ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
 			LiveFetcherKey: "gemini", LiveCatalogKey: "gemini",
@@ -40,7 +40,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "openrouter", DisplayName: "OpenRouter", DeploymentID: "openrouter", SortOrder: 4,
-			RequiresKey: true, CredentialEnv: "OPENROUTER_API_KEY", KeyPrefixes: []string{"sk-or-v1-", "sk-or-"},
+			RequiresKey: true, CredentialEnv: "OPENROUTER_API_KEY",
 			BaseURLEnv: []string{"OPENROUTER_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://openrouter.ai/api/v1",
 			ModelStrategy: StrategyLiveOnly, PreferLiveMerge: true,
@@ -49,7 +49,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "grok", DisplayName: "xAI (Grok)", DeploymentID: "grok-direct", SortOrder: 5,
-			RequiresKey: true, CredentialEnv: "XAI_API_KEY", CredentialEnvFallbacks: []string{"GROK_API_KEY"}, KeyPrefixes: []string{"xai-"},
+			RequiresKey: true, CredentialEnv: "XAI_API_KEY", CredentialEnvFallbacks: []string{"GROK_API_KEY"},
 			BaseURLEnv: []string{"GROK_BASE_URL", "XAI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.x.ai/v1",
 			ModelStrategy: StrategyRemoteThenLive, PreferLiveMerge: true,
@@ -67,7 +67,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "canopywave", DisplayName: "CanopyWave", DeploymentID: "canopywave", SortOrder: 7,
-			RequiresKey: true, CredentialEnv: "CANOPYWAVE_API_KEY", KeyPrefixes: []string{"cw_"},
+			RequiresKey: true, CredentialEnv: "CANOPYWAVE_API_KEY",
 			BaseURLEnv: []string{"CANOPYWAVE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://inference.canopywave.io/v1",
 			ModelStrategy: StrategyLiveOnly, PreferLiveMerge: true,
@@ -76,7 +76,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 8,
-			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY", KeyPrefixes: []string{"ocg_"},
+			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY",
 			BaseURLEnv:    []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:     ProbeOpenAIModels,
 			ProbeBaseURL:  "https://opencode.ai/zen/go/v1",
@@ -95,7 +95,7 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "xiaomi", DisplayName: "Xiaomi (MiMo)", DeploymentID: "xiaomi-direct", SortOrder: 10,
-			RequiresKey: true, CredentialEnv: "XIAOMI_API_KEY", KeyPrefixes: []string{"tp-"},
+			RequiresKey: true, CredentialEnv: "XIAOMI_API_KEY",
 			BaseURLEnv: []string{"XIAOMI_BASE_URL", "MIMO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.xiaomimimo.com/v1",
 			ModelStrategy: StrategyLiveOnly, PreferLiveMerge: true,
