@@ -3,6 +3,8 @@ package credential
 import (
 	"context"
 	"testing"
+
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
 func TestValidateKeyFormat(t *testing.T) {
@@ -40,8 +42,14 @@ func TestResolveCredential_ListsAllProviders(t *testing.T) {
 	if !res.FormatOK {
 		t.Fatalf("format should be ok: %s", res.FormatError)
 	}
-	if len(res.Providers) != 11 {
-		t.Fatalf("expected 11 key-required providers, got %d", len(res.Providers))
+	expected := 0
+	for _, spec := range registry.All() {
+		if spec.RequiresKey {
+			expected++
+		}
+	}
+	if len(res.Providers) != expected {
+		t.Fatalf("expected %d key-required providers, got %d", expected, len(res.Providers))
 	}
 	for _, p := range res.Providers {
 		if p.Inferred {
@@ -61,7 +69,7 @@ func TestResolveCredential_InvalidFormat(t *testing.T) {
 }
 
 func TestListCredentialProviders_Count(t *testing.T) {
-	if n := len(ListCredentialProviders()); n != 12 {
-		t.Fatalf("expected 12 providers, got %d", n)
+	if n := len(ListCredentialProviders()); n != len(registry.All()) {
+		t.Fatalf("expected %d providers, got %d", len(registry.All()), n)
 	}
 }
