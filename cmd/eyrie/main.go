@@ -192,9 +192,7 @@ func (c cli) runPrompt(args []string) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	var (
-		events <-chan conversation.Event
-	)
+	var events <-chan conversation.Event
 	if len(args) == 1 {
 		events, err = engine.Prompt(ctx, args[0], conversation.PromptOpts{})
 	} else {
