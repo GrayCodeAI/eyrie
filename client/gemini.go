@@ -40,8 +40,16 @@ func (c *GeminiClient) Name() string { return "gemini" }
 
 func (c *GeminiClient) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("User-Agent", userAgent())
+	if c.isVertex() {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	} else {
+		req.Header.Set("x-goog-api-key", c.apiKey)
+	}
+}
+
+func (c *GeminiClient) isVertex() bool {
+	return strings.Contains(c.baseURL, "aiplatform.googleapis.com")
 }
 
 func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {

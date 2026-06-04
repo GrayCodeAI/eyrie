@@ -32,8 +32,8 @@ func TestAzureClient_Name(t *testing.T) {
 
 func TestAzureClient_DefaultAPIVersion(t *testing.T) {
 	c := NewAzureClient("key", "https://example.openai.azure.com", "")
-	if c.apiVersion != "2024-08-01-preview" {
-		t.Errorf("expected default api-version '2024-08-01-preview', got %q", c.apiVersion)
+	if c.apiVersion != "2024-10-21" {
+		t.Errorf("expected default api-version '2024-10-21', got %q", c.apiVersion)
 	}
 }
 
