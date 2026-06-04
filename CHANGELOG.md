@@ -5,7 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ---
 
-## [0.2.1](https://github.com/GrayCodeAI/eyrie/compare/v0.2.0...v0.2.1) (2026-05-16)
+## [0.2.1](https://github.com/GrayCodeAI/eyrie/compare/v0.1.0...v0.2.1) (2026-05-16)
 
 
 ### Bug Fixes
@@ -26,13 +26,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 ## [Unreleased]
 
 ### Changed
-- **Version re-baselined to `0.2.0`** in `eyrie.go` (`const Version`) and
+- **Version re-baselined to `0.1.0`** in `eyrie.go` (`const Version`) and
   `client/client.go` (`var Version`, used in the `User-Agent` header).
 
-### Added — Round 2 of rtk + caveman porting (2026-06-01)
-- **`internal/shrink`** package: caveman-shrink pattern for LLM tool
-  description compression, ported from `JuliusBrussee/caveman/
-  skills/caveman-mcp-shrink/scripts/shrink-tool-descriptions.js`.
+### Added — Round 2 ecosystem improvements (2026-06-01)
+- **`internal/shrink`** package: tool-description shrink for LLM tool
+  definitions before they are sent to the provider.
   Compresses `[]types.Tool` descriptions before they are sent to
   the provider. Stages:
   1. Auto-clarity safety check (security/destructive keywords pass

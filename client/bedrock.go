@@ -244,7 +244,7 @@ func (c *BedrockClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]
 	if maxTokens == 0 {
 		maxTokens = 4096
 	}
-	reqBody := anthropicRequest{
+	base := anthropicRequest{
 		Model:       opts.Model,
 		MaxTokens:   maxTokens,
 		Messages:    msgs,
@@ -252,7 +252,16 @@ func (c *BedrockClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]
 		Temperature: opts.Temperature,
 		Tools:       convertToAnthropicTools(opts.Tools),
 	}
-	return json.Marshal(reqBody)
+	raw, err := json.Marshal(base)
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]interface{}
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return nil, err
+	}
+	body["anthropic_version"] = "bedrock-2023-05-31"
+	return json.Marshal(body)
 }
 
 func (c *BedrockClient) modelURL(model string) string {
