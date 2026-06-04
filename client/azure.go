@@ -24,7 +24,7 @@ var _ Provider = (*AzureClient)(nil)
 
 func NewAzureClient(apiKey, endpoint, apiVersion string) *AzureClient {
 	if apiVersion == "" {
-		apiVersion = "2024-08-01-preview"
+		apiVersion = "2024-10-21"
 	}
 	return &AzureClient{
 		apiKey:     apiKey,

@@ -1,8 +1,8 @@
 // Package shrink compresses LLM tool descriptions before they are
-// sent to the provider. It implements the caveman-shrink pattern
-// (caveman/skills/caveman-mcp-shrink/scripts/shrink-tool-descriptions.js):
+// sent to the provider. It implements the tool-description shrink pattern
+// GrayCode tool-description shrink pipeline:
 //
-//  1. For each tool description, apply the caveman rules:
+//  1. For each tool description, apply the shrink rules:
 //     - drop articles ("a", "an", "the")
 //     - drop filler words ("just", "really", "basically")
 //     - drop pleasantries
@@ -43,7 +43,7 @@ const MaxLen = 200
 
 // safetyKeywords are substrings that, if present in a tool
 // description, force pass-through (no shrinking). Matched
-// case-insensitive. Same set as caveman's safety list, but
+// case-insensitive. Standard auto-clarity safety list;
 // smaller and tuned for LLM tool descriptions.
 var safetyKeywords = []string{
 	"rm -rf", "sudo ", "su -", "doas ",
@@ -62,7 +62,7 @@ var safetyKeywords = []string{
 }
 
 // shrinkDictionary is a small set of phrase substitutions tuned
-// for tool descriptions. Kept small (vs the full caveman dict)
+// for tool descriptions. Kept small (vs the full substitution dictionary)
 // because tool descriptions are short and over-eager substitution
 // can break meaning.
 var shrinkDictionary = []struct {
