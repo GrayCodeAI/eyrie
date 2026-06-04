@@ -10,6 +10,7 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/catalog/discover"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
 func TestDiscoverCatalog_MergesProviderModelsWithAPIKey(t *testing.T) {
@@ -56,8 +57,8 @@ func TestDiscoverCatalog_MergesProviderModelsWithAPIKey(t *testing.T) {
 	if _, err := os.Stat(cachePath); err != nil {
 		t.Fatalf("cache not written: %v", err)
 	}
-	if len(result.LiveProviders) != 12 {
-		t.Fatalf("LiveProviders: got %d want 11", len(result.LiveProviders))
+	if len(result.LiveProviders) != len(registry.All()) {
+		t.Fatalf("LiveProviders: got %d want %d", len(result.LiveProviders), len(registry.All()))
 	}
 	var openrouter *catalog.LiveProviderEnrichment
 	for i := range result.LiveProviders {

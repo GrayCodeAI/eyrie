@@ -125,7 +125,6 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 			return nil, fmt.Errorf("eyrie: unknown provider: %s", providerName)
 		}
 		apiKey = resolveEnvSecret(info.EnvKey)
-
 	}
 
 	info := c.GetProviderInfo(providerName)
