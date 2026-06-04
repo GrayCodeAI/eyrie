@@ -24,13 +24,13 @@ const (
 )
 
 const (
-	PayAsYouGoOpenAIBase     = "https://api.xiaomimimo.com/v1"
-	PayAsYouGoAnthropicBase  = "https://api.xiaomimimo.com/anthropic"
-	TokenPlanCNOpenAIBase    = "https://token-plan-cn.xiaomimimo.com/v1"
-	TokenPlanCNAnthropicBase = "https://token-plan-cn.xiaomimimo.com/anthropic"
-	TokenPlanSGPOpenAIBase   = "https://token-plan-sgp.xiaomimimo.com/v1"
+	PayAsYouGoOpenAIBase      = "https://api.xiaomimimo.com/v1"
+	PayAsYouGoAnthropicBase   = "https://api.xiaomimimo.com/anthropic"
+	TokenPlanCNOpenAIBase     = "https://token-plan-cn.xiaomimimo.com/v1"
+	TokenPlanCNAnthropicBase  = "https://token-plan-cn.xiaomimimo.com/anthropic"
+	TokenPlanSGPOpenAIBase    = "https://token-plan-sgp.xiaomimimo.com/v1"
 	TokenPlanSGPAnthropicBase = "https://token-plan-sgp.xiaomimimo.com/anthropic"
-	TokenPlanAMSOpenAIBase   = "https://token-plan-ams.xiaomimimo.com/v1"
+	TokenPlanAMSOpenAIBase    = "https://token-plan-ams.xiaomimimo.com/v1"
 	TokenPlanAMSAnthropicBase = "https://token-plan-ams.xiaomimimo.com/anthropic"
 )
 

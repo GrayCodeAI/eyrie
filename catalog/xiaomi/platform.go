@@ -18,14 +18,14 @@ var platformHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
 // PlatformModel is one row from the platform catalog API.
 type PlatformModel struct {
-	ID              string
-	Name            string
-	Description     string
-	ContextLength   int
-	MaxOutputLength int
-	InputPricePer1M float64
+	ID               string
+	Name             string
+	Description      string
+	ContextLength    int
+	MaxOutputLength  int
+	InputPricePer1M  float64
 	OutputPricePer1M float64
-	Raw             json.RawMessage
+	Raw              json.RawMessage
 }
 
 // PlatformModelsURLFromEnv returns override URL for tests, else DefaultPlatformModelsURL.
@@ -96,11 +96,11 @@ func FetchPlatformModelsIndex(ctx context.Context, catalogURL string) (map[strin
 
 func platformModelFromJSON(raw json.RawMessage) (PlatformModel, bool) {
 	var row struct {
-		ID              string          `json:"id"`
-		Name            string          `json:"name"`
-		Description     string          `json:"description"`
-		ContextLength   int             `json:"context_length"`
-		MaxOutputLength int             `json:"max_output_length"`
+		ID              string `json:"id"`
+		Name            string `json:"name"`
+		Description     string `json:"description"`
+		ContextLength   int    `json:"context_length"`
+		MaxOutputLength int    `json:"max_output_length"`
 		TopProvider     *struct {
 			ContextLength int `json:"context_length"`
 		} `json:"top_provider"`
@@ -119,14 +119,14 @@ func platformModelFromJSON(raw json.RawMessage) (PlatformModel, bool) {
 	}
 	in, out := pricingPer1MFromRaw(row.Pricing)
 	return PlatformModel{
-		ID:              id,
-		Name:            strings.TrimSpace(row.Name),
-		Description:     strings.TrimSpace(row.Description),
-		ContextLength:   ctx,
-		MaxOutputLength: row.MaxOutputLength,
-		InputPricePer1M: in,
+		ID:               id,
+		Name:             strings.TrimSpace(row.Name),
+		Description:      strings.TrimSpace(row.Description),
+		ContextLength:    ctx,
+		MaxOutputLength:  row.MaxOutputLength,
+		InputPricePer1M:  in,
 		OutputPricePer1M: out,
-		Raw:             append(json.RawMessage(nil), raw...),
+		Raw:              append(json.RawMessage(nil), raw...),
 	}, true
 }
 

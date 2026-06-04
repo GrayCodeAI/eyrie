@@ -6,7 +6,7 @@ import (
 
 func TestResolveXiaomiOpenAIBase_TokenPlanRegionWinsOverStaleBase(t *testing.T) {
 	cfg := &ProviderConfig{
-		XiaomiMimoTokenPlanRegion: "sgp",
+		XiaomiMimoTokenPlanRegion:  "sgp",
 		XiaomiMimoTokenPlanBaseURL: "https://token-plan-cn.xiaomimimo.com/v1",
 	}
 	base, err := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg)

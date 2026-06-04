@@ -65,15 +65,15 @@ func main() {
 					stub.ID, "", "", 0, 0, 0, 0, r, platform,
 				)
 				rows = append(rows, map[string]any{
-					"id":                 stub.ID,
-					"display_name":       display,
-					"description":        desc,
-					"context_window":     ctxWin,
-					"max_output":         maxOut,
-					"input_price_per_1m": in,
+					"id":                  stub.ID,
+					"display_name":        display,
+					"description":         desc,
+					"context_window":      ctxWin,
+					"max_output":          maxOut,
+					"input_price_per_1m":  in,
 					"output_price_per_1m": out,
-					"live_metadata":      parseJSONBody(meta),
-					"inference_raw":      parseJSONBody(r),
+					"live_metadata":       parseJSONBody(meta),
+					"inference_raw":       parseJSONBody(r),
 				})
 			}
 			out["eyrie_merged_rows"] = rows
