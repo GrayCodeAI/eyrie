@@ -9,6 +9,7 @@ bin/
 !.env.example
 
 # Build / cache / seed artifacts
+.gocache/
 *.seeds.json
 elrond*.db
 *.codegraph.db
@@ -18,3 +19,6 @@ dist/
 
 # Dev tool state
 .claude/
+.codegraph/
+.commandcode/
+.DS_Store
