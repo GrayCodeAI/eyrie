@@ -78,7 +78,7 @@ func TestCanonicalModelForProviderNative_PrefersDeploymentOverGlobalAlias(t *tes
 			},
 		},
 		ModelsByID: map[string]ModelV1{
-			"opencodego/mimo-v2.5-pro":        {ID: "opencodego/mimo-v2.5-pro", ProviderID: "opencodego"},
+			"opencodego/mimo-v2.5-pro":             {ID: "opencodego/mimo-v2.5-pro", ProviderID: "opencodego"},
 			"xiaomi_mimo_token_plan/mimo-v2.5-pro": {ID: "xiaomi_mimo_token_plan/mimo-v2.5-pro", ProviderID: "xiaomi_mimo_token_plan"},
 		},
 		OfferingsByDeployment: map[string][]ModelOfferingV1{

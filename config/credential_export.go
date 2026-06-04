@@ -116,5 +116,3 @@ func LooksLikePlaceholderSecret(secret string) bool {
 func ValidateCredentialSecret(envKey, secret string) error {
 	return credential.ValidateCredentialSecret(envKey, secret)
 }
-
-
