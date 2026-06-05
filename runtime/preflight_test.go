@@ -70,7 +70,7 @@ func TestPreflight_NilContext(t *testing.T) {
 	setupPreflightEnv(t, "{}\n")
 
 	// Should not panic with nil context (Preflight uses context.Background internally)
-	r := Preflight(nil)
+	r := Preflight(context.TODO())
 	if len(r.Checks) == 0 {
 		t.Fatal("expected at least one check")
 	}

@@ -193,7 +193,7 @@ func TestMigrateLegacyEnvFile_NilContext(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 
-	n, err := MigrateLegacyEnvFile(nil)
+	n, err := MigrateLegacyEnvFile(context.TODO())
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
