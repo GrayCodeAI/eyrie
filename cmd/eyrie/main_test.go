@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -72,7 +73,7 @@ func TestRun_SelectProviderPersistsActiveProvider(t *testing.T) {
 		t.Fatalf("run(select provider) error = %v", err)
 	}
 
-	if got := strings.TrimSpace(runtime.ActiveProvider(nil)); got != "anthropic" {
+	if got := strings.TrimSpace(runtime.ActiveProvider(context.Background())); got != "anthropic" {
 		t.Fatalf("active provider = %q, want anthropic", got)
 	}
 	if !strings.Contains(stdout.String(), "Active provider set to anthropic") {
