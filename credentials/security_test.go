@@ -171,9 +171,9 @@ func TestLookupSecret_WhitespaceKeyReturnsEmpty(t *testing.T) {
 
 func TestLookupSecret_NilContextHandled(t *testing.T) {
 	// Nil context should not panic.
-	result := LookupSecret(nil, "NONEXISTENT_KEY")
+	result := LookupSecret(context.TODO(), "NONEXISTENT_KEY")
 	if result != "" {
-		t.Errorf("LookupSecret(nil, 'NONEXISTENT_KEY') = %q, want empty", result)
+		t.Errorf("LookupSecret(context.TODO(), 'NONEXISTENT_KEY') = %q, want empty", result)
 	}
 }
 
@@ -185,8 +185,8 @@ func TestHasSecret_EmptyKeyReturnsFalse(t *testing.T) {
 
 func TestHasSecret_NilContextHandled(t *testing.T) {
 	// Should not panic.
-	if HasSecret(nil, "NONEXISTENT_KEY") {
-		t.Error("HasSecret(nil, 'NONEXISTENT_KEY') should return false")
+	if HasSecret(context.TODO(), "NONEXISTENT_KEY") {
+		t.Error("HasSecret(context.TODO(), 'NONEXISTENT_KEY') should return false")
 	}
 }
 

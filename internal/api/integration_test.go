@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/storage"
@@ -33,34 +32,6 @@ func (e *errorProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ clien
 
 func (e *errorProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
 	return nil, e.err
-}
-
-// slowProvider simulates a provider that takes time to respond.
-//
-//nolint:unused
-type slowProvider struct { //nolint:unused
-	delay time.Duration
-}
-
-func (s *slowProvider) Name() string                 { return "slow-provider" } //nolint:unused
-func (s *slowProvider) Ping(_ context.Context) error { return nil }             //nolint:unused
-
-//nolint:unused
-func (s *slowProvider) Chat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.EyrieResponse, error) {
-	time.Sleep(s.delay)
-	return &client.EyrieResponse{Content: "slow response", FinishReason: "end_turn", Usage: &client.EyrieUsage{CompletionTokens: 2}}, nil
-}
-
-//nolint:unused
-func (s *slowProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
-	ch := make(chan client.EyrieStreamEvent, 2)
-	go func() {
-		time.Sleep(s.delay)
-		ch <- client.EyrieStreamEvent{Type: "content", Content: "slow stream"}
-		ch <- client.EyrieStreamEvent{Type: "done", StopReason: "end_turn", Usage: &client.EyrieUsage{CompletionTokens: 2}}
-		close(ch)
-	}()
-	return &client.StreamResult{Events: ch}, nil
 }
 
 // streamingProvider returns multiple content chunks.

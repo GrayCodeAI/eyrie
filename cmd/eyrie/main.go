@@ -85,7 +85,7 @@ func (c cli) run(args []string) error {
 	case "select":
 		return c.runSelect(args[1:])
 	default:
-		return fmt.Errorf("unknown command %q\n\nRun `eyrie help` to see available commands.", args[0])
+		return fmt.Errorf("unknown command %q: run `eyrie help` to see available commands", args[0])
 	}
 }
 
