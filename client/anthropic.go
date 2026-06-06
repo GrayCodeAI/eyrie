@@ -70,6 +70,22 @@ type anthropicRequest struct {
 	Temperature *float64                 `json:"temperature,omitempty"`
 	Stream      bool                     `json:"stream,omitempty"`
 	Tools       []anthropicTool          `json:"tools,omitempty"`
+	Thinking    *anthropicThinking       `json:"thinking,omitempty"`
+}
+
+// anthropicThinking enables Anthropic extended thinking. Type is "enabled"
+// and BudgetTokens caps the tokens spent reasoning before the final answer.
+type anthropicThinking struct {
+	Type         string `json:"type"`
+	BudgetTokens int    `json:"budget_tokens"`
+}
+
+// thinkingForBudget returns an enabled thinking config when budget > 0, else nil.
+func thinkingForBudget(budget int) *anthropicThinking {
+	if budget <= 0 {
+		return nil
+	}
+	return &anthropicThinking{Type: "enabled", BudgetTokens: budget}
 }
 
 type anthropicTool struct {
@@ -298,7 +314,8 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 		reqBody := anthropicRequest{
 			Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
 			System: system, Temperature: opts.Temperature,
-			Tools: convertToAnthropicTools(opts.Tools),
+			Tools:    convertToAnthropicTools(opts.Tools),
+			Thinking: thinkingForBudget(opts.ThinkingBudgetTokens),
 		}
 		body, _ = json.Marshal(reqBody)
 	}
@@ -393,7 +410,8 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 		reqBody := anthropicRequest{
 			Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
 			System: system, Temperature: opts.Temperature, Stream: true,
-			Tools: convertToAnthropicTools(opts.Tools),
+			Tools:    convertToAnthropicTools(opts.Tools),
+			Thinking: thinkingForBudget(opts.ThinkingBudgetTokens),
 		}
 		body, _ = json.Marshal(reqBody)
 	}

@@ -25,6 +25,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Added — Round 3 ecosystem improvements (2026-06-06)
+- **Reasoning controls** — `reasoning_effort` and Anthropic extended-thinking
+  `thinking_budget_tokens` passthrough on `ChatOptions` (omitted when unset).
+- **GitHub OIDC keyless CI auth** — mints a short-lived OIDC token in GitHub
+  Actions and exchanges it for AWS Bedrock (STS `AssumeRoleWithWebIdentity`) or
+  GCP Vertex (Workload Identity Federation) credentials, no stored secrets.
+- **OpenAI-compatible proxy** — `POST /v1/chat/completions` endpoint so existing
+  OpenAI SDK clients can talk to eyrie unchanged.
+- **Named load-balancing strategies** — `simple-shuffle`, `least-busy`,
+  `latency-based`, `cost-based`, and `usage-based` alongside the default
+  weighted router.
+- **Pluggable cache backend** — distributed `CacheBackend` interface
+  (in-memory default, RESP/Redis-capable, stdlib-only).
+- **Audit log sink** — pluggable `AuditSink` interface with a no-op default and
+  a JSONL file sink recording privacy-preserving call metadata.
+- **Model role slots** — named `primary` / `weak` / `editor` slots with
+  fallback to primary, plus an LLM summarizing condenser for long histories.
+- **`/rerank` endpoint** — provider-backed reranking with a lexical fallback.
+- **`/ready` readiness probe** — alongside the existing `/health` check.
+- **gRPC skeleton** — dependency-free gRPC API skeleton behind the `grpc`
+  build tag, ready to wire when generated stubs are available.
+
 ### Changed
 - **Version re-baselined to `0.1.0`** in `eyrie.go` (`const Version`) and
   `client/client.go` (`var Version`, used in the `User-Agent` header).

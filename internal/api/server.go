@@ -23,6 +23,7 @@ type Server struct {
 	store         storage.Store
 	analytics     storage.AnalyticsStore
 	healthChecker *eyrie.HealthChecker
+	reranker      Reranker // optional: provider-backed /rerank; nil => lexical fallback
 	apiKey        string
 	virtualKeyFor func(token string) string // optional: maps a bearer token to a virtual key id
 	mux           *http.ServeMux
@@ -91,7 +92,12 @@ func (s *Server) Shutdown() error {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /ready", s.handleReady)
 	s.mux.HandleFunc("POST /prompt", s.auth(s.handlePrompt))
+	s.mux.HandleFunc("POST /rerank", s.auth(s.handleRerank))
+
+	// OpenAI-compatible (LiteLLM-style) proxy endpoint.
+	s.mux.HandleFunc("POST /v1/chat/completions", s.auth(s.handleOpenAIChatCompletions))
 	s.mux.HandleFunc("POST /nodes/{id}/prompt", s.auth(s.handlePromptFrom))
 	s.mux.HandleFunc("GET /nodes", s.auth(s.handleListNodes))
 	s.mux.HandleFunc("GET /nodes/{id}", s.auth(s.handleGetNode))
@@ -160,6 +166,19 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) bool {
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// handleReady is a readiness probe (distinct from /health, which is a liveness
+// probe). It returns 200 only once the server's core dependencies are
+// initialized — a conversation engine and a backing store — and 503 otherwise,
+// so load balancers and orchestrators do not route traffic before the server
+// can actually serve it.
+func (s *Server) handleReady(w http.ResponseWriter, _ *http.Request) {
+	if s.engine == nil || s.store == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not ready"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
 }
 
 type promptRequest struct {

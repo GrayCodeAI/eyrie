@@ -74,6 +74,14 @@ type DeploymentConfig struct {
 	SecretAccessKey string            `json:"secret_access_key,omitempty"`
 	SessionToken    string            `json:"session_token,omitempty"`
 	ModelMappings   map[string]string `json:"model_mappings,omitempty"`
+
+	// OIDC keyless auth (opt-in). When RoleARN (Bedrock) or WIFAudience (Vertex)
+	// is set — or EYRIE_OIDC=1 — and the process runs in GitHub Actions, the
+	// deployment obtains short-lived credentials via OIDC instead of stored
+	// secrets. Empty by default; the non-OIDC path is unchanged.
+	RoleARN             string `json:"role_arn,omitempty"`
+	WIFAudience         string `json:"wif_audience,omitempty"`
+	ServiceAccountEmail string `json:"service_account_email,omitempty"`
 }
 
 // NOTE: RoutingPolicy, RoutingStage, DeploymentChoice are intentionally duplicated
