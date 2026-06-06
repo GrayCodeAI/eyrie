@@ -105,6 +105,7 @@ type openaiRequest struct {
 	StreamOptions       *streamOptions           `json:"stream_options,omitempty"`
 	Tools               []map[string]interface{} `json:"tools,omitempty"`
 	ResponseFormat      map[string]interface{}   `json:"response_format,omitempty"`
+	ReasoningEffort     string                   `json:"reasoning_effort,omitempty"`
 }
 
 type streamOptions struct {
@@ -270,6 +271,9 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 			}
 		}
 		req.ResponseFormat = rf
+	}
+	if compat != nil && compat.SupportsReasoningEffort && opts.ReasoningEffort != "" {
+		req.ReasoningEffort = opts.ReasoningEffort
 	}
 	return req
 }

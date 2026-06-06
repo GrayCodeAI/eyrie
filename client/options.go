@@ -25,6 +25,14 @@ type ChatOptions struct {
 	System         string          `json:"system,omitempty"`
 	EnableCaching  bool            `json:"enable_caching,omitempty"`
 	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
+	// ReasoningEffort hints how much reasoning the model should perform.
+	// Valid values are "low", "medium", or "high" (see ReasoningLow/Medium/High).
+	// Only applied for OpenAI-compatible providers whose compat config sets
+	// SupportsReasoningEffort.
+	ReasoningEffort string `json:"reasoning_effort,omitempty"`
+	// ThinkingBudgetTokens enables Anthropic extended thinking with the given
+	// token budget when greater than zero. Ignored by other providers.
+	ThinkingBudgetTokens int `json:"thinking_budget_tokens,omitempty"`
 	// VirtualKeyID optionally attributes the request to a logical virtual key
 	// for budget enforcement and cost accounting (see BudgetProvider). When
 	// empty, the BudgetProvider also checks the request context.

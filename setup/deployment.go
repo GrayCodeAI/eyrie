@@ -16,6 +16,25 @@ import (
 	"github.com/GrayCodeAI/eyrie/router"
 )
 
+// oidcBedrockCreds and oidcVertexToken are injectable seams over the
+// credentials OIDC helpers so the opt-in branch can be tested without real
+// network or a live GitHub Actions runner. They default to the real helpers.
+var (
+	oidcBedrockCreds = credentials.BedrockCredentialsFromOIDC
+	oidcVertexToken  = credentials.VertexTokenFromOIDC
+)
+
+// oidcEnabled reports whether the OIDC opt-in branch should be considered for
+// the given deployment. It is gated by EYRIE_OIDC=1 (or true/yes/on) OR by the
+// deployment specifying a roleARN / WIF audience. It is OFF by default.
+func oidcEnabled(deployment config.DeploymentConfig) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("EYRIE_OIDC"))) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return strings.TrimSpace(deployment.RoleARN) != "" || strings.TrimSpace(deployment.WIFAudience) != ""
+}
+
 func storeSecret(envKeys ...string) string {
 	ctx := context.Background()
 	for _, k := range envKeys {
@@ -112,6 +131,15 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 	case "anthropic-vertex":
 		projectID := FirstNonEmpty(deployment.ProjectID, os.Getenv("VERTEX_PROJECT_ID"))
 		region := FirstNonEmpty(deployment.Region, os.Getenv("VERTEX_REGION"))
+		// Opt-in OIDC keyless auth: only when enabled AND running in GitHub
+		// Actions. On ErrNoOIDC or any failure we fall through to stored token.
+		if projectID != "" && region != "" && oidcEnabled(deployment) && credentials.DetectGitHubActions() {
+			audience := FirstNonEmpty(deployment.WIFAudience, os.Getenv("VERTEX_WIF_AUDIENCE"))
+			sa := FirstNonEmpty(deployment.ServiceAccountEmail, os.Getenv("VERTEX_SERVICE_ACCOUNT_EMAIL"))
+			if oidcTok, err := oidcVertexToken(context.Background(), audience, sa); err == nil && oidcTok != "" {
+				return client.NewVertexClient(projectID, region, oidcTok), true
+			}
+		}
 		token := FirstNonEmpty(deployment.Token, deployment.APIKey, storeSecret("VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"))
 		if projectID == "" || region == "" || token == "" {
 			return nil, false
@@ -119,6 +147,18 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 		return client.NewVertexClient(projectID, region, token), true
 	case "anthropic-bedrock":
 		region := FirstNonEmpty(deployment.Region, os.Getenv("AWS_REGION"), os.Getenv("AWS_DEFAULT_REGION"))
+		// Opt-in OIDC keyless auth: only when enabled AND running in GitHub
+		// Actions. On ErrNoOIDC or any failure we fall through to stored creds.
+		if oidcEnabled(deployment) && credentials.DetectGitHubActions() {
+			roleARN := FirstNonEmpty(deployment.RoleARN, os.Getenv("AWS_ROLE_ARN"))
+			if creds, err := oidcBedrockCreds(context.Background(), roleARN, region); err == nil &&
+				creds.AccessKeyID != "" && creds.SecretAccessKey != "" {
+				oidcRegion := FirstNonEmpty(creds.Region, region)
+				if oidcRegion != "" {
+					return client.NewBedrockClient(creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, oidcRegion), true
+				}
+			}
+		}
 		accessKeyID := FirstNonEmpty(deployment.AccessKeyID, deployment.APIKey, storeSecret("AWS_ACCESS_KEY_ID"))
 		secretAccessKey := FirstNonEmpty(deployment.SecretAccessKey, deployment.Token, storeSecret("AWS_SECRET_ACCESS_KEY"))
 		sessionToken := FirstNonEmpty(deployment.SessionToken, storeSecret("AWS_SESSION_TOKEN"))

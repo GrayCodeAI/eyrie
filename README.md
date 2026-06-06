@@ -101,6 +101,38 @@ Token bucket rate limiter per provider — prevents hitting API limits before th
 
 Built-in cost estimation per call, with per-provider pricing from the embedded model catalog.
 
+### Reasoning Controls
+
+Passes `reasoning_effort` and Anthropic extended-thinking `thinking_budget_tokens` through to capable models — omitted when unset.
+
+### Keyless CI Auth
+
+GitHub OIDC keyless authentication for cloud deployments — mints a short-lived token in GitHub Actions and exchanges it for AWS Bedrock (STS `AssumeRoleWithWebIdentity`) or GCP Vertex (Workload Identity Federation) credentials, no stored secrets.
+
+### OpenAI-Compatible Proxy
+
+Serves `POST /v1/chat/completions` so existing OpenAI SDK clients can talk to eyrie unchanged.
+
+### Load-Balancing Strategies
+
+Named routing strategies beyond weighted random: `simple-shuffle`, `least-busy`, `latency-based`, `cost-based`, and `usage-based`.
+
+### Pluggable Cache & Audit Sinks
+
+Distributed `CacheBackend` interface (in-memory default, RESP/Redis-capable) and an `AuditSink` interface (no-op default, JSONL file sink) for privacy-preserving call metadata.
+
+### Model Role Slots
+
+Named `primary` / `weak` / `editor` model slots with fallback to primary, plus an LLM summarizing condenser that shrinks long conversation histories using the weak model.
+
+### Rerank & Readiness
+
+`POST /rerank` endpoint (provider-backed with lexical fallback) and a `GET /ready` readiness probe alongside the existing health check.
+
+### gRPC Skeleton
+
+Dependency-free gRPC API skeleton behind the `grpc` build tag — wired when generated stubs are available.
+
 ## Documentation
 
 Detailed documentation is available in the [docs/](docs/) directory:
