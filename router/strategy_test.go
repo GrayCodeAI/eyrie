@@ -101,9 +101,9 @@ func TestLeastBusySelectsIdleProvider(t *testing.T) {
 	r := New([]RouteEntry{{Provider: p1, Weight: 1}, {Provider: p2, Weight: 1}}, nil, nil, WithStrategy(StrategyLeastBusy))
 
 	// Mark p1 as busy with 3 in-flight requests; p2 should be selected.
-	r.strat.beginInFlight("p1")
-	r.strat.beginInFlight("p1")
-	r.strat.beginInFlight("p1")
+	r.stratState.beginInFlight("p1")
+	r.stratState.beginInFlight("p1")
+	r.stratState.beginInFlight("p1")
 
 	e := r.selectEntry()
 	if e.Provider.Name() != "p2" {
@@ -111,9 +111,9 @@ func TestLeastBusySelectsIdleProvider(t *testing.T) {
 	}
 
 	// Drain p1; now both are idle and p1 (first) wins the tie.
-	r.strat.endInFlight("p1")
-	r.strat.endInFlight("p1")
-	r.strat.endInFlight("p1")
+	r.stratState.endInFlight("p1")
+	r.stratState.endInFlight("p1")
+	r.stratState.endInFlight("p1")
 	if e := r.selectEntry(); e.Provider.Name() != "p1" {
 		t.Errorf("tie selected %q, want p1 (first on tie)", e.Provider.Name())
 	}
@@ -125,8 +125,8 @@ func TestLatencyBasedSelectsFastest(t *testing.T) {
 	r := New([]RouteEntry{{Provider: slow, Weight: 1}, {Provider: fast, Weight: 1}}, nil, nil, WithStrategy(StrategyLatencyBased))
 
 	// Seed observed latencies directly so selection is deterministic.
-	r.strat.recordLatency("slow", 30)
-	r.strat.recordLatency("fast", 1)
+	r.stratState.recordLatency("slow", 30)
+	r.stratState.recordLatency("fast", 1)
 
 	e := r.selectEntry()
 	if e.Provider.Name() != "fast" {
@@ -139,7 +139,7 @@ func TestLatencyBasedRecordsEWMA(t *testing.T) {
 	r := New([]RouteEntry{{Provider: p, Weight: 1}}, nil, nil, WithStrategy(StrategyLatencyBased))
 
 	r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{})
-	lat, ok := r.strat.latency("p")
+	lat, ok := r.stratState.latency("p")
 	if !ok {
 		t.Fatal("expected a latency sample after Chat")
 	}
@@ -182,8 +182,8 @@ func TestUsageBasedSelectsLeastUsed(t *testing.T) {
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 1}, {Provider: p2, Weight: 1}}, nil, nil, WithStrategy(StrategyUsageBased))
 
-	r.strat.recordUsage("p1", 5000)
-	r.strat.recordUsage("p2", 100)
+	r.stratState.recordUsage("p1", 5000)
+	r.stratState.recordUsage("p2", 100)
 
 	e := r.selectEntry()
 	if e.Provider.Name() != "p2" {
@@ -198,7 +198,7 @@ func TestUsageBasedRecordsTokens(t *testing.T) {
 	r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{})
 	r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{})
 
-	if got := r.strat.usage["p"].Load(); got != 500 {
+	if got := r.stratState.usage["p"].Load(); got != 500 {
 		t.Errorf("recorded usage = %d, want 500", got)
 	}
 }
@@ -216,7 +216,7 @@ func TestInFlightDecrementedAfterChat(t *testing.T) {
 	r := New([]RouteEntry{{Provider: p, Weight: 1}}, nil, nil, WithStrategy(StrategyLeastBusy))
 
 	r.Chat(context.Background(), []client.EyrieMessage{{Role: "user", Content: "hi"}}, client.ChatOptions{})
-	if got := r.strat.inFlight["p"].Load(); got != 0 {
+	if got := r.stratState.inFlight["p"].Load(); got != 0 {
 		t.Errorf("in-flight after Chat = %d, want 0", got)
 	}
 }
@@ -236,7 +236,7 @@ func TestLeastBusyConcurrentSafe(t *testing.T) {
 	}
 	wg.Wait()
 	for _, name := range []string{"p1", "p2"} {
-		if got := r.strat.inFlight[name].Load(); got != 0 {
+		if got := r.stratState.inFlight[name].Load(); got != 0 {
 			t.Errorf("in-flight[%s] = %d, want 0 after all calls returned", name, got)
 		}
 	}
