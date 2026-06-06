@@ -17,16 +17,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
       -X main.BuildDate=${BUILD_DATE}" \
     -o eyrie ./cmd/eyrie
 
-FROM alpine:3.21
-RUN apk add --no-cache ca-certificates tini && \
-    adduser -D -u 1000 -h /data eyrie
+FROM gcr.io/distroless/static-debian13:nonroot
 
 COPY --from=builder /build/eyrie /usr/local/bin/eyrie
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
-USER eyrie
+USER nonroot
 WORKDIR /data
 EXPOSE 8080
 
-ENTRYPOINT ["tini", "--", "eyrie"]
+ENTRYPOINT ["/usr/local/bin/eyrie"]
 CMD ["serve", "8080"]

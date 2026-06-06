@@ -8,6 +8,10 @@ Universal LLM provider runtime. One interface for every model. Authentication, r
 - **Zero opinions** — consumers control routing, caching, and retry strategies
 - **Streaming-first** — all responses are streamed; blocking is opt-in
 
+## Observability
+
+See [hawk/docs/OTEL-CONVENTIONS.md](https://github.com/GrayCodeAI/hawk/blob/main/docs/OTEL-CONVENTIONS.md) for the shared OpenTelemetry attribute vocabulary (`gen_ai.*`, `cost.usd`, etc.) used across all GrayCodeAI repos.
+
 ## Build & Test
 
 ```bash

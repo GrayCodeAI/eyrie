@@ -432,9 +432,7 @@ func TestResolveCredential_FormatErrorMessage(t *testing.T) {
 	if result.FormatError == "" {
 		t.Fatal("expected non-empty FormatError")
 	}
-	if strings.Contains(result.FormatError, "empty") || strings.Contains(result.FormatError, "required") {
-		// ok — error mentions emptiness
-	} else {
-		// other error text is fine too
+	if !strings.Contains(result.FormatError, "empty") && !strings.Contains(result.FormatError, "required") {
+		t.Logf("FormatError: %q (does not mention empty/required, but that is acceptable)", result.FormatError)
 	}
 }
