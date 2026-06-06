@@ -48,13 +48,14 @@ func TestAllProviders_FirstModelFromCompiledCache(t *testing.T) {
 		native := "live-" + spec.ProviderID + "-model"
 		owner := catalog.CanonicalProviderID(spec.ProviderID)
 		canonical := owner + "/" + native
-		if spec.ProviderID == "gemini" || spec.ProviderID == "vertex" {
+		switch spec.ProviderID {
+		case "gemini", "vertex":
 			owner = "google"
 			canonical = "google/" + native
-		} else if spec.ProviderID == "azure" {
+		case "azure":
 			owner = "openai"
 			canonical = "openai/" + native
-		} else if spec.ProviderID == "bedrock" {
+		case "bedrock":
 			owner = "anthropic"
 			canonical = "anthropic/" + native
 		}
