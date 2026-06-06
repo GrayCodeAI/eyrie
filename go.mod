@@ -3,7 +3,7 @@ module github.com/GrayCodeAI/eyrie
 go 1.26.4
 
 require (
-	github.com/GrayCodeAI/tok v0.3.0
+	github.com/GrayCodeAI/tok v0.5.1
 	github.com/google/uuid v1.6.0
 	github.com/zalando/go-keyring v0.2.8
 	go.opentelemetry.io/otel v1.44.0
@@ -13,7 +13,6 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
-	github.com/GrayCodeAI/hawk v0.2.1-0.20260517190521-61a6865d141a // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dlclark/regexp2/v2 v2.1.0 // indirect
