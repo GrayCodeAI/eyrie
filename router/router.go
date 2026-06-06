@@ -3,10 +3,10 @@ package router
 import (
 	"context"
 	"fmt"
-	"math/rand/v2"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/client"
 )
@@ -15,6 +15,18 @@ type RouteEntry struct {
 	Provider client.Provider
 	Weight   int
 	Retry    *RetryConfig
+	// Cost is an optional relative cost used by StrategyCostBased (e.g. price
+	// per 1K tokens in some fixed unit). When zero, Weight is used as a proxy.
+	Cost int
+}
+
+// cost returns the cost proxy for the entry: the explicit Cost when set,
+// otherwise the Weight. Falls back to 0 when neither is configured.
+func (e RouteEntry) cost() int {
+	if e.Cost > 0 {
+		return e.Cost
+	}
+	return e.Weight
 }
 
 type Router struct {
@@ -22,13 +34,25 @@ type Router struct {
 	fallback     []client.Provider
 	totalWeight  int
 	defaultRetry RetryConfig
+	strategy     Strategy
+	strat        *strategyState
 	mu           sync.RWMutex
 	stats        map[string]*atomic.Int64
 }
 
+// Option configures a Router at construction time.
+type Option func(*Router)
+
+// WithStrategy sets the load-balancing routing strategy. The default is
+// StrategyWeighted, which preserves the router's original weighted-random
+// behavior.
+func WithStrategy(s Strategy) Option {
+	return func(r *Router) { r.strategy = s }
+}
+
 var _ client.Provider = (*Router)(nil)
 
-func New(entries []RouteEntry, fallback []client.Provider, defaultRetry *RetryConfig) *Router {
+func New(entries []RouteEntry, fallback []client.Provider, defaultRetry *RetryConfig, opts ...Option) *Router {
 	total := 0
 	for _, e := range entries {
 		total += e.Weight
@@ -46,13 +70,19 @@ func New(entries []RouteEntry, fallback []client.Provider, defaultRetry *RetryCo
 	if defaultRetry != nil {
 		dr = *defaultRetry
 	}
-	return &Router{
+	r := &Router{
 		entries:      entries,
 		fallback:     fallback,
 		totalWeight:  total,
 		defaultRetry: dr,
+		strategy:     StrategyWeighted,
+		strat:        newStrategyState(entries),
 		stats:        stats,
 	}
+	for _, opt := range opts {
+		opt(r)
+	}
+	return r
 }
 
 func (r *Router) Name() string {
@@ -75,9 +105,14 @@ func (r *Router) Ping(ctx context.Context) error {
 
 func (r *Router) Chat(ctx context.Context, messages []client.EyrieMessage, opts client.ChatOptions) (*client.EyrieResponse, error) {
 	provider, retry := r.selectProvider()
+	r.strat.beginInFlight(provider.Name())
+	start := time.Now()
 	resp, err := r.chatWithRetry(ctx, provider, messages, opts, retry)
+	r.strat.recordLatency(provider.Name(), float64(time.Since(start).Milliseconds()))
+	r.strat.endInFlight(provider.Name())
 	if err == nil {
 		r.recordSuccess(provider.Name())
+		r.recordUsage(provider.Name(), resp)
 		return resp, nil
 	}
 	if !IsTransient(err) {
@@ -90,6 +125,7 @@ func (r *Router) Chat(ctx context.Context, messages []client.EyrieMessage, opts 
 		resp, err = fp.Chat(ctx, messages, opts)
 		if err == nil {
 			r.recordSuccess(fp.Name())
+			r.recordUsage(fp.Name(), resp)
 			return resp, nil
 		}
 		if !IsTransient(err) {
@@ -101,7 +137,11 @@ func (r *Router) Chat(ctx context.Context, messages []client.EyrieMessage, opts 
 
 func (r *Router) StreamChat(ctx context.Context, messages []client.EyrieMessage, opts client.ChatOptions) (*client.StreamResult, error) {
 	provider, _ := r.selectProvider()
+	r.strat.beginInFlight(provider.Name())
+	start := time.Now()
 	sr, err := provider.StreamChat(ctx, messages, opts)
+	r.strat.recordLatency(provider.Name(), float64(time.Since(start).Milliseconds()))
+	r.strat.endInFlight(provider.Name())
 	if err == nil {
 		r.recordSuccess(provider.Name())
 		return sr, nil
@@ -136,32 +176,23 @@ func (r *Router) Stats() map[string]int64 {
 }
 
 func (r *Router) selectProvider() (client.Provider, RetryConfig) {
-	if r.totalWeight == 0 && len(r.entries) > 0 {
-		e := r.entries[0]
-		rc := r.defaultRetry
-		if e.Retry != nil {
-			rc = *e.Retry
-		}
-		return e.Provider, rc
-	}
-	n := rand.IntN(r.totalWeight)
-	cumulative := 0
-	for _, e := range r.entries {
-		cumulative += e.Weight
-		if n < cumulative {
-			rc := r.defaultRetry
-			if e.Retry != nil {
-				rc = *e.Retry
-			}
-			return e.Provider, rc
-		}
-	}
-	e := r.entries[len(r.entries)-1]
+	e := r.selectEntry()
 	rc := r.defaultRetry
 	if e.Retry != nil {
 		rc = *e.Retry
 	}
 	return e.Provider, rc
+}
+
+// selectEntry picks a RouteEntry according to the router's configured strategy.
+// StrategyWeighted preserves the original weighted-random behavior, including
+// the zero-total-weight fallback to the first entry.
+func (r *Router) selectEntry() RouteEntry {
+	if len(r.entries) == 0 {
+		return RouteEntry{}
+	}
+	idx := r.strat.selectIndex(r.strategy, r.entries, r.totalWeight)
+	return r.entries[idx]
 }
 
 func (r *Router) chatWithRetry(ctx context.Context, p client.Provider, messages []client.EyrieMessage, opts client.ChatOptions, cfg RetryConfig) (*client.EyrieResponse, error) {
@@ -196,5 +227,20 @@ func (r *Router) recordSuccess(name string) {
 	r.mu.RUnlock()
 	if ok {
 		s.Add(1)
+	}
+}
+
+// recordUsage folds the token usage from a response into the usage-based
+// strategy counters. It is a no-op when the response carries no usage data.
+func (r *Router) recordUsage(name string, resp *client.EyrieResponse) {
+	if resp == nil || resp.Usage == nil {
+		return
+	}
+	tokens := resp.Usage.TotalTokens
+	if tokens == 0 {
+		tokens = resp.Usage.PromptTokens + resp.Usage.CompletionTokens
+	}
+	if tokens > 0 {
+		r.strat.recordUsage(name, int64(tokens))
 	}
 }
