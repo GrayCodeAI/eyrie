@@ -35,7 +35,7 @@ type Router struct {
 	totalWeight  int
 	defaultRetry RetryConfig
 	strategy     Strategy
-	strat        *strategyState
+	stratState   *strategyState
 	mu           sync.RWMutex
 	stats        map[string]*atomic.Int64
 }
@@ -76,7 +76,7 @@ func New(entries []RouteEntry, fallback []client.Provider, defaultRetry *RetryCo
 		totalWeight:  total,
 		defaultRetry: dr,
 		strategy:     StrategyWeighted,
-		strat:        newStrategyState(entries),
+		stratState:   newStrategyState(entries),
 		stats:        stats,
 	}
 	for _, opt := range opts {
@@ -105,11 +105,11 @@ func (r *Router) Ping(ctx context.Context) error {
 
 func (r *Router) Chat(ctx context.Context, messages []client.EyrieMessage, opts client.ChatOptions) (*client.EyrieResponse, error) {
 	provider, retry := r.selectProvider()
-	r.strat.beginInFlight(provider.Name())
+	r.stratState.beginInFlight(provider.Name())
 	start := time.Now()
 	resp, err := r.chatWithRetry(ctx, provider, messages, opts, retry)
-	r.strat.recordLatency(provider.Name(), float64(time.Since(start).Milliseconds()))
-	r.strat.endInFlight(provider.Name())
+	r.stratState.recordLatency(provider.Name(), float64(time.Since(start).Milliseconds()))
+	r.stratState.endInFlight(provider.Name())
 	if err == nil {
 		r.recordSuccess(provider.Name())
 		r.recordUsage(provider.Name(), resp)
@@ -137,11 +137,11 @@ func (r *Router) Chat(ctx context.Context, messages []client.EyrieMessage, opts 
 
 func (r *Router) StreamChat(ctx context.Context, messages []client.EyrieMessage, opts client.ChatOptions) (*client.StreamResult, error) {
 	provider, _ := r.selectProvider()
-	r.strat.beginInFlight(provider.Name())
+	r.stratState.beginInFlight(provider.Name())
 	start := time.Now()
 	sr, err := provider.StreamChat(ctx, messages, opts)
-	r.strat.recordLatency(provider.Name(), float64(time.Since(start).Milliseconds()))
-	r.strat.endInFlight(provider.Name())
+	r.stratState.recordLatency(provider.Name(), float64(time.Since(start).Milliseconds()))
+	r.stratState.endInFlight(provider.Name())
 	if err == nil {
 		r.recordSuccess(provider.Name())
 		return sr, nil
@@ -191,7 +191,7 @@ func (r *Router) selectEntry() RouteEntry {
 	if len(r.entries) == 0 {
 		return RouteEntry{}
 	}
-	idx := r.strat.selectIndex(r.strategy, r.entries, r.totalWeight)
+	idx := r.stratState.selectIndex(r.strategy, r.entries, r.totalWeight)
 	return r.entries[idx]
 }
 
@@ -241,6 +241,6 @@ func (r *Router) recordUsage(name string, resp *client.EyrieResponse) {
 		tokens = resp.Usage.PromptTokens + resp.Usage.CompletionTokens
 	}
 	if tokens > 0 {
-		r.strat.recordUsage(name, int64(tokens))
+		r.stratState.recordUsage(name, int64(tokens))
 	}
 }

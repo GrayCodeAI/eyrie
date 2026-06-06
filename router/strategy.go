@@ -104,11 +104,11 @@ func (s *strategyState) recordUsage(name string, tokens int64) {
 	}
 }
 
-// selectIndex picks an entry index according to strat. It never returns an index
+// selectIndex picks an entry index according to strategy. It never returns an index
 // outside [0, len(entries)). Callers must hold no router lock; this method only
 // reads immutable entry data plus the atomic/locked telemetry in strategyState.
-func (s *strategyState) selectIndex(strat Strategy, entries []RouteEntry, totalWeight int) int {
-	switch strat {
+func (s *strategyState) selectIndex(strategy Strategy, entries []RouteEntry, totalWeight int) int {
+	switch strategy {
 	case StrategySimpleShuffle:
 		return rand.IntN(len(entries))
 
