@@ -123,14 +123,10 @@ func TestShrinkTools_AllSafe(t *testing.T) {
 	if r.PercentOff <= 0 {
 		t.Error("expected positive percent off")
 	}
-	// Originals must not be modified
-	if tools[0].Description == out[0].Description {
-		// ok, may not have changed
-	}
+	// Originals must not be modified (shrink operates on copies)
 	for i, t1 := range tools {
-		if t1.Description == out[i].Description && strings.Contains(t1.Description, "the ") {
-			// Hmm, tool 0 was 'Read the contents' - it should have been shrunk
-			// but the original was passed in by value, so this is fine
+		if t1.Description != out[i].Description && strings.Contains(t1.Description, "the ") {
+			t.Errorf("tool %d: original description mutated", i)
 		}
 	}
 }

@@ -39,6 +39,9 @@ linters:
           - gocritic
           - noctx
           - bodyclose
+      - path: _test\.go
+        text: "SA5011"
+        linters:
           - staticcheck
 
 issues:

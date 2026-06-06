@@ -363,9 +363,7 @@ func TestLoad_WithEmptyConfigDir(t *testing.T) {
 	if err != nil {
 		return // Expected: catalog cache missing
 	}
-	if rt != nil && rt.Provider == nil {
-		// Provider can be nil if EnsureDeploymentConfigV2 returns nil for empty config
-	}
+	_ = rt // Provider may be nil for empty config — no assertion needed here
 }
 
 func TestLoad_MissingConfigDir(t *testing.T) {

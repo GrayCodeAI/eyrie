@@ -78,6 +78,11 @@ changelog:
     - title: "Other"
       order: 999
 
+sboms:
+  - artifacts: archive
+    documents:
+      - "${artifact}.spdx.sbom.json"
+
 release:
   draft: false
   prerelease: auto
