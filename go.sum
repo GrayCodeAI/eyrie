@@ -1,9 +1,5 @@
 github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk=
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/GrayCodeAI/hawk v0.2.1-0.20260517190521-61a6865d141a h1:RHsZ2qGNfl3qYx7oGhwB6S41jI5jxla4CGYvnS7O2zU=
-github.com/GrayCodeAI/hawk v0.2.1-0.20260517190521-61a6865d141a/go.mod h1:KG3UWsLYX0kmcR/+ZJ09Wk1q2qmecYcn8AJZT+fHTR0=
-github.com/GrayCodeAI/tok v0.3.0 h1:4YAWErBl4fdaorvVMU2cxhL6X0qrYsiYld+vQl6oRjw=
-github.com/GrayCodeAI/tok v0.3.0/go.mod h1:dd9hG5ULboJEGUCq756Y2uVUd/UDSk6bDIabN0j2BcI=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/danieljoos/wincred v1.2.3 h1:v7dZC2x32Ut3nEfRH+vhoZGvN72+dQ/snVXo/vMFLdQ=

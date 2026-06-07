@@ -1,12 +1,10 @@
-# Canonical hawk-eco Makefile for Go binary repos.
-# Source of truth: .shared-templates/Makefile.binary.tmpl at the eco root.
-# Placeholders rendered per repo: eyrie, ./cmd/eyrie.
+# Canonical hawk-eco Makefile for Go LIBRARY repos.
+# eyrie is a library consumed by hawk (no standalone binary, no release).
 
 # ---------------------------------------------------------------------------
 # Project metadata
 # ---------------------------------------------------------------------------
 NAME      := eyrie
-MAIN_PKG  := ./cmd/eyrie
 
 # ---------------------------------------------------------------------------
 # Versioning — sourced from VERSION file; falls back to git describe.
@@ -29,13 +27,12 @@ GOLANGCI     := $(GOBIN_DIR)/golangci-lint
 GOFUMPT      := $(GOBIN_DIR)/gofumpt
 GOIMPORTS    := $(GOBIN_DIR)/goimports
 GOVULNCHECK  := $(GOBIN_DIR)/govulncheck
-GORELEASER   := $(GOBIN_DIR)/goreleaser
 
 # ---------------------------------------------------------------------------
 # Phony declarations (alphabetical).
 # ---------------------------------------------------------------------------
-.PHONY: all bench build ci clean cover fmt help install lint lint-fix \
-        release security test test-10x test-race tidy version vet
+.PHONY: all bench build ci clean cover fmt help lint lint-fix \
+        security test test-10x test-race tidy version vet
 
 # ---------------------------------------------------------------------------
 # Default target.
@@ -45,15 +42,8 @@ all: lint test build ## Default — lint, test, build.
 # ---------------------------------------------------------------------------
 # Build / install / release.
 # ---------------------------------------------------------------------------
-build: ## Build the binary into bin/$(NAME).
-	CGO_ENABLED=0 go build -trimpath -ldflags="$(LDFLAGS)" -o bin/$(NAME) $(MAIN_PKG)
-
-install: ## Install the binary to $GOBIN.
-	CGO_ENABLED=0 go install -trimpath -ldflags="$(LDFLAGS)" $(MAIN_PKG)
-
-release: ## Cut a release via goreleaser (requires a clean tree + tag).
-	@command -v $(GORELEASER) >/dev/null 2>&1 || (echo "install: go install github.com/goreleaser/goreleaser/v2@latest" && exit 1)
-	$(GORELEASER) release --clean
+build: ## Build all library packages (eyrie is a library consumed by hawk; no standalone binary).
+	go build ./...
 
 # ---------------------------------------------------------------------------
 # Tests.
