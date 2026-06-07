@@ -110,6 +110,12 @@ func TestShrinkTools_AllSafe(t *testing.T) {
 		{Name: "write", Description: "In order to write content to a file, use this tool."},
 		{Name: "list", Description: "List all files in the current directory."},
 	}
+	// Snapshot the input descriptions so we can prove ShrinkTools does not
+	// mutate the caller's slice (it must operate on copies).
+	origDescriptions := make([]string, len(tools))
+	for i, t1 := range tools {
+		origDescriptions[i] = t1.Description
+	}
 	out, r := shrink.ShrinkTools(tools)
 	if r.ToolsProcessed != 3 {
 		t.Errorf("expected 3 processed, got %d", r.ToolsProcessed)
@@ -123,11 +129,15 @@ func TestShrinkTools_AllSafe(t *testing.T) {
 	if r.PercentOff <= 0 {
 		t.Error("expected positive percent off")
 	}
-	// Originals must not be modified (shrink operates on copies)
+	// Originals must not be modified (shrink operates on copies).
 	for i, t1 := range tools {
-		if t1.Description != out[i].Description && strings.Contains(t1.Description, "the ") {
-			t.Errorf("tool %d: original description mutated", i)
+		if t1.Description != origDescriptions[i] {
+			t.Errorf("tool %d: original description mutated: %q -> %q", i, origDescriptions[i], t1.Description)
 		}
+	}
+	// The shrunk output should differ from the original where applicable.
+	if out[0].Description == origDescriptions[0] {
+		t.Errorf("tool 0: expected description to be shrunk, got unchanged %q", out[0].Description)
 	}
 }
 
