@@ -112,8 +112,8 @@ var ErrRedisNil = errors.New("eyrie: redis nil reply")
 //
 // The client speaks RESP over a single net.Conn protected by a mutex. This is a
 // SKELETON: it is intentionally simple (one connection, no pooling, no pipelining,
-// no AUTH/SELECT) and is meant as a starting point. TODO: add connection pooling,
-// AUTH/db selection, and automatic reconnection for production use.
+// no AUTH/SELECT) and is meant as a starting point. For production use, extend
+// with connection pooling, AUTH/db selection, and automatic reconnection.
 type RedisBackend struct {
 	addr    string
 	timeout time.Duration
