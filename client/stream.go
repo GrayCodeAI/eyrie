@@ -506,13 +506,25 @@ func emit(ctx context.Context, ch chan<- EyrieStreamEvent, evt EyrieStreamEvent)
 }
 
 // ParseInlineToolCalls detects and extracts tool calls embedded in text content.
-// Some providers (e.g., canopywave/kimi) return tool calls in a text format:
-// <|tool_calls_section_begin|> <|tool_call_begin|> functions.ToolName:0 <|tool_call_argument_begin|> {"arg":"val"} <|tool_call_end|> <|tool_calls_section_end|>
+// Two text-embedded formats are recognized:
+//
+//   - Moonshot/kimi (canopywave): <|tool_calls_section_begin|> <|tool_call_begin|>
+//     functions.ToolName:0 <|tool_call_argument_begin|> {"arg":"val"} <|tool_call_end|>
+//     <|tool_calls_section_end|>
+//   - Hermes/Nous (Qwen, and most OpenAI-compatible local models served via
+//     vLLM/SGLang/Ollama): each call is a JSON object {"name":...,"arguments":{...}}
+//     wrapped in <tool_call>...</tool_call> XML tags, with parallel calls emitted
+//     as repeated tag pairs. This is the format Qwen2.5/QwQ emit; Qwen3-Coder uses
+//     a structurally similar but distinct "qwen3_xml" variant not handled here.
+//
+// Providers that already surface tool calls through the structured tool_calls
+// channel never reach this path — it is a fallback for models that inline them.
 func ParseInlineToolCalls(text string) (cleanText string, toolCalls []ToolCall) {
 	const marker = "<|tool_calls_section_begin|>"
 	idx := strings.Index(text, marker)
 	if idx < 0 {
-		return text, nil
+		// Fall back to the Hermes/Nous <tool_call> convention.
+		return parseHermesToolCalls(text)
 	}
 
 	cleanText = strings.TrimSpace(text[:idx])
@@ -559,6 +571,91 @@ func ParseInlineToolCalls(text string) (cleanText string, toolCalls []ToolCall) 
 	}
 
 	return cleanText, toolCalls
+}
+
+// hermesToolCallOpen/Close delimit a Hermes/Nous-format tool call. Qwen and most
+// OpenAI-compatible local models emit calls as <tool_call>{json}</tool_call>.
+const (
+	hermesToolCallOpen  = "<tool_call>"
+	hermesToolCallClose = "</tool_call>"
+)
+
+// parseHermesToolCalls extracts Hermes/Nous <tool_call>{"name","arguments"}</tool_call>
+// blocks from text. It returns the text with every (well-formed) tool-call block
+// removed and the parsed calls. A block whose body cannot be parsed as a function
+// call is left in the cleaned text untouched, so malformed output is surfaced to
+// the user rather than silently dropped.
+func parseHermesToolCalls(text string) (cleanText string, toolCalls []ToolCall) {
+	if !strings.Contains(text, hermesToolCallOpen) {
+		return text, nil
+	}
+
+	var clean strings.Builder
+	rest := text
+	for {
+		open := strings.Index(rest, hermesToolCallOpen)
+		if open < 0 {
+			clean.WriteString(rest)
+			break
+		}
+		body := rest[open+len(hermesToolCallOpen):]
+		close := strings.Index(body, hermesToolCallClose)
+		if close < 0 {
+			// Unterminated tag — keep the remainder verbatim and stop.
+			clean.WriteString(rest)
+			break
+		}
+		inner := strings.TrimSpace(body[:close])
+		after := body[close+len(hermesToolCallClose):]
+
+		if tc, ok := parseHermesCall(inner, len(toolCalls)); ok {
+			// Drop the block from the visible text.
+			clean.WriteString(rest[:open])
+			toolCalls = append(toolCalls, tc)
+		} else {
+			// Not a recognizable call: leave the whole block in place.
+			clean.WriteString(rest[:open+len(hermesToolCallOpen)+close+len(hermesToolCallClose)])
+		}
+		rest = after
+	}
+
+	cleanText = strings.TrimSpace(clean.String())
+	return cleanText, toolCalls
+}
+
+// parseHermesCall parses a single Hermes tool-call body — a JSON object with
+// "name" and "arguments" keys. "arguments" may be either a nested object or a
+// JSON-encoded string (both forms appear in the wild); a string is decoded one
+// level. seq disambiguates the synthetic call ID when the model omits one.
+func parseHermesCall(inner string, seq int) (ToolCall, bool) {
+	var raw struct {
+		Name      string          `json:"name"`
+		Arguments json.RawMessage `json:"arguments"`
+	}
+	if err := json.Unmarshal([]byte(inner), &raw); err != nil || raw.Name == "" {
+		return ToolCall{}, false
+	}
+
+	args := map[string]interface{}{}
+	if len(raw.Arguments) > 0 {
+		if err := json.Unmarshal(raw.Arguments, &args); err != nil {
+			// "arguments" came through as a JSON string — decode once more.
+			var asString string
+			if json.Unmarshal(raw.Arguments, &asString) == nil && asString != "" {
+				if err := json.Unmarshal([]byte(asString), &args); err != nil {
+					args = map[string]interface{}{"_raw": asString}
+				}
+			} else {
+				args = map[string]interface{}{"_raw": string(raw.Arguments)}
+			}
+		}
+	}
+
+	return ToolCall{
+		ID:        fmt.Sprintf("hermes_%s_%d", raw.Name, seq),
+		Name:      raw.Name,
+		Arguments: args,
+	}, true
 }
 
 // Error-body parsing now lives in provider_errors.go (parseProviderError +
