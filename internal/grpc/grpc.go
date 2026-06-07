@@ -40,9 +40,9 @@ type noopChatService struct{}
 // ErrUnimplemented is returned by the default ChatService until a real
 // gRPC-backed implementation is provided.
 //
-// TODO(grpc): replace noopChatService with an engine-backed implementation
-// once google.golang.org/grpc and the generated stubs are available (see
-// README.md), and register it via server_grpc.go (build tag "grpc").
+// When google.golang.org/grpc and the generated protobuf stubs are added
+// (see README.md), replace noopChatService with an engine-backed adapter
+// and register it via server_grpc.go (build tag "grpc").
 var ErrUnimplemented = errUnimplemented{}
 
 type errUnimplemented struct{}
