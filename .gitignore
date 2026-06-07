@@ -22,3 +22,4 @@ dist/
 .codegraph/
 .commandcode/
 .DS_Store
+coverage.out
