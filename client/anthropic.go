@@ -237,22 +237,6 @@ func buildAnthropicMessages(messages []EyrieMessage) ([]map[string]interface{}, 
 	return msgs, system
 }
 
-// parseImageString parses an image string into media type, data, and whether it is base64.
-// Accepts "data:<mediaType>;base64,<data>" or a plain URL (http/https).
-func parseImageString(img string) (mediaType, data string, isBase64 bool) {
-	if strings.HasPrefix(img, "data:") {
-		// Format: data:<mediaType>;base64,<data>
-		rest := strings.TrimPrefix(img, "data:")
-		if semiIdx := strings.Index(rest, ";base64,"); semiIdx >= 0 {
-			mediaType = rest[:semiIdx]
-			data = rest[semiIdx+len(";base64,"):]
-			return mediaType, data, true
-		}
-	}
-	// Treat as URL
-	return "", img, false
-}
-
 // audioFormatToMediaType converts a short audio format string to a full MIME type.
 func audioFormatToMediaType(format string) string {
 	switch strings.ToLower(format) {
@@ -338,7 +322,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	requestID := resp.Header.Get("Request-Id")
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("eyrie: anthropic API error (request_id=%s): %s", requestID, parseErrorBody(resp.Body))
+		return nil, formatAPIError("anthropic", resp.StatusCode, requestID, parseProviderError(resp.Body))
 	}
 
 	var ar anthropicResponse
@@ -432,9 +416,9 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 	requestID := resp.Header.Get("Request-Id")
 
 	if resp.StatusCode != 200 {
-		errMsg := parseErrorBody(resp.Body)
+		detail := parseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, fmt.Errorf("eyrie: anthropic API error (request_id=%s): %s", requestID, errMsg)
+		return nil, formatAPIError("anthropic", resp.StatusCode, requestID, detail)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)

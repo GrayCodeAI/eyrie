@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 )
 
 // OpenAIClient implements Provider for OpenAI and OpenAI-compatible APIs.
@@ -193,26 +192,10 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 				content = append(content, map[string]interface{}{"type": "text", "text": m.Content})
 			}
 			for _, img := range m.Images {
-				switch {
-				case strings.HasPrefix(img, "data:"):
-					// Already a data URI, pass directly
-					content = append(content, map[string]interface{}{
-						"type":      "image_url",
-						"image_url": map[string]interface{}{"url": img},
-					})
-				case strings.HasPrefix(img, "http"):
-					// Plain URL
-					content = append(content, map[string]interface{}{
-						"type":      "image_url",
-						"image_url": map[string]interface{}{"url": img},
-					})
-				default:
-					// Assume raw base64 data, default to image/png
-					content = append(content, map[string]interface{}{
-						"type":      "image_url",
-						"image_url": map[string]interface{}{"url": "data:image/png;base64," + img},
-					})
-				}
+				content = append(content, map[string]interface{}{
+					"type":      "image_url",
+					"image_url": map[string]interface{}{"url": openAIImageURL(img)},
+				})
 			}
 			msg["content"] = content
 		}
@@ -309,7 +292,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	requestID := resp.Header.Get("X-Request-Id")
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("eyrie: %s API error (request_id=%s): %s", c.providerName, requestID, parseErrorBody(resp.Body))
+		return nil, formatAPIError(c.providerName, resp.StatusCode, requestID, parseProviderError(resp.Body))
 	}
 
 	var or openaiResponse
@@ -371,9 +354,9 @@ func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	requestID := resp.Header.Get("X-Request-Id")
 
 	if resp.StatusCode != 200 {
-		errMsg := parseErrorBody(resp.Body)
+		detail := parseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, fmt.Errorf("eyrie: %s API error (request_id=%s): %s", c.providerName, requestID, errMsg)
+		return nil, formatAPIError(c.providerName, resp.StatusCode, requestID, detail)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)

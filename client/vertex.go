@@ -62,7 +62,7 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("eyrie: vertex API error (status %d): %s", resp.StatusCode, parseErrorBody(resp.Body))
+		return nil, formatAPIError("vertex", resp.StatusCode, resp.Header.Get("X-Goog-Request-Id"), parseProviderError(resp.Body))
 	}
 
 	var ar struct {
@@ -130,9 +130,9 @@ func (c *VertexClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	}
 
 	if resp.StatusCode != 200 {
-		errMsg := parseErrorBody(resp.Body)
+		detail := parseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, fmt.Errorf("eyrie: vertex API error (status %d): %s", resp.StatusCode, errMsg)
+		return nil, formatAPIError("vertex", resp.StatusCode, resp.Header.Get("X-Goog-Request-Id"), detail)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
