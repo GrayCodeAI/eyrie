@@ -70,7 +70,7 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 
 	requestID := resp.Header.Get("X-Request-Id")
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("eyrie: azure API error (request_id=%s): %s", requestID, parseErrorBody(resp.Body))
+		return nil, formatAPIError("azure", resp.StatusCode, requestID, parseProviderError(resp.Body))
 	}
 
 	var or openaiResponse
@@ -128,9 +128,9 @@ func (c *AzureClient) StreamChat(ctx context.Context, messages []EyrieMessage, o
 
 	requestID := resp.Header.Get("X-Request-Id")
 	if resp.StatusCode != 200 {
-		errMsg := parseErrorBody(resp.Body)
+		detail := parseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, fmt.Errorf("eyrie: azure API error (request_id=%s): %s", requestID, errMsg)
+		return nil, formatAPIError("azure", resp.StatusCode, requestID, detail)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)

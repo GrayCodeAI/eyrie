@@ -251,9 +251,13 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 
 type openaiStreamChoice struct {
 	Delta struct {
-		Content   string `json:"content,omitempty"`
-		Role      string `json:"role,omitempty"`
-		ToolCalls []struct {
+		Content string `json:"content,omitempty"`
+		// ReasoningContent carries the model's chain-of-thought on OpenAI-compatible
+		// providers that expose it as a separate channel (DeepSeek, Qwen, MiniMax-M2,
+		// some OpenRouter/z.ai routes). Without this field eyrie would drop it.
+		ReasoningContent string `json:"reasoning_content,omitempty"`
+		Role             string `json:"role,omitempty"`
+		ToolCalls        []struct {
 			Index    int    `json:"index"`
 			ID       string `json:"id,omitempty"`
 			Function struct {
@@ -274,6 +278,78 @@ type openaiStreamPayload struct {
 	} `json:"usage,omitempty"`
 }
 
+// thinkSplitter separates inline <think>...</think> reasoning out of streamed
+// content. Some OpenAI-compatible models (DeepSeek, Qwen, and local models via
+// Ollama/openrouter) emit chain-of-thought inline in delta.content wrapped in
+// <think> tags rather than in a dedicated reasoning_content field. Left in the
+// content stream this leaks reasoning into the assistant's answer text. The
+// splitter is fed each content delta in order and routes the pieces to the
+// content and thinking channels respectively. It is byte-accurate across chunk
+// boundaries: a tag split across two deltas is buffered until it can be matched.
+type thinkSplitter struct {
+	inThink bool
+	pending string // buffered bytes that may be the start of a (partial) tag
+}
+
+const (
+	thinkOpen  = "<think>"
+	thinkClose = "</think>"
+)
+
+// feed consumes one content delta and returns the visible content and the
+// reasoning extracted from it (either may be empty).
+func (s *thinkSplitter) feed(delta string) (content, thinking string) {
+	buf := s.pending + delta
+	s.pending = ""
+	var c, t strings.Builder
+	for len(buf) > 0 {
+		if s.inThink {
+			idx := strings.Index(buf, thinkClose)
+			if idx == -1 {
+				// No close tag yet. Keep a possible partial close tag suffix
+				// buffered; emit the rest as thinking.
+				keep := partialSuffixLen(buf, thinkClose)
+				t.WriteString(buf[:len(buf)-keep])
+				s.pending = buf[len(buf)-keep:]
+				buf = ""
+				continue
+			}
+			t.WriteString(buf[:idx])
+			buf = buf[idx+len(thinkClose):]
+			s.inThink = false
+		} else {
+			idx := strings.Index(buf, thinkOpen)
+			if idx == -1 {
+				keep := partialSuffixLen(buf, thinkOpen)
+				c.WriteString(buf[:len(buf)-keep])
+				s.pending = buf[len(buf)-keep:]
+				buf = ""
+				continue
+			}
+			c.WriteString(buf[:idx])
+			buf = buf[idx+len(thinkOpen):]
+			s.inThink = true
+		}
+	}
+	return c.String(), t.String()
+}
+
+// partialSuffixLen returns the length of the longest suffix of s that is a
+// proper (non-empty) prefix of tag — i.e. bytes that might begin tag but can't
+// be confirmed until more input arrives.
+func partialSuffixLen(s, tag string) int {
+	max := len(tag) - 1
+	if max > len(s) {
+		max = len(s)
+	}
+	for n := max; n > 0; n-- {
+		if strings.HasPrefix(tag, s[len(s)-n:]) {
+			return n
+		}
+	}
+	return 0
+}
+
 // processOpenAIStream converts OpenAI SSE events to EyrieStreamEvents.
 // Handles text deltas and tool call streaming by index.
 func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
@@ -288,6 +364,13 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 		}
 		tools := make(map[int]*toolAccum)
 		toolsEmitted := false
+		var splitter thinkSplitter
+
+		// Health signals accumulated across the stream so a reasoning-only or
+		// empty response can be reported as a precise diagnostic at the end.
+		var sawReasoning bool
+		var contentLen int
+		var finishReason string
 
 		emitTools := func() {
 			if toolsEmitted {
@@ -304,14 +387,31 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 			}
 		}
 
+		// finish emits the terminal done event, preceded by a non-fatal health
+		// diagnostic (as an error-type event the consumer can log) when the
+		// response produced no usable content/tool-calls.
+		finish := func(stopReason string) {
+			emitTools()
+			health := DetectResponseHealth(ResponseSignals{
+				SawReasoning: sawReasoning,
+				ContentLen:   contentLen,
+				ToolCalls:    len(tools),
+				FinishReason: finishReason,
+				StreamEnded:  true,
+			})
+			if d := health.Diagnostic(); d != "" {
+				emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: d})
+			}
+			emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason})
+		}
+
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case evt, ok := <-sseEvents:
 				if !ok {
-					emitTools()
-					emit(ctx, ch, EyrieStreamEvent{Type: "done"})
+					finish("")
 					return
 				}
 				// Propagate SSE-level errors
@@ -321,8 +421,7 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 				}
 				data := strings.TrimSpace(evt.Data)
 				if data == "" || data == "[DONE]" {
-					emitTools()
-					emit(ctx, ch, EyrieStreamEvent{Type: "done"})
+					finish("")
 					return
 				}
 
@@ -349,9 +448,25 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 				}
 				choice := oe.Choices[0]
 
-				// Text content
+				// Reasoning exposed as a dedicated channel (DeepSeek/Qwen/etc.):
+				// route it to a thinking event so it never lands in the answer.
+				if choice.Delta.ReasoningContent != "" {
+					sawReasoning = true
+					emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: choice.Delta.ReasoningContent})
+				}
+
+				// Text content. Split out any inline <think>...</think> reasoning
+				// so models that embed chain-of-thought in content don't leak it.
 				if choice.Delta.Content != "" {
-					emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: choice.Delta.Content})
+					content, thinking := splitter.feed(choice.Delta.Content)
+					if thinking != "" {
+						sawReasoning = true
+						emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: thinking})
+					}
+					if content != "" {
+						contentLen += len(content)
+						emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: content})
+					}
 				}
 
 				// Tool calls by index
@@ -373,8 +488,8 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 				}
 
 				if choice.FinishReason != nil {
-					emitTools()
-					emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: *choice.FinishReason})
+					finishReason = *choice.FinishReason
+					finish(*choice.FinishReason)
 					return
 				}
 			}
@@ -446,21 +561,6 @@ func ParseInlineToolCalls(text string) (cleanText string, toolCalls []ToolCall) 
 	return cleanText, toolCalls
 }
 
-// parseErrorBody reads and parses an error response body (capped at 4KB).
-func parseErrorBody(body io.ReadCloser) string {
-	defer func() { _ = body.Close() }()
-	data, err := io.ReadAll(io.LimitReader(body, 4096))
-	if err != nil {
-		return "failed to read error body"
-	}
-	var errResp struct {
-		Error struct {
-			Message string `json:"message"`
-			Type    string `json:"type"`
-		} `json:"error"`
-	}
-	if json.Unmarshal(data, &errResp) == nil && errResp.Error.Message != "" {
-		return fmt.Sprintf("%s: %s", errResp.Error.Type, errResp.Error.Message)
-	}
-	return string(data)
-}
+// Error-body parsing now lives in provider_errors.go (parseProviderError +
+// formatAPIError), which classifies the failure and echoes the upstream
+// correlation id uniformly across all provider request paths.
