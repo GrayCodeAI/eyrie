@@ -70,7 +70,7 @@ func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts 
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("eyrie: bedrock API error (status %d): %s", resp.StatusCode, parseErrorBody(resp.Body))
+		return nil, formatAPIError("bedrock", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), parseProviderError(resp.Body))
 	}
 
 	var ar anthropicResponse
@@ -117,7 +117,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 	}
 	if resp.StatusCode != http.StatusOK {
 		defer func() { _ = resp.Body.Close() }()
-		return nil, fmt.Errorf("eyrie: bedrock stream error (status %d): %s", resp.StatusCode, parseErrorBody(resp.Body))
+		return nil, formatAPIError("bedrock stream", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), parseProviderError(resp.Body))
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
