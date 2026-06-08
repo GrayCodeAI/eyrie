@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"strings"
+	"time"
 )
 
 // SSEEvent represents a single Server-Sent Event.
@@ -352,7 +353,13 @@ func partialSuffixLen(s, tag string) int {
 
 // processOpenAIStream converts OpenAI SSE events to EyrieStreamEvents.
 // Handles text deltas and tool call streaming by index.
+// Also instruments TTFT (time-to-first-token) and runs a RepeatDetector to
+// synthesise a finish_reason:"repeat" event when the stream loops.
 func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
+	return processOpenAIStreamWithOpts(ctx, sseEvents, logger, DefaultRepeatDetector(), time.Now())
+}
+
+func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger, repeat *RepeatDetector, start time.Time) <-chan EyrieStreamEvent {
 	ch := make(chan EyrieStreamEvent, streamChannelBuffer)
 	go func() {
 		defer close(ch)
@@ -371,6 +378,10 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 		var sawReasoning bool
 		var contentLen int
 		var finishReason string
+
+		// TTFT: wall-clock milliseconds to the first content or tool-call delta.
+		var ttftMs int
+		var ttftEmitted bool
 
 		emitTools := func() {
 			if toolsEmitted {
@@ -402,7 +413,7 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 			if d := health.Diagnostic(); d != "" {
 				emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: d})
 			}
-			emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason})
+			emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason, TTFTms: ttftMs})
 		}
 
 		for {
@@ -464,13 +475,34 @@ func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 						emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: thinking})
 					}
 					if content != "" {
+						// TTFT: record and emit a dedicated event on the first token.
+						if !ttftEmitted {
+							ttftEmitted = true
+							ttftMs = int(time.Since(start) / time.Millisecond)
+							emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
+						}
 						contentLen += len(content)
 						emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: content})
+						// Repeat detection: abort if stream is looping.
+						if repeat != nil {
+							repeat.Feed(content)
+							if repeat.IsRepeating() {
+								finishReason = "repeat"
+								finish("repeat")
+								return
+							}
+						}
 					}
 				}
 
 				// Tool calls by index
 				for _, tc := range choice.Delta.ToolCalls {
+					// TTFT: first tool-call argument fragment counts as the first token.
+					if !ttftEmitted && tc.Function.Arguments != "" {
+						ttftEmitted = true
+						ttftMs = int(time.Since(start) / time.Millisecond)
+						emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
+					}
 					t, ok := tools[tc.Index]
 					if !ok {
 						t = &toolAccum{}
@@ -506,7 +538,7 @@ func emit(ctx context.Context, ch chan<- EyrieStreamEvent, evt EyrieStreamEvent)
 }
 
 // ParseInlineToolCalls detects and extracts tool calls embedded in text content.
-// Two text-embedded formats are recognized:
+// Three text-embedded formats are recognized, tried in order:
 //
 //   - Moonshot/kimi (canopywave): <|tool_calls_section_begin|> <|tool_call_begin|>
 //     functions.ToolName:0 <|tool_call_argument_begin|> {"arg":"val"} <|tool_call_end|>
@@ -516,6 +548,9 @@ func emit(ctx context.Context, ch chan<- EyrieStreamEvent, evt EyrieStreamEvent)
 //     wrapped in <tool_call>...</tool_call> XML tags, with parallel calls emitted
 //     as repeated tag pairs. This is the format Qwen2.5/QwQ emit; Qwen3-Coder uses
 //     a structurally similar but distinct "qwen3_xml" variant not handled here.
+//   - Bare JSON brace-match (last resort): a {"name":...,"arguments":{...}} object
+//     found via strings.Index(text, `{"`) / strings.LastIndex(text, "}") without
+//     any wrapper tags. Used by some fine-tuned models and direct JSON outputs.
 //
 // Providers that already surface tool calls through the structured tool_calls
 // channel never reach this path — it is a fallback for models that inline them.
@@ -523,8 +558,13 @@ func ParseInlineToolCalls(text string) (cleanText string, toolCalls []ToolCall) 
 	const marker = "<|tool_calls_section_begin|>"
 	idx := strings.Index(text, marker)
 	if idx < 0 {
-		// Fall back to the Hermes/Nous <tool_call> convention.
-		return parseHermesToolCalls(text)
+		// Try Hermes/Nous <tool_call> format first.
+		clean, calls := parseHermesToolCalls(text)
+		if len(calls) > 0 {
+			return clean, calls
+		}
+		// Tier 3: bare brace-match JSON fallback.
+		return parseBraceMatchToolCall(text)
 	}
 
 	cleanText = strings.TrimSpace(text[:idx])
@@ -656,6 +696,30 @@ func parseHermesCall(inner string, seq int) (ToolCall, bool) {
 		Name:      raw.Name,
 		Arguments: args,
 	}, true
+}
+
+// parseBraceMatchToolCall is the third and last tier in ParseInlineToolCalls.
+// It looks for a bare {"name":...,"arguments":{...}} JSON object in text
+// (without any wrapper tags) using a start/end brace search and attempts to
+// parse it as a Hermes-shape tool call. On success it returns the text before
+// the JSON object as clean text and a single parsed tool call. On failure —
+// including malformed JSON or a missing "name" field — it returns the original
+// text verbatim with no tool calls, so the caller sees the raw model output
+// rather than a silent drop.
+func parseBraceMatchToolCall(text string) (cleanText string, toolCalls []ToolCall) {
+	start := strings.Index(text, `{"`)
+	if start < 0 {
+		return text, nil
+	}
+	end := strings.LastIndex(text, "}")
+	if end <= start {
+		return text, nil
+	}
+	candidate := text[start : end+1]
+	if tc, ok := parseHermesCall(candidate, 0); ok {
+		return strings.TrimSpace(text[:start]), []ToolCall{tc}
+	}
+	return text, nil
 }
 
 // Error-body parsing now lives in provider_errors.go (parseProviderError +

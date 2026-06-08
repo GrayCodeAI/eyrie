@@ -62,6 +62,24 @@ func NewProviderFeatures() *ProviderFeatures {
 				Streaming: true, Caching: false, JSON: true,
 				Embeddings: false, MaxContext: 131072,
 			},
+			// deepseek-v4-flash: chat model — tools yes, no reasoning_content
+			"deepseek-v4-flash": {
+				Thinking: false, ToolUse: true, Images: false,
+				Streaming: true, Caching: false, JSON: true,
+				Embeddings: false, MaxContext: 1000000,
+			},
+			// deepseek-v4-pro: reasoning model — thinking yes, function calling NOT supported per docs
+			"deepseek-v4-pro": {
+				Thinking: true, ToolUse: false, Images: false,
+				Streaming: true, Caching: false, JSON: true,
+				Embeddings: false, MaxContext: 1000000,
+			},
+			// deepseek: provider-level fallback (conservative: tools yes, no thinking)
+			"deepseek": {
+				Thinking: false, ToolUse: true, Images: false,
+				Streaming: true, Caching: false, JSON: true,
+				Embeddings: false, MaxContext: 1000000,
+			},
 		},
 	}
 	return pf
@@ -137,6 +155,14 @@ func NewDeprecationChecker() *DeprecationChecker {
 			"gpt-3.5-turbo": {
 				Model: "gpt-3.5-turbo", Deprecated: true,
 				Replacement: "gpt-4.1-mini", Message: "GPT-3.5 Turbo is deprecated. Use GPT-4.1 Mini.",
+			},
+			"deepseek-chat": {
+				Model: "deepseek-chat", Deprecated: true,
+				Replacement: "deepseek-v4-flash", Message: "deepseek-chat retires 2026-07-24. Use deepseek-v4-flash.",
+			},
+			"deepseek-reasoner": {
+				Model: "deepseek-reasoner", Deprecated: true,
+				Replacement: "deepseek-v4-pro", Message: "deepseek-reasoner retires 2026-07-24. Use deepseek-v4-pro.",
 			},
 		},
 	}

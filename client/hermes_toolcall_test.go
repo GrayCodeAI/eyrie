@@ -96,3 +96,80 @@ func TestParseInlineToolCalls_MoonshotStillWorks(t *testing.T) {
 		t.Fatalf("got %+v, want one call named do_thing", calls)
 	}
 }
+
+// --- Tier 3: bare brace-match JSON fallback tests ---
+
+func TestParseBraceMatch_RawJSONNoFences(t *testing.T) {
+	text := `{"name":"search","arguments":{"q":"golang"}}`
+	clean, calls := ParseInlineToolCalls(text)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d: %+v", len(calls), calls)
+	}
+	if calls[0].Name != "search" {
+		t.Errorf("call name = %q, want search", calls[0].Name)
+	}
+	q, _ := calls[0].Arguments["q"].(string)
+	if q != "golang" {
+		t.Errorf("args[q] = %q, want golang", q)
+	}
+	if clean != "" {
+		t.Errorf("clean text = %q, want empty (JSON was the whole text)", clean)
+	}
+}
+
+func TestParseBraceMatch_JSONWithTextPrefix(t *testing.T) {
+	text := `Sure, let me call that. {"name":"list_files","arguments":{"dir":"/tmp"}}`
+	clean, calls := ParseInlineToolCalls(text)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d: %+v", len(calls), calls)
+	}
+	if calls[0].Name != "list_files" {
+		t.Errorf("call name = %q, want list_files", calls[0].Name)
+	}
+	if clean != "Sure, let me call that." {
+		t.Errorf("clean text = %q, want 'Sure, let me call that.'", clean)
+	}
+}
+
+func TestParseBraceMatch_MalformedJSONReturnedVerbatim(t *testing.T) {
+	text := `{"name": "x", "arguments": INVALID}`
+	clean, calls := ParseInlineToolCalls(text)
+	if len(calls) != 0 {
+		t.Errorf("expected 0 calls for malformed JSON, got %d", len(calls))
+	}
+	if clean != text {
+		t.Errorf("clean = %q, want original text verbatim", clean)
+	}
+}
+
+func TestParseBraceMatch_MissingNameReturnedVerbatim(t *testing.T) {
+	text := `{"arguments":{"a":1}}`
+	clean, calls := ParseInlineToolCalls(text)
+	if len(calls) != 0 {
+		t.Errorf("expected 0 calls when name is absent, got %d", len(calls))
+	}
+	if clean != text {
+		t.Errorf("clean = %q, want original text verbatim", clean)
+	}
+}
+
+func TestParseBraceMatch_NotShadowingHermesTags(t *testing.T) {
+	// When Hermes tags are present, the brace-match tier must NOT run.
+	text := `<tool_call>{"name":"ping","arguments":{}}</tool_call>`
+	clean, calls := ParseInlineToolCalls(text)
+	if len(calls) != 1 || calls[0].Name != "ping" {
+		t.Fatalf("expected Hermes call named ping, got %+v", calls)
+	}
+	_ = clean
+}
+
+func TestParseBraceMatch_NoJSONInText(t *testing.T) {
+	text := "just plain text with no JSON at all"
+	clean, calls := ParseInlineToolCalls(text)
+	if len(calls) != 0 {
+		t.Errorf("expected 0 calls, got %d", len(calls))
+	}
+	if clean != text {
+		t.Errorf("clean = %q, want original text", clean)
+	}
+}

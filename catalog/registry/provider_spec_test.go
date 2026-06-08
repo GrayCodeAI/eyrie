@@ -7,8 +7,8 @@ import (
 )
 
 func TestAllProviders_Count(t *testing.T) {
-	if n := len(registry.All()); n != 15 {
-		t.Fatalf("expected 15 providers, got %d", n)
+	if n := len(registry.All()); n != 16 {
+		t.Fatalf("expected 16 providers, got %d", n)
 	}
 }
 
@@ -20,8 +20,8 @@ func TestCredentialRegistry_MatchesAll(t *testing.T) {
 
 func TestLiveFetcherKeys_AllProviders(t *testing.T) {
 	keys := registry.LiveFetcherKeys()
-	if len(keys) != 15 {
-		t.Fatalf("expected 15 live fetcher keys, got %d", len(keys))
+	if len(keys) != 16 {
+		t.Fatalf("expected 16 live fetcher keys, got %d", len(keys))
 	}
 }
 
@@ -65,6 +65,7 @@ func TestProviderSpecs_TableDriven(t *testing.T) {
 		{"xiaomi_mimo_payg", "xiaomi_mimo_payg", true, registry.ProbeOpenAIModels, true, "xiaomi_mimo_payg-direct"},
 		{"xiaomi_mimo_token_plan", "xiaomi_mimo_token_plan", true, registry.ProbeOpenAIModels, true, "xiaomi_mimo_token_plan-direct"},
 		{"ollama", "ollama", false, registry.ProbeOllama, true, "ollama-local"},
+		{"deepseek", "deepseek", true, registry.ProbeOpenAIModels, true, "deepseek-direct"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

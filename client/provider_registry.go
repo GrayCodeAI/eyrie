@@ -51,6 +51,7 @@ var CoreProviders = map[string]ProviderRegistryConfig{
 
 // OpenAICompatibleProviders use the OpenAI SDK with custom baseUrl.
 var OpenAICompatibleProviders = map[string]ProviderRegistryConfig{
+	"deepseek":               {Name: "deepseek", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.deepseek.com/v1", EnvKey: "DEEPSEEK_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"grok":                   {Name: "grok", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.x.ai/v1", EnvKey: "XAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"openrouter":             {Name: "openrouter", Type: ProviderTypeOpenAICompatible, BaseURL: "https://openrouter.ai/api/v1", EnvKey: "OPENROUTER_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"z-ai":                   {Name: "z-ai", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.z.ai/api/paas/v4", EnvKey: "ZAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
@@ -199,6 +200,7 @@ func DetectProvider() string {
 	ctx := context.Background()
 	checks := map[string]func() bool{
 		"anthropic":  func() bool { return credentials.HasSecret(ctx, "ANTHROPIC_API_KEY") },
+		"deepseek":   func() bool { return credentials.HasSecret(ctx, "DEEPSEEK_API_KEY") },
 		"openrouter": func() bool { return credentials.HasSecret(ctx, "OPENROUTER_API_KEY") },
 		"grok":       func() bool { return credentials.HasSecret(ctx, "XAI_API_KEY") },
 		"gemini":     func() bool { return credentials.HasSecret(ctx, "GEMINI_API_KEY") },
