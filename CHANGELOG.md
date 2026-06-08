@@ -84,7 +84,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 - `CODE_OF_CONDUCT.md` — Contributor Covenant 2.1.
 - `.gitattributes` — LF line-ending normalization, binary detection,
   GitHub linguist hints.
-- `.github/dependabot.yml` — weekly `gomod` + `github-actions` updates.
 - `.github/PULL_REQUEST_TEMPLATE.md` — Summary / Changes / Testing /
   Checklist.
 - `.github/ISSUE_TEMPLATE/bug_report.yml` — structured bug report.
