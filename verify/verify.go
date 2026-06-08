@@ -46,11 +46,15 @@ type Case struct {
 
 // CaseResult is the verdict for one case.
 type CaseResult struct {
-	ID       string
-	Passed   bool
-	Failures []string // human-readable reasons it failed
-	Err      string   // transport/provider error, if any
-	Latency  time.Duration
+	ID            string
+	Passed        bool
+	Failures      []string // human-readable reasons it failed
+	Err           string   // transport/provider error, if any
+	Latency       time.Duration
+	ToolCalled    string // first tool the model actually called, empty if none
+	ExpectedTool  bool   // case declared a ToolName expectation
+	CalledAnyTool bool   // model emitted at least one tool call
+	CorrectTool   bool   // model called the expected tool name
 }
 
 // Report aggregates the suite outcome.
@@ -58,6 +62,7 @@ type Report struct {
 	Provider string
 	Total    int
 	Passed   int
+	F1Score  float64
 	Results  []CaseResult
 }
 
@@ -79,6 +84,7 @@ func Run(ctx context.Context, p client.Provider, cases []Case) Report {
 		}
 		rep.Results = append(rep.Results, res)
 	}
+	_, _, rep.F1Score = ToolCallF1(rep.Results, cases)
 	return rep
 }
 
@@ -97,6 +103,19 @@ func runCase(ctx context.Context, p client.Provider, c Case) CaseResult {
 		return res
 	}
 
+	if len(resp.ToolCalls) > 0 {
+		res.ToolCalled = resp.ToolCalls[0].Name
+		res.CalledAnyTool = true
+	}
+	if c.Expect.ToolName != "" {
+		res.ExpectedTool = true
+		for _, tc := range resp.ToolCalls {
+			if tc.Name == c.Expect.ToolName {
+				res.CorrectTool = true
+				break
+			}
+		}
+	}
 	res.Failures = scoreResponse(resp, c.Expect)
 	res.Passed = len(res.Failures) == 0
 	return res
@@ -171,7 +190,8 @@ func DiffBaseline(baseline, current Report) []string {
 // Markdown renders the report.
 func (r Report) Markdown() string {
 	out := fmt.Sprintf("## Conformance: %s\n\n", r.Provider)
-	out += fmt.Sprintf("- score: %.0f%% (%d/%d)\n\n", r.Score()*100, r.Passed, r.Total)
+	out += fmt.Sprintf("- score: %.0f%% (%d/%d)\n", r.Score()*100, r.Passed, r.Total)
+	out += fmt.Sprintf("- tool_call_f1: %.2f\n\n", r.F1Score)
 	out += "| case | result | latency | detail |\n|---|---|---|---|\n"
 	for _, c := range r.Results {
 		status := "✓"

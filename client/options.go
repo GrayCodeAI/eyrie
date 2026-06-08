@@ -43,6 +43,13 @@ type ChatOptions struct {
 	// for budget enforcement and cost accounting (see BudgetProvider). When
 	// empty, the BudgetProvider also checks the request context.
 	VirtualKeyID string `json:"virtual_key_id,omitempty"`
+	// KimiContextCacheID, when set, prepends a cache-role message to the
+	// request for Kimi/Moonshot context caching. Only effective when the
+	// provider compat is KimiCompat (SupportsCacheRole true).
+	KimiContextCacheID string `json:"kimi_context_cache_id,omitempty"`
+	// KimiCacheResetTTL resets the TTL of the cache on use when true.
+	// Only effective when KimiContextCacheID is also set.
+	KimiCacheResetTTL bool `json:"kimi_cache_reset_ttl,omitempty"`
 }
 
 // ClientOption configures clients.

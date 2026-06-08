@@ -13,6 +13,14 @@ type OpenAICompatConfig struct {
 	RequiresAssistantAfterToolResult bool   `json:"requires_assistant_after_tool_result,omitempty"`
 	RequiresThinkingAsText           bool   `json:"requires_thinking_as_text,omitempty"`
 	ThinkingFormat                   string `json:"thinking_format,omitempty"` // "openai", "zai", "qwen", "openrouter"
+	// StripReasoningFromInput instructs buildRequestBase to omit the reasoning_content
+	// field from assistant messages. DeepSeek (and compatible providers) return HTTP 400
+	// if reasoning_content appears in the input context of a multi-turn conversation.
+	StripReasoningFromInput bool `json:"strip_reasoning_from_input,omitempty"`
+	// SupportsCacheRole enables Kimi/Moonshot context-cache injection: when
+	// ChatOptions.KimiContextCacheID is non-empty, buildRequestBase prepends a
+	// {"role":"cache","content":<id>} message per the MoonshotAI-Cookbook spec.
+	SupportsCacheRole bool `json:"supports_cache_role,omitempty"`
 }
 
 // Per-provider compat configs.
@@ -46,7 +54,8 @@ var (
 		MaxTokensField: "max_tokens",
 	}
 	KimiCompat = OpenAICompatConfig{
-		MaxTokensField: "max_tokens",
+		MaxTokensField:    "max_tokens",
+		SupportsCacheRole: true,
 	}
 	XiaomiCompat = OpenAICompatConfig{
 		MaxTokensField: "max_completion_tokens",
@@ -59,6 +68,13 @@ var (
 	}
 	VertexCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens",
+	}
+	// DeepSeekCompat: OpenAI-compatible with usage in streaming.
+	// The provider rejects reasoning_content in input messages with HTTP 400, so we strip it.
+	DeepSeekCompat = OpenAICompatConfig{
+		MaxTokensField:           "max_tokens",
+		SupportsUsageInStreaming: true,
+		StripReasoningFromInput:  true,
 	}
 )
 
@@ -106,6 +122,10 @@ func init() {
 			p.Compat = &XiaomiCompat
 			OpenAICompatibleProviders[id] = p
 		}
+	}
+	if p, ok := OpenAICompatibleProviders["deepseek"]; ok {
+		p.Compat = &DeepSeekCompat
+		OpenAICompatibleProviders["deepseek"] = p
 	}
 	if p, ok := CoreProviders["openai"]; ok {
 		p.Compat = &OpenAICompat

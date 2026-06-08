@@ -167,6 +167,56 @@ func TestThinkingForBudget(t *testing.T) {
 	}
 }
 
+// TestBuildRequestBase_DeepSeekStripsReasoningContent verifies that the
+// EyrieMessage.Thinking field (which carries reasoning_content captured from a
+// prior DeepSeek response) is never forwarded in the outgoing request body.
+// DeepSeek returns HTTP 400 if reasoning_content appears in a multi-turn
+// conversation, so StripReasoningFromInput=true is the correct behaviour.
+func TestBuildRequestBase_DeepSeekStripsReasoningContent(t *testing.T) {
+	compat := &DeepSeekCompat
+
+	messages := []EyrieMessage{
+		{Role: "user", Content: "What is 2+2?"},
+		{Role: "assistant", Content: "4", Thinking: "Let me compute: 2+2 = 4"},
+		{Role: "user", Content: "Are you sure?"},
+	}
+
+	req := buildRequestBase(messages, ChatOptions{Model: "deepseek-v4-flash"}, false, compat)
+
+	body, _ := json.Marshal(req)
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		t.Fatalf("failed to unmarshal request: %v", err)
+	}
+
+	msgs, ok := parsed["messages"].([]interface{})
+	if !ok {
+		t.Fatalf("messages field missing or wrong type")
+	}
+
+	for i, raw := range msgs {
+		msg, ok := raw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if _, present := msg["reasoning_content"]; present {
+			t.Errorf("message[%d] must not contain reasoning_content, got %v", i, msg)
+		}
+	}
+
+	// Verify the assistant turn still carries its text content.
+	if len(msgs) < 3 {
+		t.Fatalf("expected 3 messages, got %d", len(msgs))
+	}
+	asst, _ := msgs[1].(map[string]interface{})
+	if asst["role"] != "assistant" {
+		t.Errorf("messages[1].role = %v, want assistant", asst["role"])
+	}
+	if asst["content"] != "4" {
+		t.Errorf("messages[1].content = %v, want 4", asst["content"])
+	}
+}
+
 func TestAnthropicRequest_ThinkingSerialization(t *testing.T) {
 	t.Run("budget set emits thinking object", func(t *testing.T) {
 		req := anthropicRequest{

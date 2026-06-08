@@ -32,6 +32,8 @@ const (
 // FetchFunc lists models from a live provider API.
 type FetchFunc func(env map[string]string) ([]Entry, error)
 
+const DefaultDeepSeekBaseURL = "https://api.deepseek.com/v1"
+
 // Registry maps fetcher keys to implementations.
 var Registry = map[string]FetchFunc{
 	"anthropic":              FetchAnthropic,
@@ -49,6 +51,7 @@ var Registry = map[string]FetchFunc{
 	"xiaomi_mimo_payg":       FetchXiaomiPayg,
 	"xiaomi_mimo_token_plan": FetchXiaomiTokenPlan,
 	"ollama":                 FetchOllama,
+	"deepseek":               FetchDeepSeek,
 }
 
 // Fetch runs a registered live fetcher.
@@ -796,6 +799,15 @@ func FetchOllama(env map[string]string) ([]Entry, error) {
 		})
 	}
 	return entries, nil
+}
+
+// FetchDeepSeek lists models from the DeepSeek OpenAI-compatible API.
+func FetchDeepSeek(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "DEEPSEEK_BASE_URL", DefaultDeepSeekBaseURL),
+		env["DEEPSEEK_API_KEY"], "Bearer",
+	)
 }
 
 func signAWSV4(req *http.Request, accessKeyID, secretAccessKey, sessionToken, region, service string, body []byte) {
