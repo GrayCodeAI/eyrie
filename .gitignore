@@ -1,5 +1,6 @@
 # Binaries
 /eyrie
+/basic
 bin/
 *.exe
 
