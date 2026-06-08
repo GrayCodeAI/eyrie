@@ -105,6 +105,7 @@ type openaiRequest struct {
 	Tools               []map[string]interface{} `json:"tools,omitempty"`
 	ResponseFormat      map[string]interface{}   `json:"response_format,omitempty"`
 	ReasoningEffort     string                   `json:"reasoning_effort,omitempty"`
+	Thinking            map[string]interface{}   `json:"thinking,omitempty"`
 }
 
 type streamOptions struct {
@@ -257,6 +258,13 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 	}
 	if compat != nil && compat.SupportsReasoningEffort && opts.ReasoningEffort != "" {
 		req.ReasoningEffort = opts.ReasoningEffort
+	}
+	if compat != nil && compat.ThinkingFormat == "zai" && opts.GLMThinkingEnabled != nil {
+		thinkingType := "disabled"
+		if *opts.GLMThinkingEnabled {
+			thinkingType = "enabled"
+		}
+		req.Thinking = map[string]interface{}{"type": thinkingType}
 	}
 	return req
 }
