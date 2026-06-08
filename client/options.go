@@ -33,6 +33,12 @@ type ChatOptions struct {
 	// ThinkingBudgetTokens enables Anthropic extended thinking with the given
 	// token budget when greater than zero. Ignored by other providers.
 	ThinkingBudgetTokens int `json:"thinking_budget_tokens,omitempty"`
+	// GLMThinkingEnabled toggles GLM/Z.ai extended reasoning via the provider's
+	// non-OpenAI thinking={"type":"enabled"|"disabled"} request parameter. Only
+	// applied for OpenAI-compatible providers whose compat config sets
+	// ThinkingFormat to "zai". When nil the parameter is omitted and the model
+	// uses its default (GLM defaults to enabled). Ignored by other providers.
+	GLMThinkingEnabled *bool `json:"glm_thinking_enabled,omitempty"`
 	// VirtualKeyID optionally attributes the request to a logical virtual key
 	// for budget enforcement and cost accounting (see BudgetProvider). When
 	// empty, the BudgetProvider also checks the request context.
