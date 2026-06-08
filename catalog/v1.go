@@ -614,6 +614,7 @@ func defaultProvidersV1() map[string]ProviderV1 {
 		"kimi":                   {ID: "kimi", Name: "Kimi (Moonshot)"},
 		"xiaomi_mimo_payg":       {ID: "xiaomi_mimo_payg", Name: "Xiaomi MiMo (Pay-as-you-go)"},
 		"xiaomi_mimo_token_plan": {ID: "xiaomi_mimo_token_plan", Name: "Xiaomi MiMo (Token Plan)"},
+		"deepseek":               {ID: "deepseek", Name: "DeepSeek"},
 	}
 }
 
@@ -643,6 +644,7 @@ func defaultDeploymentsV1() map[string]DeploymentV1 {
 		"kimi-direct":                   deployment("kimi-direct", "Kimi (Moonshot)", "kimi", "openai-chat-completions", "kimi", NativeModelIDDiscovered),
 		"xiaomi_mimo_payg-direct":       deployment("xiaomi_mimo_payg-direct", "Xiaomi MiMo Pay-as-you-go", "xiaomi_mimo_payg", "openai-chat-completions", "xiaomi_mimo", NativeModelIDDiscovered),
 		"xiaomi_mimo_token_plan-direct": deployment("xiaomi_mimo_token_plan-direct", "Xiaomi MiMo Token Plan", "xiaomi_mimo_token_plan", "openai-chat-completions", "xiaomi_mimo", NativeModelIDDiscovered),
+		"deepseek-direct":               deployment("deepseek-direct", "DeepSeek", "deepseek", "openai-chat-completions", "deepseek", NativeModelIDCatalogKnown),
 	}
 }
 
@@ -737,6 +739,8 @@ func legacyDeploymentAndOwner(provider string) (deploymentID, ownerProviderID st
 		return "xiaomi_mimo_payg-direct", "xiaomi_mimo_payg"
 	case "xiaomi_mimo_token_plan":
 		return "xiaomi_mimo_token_plan-direct", "xiaomi_mimo_token_plan"
+	case "deepseek":
+		return "deepseek-direct", "deepseek"
 	default:
 		return "", ""
 	}

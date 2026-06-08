@@ -155,5 +155,14 @@ func providerSpecs() []ProviderSpec {
 				AbortOnCodes: []int{400},
 			},
 		},
+		{
+			ProviderID: "deepseek", DisplayName: "DeepSeek", DeploymentID: "deepseek-direct", SortOrder: 16,
+			RequiresKey: true, CredentialEnv: "DEEPSEEK_API_KEY",
+			BaseURLEnv: []string{"DEEPSEEK_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.deepseek.com/v1",
+
+			LiveFetcherKey: "deepseek", LiveCatalogKey: "deepseek",
+			APIProtocolID: "openai-chat-completions", AdapterID: "deepseek",
+		},
 	}
 }

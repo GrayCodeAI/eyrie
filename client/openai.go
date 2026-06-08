@@ -116,8 +116,9 @@ type openaiResponse struct {
 	ID      string `json:"id"`
 	Choices []struct {
 		Message struct {
-			Content   string `json:"content"`
-			ToolCalls []struct {
+			Content          string `json:"content"`
+			ReasoningContent string `json:"reasoning_content,omitempty"`
+			ToolCalls        []struct {
 				ID       string `json:"id"`
 				Function struct {
 					Name      string `json:"name"`
@@ -139,6 +140,8 @@ type openaiResponse struct {
 
 // buildRequestBase builds an OpenAI-compatible request body.
 // When compat is non-nil, MaxTokensField and SupportsUsageInStreaming overrides are applied.
+// EyrieMessage.Thinking (reasoning_content from prior responses) is never forwarded into
+// the wire format — providers like DeepSeek return HTTP 400 if it appears in input messages.
 func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, compat *OpenAICompatConfig) openaiRequest {
 	var msgs []map[string]interface{}
 	for _, m := range messages {
@@ -216,6 +219,20 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 			msg["tool_calls"] = toolCalls
 		}
 		msgs = append(msgs, msg)
+	}
+	// Kimi/Moonshot context-cache injection (MoonshotAI-Cookbook pattern):
+	// prepend a {"role":"cache","content":<id>} message so the provider
+	// attaches a previously created context cache to this request.
+	// Guarded by SupportsCacheRole so other providers are never affected.
+	if compat != nil && compat.SupportsCacheRole && opts.KimiContextCacheID != "" {
+		cacheMsg := map[string]interface{}{
+			"role":    "cache",
+			"content": opts.KimiContextCacheID,
+		}
+		if opts.KimiCacheResetTTL {
+			cacheMsg["reset_ttl"] = true
+		}
+		msgs = append([]map[string]interface{}{cacheMsg}, msgs...)
 	}
 	req := openaiRequest{Model: opts.Model, Messages: msgs, Temperature: opts.Temperature, Stream: stream}
 	if len(opts.Tools) > 0 {
@@ -312,6 +329,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	if len(or.Choices) > 0 {
 		ch := or.Choices[0]
 		result.Content = ch.Message.Content
+		result.Thinking = ch.Message.ReasoningContent
 		result.FinishReason = ch.FinishReason
 		for _, tc := range ch.Message.ToolCalls {
 			var args map[string]interface{}

@@ -71,8 +71,9 @@ func TestAzureChat_Success(t *testing.T) {
 			ID: "chatcmpl-azure-001",
 			Choices: []struct {
 				Message struct {
-					Content   string `json:"content"`
-					ToolCalls []struct {
+					Content          string `json:"content"`
+					ReasoningContent string `json:"reasoning_content,omitempty"`
+					ToolCalls        []struct {
 						ID       string `json:"id"`
 						Function struct {
 							Name      string `json:"name"`
@@ -84,8 +85,9 @@ func TestAzureChat_Success(t *testing.T) {
 			}{
 				{
 					Message: struct {
-						Content   string `json:"content"`
-						ToolCalls []struct {
+						Content          string `json:"content"`
+						ReasoningContent string `json:"reasoning_content,omitempty"`
+						ToolCalls        []struct {
 							ID       string `json:"id"`
 							Function struct {
 								Name      string `json:"name"`

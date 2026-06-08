@@ -77,6 +77,7 @@ type InputAudioPart struct {
 type EyrieMessage struct {
 	Role         string        `json:"role"`
 	Content      string        `json:"content,omitempty"`
+	Thinking     string        `json:"thinking,omitempty"`      // chain-of-thought captured from a prior response (never forwarded to providers that reject it)
 	ContentParts []ContentPart `json:"content_parts,omitempty"` // multi-modal content (takes precedence over Content/Images)
 	Images       []string      `json:"images,omitempty"`
 	ToolUse      []ToolCall    `json:"tool_use,omitempty"`     // assistant message with tool calls
@@ -109,6 +110,7 @@ type EyrieUsage struct {
 // EyrieResponse is the response from a chat call.
 type EyrieResponse struct {
 	Content      string      `json:"content"`
+	Thinking     string      `json:"thinking,omitempty"`
 	Usage        *EyrieUsage `json:"usage,omitempty"`
 	ToolCalls    []ToolCall  `json:"tool_calls,omitempty"`
 	FinishReason string      `json:"finish_reason"`
@@ -124,7 +126,7 @@ type ToolCall struct {
 
 // EyrieStreamEvent is a streaming event.
 type EyrieStreamEvent struct {
-	Type       string      `json:"type"` // content, tool_call, tool_input_delta, thinking, done, error
+	Type       string      `json:"type"` // content, tool_call, tool_input_delta, thinking, done, error, ttft
 	Content    string      `json:"content,omitempty"`
 	ToolCall   *ToolCall   `json:"tool_call,omitempty"`
 	Thinking   string      `json:"thinking,omitempty"`
@@ -132,6 +134,12 @@ type EyrieStreamEvent struct {
 	RequestID  string      `json:"request_id,omitempty"`
 	Usage      *EyrieUsage `json:"usage,omitempty"`
 	StopReason string      `json:"stop_reason,omitempty"`
+	TTFTms     int         `json:"ttft_ms,omitempty"` // time-to-first-token milliseconds, set on "done" event
+	// TTFT carries time-to-first-token milliseconds on Type=="ttft" events.
+	// It is emitted as a dedicated event immediately before the first content
+	// or tool-call delta so consumers can measure latency without waiting for
+	// the stream to finish.
+	TTFT int `json:"ttft,omitempty"`
 }
 
 // StreamResult wraps a streaming response with cleanup.
