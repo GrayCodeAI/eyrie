@@ -42,7 +42,7 @@ When your app calls a model, eyrie figures out which provider to use, how to tal
 go get github.com/GrayCodeAI/eyrie
 ```
 
-Requires Go 1.26+. Zero external dependencies.
+Requires Go 1.26+. Minimal dependencies (UUID, OpenTelemetry, SQLite, keyring).
 
 ```go
 import "github.com/GrayCodeAI/eyrie/client"
