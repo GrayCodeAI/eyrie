@@ -23,11 +23,6 @@ env:
   GOPRIVATE: "github.com/GrayCodeAI/*"
   GONOSUMDB: "github.com/GrayCodeAI/*"
   GONOSUMCHECK: "1"
-  # Fetch GrayCodeAI modules straight from VCS rather than the public module
-  # proxy. The proxy can cache a stale zip for a version whose tag has been
-  # moved (e.g. tok v0.1.0), producing go.sum checksum mismatches; direct git
-  # fetch always matches the current tag content recorded in go.sum.
-  GOPROXY: "direct"
 
 jobs:
   # -------------------------------------------------------------------------
