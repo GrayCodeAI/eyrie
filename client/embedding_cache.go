@@ -45,6 +45,7 @@ func DefaultSemanticCacheConfig() SemanticCacheConfig {
 // semanticEntry holds a cached response keyed by its request embedding.
 type semanticEntry struct {
 	vector    []float32
+	model     string // embedding model that produced vector; gates cross-model reuse
 	response  *EyrieResponse
 	createdAt time.Time
 
@@ -213,6 +214,12 @@ func (sp *EmbeddingCachedProvider) lookup(vec []float32) (*EyrieResponse, bool) 
 		if now.Sub(e.createdAt) > sp.maxAge {
 			continue
 		}
+		// Never compare across embedding models: vectors from a different model
+		// live in an incompatible space, so the cosine score would be meaningless
+		// (and on a same-dimension model swap could serve a wrong response).
+		if e.model != sp.model {
+			continue
+		}
 		sim := cosineSimilarity(vec, e.vector)
 		if sim >= bestSim {
 			bestSim = sim
@@ -241,6 +248,7 @@ func (sp *EmbeddingCachedProvider) store(vec []float32, resp *EyrieResponse) {
 
 	e := &semanticEntry{
 		vector:    vec,
+		model:     sp.model,
 		response:  copyResponse(resp),
 		createdAt: time.Now(),
 	}
