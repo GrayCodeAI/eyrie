@@ -51,15 +51,6 @@ func (m *StreamMerger) isStreamField(key string) bool {
 	return false
 }
 
-func (m *StreamMerger) indexField(key string) bool {
-	for _, f := range m.IndexFields {
-		if f == key {
-			return true
-		}
-	}
-	return false
-}
-
 func (m *StreamMerger) mergeObject(prev, delta map[string]interface{}) {
 	for k, v := range delta {
 		existing, ok := prev[k]
