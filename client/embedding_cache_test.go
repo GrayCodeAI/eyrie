@@ -104,6 +104,44 @@ func (errEmbedder) CreateEmbedding(_ context.Context, _ EmbeddingRequest) (*Embe
 	return nil, errEmptyEmbedding
 }
 
+// TestEmbeddingCache_ModelIsolation pins fix C: an entry stored under one
+// embedding model must NOT be served to a request embedded by a different model,
+// even when the vectors are identical — they live in incompatible spaces.
+func TestEmbeddingCache_ModelIsolation(t *testing.T) {
+	mock := NewMockProvider(MockModeEcho)
+	cfg := DefaultSemanticCacheConfig()
+	cfg.EmbeddingModel = "model-A"
+	sp := NewEmbeddingCachedProvider(mock, stubEmbedder{}, cfg)
+	ctx := context.Background()
+
+	// Warm the cache under model-A.
+	if _, err := sp.Chat(ctx, userMsg("what is the weather today"), ChatOptions{}); err != nil {
+		t.Fatalf("warm: %v", err)
+	}
+	if mock.CallCount() != 1 {
+		t.Fatalf("setup expected 1 inner call, got %d", mock.CallCount())
+	}
+
+	// Simulate the embedding model being swapped under the same cache. The prior
+	// entry (tagged model-A) must be skipped, forcing a fresh inner call rather
+	// than a cross-model false hit.
+	sp.model = "model-B"
+	if _, err := sp.Chat(ctx, userMsg("give me the weather please"), ChatOptions{}); err != nil {
+		t.Fatalf("post-swap: %v", err)
+	}
+	if mock.CallCount() != 2 {
+		t.Errorf("model swap must invalidate cross-model reuse; expected 2 inner calls, got %d", mock.CallCount())
+	}
+
+	// Requests under model-B should now cache and hit among themselves.
+	if _, err := sp.Chat(ctx, userMsg("weather report now"), ChatOptions{}); err != nil {
+		t.Fatalf("model-B hit: %v", err)
+	}
+	if mock.CallCount() != 2 {
+		t.Errorf("expected a within-model-B hit (still 2 inner calls), got %d", mock.CallCount())
+	}
+}
+
 func TestCosineSimilarity(t *testing.T) {
 	if got := cosineSimilarity([]float32{1, 0}, []float32{1, 0}); got < 0.999 {
 		t.Errorf("identical vectors should be ~1, got %f", got)
