@@ -9,7 +9,8 @@ import (
 
 func TestModerationProvider_AllowsSafe(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	mp := NewModerationProvider(mock,
+	mp := NewModerationProvider(
+		mock,
 		WithBlockedPatterns([]string{"(?i)forbidden"}),
 		WithModerationMaxTokens(1000),
 	)
@@ -29,7 +30,8 @@ func TestModerationProvider_AllowsSafe(t *testing.T) {
 
 func TestModerationProvider_BlocksPattern(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	mp := NewModerationProvider(mock,
+	mp := NewModerationProvider(
+		mock,
 		WithBlockedPatterns([]string{`(?i)\bforbidden\b`}),
 	)
 
@@ -48,7 +50,8 @@ func TestModerationProvider_BlocksPattern(t *testing.T) {
 
 func TestModerationProvider_TokenLimit(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	mp := NewModerationProvider(mock,
+	mp := NewModerationProvider(
+		mock,
 		WithModerationMaxTokens(5),
 	)
 
@@ -68,7 +71,8 @@ func TestModerationProvider_TokenLimit(t *testing.T) {
 
 func TestModerationProvider_TokenLimitAllowsUnderLimit(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	mp := NewModerationProvider(mock,
+	mp := NewModerationProvider(
+		mock,
 		WithModerationMaxTokens(100),
 	)
 
@@ -84,7 +88,8 @@ func TestModerationProvider_TokenLimitAllowsUnderLimit(t *testing.T) {
 
 func TestModerationProvider_CustomChecker(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	mp := NewModerationProvider(mock,
+	mp := NewModerationProvider(
+		mock,
 		WithCustomChecker(func(text string) error {
 			if strings.Contains(strings.ToLower(text), "banned") {
 				return errors.New("custom rule: banned word detected")
@@ -108,7 +113,8 @@ func TestModerationProvider_CustomChecker(t *testing.T) {
 
 func TestModerationProvider_CustomCheckerAllows(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	mp := NewModerationProvider(mock,
+	mp := NewModerationProvider(
+		mock,
 		WithCustomChecker(func(text string) error {
 			return nil
 		}),
@@ -123,7 +129,8 @@ func TestModerationProvider_CustomCheckerAllows(t *testing.T) {
 
 func TestModerationProvider_StreamChat(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	mp := NewModerationProvider(mock,
+	mp := NewModerationProvider(
+		mock,
 		WithBlockedPatterns([]string{`(?i)forbidden`}),
 		WithModerationMaxTokens(1000),
 	)
@@ -152,7 +159,8 @@ func TestModerationProvider_StreamChat(t *testing.T) {
 
 func TestModerationProvider_StreamChatBlocked(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	mp := NewModerationProvider(mock,
+	mp := NewModerationProvider(
+		mock,
 		WithBlockedPatterns([]string{`(?i)forbidden`}),
 	)
 
@@ -168,7 +176,8 @@ func TestModerationProvider_StreamChatBlocked(t *testing.T) {
 
 func TestModerationProvider_ContentParts(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	mp := NewModerationProvider(mock,
+	mp := NewModerationProvider(
+		mock,
 		WithBlockedPatterns([]string{`(?i)secret`}),
 	)
 
