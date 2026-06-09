@@ -229,7 +229,8 @@ func (cp *CallbackProvider) safeCall(method string, fn func()) {
 				logger := cp.logger
 				cp.mu.RUnlock()
 				if logger != nil {
-					logger.Error("eyrie: callback panic recovered",
+					logger.Error(
+						"eyrie: callback panic recovered",
 						"method", method,
 						"provider", cp.inner.Name(),
 						"panic", r,

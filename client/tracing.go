@@ -31,7 +31,8 @@ func (tp *TracingProvider) Ping(ctx context.Context) error {
 }
 
 func (tp *TracingProvider) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
-	ctx, span := clientTracer.Start(ctx, "provider.Chat",
+	ctx, span := clientTracer.Start(
+		ctx, "provider.Chat",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("provider.name", tp.inner.Name()),
@@ -67,7 +68,8 @@ func (tp *TracingProvider) Chat(ctx context.Context, messages []EyrieMessage, op
 }
 
 func (tp *TracingProvider) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
-	ctx, span := clientTracer.Start(ctx, "provider.StreamChat",
+	ctx, span := clientTracer.Start(
+		ctx, "provider.StreamChat",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("provider.name", tp.inner.Name()),
