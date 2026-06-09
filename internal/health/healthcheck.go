@@ -267,6 +267,9 @@ func (hc *HealthChecker) checkProvider(p ProviderPinger) HealthStatus {
 	start := time.Now()
 	err := p.Ping(ctx)
 	latency := time.Since(start)
+	if latency == 0 {
+		latency = time.Nanosecond
+	}
 
 	status := HealthStatus{
 		Latency:     latency,
