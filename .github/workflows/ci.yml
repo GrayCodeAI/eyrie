@@ -198,7 +198,7 @@ jobs:
         run: git clone --depth=1 https://github.com/GrayCodeAI/tok.git ../tok
       - name: deadcode
         run: |
-          go install golang.org/x/tools/cmd/deadcode@latest
+          go install golang.org/x/tools/cmd/deadcode@v0.30.0
           deadcode ./... 2>&1 | head -50
 
   # -------------------------------------------------------------------------
