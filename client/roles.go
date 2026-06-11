@@ -1,6 +1,9 @@
 package client
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // Model role slot names. These identify a logical role that a concrete model
 // fills, letting callers route a request to the appropriate model without
@@ -74,12 +77,13 @@ type RoleRouter struct {
 var _ Provider = (*RoleRouter)(nil)
 
 // NewRoleRouter wraps inner so that requests are routed to the model configured
-// for their role. The inner provider must not be nil.
-func NewRoleRouter(inner Provider, roles ModelRoles) *RoleRouter {
+// for their role. The inner provider must not be nil; an error is returned
+// otherwise.
+func NewRoleRouter(inner Provider, roles ModelRoles) (*RoleRouter, error) {
 	if inner == nil {
-		panic("eyrie: NewRoleRouter inner provider must not be nil")
+		return nil, errors.New("eyrie: NewRoleRouter inner provider must not be nil")
 	}
-	return &RoleRouter{inner: inner, roles: roles}
+	return &RoleRouter{inner: inner, roles: roles}, nil
 }
 
 // Name returns the inner provider's name.
