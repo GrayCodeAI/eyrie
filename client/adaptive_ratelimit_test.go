@@ -43,7 +43,7 @@ func (m *mockProvider) StreamChat(ctx context.Context, messages []EyrieMessage, 
 
 func TestAdaptiveRateLimitProvider_Name(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{})
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{})
 	if p.Name() != "test/adaptive-ratelimit" {
 		t.Errorf("expected name 'test/adaptive-ratelimit', got %q", p.Name())
 	}
@@ -51,7 +51,7 @@ func TestAdaptiveRateLimitProvider_Name(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_Ping(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{})
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{})
 	if err := p.Ping(context.Background()); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -59,7 +59,7 @@ func TestAdaptiveRateLimitProvider_Ping(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_Chat(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{})
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{})
 
 	resp, err := p.Chat(context.Background(), nil, ChatOptions{})
 	if err != nil {
@@ -80,7 +80,7 @@ func TestAdaptiveRateLimitProvider_Chat(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_ChatTracksUsage(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{})
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{})
 
 	// Make a few calls
 	for i := 0; i < 3; i++ {
@@ -105,7 +105,7 @@ func TestAdaptiveRateLimitProvider_ChatTracksUsage(t *testing.T) {
 func TestAdaptiveRateLimitProvider_NearLimitThrottle(t *testing.T) {
 	// Set up a provider with a very low RPM limit (5 RPM)
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{
 		RPMLimit:         5,
 		ThresholdPercent: 50, // throttle when <50% remaining (i.e., <3 remaining)
 		MaxDelay:         50 * time.Millisecond,
@@ -144,7 +144,7 @@ func TestAdaptiveRateLimitProvider_NearLimitThrottle(t *testing.T) {
 func TestAdaptiveRateLimitProvider_RPMExceeded(t *testing.T) {
 	// Set up with limit of 3, no delay (just error)
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{
 		RPMLimit:         3,
 		ThresholdPercent: 10,
 		MaxDelay:         0, // don't delay, just error
@@ -173,7 +173,7 @@ func TestAdaptiveRateLimitProvider_RPMExceeded(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_TPMTracking(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{
 		TPMLimit:         500,
 		ThresholdPercent: 10,
 	})
@@ -194,7 +194,7 @@ func TestAdaptiveRateLimitProvider_TPMTracking(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_StreamChat(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{})
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{})
 
 	result, err := p.StreamChat(context.Background(), nil, ChatOptions{})
 	if err != nil {
@@ -222,7 +222,7 @@ func TestAdaptiveRateLimitProvider_StreamChat(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_UpdateFromHeaders(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{
 		HeaderExtractor: CommonHeaderExtractor,
 	})
 
@@ -253,7 +253,7 @@ func TestAdaptiveRateLimitProvider_UpdateFromHeaders(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_AnthropicHeaders(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{
 		HeaderExtractor: CommonHeaderExtractor,
 	})
 
@@ -279,7 +279,7 @@ func TestAdaptiveRateLimitProvider_AnthropicHeaders(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_HeaderDrivenThrottle(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{
 		RPMLimit:         100,
 		ThresholdPercent: 10,
 		MaxDelay:         50 * time.Millisecond,
@@ -304,7 +304,7 @@ func TestAdaptiveRateLimitProvider_HeaderDrivenThrottle(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_ConcurrentSafety(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{})
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{})
 
 	var wg sync.WaitGroup
 	var errCount atomic.Int64
@@ -333,7 +333,7 @@ func TestAdaptiveRateLimitProvider_ConcurrentSafety(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_ContextCancellation(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{
 		RPMLimit:         1,
 		ThresholdPercent: 10,
 		MaxDelay:         10 * time.Second,
@@ -400,18 +400,15 @@ func TestParseResetTime(t *testing.T) {
 	}
 }
 
-func TestAdaptiveRateLimitProvider_NilInnerPanics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic for nil inner provider")
-		}
-	}()
-	NewAdaptiveRateLimitProvider(nil, AdaptiveRateLimitConfig{})
+func TestAdaptiveRateLimitProvider_NilInnerErrors(t *testing.T) {
+	if _, err := NewAdaptiveRateLimitProvider(nil, AdaptiveRateLimitConfig{}); err == nil {
+		t.Error("expected error for nil inner provider")
+	}
 }
 
 func TestAdaptiveRateLimitProvider_DefaultConfig(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{})
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{})
 
 	// With no limits set, calls should go through freely
 	for i := 0; i < 100; i++ {
@@ -432,7 +429,7 @@ func TestAdaptiveRateLimitProvider_DefaultConfig(t *testing.T) {
 
 func TestAdaptiveRateLimitProvider_WindowExpiry(t *testing.T) {
 	inner := &mockProvider{name: "test"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	p := mustAdaptiveRateLimitProvider(t, inner, AdaptiveRateLimitConfig{
 		RPMLimit:         2,
 		ThresholdPercent: 10,
 	})
@@ -458,7 +455,7 @@ func TestAdaptiveRateLimitProvider_WindowExpiry(t *testing.T) {
 
 func BenchmarkAdaptiveRateLimitProvider_Chat(b *testing.B) {
 	inner := &mockProvider{name: "bench"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{})
+	p := mustAdaptiveRateLimitProvider(b, inner, AdaptiveRateLimitConfig{})
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -469,7 +466,7 @@ func BenchmarkAdaptiveRateLimitProvider_Chat(b *testing.B) {
 
 func BenchmarkAdaptiveRateLimitProvider_ChatWithLimits(b *testing.B) {
 	inner := &mockProvider{name: "bench"}
-	p := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	p := mustAdaptiveRateLimitProvider(b, inner, AdaptiveRateLimitConfig{
 		RPMLimit:         100000,
 		TPMLimit:         1000000,
 		ThresholdPercent: 10,
@@ -487,13 +484,17 @@ func ExampleAdaptiveRateLimitProvider() {
 	var inner Provider = &mockProvider{name: "openai"}
 
 	// Wrap with adaptive rate limiting
-	provider := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
+	provider, err := NewAdaptiveRateLimitProvider(inner, AdaptiveRateLimitConfig{
 		RPMLimit:         60,    // 60 requests per minute
 		TPMLimit:         90000, // 90k tokens per minute
 		ThresholdPercent: 10,    // throttle when <10% remaining
 		MaxDelay:         5 * time.Second,
 		HeaderExtractor:  CommonHeaderExtractor, // parse rate limit headers
 	})
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
 
 	// Use the provider normally
 	resp, err := provider.Chat(context.Background(), []EyrieMessage{
@@ -510,4 +511,14 @@ func ExampleAdaptiveRateLimitProvider() {
 	fmt.Printf("RPM used: %d/%d\n", status.RPMUsed, status.RPMLimit)
 	fmt.Printf("Tokens used: %d/%d\n", status.TPMUsed, status.TPMLimit)
 	fmt.Printf("Throttle count: %d\n", status.ThrottleCount)
+}
+
+// mustAdaptiveRateLimitProvider constructs the provider, failing the test on error.
+func mustAdaptiveRateLimitProvider(tb testing.TB, inner Provider, config AdaptiveRateLimitConfig) *AdaptiveRateLimitProvider {
+	tb.Helper()
+	p, err := NewAdaptiveRateLimitProvider(inner, config)
+	if err != nil {
+		tb.Fatalf("NewAdaptiveRateLimitProvider: %v", err)
+	}
+	return p
 }

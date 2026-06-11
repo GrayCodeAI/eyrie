@@ -12,7 +12,7 @@ func TestWeightedProviderSingleProvider(t *testing.T) {
 	p := NewMockProvider(MockModeFixed)
 	p.Response = "only one"
 
-	wp := NewWeightedProvider([]WeightedProviderConfig{
+	wp := mustWeightedProvider(t, []WeightedProviderConfig{
 		{Provider: p, Weight: 1.0},
 	})
 
@@ -41,7 +41,7 @@ func TestWeightedProviderDistribution(t *testing.T) {
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
 	secondary.mock.Response = "from secondary"
 
-	wp := NewWeightedProvider([]WeightedProviderConfig{
+	wp := mustWeightedProvider(t, []WeightedProviderConfig{
 		{Provider: primary, Weight: 0.8},
 		{Provider: secondary, Weight: 0.2},
 	})
@@ -85,7 +85,7 @@ func TestWeightedProviderFailoverOnRetriableError(t *testing.T) {
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
 	secondary.mock.Response = "fallback success"
 
-	wp := newWeightedProviderForTest([]WeightedProviderConfig{
+	wp := newWeightedProviderForTest(t, []WeightedProviderConfig{
 		{Provider: primary, Weight: 1.0},    // will always be selected
 		{Provider: secondary, Weight: 0.01}, // extremely low weight
 	})
@@ -108,7 +108,7 @@ func TestWeightedProviderNoFailoverOnNonRetriableError(t *testing.T) {
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
 	secondary.mock.Response = "should not reach"
 
-	wp := newWeightedProviderForTest([]WeightedProviderConfig{
+	wp := newWeightedProviderForTest(t, []WeightedProviderConfig{
 		{Provider: primary, Weight: 1.0}, // always selected
 		{Provider: secondary, Weight: 0.01},
 	})
@@ -131,7 +131,7 @@ func TestWeightedProviderNoFailoverOn401(t *testing.T) {
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
 	secondary.mock.Response = "should not reach"
 
-	wp := newWeightedProviderForTest([]WeightedProviderConfig{
+	wp := newWeightedProviderForTest(t, []WeightedProviderConfig{
 		{Provider: primary, Weight: 1.0},
 		{Provider: secondary, Weight: 0.01},
 	})
@@ -152,7 +152,7 @@ func TestWeightedProviderAllFail(t *testing.T) {
 	p2 := &namedProvider{name: "p2", mock: nil, err: fmt.Errorf("HTTP 502 bad gateway")}
 	p3 := &namedProvider{name: "p3", mock: nil, err: fmt.Errorf("HTTP 500 internal error")}
 
-	wp := NewWeightedProvider([]WeightedProviderConfig{
+	wp := mustWeightedProvider(t, []WeightedProviderConfig{
 		{Provider: p1, Weight: 0.5},
 		{Provider: p2, Weight: 0.3},
 		{Provider: p3, Weight: 0.2},
@@ -170,7 +170,7 @@ func TestWeightedProviderName(t *testing.T) {
 	p1 := &namedProvider{name: "anthropic", mock: NewMockProvider(MockModeFixed)}
 	p2 := &namedProvider{name: "openai", mock: NewMockProvider(MockModeFixed)}
 
-	wp := NewWeightedProvider([]WeightedProviderConfig{
+	wp := mustWeightedProvider(t, []WeightedProviderConfig{
 		{Provider: p1, Weight: 0.8},
 		{Provider: p2, Weight: 0.2},
 	})
@@ -185,7 +185,7 @@ func TestWeightedProviderPing(t *testing.T) {
 	p1 := &namedProvider{name: "failing", mock: nil, err: fmt.Errorf("ping failed")}
 	p2 := &namedProvider{name: "ok", mock: NewMockProvider(MockModeFixed)}
 
-	wp := NewWeightedProvider([]WeightedProviderConfig{
+	wp := mustWeightedProvider(t, []WeightedProviderConfig{
 		{Provider: p1, Weight: 0.8},
 		{Provider: p2, Weight: 0.2},
 	})
@@ -201,7 +201,7 @@ func TestWeightedProviderStreamFailover(t *testing.T) {
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
 	secondary.mock.Response = "streamed from secondary"
 
-	wp := NewWeightedProvider([]WeightedProviderConfig{
+	wp := mustWeightedProvider(t, []WeightedProviderConfig{
 		{Provider: primary, Weight: 1.0},
 		{Provider: secondary, Weight: 0.01},
 	})
@@ -225,25 +225,19 @@ func TestWeightedProviderStreamFailover(t *testing.T) {
 	}
 }
 
-func TestWeightedProviderPanicOnEmpty(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic with no provider configs")
-		}
-	}()
-	NewWeightedProvider(nil)
+func TestWeightedProviderErrorOnEmpty(t *testing.T) {
+	if _, err := NewWeightedProvider(nil); err == nil {
+		t.Error("expected error with no provider configs")
+	}
 }
 
-func TestWeightedProviderPanicOnZeroWeight(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic with zero weight")
-		}
-	}()
+func TestWeightedProviderErrorOnZeroWeight(t *testing.T) {
 	p := NewMockProvider(MockModeFixed)
-	NewWeightedProvider([]WeightedProviderConfig{
+	if _, err := NewWeightedProvider([]WeightedProviderConfig{
 		{Provider: p, Weight: 0},
-	})
+	}); err == nil {
+		t.Error("expected error with zero weight")
+	}
 }
 
 // zeroRandSource always yields 0 from Float64(), so weighted selection picks the highest-weight provider.
@@ -251,9 +245,20 @@ type zeroRandSource struct{}
 
 func (zeroRandSource) Uint64() uint64 { return 0 }
 
-func newWeightedProviderForTest(configs []WeightedProviderConfig) *WeightedProvider {
-	wp := NewWeightedProvider(configs)
+func newWeightedProviderForTest(tb testing.TB, configs []WeightedProviderConfig) *WeightedProvider {
+	tb.Helper()
+	wp := mustWeightedProvider(tb, configs)
 	wp.rng = randv2.New(zeroRandSource{})
+	return wp
+}
+
+// mustWeightedProvider constructs a WeightedProvider, failing the test on error.
+func mustWeightedProvider(tb testing.TB, configs []WeightedProviderConfig) *WeightedProvider {
+	tb.Helper()
+	wp, err := NewWeightedProvider(configs)
+	if err != nil {
+		tb.Fatalf("NewWeightedProvider: %v", err)
+	}
 	return wp
 }
 

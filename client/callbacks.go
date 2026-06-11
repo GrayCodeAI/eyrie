@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 	"time"
@@ -44,15 +45,15 @@ type CallbackProvider struct {
 var _ Provider = (*CallbackProvider)(nil)
 
 // NewCallbackProvider wraps the given provider with callback support.
-// The inner provider must not be nil.
-func NewCallbackProvider(inner Provider) *CallbackProvider {
+// The inner provider must not be nil; an error is returned otherwise.
+func NewCallbackProvider(inner Provider) (*CallbackProvider, error) {
 	if inner == nil {
-		panic("eyrie: NewCallbackProvider inner provider must not be nil")
+		return nil, errors.New("eyrie: NewCallbackProvider inner provider must not be nil")
 	}
 	return &CallbackProvider{
 		inner:  inner,
 		logger: slog.Default(),
-	}
+	}, nil
 }
 
 // SetLogger sets the logger used for panic-recovery messages.
