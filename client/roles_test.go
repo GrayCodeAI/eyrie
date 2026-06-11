@@ -48,7 +48,10 @@ func TestRoleRouter_RoutesByContextRole(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := NewMockProvider(MockModeFixed)
 			mock.Response = "ok"
-			rr := NewRoleRouter(mock, roles)
+			rr, err := NewRoleRouter(mock, roles)
+			if err != nil {
+				t.Fatalf("NewRoleRouter: %v", err)
+			}
 
 			ctx := context.Background()
 			if tt.ctxRole != "" {
@@ -72,7 +75,10 @@ func TestRoleRouter_EmptySlotDoesNotClearModel(t *testing.T) {
 	// Primary empty: an unconfigured role must not wipe an explicit model.
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "ok"
-	rr := NewRoleRouter(mock, ModelRoles{}) // nothing configured
+	rr, err := NewRoleRouter(mock, ModelRoles{}) // nothing configured
+	if err != nil {
+		t.Fatalf("NewRoleRouter: %v", err)
+	}
 
 	if _, err := rr.Chat(context.Background(), userMsg("hi"), ChatOptions{Model: "explicit"}); err != nil {
 		t.Fatalf("Chat: %v", err)

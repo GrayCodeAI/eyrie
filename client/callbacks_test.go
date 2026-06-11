@@ -152,7 +152,7 @@ func TestCallbackProviderImplementsProvider(t *testing.T) {
 
 func TestCallbackProviderName(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 	if cp.Name() != "mock/callbacks" {
 		t.Errorf("Name() = %q, want %q", cp.Name(), "mock/callbacks")
 	}
@@ -160,7 +160,7 @@ func TestCallbackProviderName(t *testing.T) {
 
 func TestCallbackProviderPing(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 	if err := cp.Ping(context.Background()); err != nil {
 		t.Errorf("Ping() = %v, want nil", err)
 	}
@@ -168,7 +168,7 @@ func TestCallbackProviderPing(t *testing.T) {
 
 func TestCallbackProviderInner(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 	if cp.Inner() != mock {
 		t.Error("Inner() should return the wrapped provider")
 	}
@@ -176,7 +176,7 @@ func TestCallbackProviderInner(t *testing.T) {
 
 func TestCallbackBasicInvocation(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	cb := &recordingCallback{}
 	cp.AddCallback(cb)
@@ -230,7 +230,7 @@ func TestCallbackBasicInvocation(t *testing.T) {
 
 func TestCallbackErrorInvocation(t *testing.T) {
 	mock := NewMockProvider(MockModeError)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	cb := &recordingCallback{}
 	cp.AddCallback(cb)
@@ -267,7 +267,7 @@ func TestCallbackErrorInvocation(t *testing.T) {
 
 func TestCallbackMultipleCallbacks(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	cb1 := &recordingCallback{}
 	cb2 := &recordingCallback{}
@@ -299,7 +299,7 @@ func TestCallbackMultipleCallbacks(t *testing.T) {
 
 func TestCallbackRemoveCallback(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	cb1 := &recordingCallback{}
 	cb2 := &recordingCallback{}
@@ -338,7 +338,7 @@ func TestCallbackPanicRecovery(t *testing.T) {
 	var logBuf syncedBuffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelError}))
 
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 	cp.SetLogger(logger)
 
 	panicCb := &recordingCallback{panicOnRequest: true}
@@ -375,7 +375,7 @@ func TestCallbackPanicRecovery(t *testing.T) {
 func TestCallbackPanicRecoveryDefaultLogger(t *testing.T) {
 	// Verify that a nil logger set via SetLogger is a no-op (uses the default).
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 	cp.SetLogger(nil) // should be a no-op
 
 	// Should not panic.
@@ -388,7 +388,7 @@ func TestCallbackPanicRecoveryDefaultLogger(t *testing.T) {
 
 func TestCallbackThreadSafety(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	var (
 		totalRequests  atomic.Int64
@@ -441,7 +441,7 @@ func TestCallbackThreadSafety(t *testing.T) {
 
 func TestCallbackConcurrentRegistration(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	const numGoroutines = 50
 	var wg sync.WaitGroup
@@ -482,7 +482,7 @@ func TestCallbackConcurrentRegistration(t *testing.T) {
 
 func TestCallbackStreamChat(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	cb := &recordingCallback{}
 	cp.AddCallback(cb)
@@ -526,7 +526,7 @@ func TestCallbackStreamChat(t *testing.T) {
 
 func TestCallbackStreamChatError(t *testing.T) {
 	mock := NewMockProvider(MockModeError)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	cb := &recordingCallback{}
 	cp.AddCallback(cb)
@@ -554,7 +554,7 @@ func TestCallbackStreamChatError(t *testing.T) {
 
 func TestCallbackNilCallbackIgnored(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	cp.AddCallback(nil) // should not panic
 	if len(cp.Callbacks()) != 0 {
@@ -564,7 +564,7 @@ func TestCallbackNilCallbackIgnored(t *testing.T) {
 
 func TestCallbackEmptyCallbacksNoop(t *testing.T) {
 	mock := NewMockProvider(MockModeEcho)
-	cp := NewCallbackProvider(mock)
+	cp := mustCallbackProvider(t, mock)
 
 	// No callbacks registered — should still work fine.
 	msgs := []EyrieMessage{{Role: "user", Content: "test"}}
@@ -577,13 +577,10 @@ func TestCallbackEmptyCallbacksNoop(t *testing.T) {
 	}
 }
 
-func TestCallbackPanicInNewCallbackProvider(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("NewCallbackProvider(nil) should panic")
-		}
-	}()
-	NewCallbackProvider(nil)
+func TestCallbackErrorInNewCallbackProvider(t *testing.T) {
+	if _, err := NewCallbackProvider(nil); err == nil {
+		t.Error("NewCallbackProvider(nil) should return an error")
+	}
 }
 
 // --- helper: countingCallback for thread-safety test ---
@@ -610,3 +607,13 @@ func (c *countingCallback) OnStreamEvent(_ context.Context, _, _ string, _ Eyrie
 
 // Ensure we're using the fmt package for potential debug printing.
 var _ = fmt.Sprintf
+
+// mustCallbackProvider constructs a CallbackProvider, failing the test on error.
+func mustCallbackProvider(tb testing.TB, inner Provider) *CallbackProvider {
+	tb.Helper()
+	cp, err := NewCallbackProvider(inner)
+	if err != nil {
+		tb.Fatalf("NewCallbackProvider: %v", err)
+	}
+	return cp
+}

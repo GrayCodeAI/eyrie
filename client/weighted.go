@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	randv2 "math/rand/v2"
 	"sort"
@@ -41,18 +42,19 @@ type normalizedConfig struct {
 var _ Provider = (*WeightedProvider)(nil)
 
 // NewWeightedProvider creates a WeightedProvider that selects providers
-// based on the configured weights. At least one provider must be supplied.
+// based on the configured weights. At least one provider must be supplied
+// and every weight must be positive; an error is returned otherwise.
 // Weights are normalized to sum to 1.0.
-func NewWeightedProvider(configs []WeightedProviderConfig) *WeightedProvider {
+func NewWeightedProvider(configs []WeightedProviderConfig) (*WeightedProvider, error) {
 	if len(configs) == 0 {
-		panic("eyrie: WeightedProvider requires at least one provider config")
+		return nil, errors.New("eyrie: WeightedProvider requires at least one provider config")
 	}
 
 	// Compute total weight for normalization.
 	var total float64
 	for _, c := range configs {
 		if c.Weight <= 0 {
-			panic("eyrie: WeightedProvider weights must be positive")
+			return nil, errors.New("eyrie: WeightedProvider weights must be positive")
 		}
 		total += c.Weight
 	}
@@ -80,7 +82,7 @@ func NewWeightedProvider(configs []WeightedProviderConfig) *WeightedProvider {
 	// Seed from crypto/rand to avoid deterministic sequences.
 	var seed [16]byte
 	if _, err := rand.Read(seed[:]); err != nil {
-		panic("eyrie: failed to read crypto entropy: " + err.Error())
+		return nil, fmt.Errorf("eyrie: failed to read crypto entropy: %w", err)
 	}
 	s1 := binary.BigEndian.Uint64(seed[:8])
 	s2 := binary.BigEndian.Uint64(seed[8:])
@@ -89,7 +91,7 @@ func NewWeightedProvider(configs []WeightedProviderConfig) *WeightedProvider {
 		configs: normalized,
 		rng:     randv2.New(randv2.NewPCG(s1, s2)),
 		stats:   stats,
-	}
+	}, nil
 }
 
 // Name returns a composite name showing providers and their weights.

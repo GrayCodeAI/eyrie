@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/GrayCodeAI/tok"
@@ -25,15 +26,15 @@ type UsageLimitProvider struct {
 var _ Provider = (*UsageLimitProvider)(nil)
 
 // NewUsageLimitProvider wraps inner with budget enforcement via tracker.
-// Both arguments must be non-nil.
-func NewUsageLimitProvider(inner Provider, tracker *tok.UsageTracker) *UsageLimitProvider {
+// Both arguments must be non-nil; an error is returned otherwise.
+func NewUsageLimitProvider(inner Provider, tracker *tok.UsageTracker) (*UsageLimitProvider, error) {
 	if inner == nil {
-		panic("eyrie: NewUsageLimitProvider inner provider must not be nil")
+		return nil, errors.New("eyrie: NewUsageLimitProvider inner provider must not be nil")
 	}
 	if tracker == nil {
-		panic("eyrie: NewUsageLimitProvider tracker must not be nil")
+		return nil, errors.New("eyrie: NewUsageLimitProvider tracker must not be nil")
 	}
-	return &UsageLimitProvider{inner: inner, tracker: tracker}
+	return &UsageLimitProvider{inner: inner, tracker: tracker}, nil
 }
 
 // Name returns the inner provider name suffixed with "/usage-limit".

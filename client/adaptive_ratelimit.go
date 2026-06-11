@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -211,10 +212,11 @@ type tpmEntry struct {
 var _ Provider = (*AdaptiveRateLimitProvider)(nil)
 
 // NewAdaptiveRateLimitProvider wraps inner with adaptive rate limiting.
-// inner must not be nil. config may be zero-valued for sensible defaults.
-func NewAdaptiveRateLimitProvider(inner Provider, config AdaptiveRateLimitConfig) *AdaptiveRateLimitProvider {
+// inner must not be nil (an error is returned otherwise). config may be
+// zero-valued for sensible defaults.
+func NewAdaptiveRateLimitProvider(inner Provider, config AdaptiveRateLimitConfig) (*AdaptiveRateLimitProvider, error) {
 	if inner == nil {
-		panic("eyrie: NewAdaptiveRateLimitProvider inner provider must not be nil")
+		return nil, errors.New("eyrie: NewAdaptiveRateLimitProvider inner provider must not be nil")
 	}
 	if config.ThresholdPercent <= 0 {
 		config.ThresholdPercent = 10
@@ -233,7 +235,7 @@ func NewAdaptiveRateLimitProvider(inner Provider, config AdaptiveRateLimitConfig
 		tpmWindow:    make([]tpmEntry, 0, 64),
 		tpmRemaining: -1,
 		tpmLimit:     tpmLimit,
-	}
+	}, nil
 }
 
 // Name returns the inner provider name suffixed with "/adaptive-ratelimit".
