@@ -24,8 +24,7 @@ eyrie is the LLM provider runtime for the hawk ecosystem. It sits between the ap
 
 ```
 eyrie/
-├── cmd/eyrie/               ⚡ Entry point — CLI arg parsing, server startup
-├── api/openapi.yaml         📜 REST API contract (OpenAPI 3.1)
+├── api/openapi.yaml         📜 REST API contract (OpenAPI 3.1) — embedded HTTP server surface
 ├── client/
 │   ├── client.go            🔌 Provider interface + EyrieClient factory
 │   ├── anthropic.go         🟠 Anthropic Claude provider
