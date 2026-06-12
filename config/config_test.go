@@ -56,6 +56,8 @@ func TestIsOpenAICompatibleRuntimeEnabled(t *testing.T) {
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+	ClearProviderRuntimeEnv()
+	t.Cleanup(ClearProviderRuntimeEnv)
 
 	if IsOpenAICompatibleRuntimeEnabled() {
 		t.Error("expected false with no keys set")
@@ -81,8 +83,8 @@ func TestNormalizeOllamaOpenAIBaseURL(t *testing.T) {
 }
 
 func TestProviderDetectionOrder(t *testing.T) {
-	if len(APIProviderDetectionOrder) != 15 {
-		t.Errorf("expected 15 providers in detection order, got %d", len(APIProviderDetectionOrder))
+	if len(APIProviderDetectionOrder) != 16 {
+		t.Errorf("expected 16 providers in detection order, got %d", len(APIProviderDetectionOrder))
 	}
 	if APIProviderDetectionOrder[0] != ProviderAnthropic {
 		t.Error("expected anthropic first in detection order")

@@ -17,6 +17,7 @@ func TestRuntimeProfileFields(t *testing.T) {
 		"gemini":     GeminiRuntimeProfile,
 		"openrouter": OpenRouterRuntimeProfile,
 		"canopywave": CanopyWaveRuntimeProfile,
+		"deepseek":   DeepSeekRuntimeProfile,
 		"z-ai":       ZAIRuntimeProfile,
 		"opencodego": OpenCodeGoRuntimeProfile,
 	}
@@ -52,6 +53,7 @@ func TestRuntimeProfileAPIKeys(t *testing.T) {
 		"gemini":     GeminiRuntimeProfile,
 		"openrouter": OpenRouterRuntimeProfile,
 		"canopywave": CanopyWaveRuntimeProfile,
+		"deepseek":   DeepSeekRuntimeProfile,
 		"z-ai":       ZAIRuntimeProfile,
 		"opencodego": OpenCodeGoRuntimeProfile,
 	}
@@ -76,6 +78,7 @@ func TestModelEnvKeysCorrectForEachProvider(t *testing.T) {
 		ProviderAnthropic:  "ANTHROPIC_MODEL",
 		ProviderOpenAI:     "OPENAI_MODEL",
 		ProviderCanopyWave: "CANOPYWAVE_MODEL",
+		ProviderDeepSeek:   "DEEPSEEK_MODEL",
 		ProviderOpenRouter: "OPENROUTER_MODEL",
 		ProviderGrok:       "XAI_MODEL",
 		ProviderGemini:     "GEMINI_MODEL",
@@ -101,7 +104,7 @@ func TestModelEnvKeysCorrectForEachProvider(t *testing.T) {
 
 func TestProviderModelEnvKeys_AllProvidersPresent(t *testing.T) {
 	allProviders := []string{
-		ProviderAnthropic, ProviderOpenAI, ProviderCanopyWave,
+		ProviderAnthropic, ProviderOpenAI, ProviderCanopyWave, ProviderDeepSeek,
 		ProviderOpenRouter, ProviderGrok, ProviderGemini,
 		ProviderOllama, ProviderOpenCodeGo,
 	}
@@ -155,8 +158,9 @@ func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
 func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
 	clearKeys := []string{
 		"OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
+		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "DEEPSEEK_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
 		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
+		"MOONSHOT_API_KEY", "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
 		"OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE",
 	}
 	for _, k := range clearKeys {
