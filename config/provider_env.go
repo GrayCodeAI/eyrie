@@ -20,6 +20,7 @@ type ProviderConfig struct {
 	XAIAPIKey                  string                      `json:"xai_api_key,omitempty"`
 	OpenAIAPIKey               string                      `json:"openai_api_key,omitempty"`
 	CanopyWaveAPIKey           string                      `json:"canopywave_api_key,omitempty"`
+	DeepSeekAPIKey             string                      `json:"deepseek_api_key,omitempty"`
 	ZAIAPIKey                  string                      `json:"zai_api_key,omitempty"`
 	OpenRouterAPIKey           string                      `json:"openrouter_api_key,omitempty"`
 	GeminiAPIKey               string                      `json:"gemini_api_key,omitempty"`
@@ -31,6 +32,7 @@ type ProviderConfig struct {
 	XiaomiMimoTokenPlanAPIKey  string                      `json:"xiaomi_mimo_token_plan_api_key,omitempty"`
 	AnthropicBaseURL           string                      `json:"anthropic_base_url,omitempty"`
 	CanopyWaveBaseURL          string                      `json:"canopywave_base_url,omitempty"`
+	DeepSeekBaseURL            string                      `json:"deepseek_base_url,omitempty"`
 	ZAIBaseURL                 string                      `json:"zai_base_url,omitempty"`
 	GrokBaseURL                string                      `json:"grok_base_url,omitempty"`
 	XAIBaseURL                 string                      `json:"xai_base_url,omitempty"`
@@ -46,6 +48,7 @@ type ProviderConfig struct {
 	AnthropicModel             string                      `json:"anthropic_model,omitempty"`
 	OpenAIModel                string                      `json:"openai_model,omitempty"`
 	CanopyWaveModel            string                      `json:"canopywave_model,omitempty"`
+	DeepSeekModel              string                      `json:"deepseek_model,omitempty"`
 	ZAIModel                   string                      `json:"zai_model,omitempty"`
 	GrokModel                  string                      `json:"grok_model,omitempty"`
 	XAIModel                   string                      `json:"xai_model,omitempty"`
@@ -127,6 +130,11 @@ var providerFields = map[string]providerFieldMap{
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.CanopyWaveAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.CanopyWaveModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.CanopyWaveBaseURL },
+	},
+	ProviderDeepSeek: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.DeepSeekAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.DeepSeekModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.DeepSeekBaseURL },
 	},
 	ProviderZAI: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.ZAIAPIKey} },
@@ -423,6 +431,7 @@ func ClearProviderRuntimeEnv() {
 		"VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN", "VERTEX_PROJECT_ID", "VERTEX_REGION", "VERTEX_MODEL",
 		"OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL",
 		"CANOPYWAVE_API_KEY", "CANOPYWAVE_MODEL", "CANOPYWAVE_BASE_URL",
+		"DEEPSEEK_API_KEY", "DEEPSEEK_MODEL", "DEEPSEEK_BASE_URL",
 		"ZAI_API_KEY", "ZAI_MODEL", "ZAI_BASE_URL", "ZAI_API_BASE",
 		"XAI_API_KEY", "XAI_MODEL", "XAI_BASE_URL",
 		"GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL",
@@ -543,6 +552,17 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 			m = catalog.GetProviderDefaultModel("canopywave", cat)
 		}
 		collectOpenAICompatibleProvider(env, "CANOPYWAVE", apiKey, m, base, overwrite)
+	case ProviderDeepSeek:
+		apiKey := AsNonEmptyString(config.DeepSeekAPIKey)
+		base := firstNonEmpty(config.DeepSeekBaseURL, "https://api.deepseek.com/v1")
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("deepseek", cat)
+		}
+		if m == "" {
+			m = "deepseek-v4-flash"
+		}
+		collectOpenAICompatibleProvider(env, "DEEPSEEK", apiKey, m, base, overwrite)
 	case ProviderZAI:
 		apiKey := AsNonEmptyString(config.ZAIAPIKey)
 		base := firstNonEmpty(config.ZAIBaseURL, DefaultZAIOpenAIBaseURL)

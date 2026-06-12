@@ -152,7 +152,7 @@ func TestDiscoveryEnvKeys_ReturnsNonEmpty(t *testing.T) {
 }
 
 func TestDiscoveryEnvKeys_NilContext(t *testing.T) {
-	keys := discoveryEnvKeys(context.TODO())
+	keys := discoveryEnvKeys(context.Background())
 	if len(keys) == 0 {
 		t.Fatal("discoveryEnvKeys should return fallback keys")
 	}

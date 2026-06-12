@@ -70,7 +70,7 @@ func TestPreflight_NilContext(t *testing.T) {
 	setupPreflightEnv(t, "{}\n")
 
 	// Should not panic with nil context (Preflight uses context.Background internally)
-	r := Preflight(context.TODO())
+	r := Preflight(context.Background())
 	if len(r.Checks) == 0 {
 		t.Fatal("expected at least one check")
 	}
@@ -187,7 +187,7 @@ func TestPreflight_NotReady_WhenCredentialsFail(t *testing.T) {
 		}
 	}
 	// If creds check doesn't fail (edge case), skip
-	t.Skip("credentials check did not fail in this environment")
+	t.Skip("credentials check did not fail in this environment") // TODO: https://github.com/GrayCodeAI/eyrie/issues/28
 }
 
 func TestPreflight_WithValidModel(t *testing.T) {
@@ -402,7 +402,7 @@ func TestPreflight_MultipleFailures(t *testing.T) {
 		}
 	}
 	if failCount == 0 {
-		t.Skip("no failures detected in this environment")
+		t.Skip("no failures detected in this environment") // TODO: https://github.com/GrayCodeAI/eyrie/issues/29
 	}
 	if r.Ready {
 		t.Fatal("expected not ready with failures")

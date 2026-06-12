@@ -10,7 +10,7 @@ import (
 // Run with EXPORT_HAWK_FIXTURE=1 to refresh hawk/internal/catalogtest/testdata/minimal_v1.json
 func TestExportHawkCatalogFixture(t *testing.T) {
 	if os.Getenv("EXPORT_HAWK_FIXTURE") != "1" {
-		t.Skip("set EXPORT_HAWK_FIXTURE=1 to export")
+		t.Skip("set EXPORT_HAWK_FIXTURE=1 to export") // TODO: https://github.com/GrayCodeAI/eyrie/issues/30
 	}
 	c := testLegacyCatalogV1()
 	data, err := json.MarshalIndent(c, "", "  ")

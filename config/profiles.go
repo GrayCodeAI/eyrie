@@ -8,6 +8,7 @@ const (
 	ProviderOpenAI              APIProvider = "openai"
 	ProviderAzure               APIProvider = "azure"
 	ProviderCanopyWave          APIProvider = "canopywave"
+	ProviderDeepSeek            APIProvider = "deepseek"
 	ProviderZAI                 APIProvider = "z-ai"
 	ProviderOpenRouter          APIProvider = "openrouter"
 	ProviderGrok                APIProvider = "grok"
@@ -110,6 +111,13 @@ var (
 		BaseURLEnv:   []string{"CANOPYWAVE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "CANOPYWAVE_API_KEY", Source: "canopywave"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
+	DeepSeekRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: "https://api.deepseek.com/v1", DefaultModel: "deepseek-v4-flash",
+		DetectionEnv: []string{"DEEPSEEK_API_KEY"},
+		ModelEnv:     []string{"DEEPSEEK_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"DEEPSEEK_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "DEEPSEEK_API_KEY", Source: "deepseek"}},
+	}
 	OpenCodeGoRuntimeProfile = RuntimeProviderProfile{
 		Mode: "opencodego", DefaultBaseURL: DefaultOpenCodeGoBaseURL, DefaultModel: "kimi-k2.5",
 		DetectionEnv: []string{"OPENCODEGO_API_KEY"},
@@ -143,7 +151,7 @@ var (
 // APIProviderDetectionOrder is the priority order for provider detection.
 var APIProviderDetectionOrder = []APIProvider{
 	ProviderAnthropic, ProviderOpenRouter, ProviderGrok, ProviderGemini,
-	ProviderVertex, ProviderBedrock, ProviderZAI, ProviderCanopyWave, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
+	ProviderVertex, ProviderBedrock, ProviderZAI, ProviderCanopyWave, ProviderDeepSeek, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
 	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderOllama,
 }
 
@@ -153,6 +161,7 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 	ProviderOpenAI:              OpenAIRuntimeProfile.ModelEnv,
 	ProviderAzure:               AzureRuntimeProfile.ModelEnv,
 	ProviderCanopyWave:          CanopyWaveRuntimeProfile.ModelEnv,
+	ProviderDeepSeek:            DeepSeekRuntimeProfile.ModelEnv,
 	ProviderZAI:                 ZAIRuntimeProfile.ModelEnv,
 	ProviderOpenRouter:          OpenRouterRuntimeProfile.ModelEnv,
 	ProviderGrok:                GrokRuntimeProfile.ModelEnv,
@@ -177,7 +186,7 @@ const (
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.
 var OpenAICompatibleRuntimeProfileOrder = []string{
-	"openrouter", "grok", "gemini", "anthropic", "z-ai", "canopywave", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan",
+	"openrouter", "grok", "gemini", "anthropic", "z-ai", "canopywave", "deepseek", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan",
 }
 
 // OpenAICompatibleRuntimeProfiles maps profile key to its runtime profile.
@@ -187,6 +196,7 @@ var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
 	"gemini":                 GeminiRuntimeProfile,
 	"z-ai":                   ZAIRuntimeProfile,
 	"canopywave":             CanopyWaveRuntimeProfile,
+	"deepseek":               DeepSeekRuntimeProfile,
 	"openai":                 OpenAIRuntimeProfile,
 	"openrouter":             OpenRouterRuntimeProfile,
 	"opencodego":             OpenCodeGoRuntimeProfile,

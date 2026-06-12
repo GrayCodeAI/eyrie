@@ -265,6 +265,7 @@ func TestDefaultDeploymentForProvider(t *testing.T) {
 		{config.ProviderGemini, "gemini-direct"},
 		{config.ProviderOpenRouter, "openrouter"},
 		{config.ProviderCanopyWave, "canopywave"},
+		{config.ProviderDeepSeek, "deepseek-direct"},
 		{config.ProviderZAI, "z-ai-direct"},
 		{config.ProviderOllama, "ollama-local"},
 		{config.ProviderOpenCodeGo, "opencodego"},
@@ -443,6 +444,16 @@ func TestProviderForDeployment_CanopyWave(t *testing.T) {
 	p, ok := ProviderForDeployment("canopywave", config.DeploymentConfig{APIKey: "test-key"})
 	if !ok {
 		t.Fatal("expected canopywave to be configured")
+	}
+	if p.Name() != "openai" {
+		t.Fatalf("provider name = %q, want openai", p.Name())
+	}
+}
+
+func TestProviderForDeployment_DeepSeekDirect(t *testing.T) {
+	p, ok := ProviderForDeployment("deepseek-direct", config.DeploymentConfig{APIKey: "test-key"})
+	if !ok {
+		t.Fatal("expected deepseek-direct to be configured")
 	}
 	if p.Name() != "openai" {
 		t.Fatalf("provider name = %q, want openai", p.Name())
