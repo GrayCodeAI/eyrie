@@ -98,6 +98,20 @@ func ChatWithContinuation(ctx context.Context, p Provider, messages []EyrieMessa
 // the response stops with "max_tokens" and contains only text (no tool calls).
 // It returns a StreamResult whose Events channel transparently continues across
 // multiple LLM calls, emitting a "continuation" event at each boundary.
+//
+// DEPRECATION NOTE: hawk's Session loop has its own max_tokens recovery
+// (internal/engine/stream.go around the `recoveryCount` loop) that doesn't
+// add a synthetic "Continue." user message, and the eyrie conversation
+// engine (eyrie/conversation.Engine) has its own OutputGroupID-based
+// engine-level continuation. The two engine-level paths produce cleaner
+// conversation shapes (no synthetic user turns) and are the recommended
+// pattern for new code. This client-level helper remains for
+// backwards-compatibility with the embedded eyrie HTTP server and
+// non-hawk consumers; new code should implement continuation at the
+// engine or call-site level instead.
+//
+// Will be removed in eyrie v0.3.0. See eyrie/CHANGELOG.md for the
+// deprecation timeline.
 func StreamChatWithContinuation(ctx context.Context, p Provider, messages []EyrieMessage, opts ChatOptions, cfg ContinuationConfig) (*StreamResult, error) {
 	if cfg.MaxContinuations <= 0 {
 		cfg.MaxContinuations = 3
