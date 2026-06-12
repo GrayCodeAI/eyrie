@@ -285,7 +285,7 @@ eyrie is part of the hawk-eco:
 ### Build & Test
 
 ```bash
-go build ./cmd/eyrie          # Build binary
+go build ./...               # Verify the library compiles
 go test -race ./...           # Run all tests with race detector
 make ci                       # Run full CI suite (lint, test, security)
 make cover                    # Generate coverage report
