@@ -1,5 +1,25 @@
-// Package runtime is the only stable API surface for host applications (e.g. hawk).
-// Import github.com/GrayCodeAI/eyrie/runtime — not catalog/setup/config directly.
+// Package runtime is the **recommended entry point** for host applications
+// (e.g. hawk). Start by calling runtime.Load to get a *Runtime, then
+// rt.ChatProvider to obtain a client.Provider that you can hand to your
+// agent loop.
+//
+// Note: the "stable" surface of eyrie is actually a set of cooperating
+// subpackages, not just this one. The full list hawk (and other host
+// applications) actually import is:
+//
+//	github.com/GrayCodeAI/eyrie/runtime          (this package — bootstrap facade)
+//	github.com/GrayCodeAI/eyrie/client           (Provider interface, message/response types)
+//	github.com/GrayCodeAI/eyrie/catalog         (model catalog: pricing, capabilities, registry)
+//	github.com/GrayCodeAI/eyrie/catalog/registry (ProviderSpec catalog: 16 registered providers)
+//	github.com/GrayCodeAI/eyrie/catalog/xiaomi  (Xiaomi-specific catalog helpers)
+//	github.com/GrayCodeAI/eyrie/config          (provider config + env var resolution)
+//	github.com/GrayCodeAI/eyrie/credentials     (OS keyring + OIDC keyless CI auth)
+//	github.com/GrayCodeAI/eyrie/setup           (CLI/setup wiring, RoutingPreviewJSON)
+//	github.com/GrayCodeAI/eyrie/storage         (conversation DAG persistence)
+//
+// They are all considered part of the public API; changes to exported
+// names are gated by semver. Anything under internal/ is implementation
+// detail and may change without notice.
 package runtime
 
 import (
