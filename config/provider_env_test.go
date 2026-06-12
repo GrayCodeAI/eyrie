@@ -195,6 +195,25 @@ func TestApplyProviderEnv_Gemini(t *testing.T) {
 	}
 }
 
+func TestApplyProviderEnv_DeepSeek(t *testing.T) {
+	cfg := &ProviderConfig{
+		DeepSeekAPIKey: "deepseek-key-1234567890",
+	}
+	cat := testModelCatalog()
+
+	env := ApplyProviderEnv(ProviderDeepSeek, cfg, "deepseek-v4-flash", true, &cat)
+
+	if env["DEEPSEEK_API_KEY"] != "deepseek-key-1234567890" {
+		t.Errorf("expected DEEPSEEK_API_KEY, got %q", env["DEEPSEEK_API_KEY"])
+	}
+	if env["DEEPSEEK_MODEL"] != "deepseek-v4-flash" {
+		t.Errorf("expected DEEPSEEK_MODEL 'deepseek-v4-flash', got %q", env["DEEPSEEK_MODEL"])
+	}
+	if env["OPENAI_API_KEY"] != "deepseek-key-1234567890" {
+		t.Errorf("expected OPENAI_API_KEY set for deepseek compat, got %q", env["OPENAI_API_KEY"])
+	}
+}
+
 func TestApplyProviderEnv_Ollama(t *testing.T) {
 	cfg := &ProviderConfig{
 		OllamaBaseURL: "http://localhost:11434",

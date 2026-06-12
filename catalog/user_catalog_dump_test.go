@@ -13,11 +13,11 @@ import (
 func TestUserCatalog_GatewayCountsMatchDeploymentOfferings(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		t.Skip(err)
+		t.Skip(err) // TODO: https://github.com/GrayCodeAI/eyrie/issues/31
 	}
 	path := filepath.Join(home, ".eyrie", "model_catalog.json")
 	if _, err := os.Stat(path); err != nil {
-		t.Skip("no user catalog")
+		t.Skip("no user catalog") // TODO: https://github.com/GrayCodeAI/eyrie/issues/31
 	}
 	compiled, err := catalog.LoadCatalogV1(context.Background(), catalog.LoadCatalogV1Options{
 		CachePath:    path,

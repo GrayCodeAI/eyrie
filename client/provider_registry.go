@@ -188,6 +188,10 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 			p = NewMiMoClient(apiKey, openAIBase, anthropicBase, info.Compat, providerName)
 			break
 		}
+		if providerName == "opencodego" {
+			p = NewOpenCodeGoClient(apiKey, baseURL)
+			break
+		}
 		p = NewOpenAIClient(apiKey, baseURL, info.Compat)
 	}
 
@@ -208,7 +212,14 @@ func DetectProvider() string {
 		"canopywave": func() bool { return credentials.HasSecret(ctx, "CANOPYWAVE_API_KEY") },
 		"openai":     func() bool { return credentials.HasSecret(ctx, "OPENAI_API_KEY") },
 		"opencodego": func() bool { return credentials.HasSecret(ctx, "OPENCODEGO_API_KEY") },
-		"ollama":     func() bool { return resolveEnvSecret("OLLAMA_BASE_URL") != "" },
+		"kimi":       func() bool { return credentials.HasSecret(ctx, "MOONSHOT_API_KEY") },
+		"xiaomi_mimo_payg": func() bool {
+			return credentials.HasSecret(ctx, config.EnvXiaomiPaygAPIKey) || credentials.HasSecret(ctx, "XIAOMI_MIMO_API_KEY")
+		},
+		"xiaomi_mimo_token_plan": func() bool {
+			return credentials.HasSecret(ctx, config.EnvXiaomiTokenPlanAPIKey)
+		},
+		"ollama": func() bool { return resolveEnvSecret("OLLAMA_BASE_URL") != "" },
 		"azure": func() bool {
 			return credentials.HasSecret(ctx, "AZURE_OPENAI_API_KEY") && resolveEnvSecret("AZURE_OPENAI_ENDPOINT") != ""
 		},

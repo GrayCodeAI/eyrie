@@ -26,9 +26,9 @@ type ResolvedOpenAICompatibleRuntime struct {
 func IsOpenAICompatibleRuntimeEnabled() bool {
 	keys := []string{
 		"OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
-		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
+		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "DEEPSEEK_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
 		"OPENCODEGO_API_KEY", "OLLAMA_BASE_URL",
-		"MOONSHOT_API_KEY", "XIAOMI_MIMO_API_KEY",
+		"MOONSHOT_API_KEY", "XIAOMI_MIMO_API_KEY", "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
 	}
 	for _, k := range keys {
 		if envValue(k) != "" {

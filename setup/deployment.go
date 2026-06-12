@@ -212,6 +212,12 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultCanopyWaveOpenAIBaseURL), &client.CanopyWaveCompat), true
+	case "deepseek-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("DEEPSEEK_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://api.deepseek.com/v1"), &client.DeepSeekCompat), true
 	case "z-ai-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("ZAI_API_KEY"))
 		if apiKey == "" {
@@ -283,6 +289,8 @@ func DefaultDeploymentForProvider(provider string) string {
 		return "openrouter"
 	case config.ProviderCanopyWave:
 		return "canopywave"
+	case config.ProviderDeepSeek:
+		return "deepseek-direct"
 	case config.ProviderZAI:
 		return "z-ai-direct"
 	case config.ProviderOllama:
@@ -318,6 +326,8 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 		return config.DeploymentConfig{APIKey: cfg.OpenRouterAPIKey, BaseURL: cfg.OpenRouterBaseURL}
 	case config.ProviderCanopyWave:
 		return config.DeploymentConfig{APIKey: cfg.CanopyWaveAPIKey, BaseURL: cfg.CanopyWaveBaseURL}
+	case config.ProviderDeepSeek:
+		return config.DeploymentConfig{APIKey: cfg.DeepSeekAPIKey, BaseURL: cfg.DeepSeekBaseURL}
 	case config.ProviderZAI:
 		return config.DeploymentConfig{APIKey: cfg.ZAIAPIKey, BaseURL: cfg.ZAIBaseURL}
 	case config.ProviderOllama:

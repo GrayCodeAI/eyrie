@@ -17,10 +17,10 @@ func TestDetectProvider(t *testing.T) {
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
 
-	for _, k := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENCODEGO_API_KEY", "OLLAMA_BASE_URL"} {
+	for _, k := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "DEEPSEEK_API_KEY", "ZAI_API_KEY", "OPENCODEGO_API_KEY", "MOONSHOT_API_KEY", "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", "OLLAMA_BASE_URL"} {
 		_ = os.Unsetenv(k)
 	}
-	credentials.ScrubProcessEnv([]string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "ZAI_API_KEY", "OPENCODEGO_API_KEY"})
+	credentials.ScrubProcessEnv([]string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY", "CANOPYWAVE_API_KEY", "DEEPSEEK_API_KEY", "ZAI_API_KEY", "OPENCODEGO_API_KEY", "MOONSHOT_API_KEY", "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY"})
 
 	ctx := context.Background()
 	if p := DetectProvider(); p != "anthropic" {
@@ -31,6 +31,32 @@ func TestDetectProvider(t *testing.T) {
 	}
 	if p := DetectProvider(); p != "openai" {
 		t.Errorf("expected openai, got %s", p)
+	}
+}
+
+func TestDetectProvider_AdditionalProviders(t *testing.T) {
+	tests := []struct {
+		name string
+		env  string
+		want string
+	}{
+		{name: "deepseek", env: "DEEPSEEK_API_KEY", want: "deepseek"},
+		{name: "kimi", env: "MOONSHOT_API_KEY", want: "kimi"},
+		{name: "xiaomi payg", env: "XIAOMI_MIMO_PAYG_API_KEY", want: "xiaomi_mimo_payg"},
+		{name: "xiaomi token plan", env: "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", want: "xiaomi_mimo_token_plan"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &credentials.MapStore{}
+			credentials.SetDefaultStore(store)
+			t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+			if err := store.Set(context.Background(), credentials.AccountForEnv(tc.env), "test"); err != nil {
+				t.Fatal(err)
+			}
+			if got := DetectProvider(); got != tc.want {
+				t.Fatalf("DetectProvider() = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 
