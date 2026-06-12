@@ -134,12 +134,12 @@ func BenchmarkCachedProvider_CacheHit(b *testing.B) {
 	opts := ChatOptions{Model: "gpt-4"}
 
 	// Prime the cache
-	_, _ = cp.Chat(context.TODO(), messages, opts)
+	_, _ = cp.Chat(context.Background(), messages, opts)
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = cp.Chat(context.TODO(), messages, opts)
+		_, _ = cp.Chat(context.Background(), messages, opts)
 	}
 }
 
@@ -153,7 +153,7 @@ func BenchmarkCachedProvider_CacheMiss(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		messages := []EyrieMessage{{Role: "user", Content: "unique query"}}
-		_, _ = cp.Chat(context.TODO(), messages, opts)
+		_, _ = cp.Chat(context.Background(), messages, opts)
 	}
 }
 
