@@ -2,9 +2,105 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 )
+
+func TestStreamResultFromChat(t *testing.T) {
+	result := streamResultFromChat(&EyrieResponse{
+		Content:      "Hi there!",
+		FinishReason: "stop",
+	})
+	var content string
+	for ev := range result.Events {
+		if ev.Type == "content" {
+			content += ev.Content
+		}
+	}
+	if content != "Hi there!" {
+		t.Fatalf("content = %q, want Hi there!", content)
+	}
+}
+
+func TestNewStreamWithReasoningFallback_ChatFirst(t *testing.T) {
+	primaryEvents := make(chan EyrieStreamEvent, 4)
+	primaryEvents <- EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
+	primaryEvents <- EyrieStreamEvent{Type: "done", StopReason: "end_turn"}
+	close(primaryEvents)
+	primary := NewStreamResult(primaryEvents, func() {})
+
+	var chatCalled, streamCalled bool
+	fallback := protocolStreamFallback{
+		chat: func(context.Context, []EyrieMessage, ChatOptions) (*EyrieResponse, error) {
+			chatCalled = true
+			return &EyrieResponse{Content: "Hello from chat fallback!", FinishReason: "stop"}, nil
+		},
+		stream: func(context.Context, []EyrieMessage, ChatOptions) (*StreamResult, error) {
+			streamCalled = true
+			return nil, fmt.Errorf("stream fallback should not run")
+		},
+	}
+
+	result := newStreamWithReasoningFallback(context.Background(), nil, ChatOptions{}, primary, fallback)
+	var content string
+	for ev := range result.Events {
+		switch ev.Type {
+		case "thinking":
+			t.Fatal("primary reasoning must not leak before chat fallback succeeds")
+		case "content":
+			content += ev.Content
+		}
+	}
+	if content != "Hello from chat fallback!" {
+		t.Fatalf("content = %q, want Hello from chat fallback!", content)
+	}
+	if !chatCalled {
+		t.Fatal("expected chat fallback to run")
+	}
+	if streamCalled {
+		t.Fatal("stream fallback must not run when chat fallback succeeds")
+	}
+}
+
+func TestNewStreamWithReasoningFallback_StreamWhenChatEmpty(t *testing.T) {
+	primaryEvents := make(chan EyrieStreamEvent, 4)
+	primaryEvents <- EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
+	primaryEvents <- EyrieStreamEvent{Type: "done", StopReason: "end_turn"}
+	close(primaryEvents)
+	primary := NewStreamResult(primaryEvents, func() {})
+
+	fallbackEvents := make(chan EyrieStreamEvent, 4)
+	fallbackEvents <- EyrieStreamEvent{Type: "content", Content: "stream answer"}
+	fallbackEvents <- EyrieStreamEvent{Type: "done", StopReason: "stop"}
+	close(fallbackEvents)
+
+	var chatCalled, streamCalled bool
+	fallback := protocolStreamFallback{
+		chat: func(context.Context, []EyrieMessage, ChatOptions) (*EyrieResponse, error) {
+			chatCalled = true
+			return &EyrieResponse{Thinking: "still thinking"}, nil
+		},
+		stream: func(context.Context, []EyrieMessage, ChatOptions) (*StreamResult, error) {
+			streamCalled = true
+			return NewStreamResult(fallbackEvents, func() {}), nil
+		},
+	}
+
+	result := newStreamWithReasoningFallback(context.Background(), nil, ChatOptions{}, primary, fallback)
+	var content string
+	for ev := range result.Events {
+		if ev.Type == "content" {
+			content += ev.Content
+		}
+	}
+	if content != "stream answer" {
+		t.Fatalf("content = %q, want stream answer", content)
+	}
+	if !chatCalled || !streamCalled {
+		t.Fatalf("chatCalled=%v streamCalled=%v, want both true", chatCalled, streamCalled)
+	}
+}
 
 func TestAnthropicBaseFromOpenAIV1(t *testing.T) {
 	if got := AnthropicBaseFromOpenAIV1("https://example.com/zen/go/v1"); got != "https://example.com/zen/go" {

@@ -211,6 +211,64 @@ func TestOpenCodeGoClient_NormalizesModelID(t *testing.T) {
 	}
 }
 
+func TestOpenCodeGoClient_StreamMiniMaxReasoningOnlyFallsBackToChat(t *testing.T) {
+	var paths []string
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		paths = append(paths, r.URL.Path)
+		if strings.HasSuffix(r.URL.Path, "/messages") {
+			body := "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":10}}}\n\n" +
+				"event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"thinking\"}}\n\n" +
+				"event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"text\":\"hmm\"}}\n\n" +
+				"event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n" +
+				"event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"}}\n\n" +
+				"event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"text/event-stream"}},
+				Body:       io.NopCloser(strings.NewReader(body)),
+			}, nil
+		}
+		if strings.HasSuffix(r.URL.Path, "/chat/completions") && r.Header.Get("Accept") == "text/event-stream" {
+			t.Fatal("stream fallback should not run before non-streaming chat fallback")
+		}
+		return jsonResponse(http.StatusOK, map[string]interface{}{
+			"id": "chatcmpl-1", "object": "chat.completion",
+			"choices": []map[string]interface{}{
+				{"message": map[string]string{"role": "assistant", "content": "Hello!"}, "finish_reason": "stop"},
+			},
+		}), nil
+	})
+
+	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
+	c.router.Anthropic.httpClient = &http.Client{Transport: transport}
+	c.router.OpenAI.httpClient = &http.Client{Transport: transport}
+	result, err := c.StreamChat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hello how are you?"}}, ChatOptions{
+		Model: "minimax-m3", MaxTokens: 256,
+	})
+	if err != nil {
+		t.Fatalf("StreamChat: %v", err)
+	}
+	defer result.Close()
+
+	var content string
+	for ev := range result.Events {
+		switch ev.Type {
+		case "thinking":
+			t.Fatal("reasoning-only primary stream must not leak thinking before chat fallback")
+		case "content":
+			content += ev.Content
+		case "error":
+			t.Fatalf("unexpected stream error: %s", ev.Error)
+		}
+	}
+	if content != "Hello!" {
+		t.Fatalf("content = %q, want Hello!; paths=%v", content, paths)
+	}
+	if len(paths) < 2 {
+		t.Fatalf("expected /messages then /chat/completions, got %v", paths)
+	}
+}
+
 func jsonDecodeRequest(r *http.Request, v interface{}) error {
 	if r.Body == nil {
 		return nil
