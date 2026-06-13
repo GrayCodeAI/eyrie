@@ -2,7 +2,9 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -99,5 +101,53 @@ func TestOpenCodeGoClient_RoutesKimiToOpenAI(t *testing.T) {
 	}
 	if !strings.HasSuffix(gotPath, "/chat/completions") {
 		t.Fatalf("path = %q, want suffix /chat/completions", gotPath)
+	}
+}
+
+func TestOpenCodeGoClient_AnthropicReasoningOnlyFallsBackToOpenAI(t *testing.T) {
+	var paths []string
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		paths = append(paths, r.URL.Path)
+		if strings.HasSuffix(r.URL.Path, "/messages") {
+			w := httptest.NewRecorder()
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = fmt.Fprintf(w, "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"thinking\"}}\n\n")
+			_, _ = fmt.Fprintf(w, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"text\":\"hmm\"}}\n\n")
+			_, _ = fmt.Fprintf(w, "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n")
+			_, _ = fmt.Fprintf(w, "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n")
+			return w.Result(), nil
+		}
+		w := httptest.NewRecorder()
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = fmt.Fprintf(w, "data: {\"choices\":[{\"delta\":{\"content\":\"Hello!\"},\"finish_reason\":null}]}\n\n")
+		_, _ = fmt.Fprintf(w, "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n")
+		_, _ = fmt.Fprintf(w, "data: [DONE]\n\n")
+		return w.Result(), nil
+	})
+
+	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
+	c.anthropic.httpClient = &http.Client{Transport: transport}
+	c.openAI.httpClient = &http.Client{Transport: transport}
+
+	sr, err := c.StreamChat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
+		Model:     "minimax-m3",
+		MaxTokens: 256,
+	})
+	if err != nil {
+		t.Fatalf("StreamChat: %v", err)
+	}
+	defer sr.Close()
+
+	var content string
+	for ev := range sr.Events {
+		if ev.Type == "content" {
+			content += ev.Content
+		}
+	}
+	if content != "Hello!" {
+		t.Fatalf("content = %q, want Hello!; paths=%v", content, paths)
+	}
+	if len(paths) < 2 {
+		t.Fatalf("expected anthropic then openai paths, got %v", paths)
 	}
 }

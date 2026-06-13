@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -68,6 +69,14 @@ func parseSSEStream(ctx context.Context, body io.ReadCloser, logger *slog.Logger
 			}
 		}
 		if err := scanner.Err(); err != nil {
+			// Context cancellation produces "context canceled" from the
+			// scanner when the body is closed; that is the expected
+			// shutdown path, not a stream error. Skip the warning and
+			// the synthetic error event so callers (and operators) don't
+			// see noise for every normal cancel/close.
+			if ctxErr := ctx.Err(); ctxErr != nil || errors.Is(err, context.Canceled) {
+				return
+			}
 			logger.Warn("SSE stream read error", "error", err)
 			select {
 			case ch <- SSEEvent{Event: "error", Data: fmt.Sprintf("stream read error: %v", err)}:
@@ -109,6 +118,7 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 			jsonBuf  strings.Builder
 		}
 		var currentTool *toolAccum
+		blockTypes := make(map[int]string)
 		var stopReason string
 
 		for {
@@ -145,6 +155,7 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 				switch ae.Type {
 				case "content_block_start":
 					if ae.ContentBlock != nil {
+						blockTypes[ae.Index] = ae.ContentBlock.Type
 						switch ae.ContentBlock.Type {
 						case "tool_use":
 							currentTool = &toolAccum{id: ae.ContentBlock.ID, name: ae.ContentBlock.Name}
@@ -160,7 +171,11 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 					switch ae.Delta.Type {
 					case "text_delta":
 						if ae.Delta.Text != "" {
-							emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: ae.Delta.Text})
+							if strings.Contains(blockTypes[ae.Index], "thinking") {
+								emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: ae.Delta.Text})
+							} else {
+								emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: ae.Delta.Text})
+							}
 						}
 					case "input_json_delta":
 						if currentTool != nil && ae.Delta.PartialJSON != "" {
@@ -173,6 +188,7 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 					}
 
 				case "content_block_stop":
+					delete(blockTypes, ae.Index)
 					if currentTool != nil {
 						rawJSON := currentTool.jsonBuf.String()
 						var args map[string]interface{}
