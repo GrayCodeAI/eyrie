@@ -7,14 +7,15 @@ import (
 )
 
 func TestIsLiveOnlyProvider(t *testing.T) {
-	if !catalog.IsLiveOnlyProvider("canopywave") {
-		t.Fatal("canopywave should be live-only")
+	// All providers are now fully dynamic
+	allProviders := []string{
+		"anthropic", "openai", "gemini", "grok", "canopywave", "z-ai", "openrouter", "ollama", "opencodego",
+		"azure", "bedrock", "vertex", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "deepseek",
 	}
-	if !catalog.IsLiveOnlyProvider("z-ai") {
-		t.Fatal("z-ai should be live-only")
-	}
-	if !catalog.IsLiveOnlyProvider("anthropic") {
-		t.Fatal("anthropic should be live-only")
+	for _, p := range allProviders {
+		if !catalog.IsLiveOnlyProvider(p) {
+			t.Fatalf("%s should be live-only (all providers are fully dynamic)", p)
+		}
 	}
 }
 
@@ -30,8 +31,14 @@ func TestFirstModelForProvider(t *testing.T) {
 	}
 }
 
-func TestGetProviderDefaultModel_LiveOnlySkipsHardcoded(t *testing.T) {
-	if got := catalog.GetProviderDefaultModel("canopywave", &catalog.ModelCatalog{}); got != "" {
-		t.Fatalf("expected empty default without catalog, got %q", got)
+func TestGetProviderDefaultModel_AllProvidersEmptyWithoutCatalog(t *testing.T) {
+	// All providers return empty without a catalog (fully dynamic)
+	allProviders := []string{
+		"anthropic", "openai", "gemini", "grok", "bedrock", "kimi",
+	}
+	for _, p := range allProviders {
+		if got := catalog.GetProviderDefaultModel(p, &catalog.ModelCatalog{}); got != "" {
+			t.Fatalf("%s: expected empty default without catalog, got %q", p, got)
+		}
 	}
 }

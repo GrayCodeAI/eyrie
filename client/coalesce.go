@@ -68,6 +68,8 @@ type InflightRequest struct {
 	waiters int
 }
 
+const maxCoalesceWaiters = 100
+
 // Coalescer deduplicates identical concurrent LLM requests.
 // It maintains a map of inflight requests indexed by CoalesceKey.
 // When a request arrives that matches an existing inflight request,
@@ -110,8 +112,12 @@ func (c *Coalescer) Coalesce(ctx context.Context, key CoalesceKey, fn func() (*E
 
 	// Check if there's already an inflight request for this key
 	if existing, ok := c.inflight[keyStr]; ok {
-		// Join the existing request
 		existing.mu.Lock()
+		if existing.waiters >= maxCoalesceWaiters {
+			existing.mu.Unlock()
+			c.mu.Unlock()
+			return nil, fmt.Errorf("eyrie: coalesce limit reached (%d waiters); retry independently", maxCoalesceWaiters)
+		}
 		existing.waiters++
 		existing.mu.Unlock()
 		c.mu.Unlock()

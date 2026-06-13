@@ -236,11 +236,11 @@ func TestApplyProviderEnv_DefaultModel(t *testing.T) {
 	}
 	cat := testModelCatalog()
 
-	// Empty activeModel should use catalog default
+	// Empty activeModel with empty catalog → model is empty (fully dynamic)
 	env := ApplyProviderEnv(ProviderAnthropic, cfg, "", true, &cat)
 
-	if env["ANTHROPIC_MODEL"] == "" {
-		t.Error("expected ANTHROPIC_MODEL to be set to default")
+	if env["ANTHROPIC_MODEL"] != "" {
+		t.Errorf("expected ANTHROPIC_MODEL to be empty with empty catalog, got %q", env["ANTHROPIC_MODEL"])
 	}
 }
 

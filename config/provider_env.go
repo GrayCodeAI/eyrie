@@ -559,9 +559,6 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("deepseek", cat)
 		}
-		if m == "" {
-			m = "deepseek-v4-flash"
-		}
 		collectOpenAICompatibleProvider(env, "DEEPSEEK", apiKey, m, base, overwrite)
 	case ProviderZAI:
 		apiKey := AsNonEmptyString(config.ZAIAPIKey)
@@ -584,9 +581,6 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("ollama", cat)
 		}
-		if m == "" {
-			m = OllamaDefaultModel
-		}
 		collectEnvValue(env, "OPENAI_MODEL", m, overwrite)
 		base := NormalizeOllamaOpenAIBaseURL(AsNonEmptyString(config.OllamaBaseURL))
 		if base == "" {
@@ -608,9 +602,6 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("kimi", cat)
 		}
-		if m == "" {
-			m = KimiDefaultModel
-		}
 		collectEnvValue(env, "MOONSHOT_API_KEY", apiKey, overwrite)
 		collectOpenAICompatibleProvider(env, "MOONSHOT", apiKey, m, base, overwrite)
 	case ProviderXiaomiMimoPayg:
@@ -622,9 +613,6 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		m := activeModel
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("xiaomi_mimo_payg", cat)
-		}
-		if m == "" {
-			m = XiaomiDefaultModel
 		}
 		collectEnvValue(env, EnvXiaomiPaygAPIKey, apiKey, overwrite)
 		collectEnvValue(env, EnvXiaomiPaygBaseURL, base, overwrite)
@@ -641,9 +629,6 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		m := activeModel
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("xiaomi_mimo_token_plan", cat)
-		}
-		if m == "" {
-			m = XiaomiDefaultModel
 		}
 		collectEnvValue(env, EnvXiaomiTokenPlanAPIKey, apiKey, overwrite)
 		if base != "" {

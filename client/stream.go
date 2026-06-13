@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -68,6 +69,14 @@ func parseSSEStream(ctx context.Context, body io.ReadCloser, logger *slog.Logger
 			}
 		}
 		if err := scanner.Err(); err != nil {
+			// Context cancellation produces "context canceled" from the
+			// scanner when the body is closed; that is the expected
+			// shutdown path, not a stream error. Skip the warning and
+			// the synthetic error event so callers (and operators) don't
+			// see noise for every normal cancel/close.
+			if ctxErr := ctx.Err(); ctxErr != nil || errors.Is(err, context.Canceled) {
+				return
+			}
 			logger.Warn("SSE stream read error", "error", err)
 			select {
 			case ch <- SSEEvent{Event: "error", Data: fmt.Sprintf("stream read error: %v", err)}:

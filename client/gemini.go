@@ -354,8 +354,10 @@ func mapGeminiFinishReason(reason string) string {
 // --- Streaming ---
 
 func (c *GeminiClient) streamLoop(ctx context.Context, body io.ReadCloser, events chan<- EyrieStreamEvent) {
+	defer close(events)
 	defer func() { _ = body.Close() }()
 
+	doneSent := false
 	buf := make([]byte, 0, 64*1024)
 	tmp := make([]byte, 4096)
 	for {
@@ -374,22 +376,31 @@ func (c *GeminiClient) streamLoop(ctx context.Context, body io.ReadCloser, event
 					continue
 				}
 				data := strings.TrimPrefix(line, "data: ")
-				c.processStreamChunk(ctx, data, events)
+				if c.processStreamChunk(ctx, data, events) {
+					doneSent = true
+				}
 			}
 		}
 		if readErr != nil {
 			break
 		}
 	}
+
+	if !doneSent {
+		select {
+		case events <- EyrieStreamEvent{Type: "done"}:
+		case <-ctx.Done():
+		}
+	}
 }
 
-func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, events chan<- EyrieStreamEvent) {
+func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, events chan<- EyrieStreamEvent) bool {
 	var chunk geminiResponse
 	if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-		return
+		return false
 	}
 	if len(chunk.Candidates) == 0 {
-		return
+		return false
 	}
 	candidate := chunk.Candidates[0]
 	for _, part := range candidate.Content.Parts {
@@ -397,7 +408,7 @@ func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, even
 			select {
 			case events <- EyrieStreamEvent{Type: "content", Content: part.Text}:
 			case <-ctx.Done():
-				return
+				return false
 			}
 		}
 		if part.FunctionCall != nil {
@@ -410,7 +421,7 @@ func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, even
 				},
 			}:
 			case <-ctx.Done():
-				return
+				return false
 			}
 		}
 	}
@@ -424,7 +435,9 @@ func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, even
 				TotalTokens:      chunk.Usage.TotalTokenCount,
 			},
 		}:
+			return true
 		case <-ctx.Done():
 		}
 	}
+	return false
 }

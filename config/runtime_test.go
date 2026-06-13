@@ -29,9 +29,7 @@ func TestRuntimeProfileFields(t *testing.T) {
 		if profile.DefaultBaseURL == "" {
 			t.Errorf("profile %q has empty DefaultBaseURL", name)
 		}
-		if profile.DefaultModel == "" && name != "canopywave" && name != "z-ai" && name != "openrouter" {
-			t.Errorf("profile %q has empty DefaultModel", name)
-		}
+		// DefaultModel is now fully dynamic — no hardcoded defaults
 		if len(profile.DetectionEnv) == 0 {
 			t.Errorf("profile %q has empty DetectionEnv", name)
 		}
@@ -209,8 +207,6 @@ func TestOpenAICompatibleRuntimeProfiles_Complete(t *testing.T) {
 		if profile.DefaultBaseURL == "" && key != "xiaomi_mimo_token_plan" {
 			t.Errorf("profile %q has empty DefaultBaseURL", key)
 		}
-		if profile.DefaultModel == "" && key != "canopywave" && key != "z-ai" && key != "openrouter" {
-			t.Errorf("profile %q has empty DefaultModel", key)
-		}
+		// DefaultModel is now fully dynamic — no hardcoded defaults
 	}
 }
