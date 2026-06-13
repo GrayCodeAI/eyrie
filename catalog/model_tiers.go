@@ -41,15 +41,6 @@ func catalogModelIDs(catalog *ModelCatalog, provider string) []string {
 	return ids
 }
 
-func contains(ss []string, s string) bool {
-	for _, v := range ss {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 // GetPreferredProviderModel returns the preferred model for a provider/tier from the catalog.
 // Returns "" if catalog is nil or has no models for this provider.
 func GetPreferredProviderModel(provider string, tier ModelTier, catalog *ModelCatalog) ModelName {
