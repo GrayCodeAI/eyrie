@@ -188,6 +188,10 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 			p = NewMiMoClient(apiKey, openAIBase, anthropicBase, info.Compat, providerName)
 			break
 		}
+		if providerName == "opencodego" {
+			p = NewOpenCodeGoClient(apiKey, baseURL)
+			break
+		}
 		p = NewOpenAIClient(apiKey, baseURL, info.Compat)
 	}
 

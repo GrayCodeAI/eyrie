@@ -106,6 +106,7 @@ func TestCompatMatrixThinkingFormatValues(t *testing.T) {
 	}{
 		{&OpenRouterCompat, "openrouter"},
 		{&ZAICompat, "zai"},
+		{&OpenCodeGoCompat, "openrouter"},
 	}
 	for _, tc := range tests {
 		if tc.compat.ThinkingFormat != tc.format {
@@ -116,7 +117,7 @@ func TestCompatMatrixThinkingFormatValues(t *testing.T) {
 	// Providers without explicit thinking format should have empty string.
 	noFormat := []*OpenAICompatConfig{
 		&OpenAICompat, &GrokCompat, &GeminiCompat,
-		&CanopyWaveCompat, &OllamaCompat, &OpenCodeGoCompat,
+		&CanopyWaveCompat, &OllamaCompat,
 		&KimiCompat, &XiaomiCompat, &AzureCompat,
 		&BedrockCompat, &VertexCompat,
 	}
@@ -130,7 +131,7 @@ func TestCompatMatrixThinkingFormatValues(t *testing.T) {
 func TestCompatMatrixUsageInStreaming(t *testing.T) {
 	// Providers that report usage in streaming.
 	supportsUsage := []*OpenAICompatConfig{
-		&OpenAICompat, &OpenRouterCompat, &GeminiCompat, &ZAICompat,
+		&OpenAICompat, &OpenRouterCompat, &GeminiCompat, &ZAICompat, &OpenCodeGoCompat,
 	}
 	for _, c := range supportsUsage {
 		if !c.SupportsUsageInStreaming {
@@ -141,7 +142,7 @@ func TestCompatMatrixUsageInStreaming(t *testing.T) {
 	// Providers that do NOT report usage in streaming.
 	noUsage := []*OpenAICompatConfig{
 		&GrokCompat, &CanopyWaveCompat, &OllamaCompat,
-		&OpenCodeGoCompat, &KimiCompat, &XiaomiCompat,
+		&KimiCompat, &XiaomiCompat,
 		&AzureCompat, &BedrockCompat, &VertexCompat,
 	}
 	for _, c := range noUsage {

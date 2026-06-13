@@ -1,5 +1,7 @@
 package registry
 
+import "github.com/GrayCodeAI/eyrie/catalog/opencodego"
+
 func init() {
 	for _, spec := range providerSpecs() {
 		DefaultRegistry.Register(spec)
@@ -108,7 +110,7 @@ func providerSpecs() []ProviderSpec {
 			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY",
 			BaseURLEnv:   []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:    ProbeOpenAIModels,
-			ProbeBaseURL: "https://opencode.ai/zen/go/v1",
+			ProbeBaseURL: opencodego.DefaultBaseURL,
 
 			LiveFetcherKey: "opencodego", LiveCatalogKey: "opencodego",
 			APIProtocolID: "openai-chat-completions", AdapterID: "opencodego",

@@ -3,6 +3,7 @@ package registry_test
 import (
 	"testing"
 
+	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
@@ -33,7 +34,7 @@ func TestOpenCodeGo_HasProbeBaseURL(t *testing.T) {
 	if spec.ProbeBaseURL == "" {
 		t.Fatal("opencodego must have a ProbeBaseURL")
 	}
-	if spec.ProbeBaseURL != "https://opencode.ai/zen/go/v1" {
+	if spec.ProbeBaseURL != opencodego.DefaultBaseURL {
 		t.Fatalf("opencodego probe base URL = %q", spec.ProbeBaseURL)
 	}
 	if spec.ProbeKind != registry.ProbeOpenAIModels {

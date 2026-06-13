@@ -1,5 +1,7 @@
 package config
 
+import "github.com/GrayCodeAI/eyrie/catalog/opencodego"
+
 // APIProvider is the type for supported LLM providers.
 type APIProvider = string
 
@@ -177,7 +179,7 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 
 const (
 	OllamaDefaultBaseURL     = "http://localhost:11434/v1"
-	OpenCodeGoDefaultBaseURL = "https://opencode.ai/zen/go/v1"
+	OpenCodeGoDefaultBaseURL = opencodego.DefaultBaseURL
 )
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.

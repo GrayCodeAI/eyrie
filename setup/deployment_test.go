@@ -593,7 +593,7 @@ func TestProviderForDeployment_OpenCodeGo(t *testing.T) {
 	if !ok {
 		t.Fatal("expected opencodego to be configured")
 	}
-	if p.Name() != "openai" {
-		t.Fatalf("provider name = %q, want openai", p.Name())
+	if p.Name() != "opencodego" {
+		t.Fatalf("provider name = %q, want opencodego", p.Name())
 	}
 }
