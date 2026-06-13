@@ -53,7 +53,7 @@ type ProtocolStreamConfig struct {
 func (r ProtocolRouter) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions, primary ChatProtocol, fallback ProtocolChatFallback) (*EyrieResponse, error) {
 	primaryClient, fallbackClient := r.providers(primary)
 	resp, err := primaryClient.Chat(ctx, messages, opts)
-	if fallback == nil || fallbackClient == nil || !fallback(err, resp) {
+	if fallback == nil || !fallback(err, resp) {
 		return resp, err
 	}
 	fallbackResp, fallbackErr := fallbackClient.Chat(ctx, messages, opts)
@@ -71,12 +71,12 @@ func (r ProtocolRouter) StreamChat(ctx context.Context, messages []EyrieMessage,
 	primaryClient, fallbackClient := r.providers(cfg.Primary)
 	result, err := primaryClient.StreamChat(ctx, messages, opts)
 	if err != nil {
-		if cfg.FallbackOnError != nil && fallbackClient != nil && cfg.FallbackOnError(err) {
+		if cfg.FallbackOnError != nil && cfg.FallbackOnError(err) {
 			return fallbackClient.StreamChat(ctx, messages, opts)
 		}
 		return result, err
 	}
-	if cfg.ReasoningOnlyFallback && cfg.Primary == ChatProtocolMessages && fallbackClient != nil {
+	if cfg.ReasoningOnlyFallback && cfg.Primary == ChatProtocolMessages {
 		fallback := fallbackClient
 		return newStreamWithReasoningFallback(ctx, messages, opts, result, protocolStreamFallback{
 			chat: func(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
