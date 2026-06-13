@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
 )
@@ -595,5 +596,8 @@ func TestProviderForDeployment_OpenCodeGo(t *testing.T) {
 	}
 	if p.Name() != "opencodego" {
 		t.Fatalf("provider name = %q, want opencodego", p.Name())
+	}
+	if _, ok := p.(*client.OpenCodeGoClient); !ok {
+		t.Fatalf("provider type = %T, want *client.OpenCodeGoClient", p)
 	}
 }
