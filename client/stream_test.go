@@ -217,6 +217,36 @@ func TestSSEAnthropicThinkingDelta(t *testing.T) {
 	}
 }
 
+func TestSSEAnthropicThinkingTextDeltaHidden(t *testing.T) {
+	events := make(chan SSEEvent, 10)
+	events <- SSEEvent{Event: "content_block_start", Data: `{"type":"content_block_start","index":0,"content_block":{"type":"thinking"}}`}
+	events <- SSEEvent{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"private reasoning"}}`}
+	events <- SSEEvent{Event: "content_block_stop", Data: `{"type":"content_block_stop","index":0}`}
+	events <- SSEEvent{Event: "message_stop", Data: `{"type":"message_stop"}`}
+	close(events)
+
+	ctx := context.Background()
+	ch := processAnthropicStream(ctx, events, testLogger())
+
+	var sawThinking, sawContent bool
+	for evt := range ch {
+		switch evt.Type {
+		case "thinking":
+			if evt.Thinking == "private reasoning" {
+				sawThinking = true
+			}
+		case "content":
+			sawContent = true
+		}
+	}
+	if !sawThinking {
+		t.Fatal("expected thinking event for text_delta inside thinking block")
+	}
+	if sawContent {
+		t.Fatal("did not expect visible content from thinking block text_delta")
+	}
+}
+
 func TestSSEAnthropicStopReason(t *testing.T) {
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Event: "message_delta", Data: `{"type":"message_delta","delta":{"stop_reason":"max_tokens"}}`}
