@@ -5,31 +5,32 @@ import (
 	"strings"
 )
 
-// ChatProtocol selects which HTTP API a dual-protocol gateway exposes.
+// ChatProtocol selects which existing eyrie client handles a gateway request.
 type ChatProtocol int
 
 const (
-	// ChatProtocolCompletions uses OpenAI-style POST /v1/chat/completions.
+	// ChatProtocolCompletions routes via OpenAIClient (POST /v1/chat/completions).
 	ChatProtocolCompletions ChatProtocol = iota
-	// ChatProtocolMessages uses Anthropic-style POST /v1/messages.
+	// ChatProtocolMessages routes via AnthropicClient (POST /v1/messages).
 	ChatProtocolMessages
 )
 
 type streamOpener func(context.Context, []EyrieMessage, ChatOptions) (*StreamResult, error)
 
-// DualProtocolChatFallback decides whether to retry via the alternate protocol
+// ProtocolChatFallback decides whether to retry via the alternate protocol
 // after the primary attempt. resp is non-nil only when primary returned err=nil.
-type DualProtocolChatFallback func(primaryErr error, primaryResp *EyrieResponse) bool
+type ProtocolChatFallback func(primaryErr error, primaryResp *EyrieResponse) bool
 
-// DualProtocolPair holds OpenAI and Anthropic clients that share credentials
-// against the same gateway (OpenCode Go, MiMo, etc.).
-type DualProtocolPair struct {
+// ProtocolRouter picks between OpenAIClient and AnthropicClient for gateways
+// that expose both APIs (OpenCode Go, MiMo). All HTTP work stays in openai.go
+// and anthropic.go; this type only orchestrates routing and fallback.
+type ProtocolRouter struct {
 	OpenAI    *OpenAIClient
 	Anthropic *AnthropicClient
 }
 
-// DualProtocolStreamConfig controls streaming across two protocols.
-type DualProtocolStreamConfig struct {
+// ProtocolStreamConfig controls streaming across two protocols.
+type ProtocolStreamConfig struct {
 	Primary               ChatProtocol
 	FallbackOnError       func(error) bool
 	ReasoningOnlyFallback bool // retry alternate protocol when primary stream is reasoning-only
@@ -37,8 +38,8 @@ type DualProtocolStreamConfig struct {
 
 // Chat sends a request via the primary protocol, optionally falling back to the
 // alternate protocol when fallback returns true.
-func (p DualProtocolPair) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions, primary ChatProtocol, fallback DualProtocolChatFallback) (*EyrieResponse, error) {
-	primaryClient, fallbackClient := p.providers(primary)
+func (r ProtocolRouter) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions, primary ChatProtocol, fallback ProtocolChatFallback) (*EyrieResponse, error) {
+	primaryClient, fallbackClient := r.providers(primary)
 	resp, err := primaryClient.Chat(ctx, messages, opts)
 	if fallback == nil || fallbackClient == nil || !fallback(err, resp) {
 		return resp, err
@@ -54,8 +55,8 @@ func (p DualProtocolPair) Chat(ctx context.Context, messages []EyrieMessage, opt
 // the alternate protocol is tried immediately. When ReasoningOnlyFallback is set
 // and the primary is /v1/messages, an empty reasoning-only stream retries via
 // chat/completions.
-func (p DualProtocolPair) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions, cfg DualProtocolStreamConfig) (*StreamResult, error) {
-	primaryClient, fallbackClient := p.providers(cfg.Primary)
+func (r ProtocolRouter) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions, cfg ProtocolStreamConfig) (*StreamResult, error) {
+	primaryClient, fallbackClient := r.providers(cfg.Primary)
 	result, err := primaryClient.StreamChat(ctx, messages, opts)
 	if err != nil {
 		if cfg.FallbackOnError != nil && fallbackClient != nil && cfg.FallbackOnError(err) {
@@ -64,22 +65,19 @@ func (p DualProtocolPair) StreamChat(ctx context.Context, messages []EyrieMessag
 		return result, err
 	}
 	if cfg.ReasoningOnlyFallback && cfg.Primary == ChatProtocolMessages && fallbackClient != nil {
-		var fallbackStream streamOpener
-		if openAI, ok := fallbackClient.(*OpenAIClient); ok {
-			fallbackStream = openAI.StreamChat
-		}
-		if fallbackStream != nil {
-			return newStreamWithReasoningFallback(ctx, messages, opts, result, fallbackStream), nil
-		}
+		fallback := fallbackClient
+		return newStreamWithReasoningFallback(ctx, messages, opts, result, func(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+			return fallback.StreamChat(ctx, messages, opts)
+		}), nil
 	}
 	return result, nil
 }
 
-func (p DualProtocolPair) providers(primary ChatProtocol) (Provider, Provider) {
+func (r ProtocolRouter) providers(primary ChatProtocol) (Provider, Provider) {
 	if primary == ChatProtocolMessages {
-		return p.Anthropic, p.OpenAI
+		return r.Anthropic, r.OpenAI
 	}
-	return p.OpenAI, p.Anthropic
+	return r.OpenAI, r.Anthropic
 }
 
 // AnthropicBaseFromOpenAIV1 strips a trailing /v1 from an OpenAI-compatible base URL.
@@ -89,19 +87,6 @@ func AnthropicBaseFromOpenAIV1(openAIBase string) string {
 		return strings.TrimSuffix(base, "/v1")
 	}
 	return base
-}
-
-// OACompatUnsupportedError reports OpenCode Go errors where /v1/messages should
-// fall back to /v1/chat/completions (e.g. qwen3.7-max oa-compat not supported).
-func OACompatUnsupportedError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "status=401") ||
-		strings.Contains(msg, "http 401") ||
-		strings.Contains(msg, "oa-compat") ||
-		strings.Contains(msg, "not supported")
 }
 
 func newStreamWithReasoningFallback(ctx context.Context, messages []EyrieMessage, opts ChatOptions, primary *StreamResult, fallback streamOpener) *StreamResult {

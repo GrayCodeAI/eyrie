@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -36,6 +37,23 @@ func TestOpenCodeGoAnthropicBase(t *testing.T) {
 	}
 }
 
+func TestOpenCodeGoOACompatUnsupportedError(t *testing.T) {
+	tests := []struct {
+		err  error
+		want bool
+	}{
+		{nil, false},
+		{fmt.Errorf("status=401 unauthorized"), true},
+		{fmt.Errorf("oa-compat not supported"), true},
+		{fmt.Errorf("HTTP 400 bad request"), false},
+	}
+	for _, tc := range tests {
+		if got := oaCompatUnsupportedError(tc.err); got != tc.want {
+			t.Errorf("oaCompatUnsupportedError(%v) = %v, want %v", tc.err, got, tc.want)
+		}
+	}
+}
+
 func TestOpenCodeGoClient_RoutesMiniMaxToAnthropic(t *testing.T) {
 	var gotPath, gotAuth string
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
@@ -50,7 +68,7 @@ func TestOpenCodeGoClient_RoutesMiniMaxToAnthropic(t *testing.T) {
 	})
 
 	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
-	c.pair.Anthropic.httpClient = &http.Client{Transport: transport}
+	c.router.Anthropic.httpClient = &http.Client{Transport: transport}
 	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
 		Model: "minimax-m2.5", MaxTokens: 256,
 	})
@@ -82,7 +100,7 @@ func TestOpenCodeGoClient_RoutesKimiToOpenAI(t *testing.T) {
 	})
 
 	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
-	c.pair.OpenAI.httpClient = &http.Client{Transport: transport}
+	c.router.OpenAI.httpClient = &http.Client{Transport: transport}
 	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
 		Model: "kimi-k2.5", MaxTokens: 256,
 	})
@@ -115,8 +133,8 @@ func TestOpenCodeGoClient_Qwen401FallsBackToOpenAI(t *testing.T) {
 	})
 
 	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
-	c.pair.Anthropic.httpClient = &http.Client{Transport: transport}
-	c.pair.OpenAI.httpClient = &http.Client{Transport: transport}
+	c.router.Anthropic.httpClient = &http.Client{Transport: transport}
+	c.router.OpenAI.httpClient = &http.Client{Transport: transport}
 	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
 		Model: "qwen3.7-max", MaxTokens: 256,
 	})
@@ -148,8 +166,8 @@ func TestOpenCodeGoClient_MessagesEmptyFallsBackToOpenAI(t *testing.T) {
 	})
 
 	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
-	c.pair.Anthropic.httpClient = &http.Client{Transport: transport}
-	c.pair.OpenAI.httpClient = &http.Client{Transport: transport}
+	c.router.Anthropic.httpClient = &http.Client{Transport: transport}
+	c.router.OpenAI.httpClient = &http.Client{Transport: transport}
 	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
 		Model: "minimax-m3", MaxTokens: 256,
 	})
@@ -181,7 +199,7 @@ func TestOpenCodeGoClient_NormalizesModelID(t *testing.T) {
 		}), nil
 	})
 	c := NewOpenCodeGoClient("key", "https://opencode.example/zen/go/v1")
-	c.pair.OpenAI.httpClient = &http.Client{Transport: transport}
+	c.router.OpenAI.httpClient = &http.Client{Transport: transport}
 	_, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
 		Model: "opencode-go/kimi-k2.6", MaxTokens: 16,
 	})
