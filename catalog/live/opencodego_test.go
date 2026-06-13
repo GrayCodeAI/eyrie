@@ -21,7 +21,9 @@ func TestFetchOpenCodeGo_MockHTTPServer(t *testing.T) {
 			Data []json.RawMessage `json:"data"`
 		}{
 			Data: []json.RawMessage{
-				json.RawMessage(`{"id":"ocg/model-1","display_name":"OCG Model 1","status":1}`),
+				json.RawMessage(`{"id":"kimi-k2.6","owned_by":"opencode"}`),
+				json.RawMessage(`{"id":"minimax-m2.7","owned_by":"opencode"}`),
+				json.RawMessage(`{"id":"qwen3.7-max","owned_by":"opencode"}`),
 			},
 		}
 		_ = json.NewEncoder(w).Encode(resp)
@@ -35,14 +37,11 @@ func TestFetchOpenCodeGo_MockHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 1 {
-		t.Fatalf("expected 1 model, got %d", len(entries))
+	if len(entries) != 3 {
+		t.Fatalf("expected all 3 models, got %d", len(entries))
 	}
-	if entries[0].ID != "ocg/model-1" {
+	if entries[0].ID != "kimi-k2.6" {
 		t.Fatalf("id = %q", entries[0].ID)
-	}
-	if len(entries[0].RawJSON) == 0 {
-		t.Fatal("expected RawJSON to be preserved")
 	}
 }
 

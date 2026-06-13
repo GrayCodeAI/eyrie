@@ -396,7 +396,7 @@ func (c *BedrockClient) sign(req *http.Request, body []byte, now time.Time) erro
 	}
 	service := "bedrock"
 	if strings.HasPrefix(req.URL.Host, "bedrock-runtime.") {
-		service = "bedrock"
+		service = "bedrock-runtime"
 	}
 	amzDate := now.Format("20060102T150405Z")
 	dateStamp := now.Format("20060102")

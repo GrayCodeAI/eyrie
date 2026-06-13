@@ -1506,7 +1506,7 @@ func TestBedrockSigV4_SignatureComponents(t *testing.T) {
 	if !strings.HasPrefix(auth, "AWS4-HMAC-SHA256") {
 		t.Errorf("expected AWS4-HMAC-SHA256, got %q", auth)
 	}
-	if !strings.Contains(auth, "Credential=AKID/20230901/us-east-1/bedrock/aws4_request") {
+	if !strings.Contains(auth, "Credential=AKID/20230901/us-east-1/bedrock-runtime/aws4_request") {
 		t.Errorf("expected correct credential scope, got %q", auth)
 	}
 

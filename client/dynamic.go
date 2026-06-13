@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -28,6 +29,13 @@ func FreezeRegistry() {
 func RegisterDynamicProvider(name, baseURL, envKey string) error {
 	if registryFrozen.Load() {
 		return fmt.Errorf("eyrie: provider registry is frozen; register providers before first use")
+	}
+	if baseURL == "" {
+		return fmt.Errorf("eyrie: RegisterDynamicProvider: baseURL must not be empty")
+	}
+	u, err := url.Parse(baseURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return fmt.Errorf("eyrie: RegisterDynamicProvider: invalid baseURL %q (must be http/https with host)", baseURL)
 	}
 	dynamicMu.Lock()
 	defer dynamicMu.Unlock()

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -17,6 +18,10 @@ var (
 func defaultTransport() *http.Transport {
 	transportOnce.Do(func() {
 		sharedTransport = &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
 			MaxIdleConns:          100,
 			MaxIdleConnsPerHost:   20,
 			IdleConnTimeout:       90 * time.Second,
@@ -25,6 +30,14 @@ func defaultTransport() *http.Transport {
 		}
 	})
 	return sharedTransport
+}
+
+// CloseIdleConnections closes idle connections in the shared pool.
+// Call during graceful shutdown.
+func CloseIdleConnections() {
+	if sharedTransport != nil {
+		sharedTransport.CloseIdleConnections()
+	}
 }
 
 // NewPooledHTTPClient creates an *http.Client with the shared connection pool

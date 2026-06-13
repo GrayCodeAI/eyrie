@@ -51,7 +51,10 @@ var (
 		MaxTokensField: "max_tokens",
 	}
 	OpenCodeGoCompat = OpenAICompatConfig{
-		MaxTokensField: "max_tokens",
+		MaxTokensField:           "max_tokens",
+		SupportsUsageInStreaming: true,
+		ThinkingFormat:           "openrouter",
+		StripReasoningFromInput:  true,
 	}
 	KimiCompat = OpenAICompatConfig{
 		MaxTokensField:    "max_tokens",

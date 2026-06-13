@@ -396,7 +396,8 @@ func (a *AdaptiveRateLimitProvider) checkAndWait(ctx context.Context) error {
 				case <-time.After(delay):
 				}
 				a.mu.Lock()
-				a.pruneWindows(time.Now())
+				now = time.Now()
+				a.pruneWindows(now)
 			}
 		}
 	}
@@ -429,7 +430,8 @@ func (a *AdaptiveRateLimitProvider) checkAndWait(ctx context.Context) error {
 				case <-time.After(delay):
 				}
 				a.mu.Lock()
-				a.pruneWindows(time.Now())
+				now = time.Now()
+				a.pruneWindows(now)
 			}
 		}
 	}

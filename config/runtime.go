@@ -80,7 +80,6 @@ func resolveRuntimeProvider() RuntimeProviderProfile {
 		if base.DefaultBaseURL == "" {
 			base.DefaultBaseURL = OllamaDefaultBaseURL
 		}
-		base.DefaultModel = OllamaDefaultModel
 		base.ModelEnv = []string{"OLLAMA_MODEL"}
 		base.BaseURLEnv = []string{"OLLAMA_BASE_URL"}
 		base.APIKeys = nil

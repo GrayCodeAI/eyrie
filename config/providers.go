@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 )
 
 // VertexGeminiBaseURL returns the Google Vertex AI publisher endpoint for Gemini.
@@ -26,7 +28,7 @@ const (
 	DefaultGeminiOpenAIBaseURL     = "https://generativelanguage.googleapis.com/v1beta/openai"
 	DefaultAnthropicOpenAIBaseURL  = "https://api.anthropic.com/v1"
 	DefaultGrokOpenAIBaseURL       = "https://api.x.ai/v1"
-	DefaultOpenCodeGoBaseURL       = "https://opencode.ai/zen/go/v1"
+	DefaultOpenCodeGoBaseURL       = opencodego.DefaultBaseURL
 	DefaultKimiOpenAIBaseURL       = "https://api.moonshot.ai/v1"
 	DefaultXiaomiOpenAIBaseURL     = "https://api.xiaomimimo.com/v1"
 )
