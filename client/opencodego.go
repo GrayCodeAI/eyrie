@@ -13,6 +13,8 @@ type OpenCodeGoClient struct {
 	anthropic *AnthropicClient
 }
 
+type openCodeGoStreamOpener func(context.Context, []EyrieMessage, ChatOptions) (*StreamResult, error)
+
 // NewOpenCodeGoClient builds a dual-protocol OpenCode Go provider client.
 func NewOpenCodeGoClient(apiKey, baseURL string, opts ...ClientOption) *OpenCodeGoClient {
 	openBase := strings.TrimRight(strings.TrimSpace(baseURL), "/")
@@ -30,7 +32,21 @@ func (c *OpenCodeGoClient) Name() string { return "opencodego" }
 
 func (c *OpenCodeGoClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
 	if openCodeGoUsesAnthropicMessages(opts.Model) {
-		return c.anthropic.Chat(ctx, messages, opts)
+		resp, err := c.anthropic.Chat(ctx, messages, opts)
+		if err != nil {
+			return nil, err
+		}
+		if resp != nil && strings.TrimSpace(resp.Content) != "" {
+			return resp, nil
+		}
+		if c.openAI == nil {
+			return resp, err
+		}
+		openResp, openErr := c.openAI.Chat(ctx, messages, opts)
+		if openErr == nil && openResp != nil && strings.TrimSpace(openResp.Content) != "" {
+			return openResp, nil
+		}
+		return resp, err
 	}
 	resp, err := c.openAI.Chat(ctx, messages, opts)
 	if err != nil || c.anthropic == nil || !openCodeGoMightNeedAnthropicFallback(opts.Model) {
@@ -48,13 +64,17 @@ func (c *OpenCodeGoClient) Chat(ctx context.Context, messages []EyrieMessage, op
 
 func (c *OpenCodeGoClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
 	if openCodeGoUsesAnthropicMessages(opts.Model) {
-		return c.anthropic.StreamChat(ctx, messages, opts)
+		primary, err := c.anthropic.StreamChat(ctx, messages, opts)
+		if err != nil || c.openAI == nil {
+			return primary, err
+		}
+		return newOpenCodeGoStreamWithFallback(ctx, messages, opts, primary, c.openAI.StreamChat), nil
 	}
 	primary, err := c.openAI.StreamChat(ctx, messages, opts)
 	if err != nil || c.anthropic == nil || !openCodeGoMightNeedAnthropicFallback(opts.Model) {
 		return primary, err
 	}
-	return newOpenCodeGoFallbackStream(ctx, c.anthropic, messages, opts, primary), nil
+	return newOpenCodeGoStreamWithFallback(ctx, messages, opts, primary, c.anthropic.StreamChat), nil
 }
 
 func (c *OpenCodeGoClient) Ping(ctx context.Context) error {
@@ -64,9 +84,10 @@ func (c *OpenCodeGoClient) Ping(ctx context.Context) error {
 	return c.anthropic.Ping(ctx)
 }
 
-// newOpenCodeGoFallbackStream watches an OpenAI-format stream; if it ends with
-// reasoning tokens but no answer, transparently retries via /v1/messages.
-func newOpenCodeGoFallbackStream(ctx context.Context, anthropic *AnthropicClient, messages []EyrieMessage, opts ChatOptions, primary *StreamResult) *StreamResult {
+// newOpenCodeGoStreamWithFallback watches a primary stream; if it ends with
+// reasoning tokens but no answer, transparently retries via the fallback opener.
+// Used for OpenAI→Anthropic and Anthropic→OpenAI on MiniMax/Qwen models.
+func newOpenCodeGoStreamWithFallback(ctx context.Context, messages []EyrieMessage, opts ChatOptions, primary *StreamResult, fallback openCodeGoStreamOpener) *StreamResult {
 	out := make(chan EyrieStreamEvent, streamChannelBuffer)
 	cancelCtx, cancel := context.WithCancel(ctx)
 	go func() {
@@ -126,7 +147,7 @@ func newOpenCodeGoFallbackStream(ctx context.Context, anthropic *AnthropicClient
 			return
 		}
 
-		fallback, err := anthropic.StreamChat(cancelCtx, messages, opts)
+		fallbackResult, err := fallback(cancelCtx, messages, opts)
 		if err != nil {
 			flush()
 			select {
@@ -135,8 +156,8 @@ func newOpenCodeGoFallbackStream(ctx context.Context, anthropic *AnthropicClient
 			}
 			return
 		}
-		defer fallback.Close()
-		for ev := range fallback.Events {
+		defer fallbackResult.Close()
+		for ev := range fallbackResult.Events {
 			select {
 			case out <- ev:
 			case <-cancelCtx.Done():

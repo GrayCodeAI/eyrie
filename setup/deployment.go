@@ -232,7 +232,7 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 		if apiKey == "" {
 			return nil, false
 		}
-		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultOpenCodeGoBaseURL), &client.OpenCodeGoCompat), true
+		return client.NewOpenCodeGoClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultOpenCodeGoBaseURL)), true
 	case "kimi-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MOONSHOT_API_KEY"))
 		if apiKey == "" {
