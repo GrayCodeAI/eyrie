@@ -35,18 +35,27 @@ func TestGetModelMarketingName(t *testing.T) {
 	}
 }
 
-func TestGetProviderModelCandidates_LiveSetupProvidersEmpty(t *testing.T) {
-	if got := GetProviderModelCandidates("anthropic", TierSonnet); len(got) != 0 {
-		t.Fatalf("anthropic tier candidates should be empty, got %v", got)
+func TestGetProviderModelCandidates_AllProvidersNil(t *testing.T) {
+	// All providers return nil candidates (fully dynamic)
+	allProviders := []string{
+		"anthropic", "openai", "gemini", "grok", "bedrock", "kimi",
+	}
+	for _, provider := range allProviders {
+		if got := GetProviderModelCandidates(provider, TierSonnet); got != nil {
+			t.Fatalf("%s tier candidates should be nil, got %v", provider, got)
+		}
 	}
 }
 
-func TestGetProviderDefaultModel_LiveSetupProvidersEmptyWithoutCatalog(t *testing.T) {
-	if got := GetProviderDefaultModel("anthropic", nil); got != "" {
-		t.Fatalf("anthropic default should be empty without catalog, got %q", got)
+func TestGetProviderDefaultModel_AllProvidersEmptyWithoutCatalog(t *testing.T) {
+	// All providers return empty without a catalog (fully dynamic)
+	allProviders := []string{
+		"anthropic", "openai", "gemini", "grok", "bedrock", "kimi",
 	}
-	if got := GetProviderDefaultModel("openai", nil); got != "" {
-		t.Fatalf("openai default should be empty without catalog, got %q", got)
+	for _, provider := range allProviders {
+		if got := GetProviderDefaultModel(provider, nil); got != "" {
+			t.Fatalf("%s default should be empty without catalog, got %q", provider, got)
+		}
 	}
 }
 
@@ -74,19 +83,5 @@ func TestModelsForProvider(t *testing.T) {
 	var nilCat *ModelCatalog
 	if nilCat != nil && len(nilCat.Providers["anthropic"]) > 0 {
 		t.Error("expected no models for nil catalog")
-	}
-}
-
-func TestCanonicalModelIDs(t *testing.T) {
-	ids := CanonicalModelIDs()
-	if len(ids) != len(AllModelConfigs) {
-		t.Errorf("expected %d canonical IDs, got %d", len(AllModelConfigs), len(ids))
-	}
-}
-
-func TestCanonicalIDToKey(t *testing.T) {
-	m := CanonicalIDToKey()
-	if _, ok := m["claude-sonnet-4-6"]; !ok {
-		t.Error("expected claude-sonnet-4-6 in canonical ID to key map")
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -163,13 +164,49 @@ func (g *Guardrails) Check(ctx context.Context, response string) ([]GuardrailVio
 
 // ApplyRedactions takes the response text and violations, replacing redacted
 // matches with their redaction markers. Non-redact violations are left intact.
+// Matches are applied positionally to handle overlapping patterns correctly.
 func ApplyRedactions(response string, violations []GuardrailViolation) string {
-	result := response
+	type replacement struct {
+		start int
+		end   int
+		text  string
+	}
+	var reps []replacement
 	for _, v := range violations {
 		if v.Rule.Action != GuardrailRedact {
 			continue
 		}
-		result = strings.ReplaceAll(result, v.MatchedText, v.RedactedResult)
+		idx := strings.Index(response, v.MatchedText)
+		if idx < 0 {
+			continue
+		}
+		reps = append(reps, replacement{start: idx, end: idx + len(v.MatchedText), text: v.RedactedResult})
+	}
+	if len(reps) == 0 {
+		return response
+	}
+
+	// Sort by start position descending; for same start, longer match first.
+	sort.Slice(reps, func(i, j int) bool {
+		if reps[i].start == reps[j].start {
+			return (reps[i].end - reps[i].start) > (reps[j].end - reps[j].start)
+		}
+		return reps[i].start > reps[j].start
+	})
+
+	// Remove overlapping replacements (keep longest/leftmost)
+	filtered := reps[:1]
+	for i := 1; i < len(reps); i++ {
+		prev := filtered[len(filtered)-1]
+		if reps[i].end > prev.start {
+			continue
+		}
+		filtered = append(filtered, reps[i])
+	}
+
+	result := response
+	for _, r := range filtered {
+		result = result[:r.start] + r.text + result[r.end:]
 	}
 	return result
 }

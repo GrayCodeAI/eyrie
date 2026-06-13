@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 )
 
@@ -24,7 +25,7 @@ const (
 	DefaultZAIBaseURL        = "https://api.z.ai/api/paas/v4"
 	DefaultOpenAIBaseURL     = "https://api.openai.com/v1"
 	DefaultGrokBaseURL       = "https://api.x.ai/v1"
-	DefaultOpenCodeGoBaseURL = "https://opencode.ai/zen/go/v1"
+	DefaultOpenCodeGoBaseURL = opencodego.DefaultBaseURL
 	DefaultKimiBaseURL       = "https://api.moonshot.ai/v1"
 	DefaultXiaomiBaseURL     = "https://api.xiaomimimo.com/v1"
 )
@@ -489,11 +490,18 @@ func FetchCanopyWave(env map[string]string) ([]Entry, error) {
 }
 
 func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "OPENCODEGO_BASE_URL", DefaultOpenCodeGoBaseURL),
 		env["OPENCODEGO_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	for i := range entries {
+		entries[i].ID = opencodego.NativeModelID(entries[i].ID)
+	}
+	return entries, nil
 }
 
 func FetchKimi(env map[string]string) ([]Entry, error) {

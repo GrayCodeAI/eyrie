@@ -32,12 +32,13 @@ func TestAllProviders_LiveFetchParity(t *testing.T) {
 	}
 }
 
-func TestAllProviders_LiveOnlySkipHardcodedDefaults(t *testing.T) {
+func TestAllProviders_AllReturnEmptyWithoutCatalog(t *testing.T) {
 	empty := &catalog.ModelCatalog{}
+	// All providers are fully dynamic — should return empty without catalog
 	for _, spec := range registry.All() {
 		got := catalog.GetProviderDefaultModel(spec.ProviderID, empty)
 		if got != "" {
-			t.Errorf("%s: expected empty default without catalog, got %q", spec.ProviderID, got)
+			t.Errorf("%s: expected empty default without catalog (fully dynamic), got %q", spec.ProviderID, got)
 		}
 	}
 }

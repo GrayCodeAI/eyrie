@@ -71,8 +71,8 @@ func TestMiMoClient_ChatFallsBackToAnthropicOnParamIncorrect(t *testing.T) {
 	})
 
 	c := NewMiMoClient("tp-test-key", "https://openai.example/v1", "https://anthropic.example/anthropic", &XiaomiCompat, "xiaomi_mimo_token_plan")
-	c.openAI.httpClient = &http.Client{Transport: openAITransport}
-	c.anthropic.httpClient = &http.Client{Transport: anthropicTransport}
+	c.router.OpenAI.httpClient = &http.Client{Transport: openAITransport}
+	c.router.Anthropic.httpClient = &http.Client{Transport: anthropicTransport}
 	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "hi"}}, ChatOptions{
 		Model:     "mimo-v2.5-pro",
 		MaxTokens: 1024,
@@ -121,10 +121,10 @@ func TestGetOrCreateProvider_XiaomiTokenPlanUsesMimoBase(t *testing.T) {
 	if !ok {
 		t.Fatalf("provider type = %T, want *MiMoClient", p)
 	}
-	if mimo.openAI.baseURL != xiaomi.TokenPlanSGPOpenAIBase {
-		t.Fatalf("openAI baseURL = %q, want %q", mimo.openAI.baseURL, xiaomi.TokenPlanSGPOpenAIBase)
+	if mimo.router.OpenAI.baseURL != xiaomi.TokenPlanSGPOpenAIBase {
+		t.Fatalf("openAI baseURL = %q, want %q", mimo.router.OpenAI.baseURL, xiaomi.TokenPlanSGPOpenAIBase)
 	}
-	if mimo.anthropic == nil || mimo.anthropic.baseURL != xiaomi.TokenPlanSGPAnthropicBase {
-		t.Fatalf("anthropic baseURL = %#v, want %q", mimo.anthropic, xiaomi.TokenPlanSGPAnthropicBase)
+	if mimo.router.Anthropic == nil || mimo.router.Anthropic.baseURL != xiaomi.TokenPlanSGPAnthropicBase {
+		t.Fatalf("anthropic baseURL = %#v, want %q", mimo.router.Anthropic, xiaomi.TokenPlanSGPAnthropicBase)
 	}
 }

@@ -1,5 +1,7 @@
 package config
 
+import "github.com/GrayCodeAI/eyrie/catalog/opencodego"
+
 // APIProvider is the type for supported LLM providers.
 type APIProvider = string
 
@@ -112,35 +114,35 @@ var (
 		APIKeys:      []APIKeyDef{{Env: "CANOPYWAVE_API_KEY", Source: "canopywave"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
 	DeepSeekRuntimeProfile = RuntimeProviderProfile{
-		Mode: "openai", DefaultBaseURL: "https://api.deepseek.com/v1", DefaultModel: "deepseek-v4-flash",
+		Mode: "openai", DefaultBaseURL: "https://api.deepseek.com/v1",
 		DetectionEnv: []string{"DEEPSEEK_API_KEY"},
 		ModelEnv:     []string{"DEEPSEEK_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{"DEEPSEEK_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "DEEPSEEK_API_KEY", Source: "deepseek"}},
 	}
 	OpenCodeGoRuntimeProfile = RuntimeProviderProfile{
-		Mode: "opencodego", DefaultBaseURL: DefaultOpenCodeGoBaseURL, DefaultModel: "kimi-k2.5",
+		Mode: "opencodego", DefaultBaseURL: DefaultOpenCodeGoBaseURL,
 		DetectionEnv: []string{"OPENCODEGO_API_KEY"},
 		ModelEnv:     []string{"OPENCODEGO_MODEL"},
 		BaseURLEnv:   []string{"OPENCODEGO_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "OPENCODEGO_API_KEY", Source: "opencodego"}},
 	}
 	KimiRuntimeProfile = RuntimeProviderProfile{
-		Mode: "openai", DefaultBaseURL: DefaultKimiOpenAIBaseURL, DefaultModel: "kimi-k2.6",
+		Mode: "openai", DefaultBaseURL: DefaultKimiOpenAIBaseURL,
 		DetectionEnv: []string{"MOONSHOT_API_KEY"},
 		ModelEnv:     []string{"MOONSHOT_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{"MOONSHOT_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "MOONSHOT_API_KEY", Source: "kimi"}},
 	}
 	XiaomiPaygRuntimeProfile = RuntimeProviderProfile{
-		Mode: "openai", DefaultBaseURL: DefaultXiaomiOpenAIBaseURL, DefaultModel: "mimo-v2.5-pro",
+		Mode: "openai", DefaultBaseURL: DefaultXiaomiOpenAIBaseURL,
 		DetectionEnv: []string{EnvXiaomiPaygAPIKey},
 		ModelEnv:     []string{"XIAOMI_MIMO_PAYG_MODEL", "XIAOMI_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{EnvXiaomiPaygBaseURL, "XIAOMI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: EnvXiaomiPaygAPIKey, Source: "xiaomi_mimo_payg"}},
 	}
 	XiaomiTokenPlanRuntimeProfile = RuntimeProviderProfile{
-		Mode: "openai", DefaultBaseURL: "", DefaultModel: "mimo-v2.5-pro",
+		Mode: "openai", DefaultBaseURL: "",
 		DetectionEnv: []string{EnvXiaomiTokenPlanAPIKey},
 		ModelEnv:     []string{"XIAOMI_MIMO_TOKEN_PLAN_MODEL", "XIAOMI_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{EnvXiaomiTokenPlanBaseURL, "OPENAI_BASE_URL", "OPENAI_API_BASE"},
@@ -177,11 +179,7 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 
 const (
 	OllamaDefaultBaseURL     = "http://localhost:11434/v1"
-	OllamaDefaultModel       = "llama3.1:8b"
-	OpenCodeGoDefaultBaseURL = "https://opencode.ai/zen/go/v1"
-	OpenCodeGoDefaultModel   = "kimi-k2.5"
-	KimiDefaultModel         = "kimi-k2.6"
-	XiaomiDefaultModel       = "mimo-v2-flash"
+	OpenCodeGoDefaultBaseURL = opencodego.DefaultBaseURL
 )
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.

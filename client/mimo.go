@@ -13,8 +13,7 @@ import (
 
 // MiMoClient uses OpenAI-compatible MiMo endpoints first, with optional Anthropic-compat fallback.
 type MiMoClient struct {
-	openAI     *OpenAIClient
-	anthropic  *AnthropicClient
+	router     ProtocolRouter
 	providerID string
 	logger     *slog.Logger
 }
@@ -29,7 +28,11 @@ func NewMiMoClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompa
 	if anthropicBase != "" {
 		a = NewAnthropicClient(apiKey, anthropicBase, mimoOpts...)
 	}
-	return &MiMoClient{openAI: o, anthropic: a, providerID: providerID, logger: slog.Default()}
+	return &MiMoClient{
+		router:     ProtocolRouter{OpenAI: o, Anthropic: a},
+		providerID: providerID,
+		logger:     slog.Default(),
+	}
 }
 
 // WithProviderName sets the OpenAI client provider name for errors/logging.
@@ -48,37 +51,42 @@ func WithMimoAuth() ClientOption {
 }
 
 func (c *MiMoClient) Name() string {
-	if c.openAI != nil {
-		return c.openAI.Name()
+	if c.router.OpenAI != nil {
+		return c.router.OpenAI.Name()
 	}
 	return c.providerID
 }
 
 func (c *MiMoClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
-	resp, err := c.openAI.Chat(ctx, messages, opts)
-	if err == nil || c.anthropic == nil || !mimoFallbackChatError(err) {
-		return resp, err
-	}
-	c.logger.Info("MiMo: OpenAI endpoint failed; retrying via Anthropic compatibility", "provider", c.providerID, "error", err)
-	return c.anthropic.Chat(ctx, messages, opts)
+	return c.router.Chat(ctx, messages, opts, ChatProtocolCompletions, func(err error, _ *EyrieResponse) bool {
+		if err != nil && c.router.Anthropic != nil && mimoFallbackChatError(err) {
+			c.logger.Info("MiMo: OpenAI endpoint failed; retrying via Anthropic compatibility", "provider", c.providerID, "error", err)
+			return true
+		}
+		return false
+	})
 }
 
 func (c *MiMoClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
-	result, err := c.openAI.StreamChat(ctx, messages, opts)
-	if err == nil || c.anthropic == nil || !mimoFallbackChatError(err) {
-		return result, err
-	}
-	c.logger.Info("MiMo: OpenAI stream failed; retrying via Anthropic compatibility", "provider", c.providerID, "error", err)
-	return c.anthropic.StreamChat(ctx, messages, opts)
+	return c.router.StreamChat(ctx, messages, opts, ProtocolStreamConfig{
+		Primary: ChatProtocolCompletions,
+		FallbackOnError: func(err error) bool {
+			if c.router.Anthropic != nil && mimoFallbackChatError(err) {
+				c.logger.Info("MiMo: OpenAI stream failed; retrying via Anthropic compatibility", "provider", c.providerID, "error", err)
+				return true
+			}
+			return false
+		},
+	})
 }
 
 func (c *MiMoClient) Ping(ctx context.Context) error {
-	if err := c.openAI.Ping(ctx); err == nil {
+	if err := c.router.OpenAI.Ping(ctx); err == nil {
 		return nil
-	} else if c.anthropic == nil || !mimoRetryableChatError(err) {
+	} else if c.router.Anthropic == nil || !mimoRetryableChatError(err) {
 		return err
 	}
-	return c.anthropic.Ping(ctx)
+	return c.router.Anthropic.Ping(ctx)
 }
 
 func mimoFallbackChatError(err error) bool {
