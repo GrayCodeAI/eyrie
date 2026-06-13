@@ -1,11 +1,11 @@
 // Package opencodego holds shared constants and helpers for the OpenCode Go gateway
-// (https://opencode.ai/docs/go/). Eyrie uses the OpenAI-compatible surface only:
-// GET /v1/models and POST /v1/chat/completions on a single base URL.
+// (https://opencode.ai/docs/go/). Models are discovered via GET /v1/models; chat
+// routing picks /v1/chat/completions or /v1/messages per model family.
 package opencodego
 
 import "strings"
 
-// DefaultBaseURL is the OpenCode Go API root (OpenAI-compatible list + chat paths).
+// DefaultBaseURL is the OpenCode Go API root.
 const DefaultBaseURL = "https://opencode.ai/zen/go/v1"
 
 // NativeModelID strips OpenCode config prefixes (opencode-go/kimi-k2.6 → kimi-k2.6).
@@ -23,19 +23,16 @@ func NativeModelID(id string) string {
 	return id
 }
 
-// ChatCompletionsSupported reports whether a model is served on /v1/chat/completions.
-// MiniMax and Qwen3.x models on OpenCode Go require /v1/messages instead; eyrie
-// follows the OpenAI-compatible path only and excludes them from live discovery.
-func ChatCompletionsSupported(modelID string) bool {
+// UsesMessagesAPI reports whether a model should use Anthropic /v1/messages on
+// OpenCode Go (see opencode.ai/docs/go endpoints table). Kimi, GLM, DeepSeek,
+// and MiMo use /v1/chat/completions; MiniMax and Qwen3.x use /v1/messages.
+func UsesMessagesAPI(modelID string) bool {
 	id := strings.ToLower(NativeModelID(modelID))
 	if id == "" {
 		return false
 	}
 	if strings.Contains(id, "minimax") {
-		return false
+		return true
 	}
-	if strings.HasPrefix(id, "qwen3.") {
-		return false
-	}
-	return true
+	return strings.HasPrefix(id, "qwen3.")
 }

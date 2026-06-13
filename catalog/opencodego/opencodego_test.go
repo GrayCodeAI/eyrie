@@ -18,25 +18,26 @@ func TestNativeModelID(t *testing.T) {
 	}
 }
 
-func TestChatCompletionsSupported(t *testing.T) {
+func TestUsesMessagesAPI(t *testing.T) {
 	tests := []struct {
 		model string
 		want  bool
 	}{
-		{"kimi-k2.6", true},
-		{"glm-5.1", true},
-		{"deepseek-v4-flash", true},
-		{"mimo-v2.5", true},
-		{"minimax-m2.7", false},
-		{"minimax-m3", false},
-		{"qwen3.7-max", false},
-		{"qwen3.6-plus", false},
-		{"opencode-go/kimi-k2.6", true},
-		{"opencodego/qwen3.7-plus", false},
+		{"kimi-k2.6", false},
+		{"glm-5.1", false},
+		{"deepseek-v4-flash", false},
+		{"mimo-v2.5", false},
+		{"minimax-m2.7", true},
+		{"minimax-m3", true},
+		{"qwen3.7-max", true},
+		{"qwen3.6-plus", true},
+		{"qwen3.5-plus", true},
+		{"opencode-go/kimi-k2.6", false},
+		{"opencodego/minimax-m2.5", true},
 	}
 	for _, tc := range tests {
-		if got := ChatCompletionsSupported(tc.model); got != tc.want {
-			t.Errorf("ChatCompletionsSupported(%q) = %v, want %v", tc.model, got, tc.want)
+		if got := UsesMessagesAPI(tc.model); got != tc.want {
+			t.Errorf("UsesMessagesAPI(%q) = %v, want %v", tc.model, got, tc.want)
 		}
 	}
 }

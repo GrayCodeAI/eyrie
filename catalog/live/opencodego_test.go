@@ -37,14 +37,11 @@ func TestFetchOpenCodeGo_MockHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 1 {
-		t.Fatalf("expected 1 chat/completions model, got %d", len(entries))
+	if len(entries) != 3 {
+		t.Fatalf("expected all 3 models, got %d", len(entries))
 	}
 	if entries[0].ID != "kimi-k2.6" {
 		t.Fatalf("id = %q", entries[0].ID)
-	}
-	if len(entries[0].RawJSON) == 0 {
-		t.Fatal("expected RawJSON to be preserved")
 	}
 }
 

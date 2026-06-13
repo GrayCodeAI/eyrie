@@ -1,6 +1,9 @@
 package client
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // ResponseHealth classifies the outcome of a model response so eyrie can turn a
 // confusing "the agent did nothing" symptom into a precise, named diagnostic.
@@ -85,6 +88,11 @@ func (h ResponseHealth) Err() error {
 // non-streaming response shape does not carry a reasoning field today, the
 // caller passes whether reasoning was observed (e.g. from a thinking field on
 // the raw provider payload); when unknown, pass false.
+// ResponseHasContent reports whether a non-streaming response carries usable text.
+func ResponseHasContent(resp *EyrieResponse) bool {
+	return resp != nil && strings.TrimSpace(resp.Content) != ""
+}
+
 func healthFromResponse(resp *EyrieResponse, sawReasoning bool) ResponseHealth {
 	if resp == nil {
 		return ResponseEmpty

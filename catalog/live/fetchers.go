@@ -495,18 +495,13 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 		envOr(env, "OPENCODEGO_BASE_URL", DefaultOpenCodeGoBaseURL),
 		env["OPENCODEGO_API_KEY"], "Bearer",
 	)
-	if err != nil || len(entries) == 0 {
-		return entries, err
+	if err != nil {
+		return nil, err
 	}
-	filtered := make([]Entry, 0, len(entries))
-	for _, entry := range entries {
-		if !opencodego.ChatCompletionsSupported(entry.ID) {
-			continue
-		}
-		entry.ID = opencodego.NativeModelID(entry.ID)
-		filtered = append(filtered, entry)
+	for i := range entries {
+		entries[i].ID = opencodego.NativeModelID(entries[i].ID)
 	}
-	return filtered, nil
+	return entries, nil
 }
 
 func FetchKimi(env map[string]string) ([]Entry, error) {

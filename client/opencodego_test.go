@@ -7,37 +7,183 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 )
 
-func TestNewOpenCodeGoClient_NameAndModelNormalize(t *testing.T) {
-	var gotModel string
-	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
-		body, _ := io.ReadAll(r.Body)
-		_ = r.Body.Close()
-		var payload struct {
-			Model string `json:"model"`
+func TestOpenCodeGoUsesMessagesAPI(t *testing.T) {
+	tests := []struct {
+		model string
+		want  bool
+	}{
+		{"minimax-m2.5", true},
+		{"opencodego/minimax-m2.5", true},
+		{"qwen3.7-max", true},
+		{"kimi-k2.5", false},
+		{"glm-5", false},
+		{"mimo-v2.5-pro", false},
+	}
+	for _, tc := range tests {
+		if got := opencodego.UsesMessagesAPI(tc.model); got != tc.want {
+			t.Errorf("UsesMessagesAPI(%q) = %v, want %v", tc.model, got, tc.want)
 		}
-		_ = json.Unmarshal(body, &payload)
-		gotModel = payload.Model
+	}
+}
+
+func TestOpenCodeGoAnthropicBase(t *testing.T) {
+	if got := AnthropicBaseFromOpenAIV1("https://opencode.ai/zen/go/v1"); got != "https://opencode.ai/zen/go" {
+		t.Fatalf("base = %q, want https://opencode.ai/zen/go", got)
+	}
+}
+
+func TestOpenCodeGoClient_RoutesMiniMaxToAnthropic(t *testing.T) {
+	var gotPath, gotAuth string
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		gotPath = r.URL.Path
+		gotAuth = r.Header.Get("X-Api-Key")
 		return jsonResponse(http.StatusOK, map[string]interface{}{
-			"id": "chatcmpl-1", "object": "chat.completion",
-			"choices": []map[string]interface{}{
-				{"message": map[string]string{"role": "assistant", "content": "Hi"}, "finish_reason": "stop"},
-			},
-			"usage": map[string]int{"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+			"id": "msg_1", "type": "message", "role": "assistant",
+			"content":     []map[string]string{{"type": "text", "text": "Hello!"}},
+			"stop_reason": "end_turn",
+			"usage":       map[string]int{"input_tokens": 1, "output_tokens": 2},
 		}), nil
 	})
 
-	c := NewOpenCodeGoClient("test-key", "https://opencode.example/zen/go/v1")
-	c.inner.httpClient = &http.Client{Transport: transport}
-
-	if c.Name() != "opencodego" {
-		t.Fatalf("name = %q, want opencodego", c.Name())
+	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
+	c.pair.Anthropic.httpClient = &http.Client{Transport: transport}
+	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
+		Model: "minimax-m2.5", MaxTokens: 256,
+	})
+	if err != nil {
+		t.Fatalf("Chat: %v", err)
 	}
+	if resp.Content != "Hello!" {
+		t.Fatalf("content = %q, want Hello!", resp.Content)
+	}
+	if !strings.HasSuffix(gotPath, "/v1/messages") {
+		t.Fatalf("path = %q, want suffix /v1/messages", gotPath)
+	}
+	if gotAuth != "ocg-test-key" {
+		t.Fatalf("X-Api-Key = %q, want ocg-test-key", gotAuth)
+	}
+}
 
+func TestOpenCodeGoClient_RoutesKimiToOpenAI(t *testing.T) {
+	var gotPath string
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		gotPath = r.URL.Path
+		return jsonResponse(http.StatusOK, map[string]interface{}{
+			"id": "chatcmpl-1", "object": "chat.completion",
+			"choices": []map[string]interface{}{
+				{"message": map[string]string{"role": "assistant", "content": "Hi there!"}, "finish_reason": "stop"},
+			},
+			"usage": map[string]int{"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3},
+		}), nil
+	})
+
+	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
+	c.pair.OpenAI.httpClient = &http.Client{Transport: transport}
+	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
+		Model: "kimi-k2.5", MaxTokens: 256,
+	})
+	if err != nil {
+		t.Fatalf("Chat: %v", err)
+	}
+	if resp.Content != "Hi there!" {
+		t.Fatalf("content = %q, want Hi there!", resp.Content)
+	}
+	if !strings.HasSuffix(gotPath, "/chat/completions") {
+		t.Fatalf("path = %q, want suffix /chat/completions", gotPath)
+	}
+}
+
+func TestOpenCodeGoClient_Qwen401FallsBackToOpenAI(t *testing.T) {
+	var paths []string
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		paths = append(paths, r.URL.Path)
+		if strings.HasSuffix(r.URL.Path, "/messages") {
+			return jsonResponse(http.StatusUnauthorized, map[string]interface{}{
+				"error": map[string]string{"message": "Invalid API key"},
+			}), nil
+		}
+		return jsonResponse(http.StatusOK, map[string]interface{}{
+			"id": "chatcmpl-1", "object": "chat.completion",
+			"choices": []map[string]interface{}{
+				{"message": map[string]string{"role": "assistant", "content": "OK"}, "finish_reason": "stop"},
+			},
+		}), nil
+	})
+
+	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
+	c.pair.Anthropic.httpClient = &http.Client{Transport: transport}
+	c.pair.OpenAI.httpClient = &http.Client{Transport: transport}
+	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
+		Model: "qwen3.7-max", MaxTokens: 256,
+	})
+	if err != nil {
+		t.Fatalf("Chat: %v", err)
+	}
+	if resp.Content != "OK" {
+		t.Fatalf("content = %q, want OK; paths=%v", resp.Content, paths)
+	}
+}
+
+func TestOpenCodeGoClient_MessagesEmptyFallsBackToOpenAI(t *testing.T) {
+	var paths []string
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		paths = append(paths, r.URL.Path)
+		if strings.HasSuffix(r.URL.Path, "/messages") {
+			return jsonResponse(http.StatusOK, map[string]interface{}{
+				"id": "msg_1", "type": "message", "role": "assistant",
+				"content":     []map[string]string{{"type": "thinking", "thinking": "hmm"}},
+				"stop_reason": "end_turn",
+			}), nil
+		}
+		return jsonResponse(http.StatusOK, map[string]interface{}{
+			"id": "chatcmpl-1", "object": "chat.completion",
+			"choices": []map[string]interface{}{
+				{"message": map[string]string{"role": "assistant", "content": "Hello!"}, "finish_reason": "stop"},
+			},
+		}), nil
+	})
+
+	c := NewOpenCodeGoClient("ocg-test-key", "https://opencode.example/zen/go/v1")
+	c.pair.Anthropic.httpClient = &http.Client{Transport: transport}
+	c.pair.OpenAI.httpClient = &http.Client{Transport: transport}
+	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
+		Model: "minimax-m3", MaxTokens: 256,
+	})
+	if err != nil {
+		t.Fatalf("Chat: %v", err)
+	}
+	if resp.Content != "Hello!" {
+		t.Fatalf("content = %q, want Hello!; paths=%v", resp.Content, paths)
+	}
+	if len(paths) < 2 {
+		t.Fatalf("expected anthropic then openai, got %v", paths)
+	}
+}
+
+func TestOpenCodeGoClient_NormalizesModelID(t *testing.T) {
+	var gotModel string
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if strings.HasSuffix(r.URL.Path, "/chat/completions") {
+			var body struct {
+				Model string `json:"model"`
+			}
+			_ = jsonDecodeRequest(r, &body)
+			gotModel = body.Model
+		}
+		return jsonResponse(http.StatusOK, map[string]interface{}{
+			"choices": []map[string]interface{}{
+				{"message": map[string]string{"role": "assistant", "content": "Hi"}, "finish_reason": "stop"},
+			},
+		}), nil
+	})
+	c := NewOpenCodeGoClient("key", "https://opencode.example/zen/go/v1")
+	c.pair.OpenAI.httpClient = &http.Client{Transport: transport}
 	_, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{
-		Model:     "opencode-go/kimi-k2.6",
-		MaxTokens: 16,
+		Model: "opencode-go/kimi-k2.6", MaxTokens: 16,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -47,21 +193,13 @@ func TestNewOpenCodeGoClient_NameAndModelNormalize(t *testing.T) {
 	}
 }
 
-func TestOpenCodeGoClient_PingUsesModelsEndpoint(t *testing.T) {
-	var path string
-	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
-		path = r.URL.Path
-		return jsonResponse(http.StatusOK, map[string]interface{}{
-			"object": "list",
-			"data":   []map[string]string{{"id": "glm-5"}},
-		}), nil
-	})
-	c := NewOpenCodeGoClient("test-key", "https://opencode.example/zen/go/v1")
-	c.inner.httpClient = &http.Client{Transport: transport}
-	if err := c.Ping(context.Background()); err != nil {
-		t.Fatal(err)
+func jsonDecodeRequest(r *http.Request, v interface{}) error {
+	if r.Body == nil {
+		return nil
 	}
-	if !strings.HasSuffix(path, "/models") {
-		t.Fatalf("ping path = %q, want suffix /models", path)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
 	}
+	return json.Unmarshal(body, v)
 }
