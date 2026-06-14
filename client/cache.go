@@ -70,7 +70,9 @@ type anthropicCachedMessage struct {
 //   - System prompt gets cache_control (cached for all turns)
 //   - Second-to-last message gets cache_control (caches conversation prefix)
 //   - Last tool definition gets cache_control (caches tool schema)
-func buildAnthropicCachedRequest(messages []EyrieMessage, model string, maxTokens int, temperature *float64, stream bool, tools []anthropicTool) map[string]interface{} {
+func buildAnthropicCachedRequest(messages []EyrieMessage, model string, maxTokens int, temperature *float64, stream bool, tools []anthropicTool,
+	thinking *anthropicThinking, toolChoice *anthropicToolChoice, topP *float64, topK *int, stopSequences []string,
+) map[string]interface{} {
 	msgs, system := buildAnthropicMessages(messages)
 
 	// Apply cache breakpoint to second-to-last non-system message
@@ -109,6 +111,21 @@ func buildAnthropicCachedRequest(messages []EyrieMessage, model string, maxToken
 	}
 	if temperature != nil {
 		req["temperature"] = *temperature
+	}
+	if thinking != nil {
+		req["thinking"] = thinking
+	}
+	if toolChoice != nil {
+		req["tool_choice"] = toolChoice
+	}
+	if topP != nil {
+		req["top_p"] = *topP
+	}
+	if topK != nil {
+		req["top_k"] = *topK
+	}
+	if len(stopSequences) > 0 {
+		req["stop_sequences"] = stopSequences
 	}
 	return req
 }

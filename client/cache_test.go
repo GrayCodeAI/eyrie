@@ -12,7 +12,7 @@ func TestBuildAnthropicCachedRequest_BasicMessages(t *testing.T) {
 		{Role: "assistant", Content: "Hi there!"},
 		{Role: "user", Content: "How are you?"},
 	}
-	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, false, nil)
+	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, false, nil, nil, nil, nil, nil, nil)
 
 	// System should be array with cache_control
 	system, ok := req["system"].([]map[string]interface{})
@@ -51,7 +51,7 @@ func TestBuildAnthropicCachedRequest_ToolUsePropagated(t *testing.T) {
 		{Role: "user", Content: "", ToolResults: []ToolResult{{ToolUseID: "tc1", Content: "package main"}}},
 		{Role: "user", Content: "now edit it"},
 	}
-	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, false, nil)
+	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, false, nil, nil, nil, nil, nil, nil)
 
 	msgs := req["messages"].([]map[string]interface{})
 	if len(msgs) != 4 {
@@ -95,7 +95,7 @@ func TestBuildAnthropicCachedRequest_ToolsAnnotated(t *testing.T) {
 		{Name: "write", Description: "Write a file", InputSchema: map[string]interface{}{"type": "object"}},
 		{Name: "bash", Description: "Run command", InputSchema: map[string]interface{}{"type": "object"}},
 	}
-	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, false, tools)
+	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, false, tools, nil, nil, nil, nil, nil)
 
 	toolMaps, ok := req["tools"].([]map[string]interface{})
 	if !ok || len(toolMaps) != 3 {
@@ -158,7 +158,7 @@ func TestBuildAnthropicCachedRequest_NoSystem(t *testing.T) {
 		{Role: "assistant", Content: "Hi"},
 		{Role: "user", Content: "Bye"},
 	}
-	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, false, nil)
+	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, false, nil, nil, nil, nil, nil, nil)
 
 	if _, ok := req["system"]; ok {
 		t.Fatal("should not have system key when no system message")
@@ -169,7 +169,7 @@ func TestBuildAnthropicCachedRequest_StreamFlag(t *testing.T) {
 	messages := []EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}
-	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, true, nil)
+	req := buildAnthropicCachedRequest(messages, "claude-sonnet-4-20250514", 4096, nil, true, nil, nil, nil, nil, nil, nil)
 	if req["stream"] != true {
 		t.Fatal("expected stream=true")
 	}
