@@ -11,6 +11,9 @@ bin/
 
 # Build / cache / seed artifacts
 .gocache/
+.gocache-*/
+.gomodcache/
+.gomodcache-*/
 *.seeds.json
 elrond*.db
 *.codegraph.db
@@ -22,5 +25,10 @@ dist/
 .claude/
 .codegraph/
 .commandcode/
+.grok/
+.hermes/
+.openclaude/
+.qoder/
+.yaad/
 .DS_Store
 coverage.out
