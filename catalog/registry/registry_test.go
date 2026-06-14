@@ -362,8 +362,8 @@ func TestDisplayName_Registered(t *testing.T) {
 	}{
 		{"anthropic", "Anthropic"},
 		{"openai", "OpenAI"},
-		{"gemini", "Google Gemini"},
-		{"ollama", "Ollama (local)"},
+		{"gemini", "Gemini API"},
+		{"ollama", "Ollama"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
