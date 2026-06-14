@@ -125,21 +125,21 @@ func providerSpecs() []ProviderSpec {
 			APIProtocolID: "openai-chat-completions", AdapterID: "kimi",
 		},
 		{
-			ProviderID: "xiaomi_mimo_payg", DisplayName: "Xiaomi (MiMo) — Pay-as-you-go", DeploymentID: "xiaomi_mimo_payg-direct", SortOrder: 13,
-			RequiresKey: true, CredentialEnv: "XIAOMI_MIMO_PAYG_API_KEY",
-			BaseURLEnv: []string{"XIAOMI_MIMO_PAYG_BASE_URL", "XIAOMI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
-			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.xiaomimimo.com/v1",
-
-			LiveFetcherKey: "xiaomi_mimo_payg", LiveCatalogKey: "xiaomi_mimo_payg",
-			APIProtocolID: "openai-chat-completions", AdapterID: "xiaomi_mimo",
-		},
-		{
-			ProviderID: "xiaomi_mimo_token_plan", DisplayName: "Xiaomi (MiMo) — Token Plan", DeploymentID: "xiaomi_mimo_token_plan-direct", SortOrder: 14,
+			ProviderID: "xiaomi_mimo_token_plan", DisplayName: "Xiaomi (MiMo) — Token Plan", DeploymentID: "xiaomi_mimo_token_plan-direct", SortOrder: 13,
 			RequiresKey: true, CredentialEnv: "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
 			BaseURLEnv: []string{"XIAOMI_MIMO_TOKEN_PLAN_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "",
 
 			LiveFetcherKey: "xiaomi_mimo_token_plan", LiveCatalogKey: "xiaomi_mimo_token_plan",
+			APIProtocolID: "openai-chat-completions", AdapterID: "xiaomi_mimo",
+		},
+		{
+			ProviderID: "xiaomi_mimo_payg", DisplayName: "Xiaomi (MiMo) — Pay-as-you-go", DeploymentID: "xiaomi_mimo_payg-direct", SortOrder: 14,
+			RequiresKey: true, CredentialEnv: "XIAOMI_MIMO_PAYG_API_KEY",
+			BaseURLEnv: []string{"XIAOMI_MIMO_PAYG_BASE_URL", "XIAOMI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.xiaomimimo.com/v1",
+
+			LiveFetcherKey: "xiaomi_mimo_payg", LiveCatalogKey: "xiaomi_mimo_payg",
 			APIProtocolID: "openai-chat-completions", AdapterID: "xiaomi_mimo",
 		},
 		{

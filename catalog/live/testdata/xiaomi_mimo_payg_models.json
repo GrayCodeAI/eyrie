@@ -1,0 +1,55 @@
+{
+    "object": "list",
+    "data": [
+        {
+            "id": "mimo-v2-flash",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
+            "id": "mimo-v2-omni",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
+            "id": "mimo-v2-pro",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
+            "id": "mimo-v2-tts",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
+            "id": "mimo-v2.5",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
+            "id": "mimo-v2.5-asr",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
+            "id": "mimo-v2.5-pro",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
+            "id": "mimo-v2.5-tts",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
+            "id": "mimo-v2.5-tts-voiceclone",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
+            "id": "mimo-v2.5-tts-voicedesign",
+            "object": "model",
+            "owned_by": "xiaomi"
+        }
+    ]
+}

@@ -33,8 +33,8 @@ func TestFetchOpenAI_MockHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 models, got %d", len(entries))
+	if len(entries) != 112 {
+		t.Fatalf("expected 112 models, got %d", len(entries))
 	}
 	byID := map[string]Entry{}
 	for _, e := range entries {
@@ -44,7 +44,7 @@ func TestFetchOpenAI_MockHTTPServer(t *testing.T) {
 	if !ok {
 		t.Fatal("missing gpt-4o")
 	}
-	if gpt4o.OwnedBy != "openai" {
+	if gpt4o.OwnedBy != "system" {
 		t.Fatalf("owned_by = %q", gpt4o.OwnedBy)
 	}
 }

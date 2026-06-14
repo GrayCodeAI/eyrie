@@ -39,8 +39,8 @@ func TestRefreshProvider_MergesLiveModelsIntoCache(t *testing.T) {
 		t.Fatal("expected compiled catalog")
 	}
 	entries := catalog.ModelEntriesForProvider(result.Compiled, "canopywave")
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 canopywave models, got %d", len(entries))
+	if len(entries) != 5 {
+		t.Fatalf("expected 5 canopywave models, got %d", len(entries))
 	}
 	if len(entries[0].LiveMetadata) == 0 {
 		t.Fatal("expected live metadata on cached offering")

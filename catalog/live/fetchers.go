@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -80,9 +81,16 @@ type listModelJSON struct {
 	Tags                 []string `json:"tags"`
 	OwnedBy              string   `json:"owned_by"`
 	Status               *int     `json:"status"`
-	Pricing              *struct {
-		Prompt     interface{} `json:"prompt"`
-		Completion interface{} `json:"completion"`
+	// APIType captures protocol hints from the provider (e.g., "anthropic", "openai").
+	// Not all providers return this; empty means unknown.
+	APIType string `json:"api_type,omitempty"`
+	Pricing *struct {
+		Prompt       interface{} `json:"prompt"`
+		Completion   interface{} `json:"completion"`
+		CachedRead   interface{} `json:"cached_read,omitempty"`
+		CachedWrite  interface{} `json:"cached_write,omitempty"`
+		Request      interface{} `json:"request,omitempty"`
+		Image        interface{} `json:"image,omitempty"`
 	} `json:"pricing"`
 }
 
@@ -188,6 +196,7 @@ func entryFromOpenAICompatJSON(raw json.RawMessage) (Entry, bool) {
 		return Entry{}, false
 	}
 	inPrice, outPrice := pricingFromListModel(m)
+	cachedRead, cachedWrite := cachedPricingFromListModel(m)
 	label := strings.TrimSpace(m.DisplayName)
 	if label == "" {
 		label = strings.TrimSpace(m.Title)
@@ -203,14 +212,39 @@ func entryFromOpenAICompatJSON(raw json.RawMessage) (Entry, bool) {
 	if owner == "" {
 		owner = ownerFromModelID(id)
 	}
+	// Derive protocol from api_type field or features/tags hints.
+	protocol := protocolFromMetadata(m.APIType, features, m.Tags)
 	return Entry{
 		ID: id, DisplayName: label, Description: strings.TrimSpace(m.Description), OwnedBy: owner,
 		InputPricePer1M: inPrice, OutputPricePer1M: outPrice,
-		ContextWindow: intOrFirst(0, m.ContextLength, m.ContextSize),
-		MaxOutput:     intOrFirst(0, m.MaxCompletionTokens, m.MaxOutputTokens),
-		Features:      features,
-		RawJSON:       append(json.RawMessage(nil), raw...),
+		CachedReadPricePer1M:  cachedRead,
+		CachedWritePricePer1M: cachedWrite,
+		ContextWindow:         intOrFirst(0, m.ContextLength, m.ContextSize),
+		MaxOutput:             intOrFirst(0, m.MaxCompletionTokens, m.MaxOutputTokens),
+		Features:              features,
+		Protocol:              protocol,
+		RawJSON:               append(json.RawMessage(nil), raw...),
 	}, true
+}
+
+// protocolFromMetadata derives the API protocol from available metadata.
+// Returns "anthropic", "openai", or "" if unknown.
+func protocolFromMetadata(apiType string, features, tags []string) string {
+	apiType = strings.ToLower(strings.TrimSpace(apiType))
+	if apiType == "anthropic" || apiType == "openai" {
+		return apiType
+	}
+	// Check features and tags for protocol hints.
+	for _, f := range append(features, tags...) {
+		f = strings.ToLower(strings.TrimSpace(f))
+		if f == "anthropic" || f == "anthropic-compat" || f == "anthropic-messages" {
+			return "anthropic"
+		}
+		if f == "openai" || f == "openai-compat" || f == "openai-chat-completions" {
+			return "openai"
+		}
+	}
+	return ""
 }
 
 func pricingFromListModel(m listModelJSON) (inPrice, outPrice float64) {
@@ -230,6 +264,17 @@ func pricingFromListModel(m listModelJSON) (inPrice, outPrice float64) {
 	return inPrice, outPrice
 }
 
+// cachedPricingFromListModel extracts cached read/write pricing from the model JSON.
+// Returns (cachedRead, cachedWrite) per 1M tokens.
+func cachedPricingFromListModel(m listModelJSON) (cachedRead, cachedWrite float64) {
+	if m.Pricing == nil {
+		return 0, 0
+	}
+	cachedRead = asFloat(m.Pricing.CachedRead) * 1_000_000
+	cachedWrite = asFloat(m.Pricing.CachedWrite) * 1_000_000
+	return cachedRead, cachedWrite
+}
+
 func envOr(env map[string]string, key, def string) string {
 	if v := strings.TrimSpace(env[key]); v != "" {
 		return v
@@ -247,11 +292,123 @@ func firstEnv(env map[string]string, keys ...string) string {
 }
 
 func FetchOpenAI(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "OPENAI_BASE_URL", DefaultOpenAIBaseURL),
 		env["OPENAI_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	// Enrich with capabilities from OpenRouter (context window, pricing, supported parameters)
+	enrichOpenAIWithOpenRouter(entries)
+	return entries, nil
+}
+
+// enrichOpenAIWithOpenRouter fetches OpenRouter's model list and enriches OpenAI entries
+// with context window, pricing, and capability data that OpenAI's own API doesn't return.
+func enrichOpenAIWithOpenRouter(entries []Entry) {
+	if len(entries) == 0 {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, DefaultOpenRouterBaseURL+"/models", nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
+	var payload struct {
+		Data []openRouterModelEntry `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return
+	}
+	// Build lookup map: "gpt-4o" → openRouterModelEntry
+	lookup := map[string]openRouterModelEntry{}
+	for _, m := range payload.Data {
+		// OpenRouter IDs are "openai/gpt-4o" — strip prefix
+		nativeID := strings.TrimPrefix(m.ID, "openai/")
+		if nativeID != m.ID {
+			lookup[nativeID] = m
+		}
+	}
+	// Enrich entries
+	for i := range entries {
+		or, ok := lookup[entries[i].ID]
+		if !ok {
+			continue
+		}
+		if or.ContextLength > 0 {
+			entries[i].ContextWindow = or.ContextLength
+			entries[i].MaxInputTokens = or.ContextLength
+		}
+		if or.TopProvider.MaxCompletionTokens > 0 {
+			entries[i].MaxOutput = or.TopProvider.MaxCompletionTokens
+		}
+		if p, err := strconv.ParseFloat(or.Pricing.Prompt, 64); err == nil && p > 0 {
+			entries[i].InputPricePer1M = p * 1_000_000
+		}
+		if p, err := strconv.ParseFloat(or.Pricing.Completion, 64); err == nil && p > 0 {
+			entries[i].OutputPricePer1M = p * 1_000_000
+		}
+		// Map supported parameters to features
+		features := map[string]bool{}
+		for _, sp := range or.SupportedParameters {
+			features[sp] = true
+		}
+		if features["tools"] || features["functions"] {
+			entries[i].Features = append(entries[i].Features, "tools")
+		}
+		if features["reasoning_effort"] {
+			entries[i].Features = append(entries[i].Features, "thinking:enabled")
+			entries[i].ThinkingEnabled = true
+		}
+		if features["response_format"] {
+			entries[i].Features = append(entries[i].Features, "structured_output")
+			entries[i].StructuredOutput = true
+		}
+		if features["temperature"] {
+			entries[i].Features = appendUnique(entries[i].Features, "temperature")
+		}
+		if features["presence_penalty"] || features["frequency_penalty"] {
+			entries[i].Features = appendUnique(entries[i].Features, "penalties")
+		}
+		if or.ContextLength > 0 {
+			entries[i].Features = appendUnique(entries[i].Features, fmt.Sprintf("context:%d", or.ContextLength))
+		}
+	}
+}
+
+type openRouterModelEntry struct {
+	ID                string `json:"id"`
+	ContextLength     int    `json:"context_length"`
+	SupportedParameters []string `json:"supported_parameters"`
+	TopProvider       struct {
+		MaxCompletionTokens int `json:"max_completion_tokens"`
+	} `json:"top_provider"`
+	Pricing struct {
+		Prompt     string `json:"prompt"`
+		Completion string `json:"completion"`
+	} `json:"pricing"`
+}
+
+func appendUnique(slice []string, s string) []string {
+	for _, v := range slice {
+		if v == s {
+			return slice
+		}
+	}
+	return append(slice, s)
 }
 
 func FetchAzure(env map[string]string) ([]Entry, error) {
@@ -403,7 +560,8 @@ func FetchVertex(env map[string]string) ([]Entry, error) {
 	if projectID == "" || region == "" || token == "" {
 		return nil, nil
 	}
-	reqURL := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models",
+	// Fetch Anthropic models from Vertex AI (not Google's own models)
+	reqURL := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/anthropic/models",
 		region, url.PathEscape(projectID), url.PathEscape(region))
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil)
 	if err != nil {
@@ -443,10 +601,12 @@ func FetchVertex(env map[string]string) ([]Entry, error) {
 
 func entryFromVertexModelJSON(raw json.RawMessage) (Entry, bool) {
 	var m struct {
-		Name        string   `json:"name"`
-		DisplayName string   `json:"displayName"`
-		VersionID   string   `json:"versionId"`
-		Frameworks  []string `json:"frameworks"`
+		Name             string   `json:"name"`
+		DisplayName      string   `json:"displayName"`
+		Description      string   `json:"description"`
+		VersionID        string   `json:"versionId"`
+		Frameworks       []string `json:"frameworks"`
+		SupportedActions []string `json:"supportedActions"`
 	}
 	if err := json.Unmarshal(raw, &m); err != nil {
 		return Entry{}, false
@@ -462,7 +622,19 @@ func entryFromVertexModelJSON(raw json.RawMessage) (Entry, bool) {
 	if label == "" {
 		label = id
 	}
-	return Entry{ID: id, DisplayName: label, OwnedBy: "google", Features: append([]string(nil), m.Frameworks...), RawJSON: append(json.RawMessage(nil), raw...)}, true
+	features := append([]string(nil), m.Frameworks...)
+	// Tag supported actions as features
+	for _, action := range m.SupportedActions {
+		features = appendUnique(features, "action:"+action)
+	}
+	return Entry{
+		ID:          id,
+		DisplayName: label,
+		Description: strings.TrimSpace(m.Description),
+		OwnedBy:     "anthropic",
+		Features:    features,
+		RawJSON:     append(json.RawMessage(nil), raw...),
+	}, true
 }
 
 func FetchGrok(env map[string]string) ([]Entry, error) {
@@ -482,11 +654,25 @@ func FetchZAI(env map[string]string) ([]Entry, error) {
 }
 
 func FetchCanopyWave(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "CANOPYWAVE_BASE_URL", DefaultCanopyWaveBaseURL),
 		env["CANOPYWAVE_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	// CanopyWave returns pricing in cents per 1M tokens, not dollars.
+	// Convert to dollars: 140 cents = $1.40.
+	for i := range entries {
+		if entries[i].InputPricePer1M > 0 {
+			entries[i].InputPricePer1M = entries[i].InputPricePer1M / 100
+		}
+		if entries[i].OutputPricePer1M > 0 {
+			entries[i].OutputPricePer1M = entries[i].OutputPricePer1M / 100
+		}
+	}
+	return entries, nil
 }
 
 func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
@@ -500,8 +686,49 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 	}
 	for i := range entries {
 		entries[i].ID = opencodego.NativeModelID(entries[i].ID)
+		// Merge with static metadata from docs (pricing, protocol, context windows).
+		if meta, ok := opencodego.MetadataForModel(entries[i].ID); ok {
+			entries[i] = enrichFromStaticMeta(entries[i], meta)
+		} else {
+			// Unknown model — derive protocol from name pattern.
+			if entries[i].Protocol == "" {
+				entries[i].Protocol = opencodego.ProtocolForModel(entries[i].ID)
+			}
+		}
 	}
 	return entries, nil
+}
+
+// enrichFromStaticMeta fills Entry fields from the static docs-based metadata.
+// API-provided fields (like id, owned_by) are preserved; static metadata fills gaps.
+func enrichFromStaticMeta(e Entry, meta opencodego.ModelMetadata) Entry {
+	e.Protocol = meta.Protocol
+	if e.InputPricePer1M == 0 {
+		e.InputPricePer1M = meta.InputPer1M
+	}
+	if e.OutputPricePer1M == 0 {
+		e.OutputPricePer1M = meta.OutputPer1M
+	}
+	if e.CachedReadPricePer1M == 0 {
+		e.CachedReadPricePer1M = meta.CachedRead
+	}
+	if e.CachedWritePricePer1M == 0 {
+		e.CachedWritePricePer1M = meta.CachedWrite
+	}
+	if e.ContextWindow == 0 {
+		e.ContextWindow = meta.Context
+	}
+	if e.MaxOutput == 0 {
+		e.MaxOutput = meta.MaxOutput
+	}
+	if meta.TierThreshold > 0 {
+		e.TierThreshold = meta.TierThreshold
+		e.TieredInputPricePer1M = meta.TieredInputPer1M
+		e.TieredOutputPricePer1M = meta.TieredOutputPer1M
+		e.TieredCachedReadPer1M = meta.TieredCachedRead
+		e.TieredCachedWritePer1M = meta.TieredCachedWrite
+	}
+	return e
 }
 
 func FetchKimi(env map[string]string) ([]Entry, error) {
@@ -641,6 +868,63 @@ func FetchOpenRouter(env map[string]string) ([]Entry, error) {
 	return entries, nil
 }
 
+// anthropicModelEntry represents one model from the Anthropic GET /v1/models response.
+type anthropicModelEntry struct {
+	ID             string `json:"id"`
+	DisplayName    string `json:"display_name"`
+	MaxInputTokens int    `json:"max_input_tokens"`
+	MaxTokens      int    `json:"max_tokens"`
+	Capabilities   struct {
+		Batch struct {
+			Supported bool `json:"supported"`
+		} `json:"batch"`
+		Citations struct {
+			Supported bool `json:"supported"`
+		} `json:"citations"`
+		CodeExecution struct {
+			Supported bool `json:"supported"`
+		} `json:"code_execution"`
+		Effort struct {
+			Supported bool `json:"supported"`
+			Low       struct {
+				Supported bool `json:"supported"`
+			} `json:"low"`
+			Medium struct {
+				Supported bool `json:"supported"`
+			} `json:"medium"`
+			High struct {
+				Supported bool `json:"supported"`
+			} `json:"high"`
+			XHigh struct {
+				Supported bool `json:"supported"`
+			} `json:"xhigh"`
+			Max struct {
+				Supported bool `json:"supported"`
+			} `json:"max"`
+		} `json:"effort"`
+		ImageInput struct {
+			Supported bool `json:"supported"`
+		} `json:"image_input"`
+		PDFInput struct {
+			Supported bool `json:"supported"`
+		} `json:"pdf_input"`
+		StructuredOutputs struct {
+			Supported bool `json:"supported"`
+		} `json:"structured_outputs"`
+		Thinking struct {
+			Supported bool `json:"supported"`
+			Types     struct {
+				Enabled struct {
+					Supported bool `json:"supported"`
+				} `json:"enabled"`
+				Adaptive struct {
+					Supported bool `json:"supported"`
+				} `json:"adaptive"`
+			} `json:"types"`
+		} `json:"thinking"`
+	} `json:"capabilities"`
+}
+
 func FetchAnthropic(env map[string]string) ([]Entry, error) {
 	apiKey := strings.TrimSpace(env["ANTHROPIC_API_KEY"])
 	if apiKey == "" {
@@ -672,10 +956,7 @@ func FetchAnthropic(env map[string]string) ([]Entry, error) {
 	}
 	var entries []Entry
 	for _, raw := range payload.Data {
-		var m struct {
-			ID          string `json:"id"`
-			DisplayName string `json:"display_name"`
-		}
+		var m anthropicModelEntry
 		if err := json.Unmarshal(raw, &m); err != nil {
 			continue
 		}
@@ -687,10 +968,79 @@ func FetchAnthropic(env map[string]string) ([]Entry, error) {
 		if label == "" {
 			label = id
 		}
-		entries = append(entries, Entry{
+		entry := Entry{
 			ID: id, DisplayName: label,
-			RawJSON: append(json.RawMessage(nil), raw...),
-		})
+			ContextWindow:  m.MaxInputTokens, // maps to ModelCatalogEntry.ContextWindow via LiveEntriesToCatalog
+			MaxInputTokens: m.MaxInputTokens,
+			MaxOutput:      m.MaxTokens,
+			RawJSON:        append(json.RawMessage(nil), raw...),
+		}
+		// Extract capabilities
+		entry.ThinkingEnabled = m.Capabilities.Thinking.Types.Enabled.Supported
+		entry.ThinkingAdaptive = m.Capabilities.Thinking.Types.Adaptive.Supported
+		if m.Capabilities.Effort.Supported {
+			entry.EffortSupported = true
+			var levels []string
+			for _, lvl := range []string{"low", "medium", "high", "xhigh", "max"} {
+				switch lvl {
+				case "low":
+					if m.Capabilities.Effort.Low.Supported {
+						levels = append(levels, lvl)
+					}
+				case "medium":
+					if m.Capabilities.Effort.Medium.Supported {
+						levels = append(levels, lvl)
+					}
+				case "high":
+					if m.Capabilities.Effort.High.Supported {
+						levels = append(levels, lvl)
+					}
+				case "xhigh":
+					if m.Capabilities.Effort.XHigh.Supported {
+						levels = append(levels, lvl)
+					}
+				case "max":
+					if m.Capabilities.Effort.Max.Supported {
+						levels = append(levels, lvl)
+					}
+				}
+			}
+			entry.EffortLevels = strings.Join(levels, ",")
+		}
+		entry.StructuredOutput = m.Capabilities.StructuredOutputs.Supported
+		entry.CodeExecution = m.Capabilities.CodeExecution.Supported
+		entry.CitationsSupported = m.Capabilities.Citations.Supported
+		entry.PDFInput = m.Capabilities.PDFInput.Supported
+		entry.ImageInput = m.Capabilities.ImageInput.Supported
+		// Populate Features list for downstream catalog pipeline
+		if entry.ThinkingEnabled {
+			entry.Features = append(entry.Features, "thinking:enabled")
+		}
+		if entry.ThinkingAdaptive {
+			entry.Features = append(entry.Features, "thinking:adaptive")
+		}
+		if entry.EffortSupported {
+			entry.Features = append(entry.Features, "effort")
+			if entry.EffortLevels != "" {
+				entry.Features = append(entry.Features, "effort:"+entry.EffortLevels)
+			}
+		}
+		if entry.StructuredOutput {
+			entry.Features = append(entry.Features, "structured_output")
+		}
+		if entry.CodeExecution {
+			entry.Features = append(entry.Features, "code_execution")
+		}
+		if entry.CitationsSupported {
+			entry.Features = append(entry.Features, "citations")
+		}
+		if entry.PDFInput {
+			entry.Features = append(entry.Features, "pdf_input")
+		}
+		if entry.ImageInput {
+			entry.Features = append(entry.Features, "image_input")
+		}
+		entries = append(entries, entry)
 	}
 	return entries, nil
 }

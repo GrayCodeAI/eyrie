@@ -1,0 +1,115 @@
+[
+    {
+        "id": "xiaomi/mimo-v2-flash",
+        "canonical_slug": "xiaomi/mimo-v2-flash",
+        "name": "Xiaomi MiMo:MiMo-V2-Flash",
+        "description": "MiMo-V2-Flash is an open-source foundation language model developed by Xiaomi. It is a Mixture-of-Experts model with 309B total parameters and 15B active parameters, adopting hybrid attention architecture. MiMo-V2-Flash supports a hybrid-thinking toggle and a 256K context window, and excels at reasoning, coding, and agent scenarios.",
+        "context_length": 262144,
+        "max_output_length": 65536,
+        "architecture": {
+            "modality": "text->text",
+            "input_modalities": ["text"],
+            "output_modalities": ["text"]
+        },
+        "pricing": {
+            "prompt": "0.0000001",
+            "completion": "0.0000003",
+            "input_cache_read": "0.00000001"
+        },
+        "supported_parameters": ["max_tokens", "temperature", "stream", "tools", "reasoning"],
+        "supported_features": ["tools"],
+        "datacenters": [{"country_code": "SG"}, {"country_code": "NL"}]
+    },
+    {
+        "id": "xiaomi/mimo-v2-pro",
+        "canonical_slug": "xiaomi/mimo-v2-pro",
+        "name": "Xiaomi MiMo:MiMo-V2-Pro",
+        "description": "MiMo-V2-Pro is Xiaomi's flagship foundation model, featuring over 1T total parameters and a 1M context length, deeply optimized for agentic scenarios.",
+        "context_length": 1048576,
+        "max_output_length": 131072,
+        "architecture": {
+            "modality": "text->text",
+            "input_modalities": ["text", "image"],
+            "output_modalities": ["text"]
+        },
+        "pricing": [
+            {
+                "prompt": "0.000001",
+                "completion": "0.000003",
+                "input_cache_read": "0.0000002"
+            },
+            {
+                "prompt": "0.000002",
+                "completion": "0.000006",
+                "input_cache_read": "0.0000004",
+                "min_context": 256000
+            }
+        ],
+        "supported_parameters": ["max_tokens", "temperature", "stream", "tools", "reasoning"],
+        "supported_features": ["tools"],
+        "datacenters": [{"country_code": "SG"}, {"country_code": "NL"}]
+    },
+    {
+        "id": "xiaomi/mimo-v2-omni",
+        "canonical_slug": "xiaomi/mimo-v2-omni",
+        "name": "Xiaomi MiMo:MiMo-V2-Omni",
+        "description": "MiMo-V2-Omni is a frontier omni-modal model that natively processes image, video, and audio inputs within a unified architecture.",
+        "context_length": 262144,
+        "max_output_length": 65536,
+        "architecture": {
+            "modality": "any->text",
+            "input_modalities": ["text", "image", "video", "audio"],
+            "output_modalities": ["text"]
+        },
+        "pricing": {
+            "prompt": "0.0000004",
+            "completion": "0.000002",
+            "input_cache_read": "0.00000008"
+        },
+        "supported_parameters": ["max_tokens", "temperature", "stream", "tools", "reasoning"],
+        "supported_features": ["tools"],
+        "datacenters": [{"country_code": "SG"}, {"country_code": "NL"}]
+    },
+    {
+        "id": "xiaomi/mimo-v2.5-pro",
+        "canonical_slug": "xiaomi/mimo-v2.5-pro",
+        "name": "Xiaomi MiMo:mimo-v2.5-pro",
+        "description": "MiMo-V2.5-Pro is the latest flagship model released by Xiaomi. Compared to its predecessor, it delivers significant improvements in general agentic capabilities, complex software engineering, and long-horizon tasks.",
+        "context_length": 1048576,
+        "max_output_length": 131072,
+        "architecture": {
+            "modality": "text->text",
+            "input_modalities": ["text", "image"],
+            "output_modalities": ["text"]
+        },
+        "pricing": {
+            "prompt": "0.000000435",
+            "completion": "0.00000087",
+            "input_cache_read": "0.0000000036"
+        },
+        "supported_parameters": ["max_tokens", "temperature", "stream", "tools", "reasoning"],
+        "supported_features": ["tools"],
+        "datacenters": [{"country_code": "SG"}, {"country_code": "NL"}]
+    },
+    {
+        "id": "xiaomi/mimo-v2.5",
+        "canonical_slug": "xiaomi/mimo-v2.5",
+        "name": "Xiaomi MiMo:mimo-v2.5",
+        "description": "MiMo-V2.5 is a native omnimodal model by Xiaomi. It delivers Pro-level agentic performance at roughly half the inference cost.",
+        "context_length": 1048576,
+        "max_output_length": 131072,
+        "architecture": {
+            "modality": "any->text",
+            "input_modalities": ["text", "image", "video", "audio"],
+            "output_modalities": ["text"]
+        },
+        "pricing": {
+            "prompt": "0.00000014",
+            "completion": "0.00000028",
+            "input_cache_read": "0.0000000028"
+        },
+        "supported_parameters": ["max_tokens", "temperature", "stream", "tools", "reasoning"],
+        "supported_features": ["tools"],
+        "datacenters": [{"country_code": "SG"}, {"country_code": "NL"}]
+    }
+]

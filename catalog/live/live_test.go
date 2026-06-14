@@ -101,27 +101,45 @@ func TestFetchCanopyWave_MockHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 models, got %d", len(entries))
+	if len(entries) != 5 {
+		t.Fatalf("expected 5 models, got %d", len(entries))
 	}
 	byID := map[string]Entry{}
 	for _, e := range entries {
 		byID[e.ID] = e
 	}
-	alpha, ok := byID["vendor/alpha"]
+
+	// Verify pricing conversion: API returns cents, we convert to dollars.
+	// GLM-5.1: 140 cents = $1.40, 440 cents = $4.40
+	glm, ok := byID["zai/glm-5.1"]
 	if !ok {
-		t.Fatal("missing vendor/alpha")
+		t.Fatal("missing zai/glm-5.1")
 	}
-	if alpha.DisplayName != "Alpha Model" || alpha.ContextWindow != 100000 {
-		t.Fatalf("alpha = %+v", alpha)
+	if glm.InputPricePer1M != 1.40 {
+		t.Errorf("glm-5.1 input price = %.2f, want 1.40", glm.InputPricePer1M)
 	}
-	beta, ok := byID["vendor/beta"]
+	if glm.OutputPricePer1M != 4.40 {
+		t.Errorf("glm-5.1 output price = %.2f, want 4.40", glm.OutputPricePer1M)
+	}
+	if glm.ContextWindow != 2048000 {
+		t.Errorf("glm-5.1 context = %d, want 2048000", glm.ContextWindow)
+	}
+	if glm.MaxOutput != 8192 {
+		t.Errorf("glm-5.1 max output = %d, want 8192", glm.MaxOutput)
+	}
+
+	// DeepSeek-V4-Flash: 14 cents = $0.14, 28 cents = $0.28
+	ds, ok := byID["deepseek/deepseek-v4-flash"]
 	if !ok {
-		t.Fatal("missing vendor/beta")
+		t.Fatal("missing deepseek/deepseek-v4-flash")
 	}
-	if beta.ContextWindow != 0 || beta.MaxOutput != 0 {
-		t.Fatalf("beta nulls should be unknown (0): %+v", beta)
+	if ds.InputPricePer1M != 0.14 {
+		t.Errorf("deepseek input price = %.2f, want 0.14", ds.InputPricePer1M)
 	}
+	if ds.OutputPricePer1M != 0.28 {
+		t.Errorf("deepseek output price = %.2f, want 0.28", ds.OutputPricePer1M)
+	}
+
 	for _, e := range entries {
 		if len(e.RawJSON) == 0 {
 			t.Fatalf("%s missing raw json", e.ID)

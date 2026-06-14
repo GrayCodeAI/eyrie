@@ -7,6 +7,7 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/catalog/live"
+	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	eyriecfg "github.com/GrayCodeAI/eyrie/config"
 )
@@ -59,6 +60,19 @@ func refreshProvider(ctx context.Context, providerID string, creds catalog.Crede
 	}
 	if len(entries) == 0 {
 		return nil, fmt.Errorf("catalog discover: live API returned no models for %q", providerID)
+	}
+
+	// Update dynamic protocol map for OpenCodeGo (so UsesMessagesAPI uses live data).
+	if providerID == "opencodego" {
+		protocolEntries := make([]struct{ ID, Protocol string }, 0, len(entries))
+		for _, e := range entries {
+			if e.Protocol != "" {
+				protocolEntries = append(protocolEntries, struct{ ID, Protocol string }{e.ID, e.Protocol})
+			}
+		}
+		if len(protocolEntries) > 0 {
+			opencodego.UpdateProtocolMap(protocolEntries)
+		}
 	}
 
 	legacy := catalog.ModelCatalog{

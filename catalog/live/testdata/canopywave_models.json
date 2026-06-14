@@ -1,30 +1,158 @@
 {
-  "data": [
-    {
-      "id": "vendor/alpha",
-      "object": "model",
-      "owned_by": "vendor",
-      "input_token_price_per_m": 10,
-      "output_token_price_per_m": 20,
-      "display_name": "Alpha Model",
-      "description": "Synthetic test fixture only",
-      "context_size": 100000,
-      "status": 1,
-      "max_output_tokens": 4096,
-      "features": ["function-calling"],
-      "tags": ["test-fixture"]
-    },
-    {
-      "id": "vendor/beta",
-      "object": "model",
-      "owned_by": "vendor",
-      "input_token_price_per_m": 5,
-      "output_token_price_per_m": 15,
-      "display_name": "Beta Model",
-      "context_size": null,
-      "status": 1,
-      "max_output_tokens": null,
-      "features": ["vision"]
-    }
-  ]
+    "data": [
+        {
+            "created": 1773532800,
+            "id": "zai/glm-5.1",
+            "object": "model",
+            "owned_by": "zai",
+            "permission": null,
+            "root": "zai/glm-5.1",
+            "parent": "",
+            "input_token_price_per_m": 140,
+            "output_token_price_per_m": 440,
+            "title": "GLM-5",
+            "description": "GLM-5.1 is our next-generation flagship model for agentic engineering, with significantly stronger coding capabilities than its predecessor.",
+            "tags": [
+                "native-multimodal",
+                "ultra-long-context",
+                "reasoning"
+            ],
+            "context_size": 2048000,
+            "status": 1,
+            "display_name": "GLM-5.1 Full",
+            "model_type": "chat",
+            "max_output_tokens": 8192,
+            "features": [
+                "function-calling",
+                "vision",
+                "audio-input",
+                "structured-outputs",
+                "web-search"
+            ],
+            "endpoints": [
+                "completion"
+            ]
+        },
+        {
+            "created": 1755820800,
+            "id": "deepseek/deepseek-v4-flash",
+            "object": "model",
+            "owned_by": "deepseek",
+            "permission": null,
+            "root": "deepseek/deepseek-v4-flash",
+            "parent": "",
+            "input_token_price_per_m": 14,
+            "output_token_price_per_m": 28,
+            "title": "DeepSeek-V4-Flash",
+            "description": "A LLM from DeepSeek AI s latest series, notable for integrating an efficient attention mechanism and a sophisticated post-training reinforcement learning framework.",
+            "tags": [
+                "efficient-attention",
+                "vision"
+            ],
+            "context_size": null,
+            "status": 1,
+            "display_name": "DeepSeek-V4-Flash",
+            "model_type": "chat",
+            "max_output_tokens": null,
+            "features": [
+                "function-calling",
+                "vision",
+                "structured-outputs"
+            ],
+            "endpoints": [
+                "completion"
+            ]
+        },
+        {
+            "created": 1755840800,
+            "id": "moonshotai/kimi-k2.6",
+            "object": "model",
+            "owned_by": "moonshotai",
+            "permission": null,
+            "root": "moonshotai/kimi-k2.6",
+            "parent": "",
+            "input_token_price_per_m": 95,
+            "output_token_price_per_m": 400,
+            "title": "Kimi-K2.6",
+            "description": "Grounded in advances in coding with vision, agent swarms, and office productivity, Kimi K2.6 represents a meaningful step toward AGI for the open-source community, demonstrating strong capability on real-world tasks under real-world constraints.",
+            "tags": [
+                "reasoning",
+                "agentic",
+                "coding"
+            ],
+            "context_size": 262144,
+            "status": 1,
+            "display_name": "Kimi-K2.6",
+            "model_type": "chat",
+            "max_output_tokens": null,
+            "features": [
+                "function-calling",
+                "structured-outputs",
+                "vision"
+            ],
+            "endpoints": [
+                "completion"
+            ]
+        },
+        {
+            "created": 1755820800,
+            "id": "minimax/minimax-m2.5",
+            "object": "model",
+            "owned_by": "minimax",
+            "permission": null,
+            "root": "minimax/minimax-m2.5",
+            "parent": "",
+            "input_token_price_per_m": 27,
+            "output_token_price_per_m": 108,
+            "title": "MiniMax-M2.5",
+            "description": "MiniMax-M2.5 redefines what open, high-performance agents can do—powering multilingual development and complex workflows with full transparency, control, and accessibility.",
+            "tags": [
+                "multilingual",
+                "agents"
+            ],
+            "context_size": 196608,
+            "status": 1,
+            "display_name": "MiniMax-M2.5",
+            "model_type": "chat",
+            "max_output_tokens": null,
+            "features": [
+                "function-calling",
+                "structured-outputs"
+            ],
+            "endpoints": [
+                "completion"
+            ]
+        },
+        {
+            "created": 1755820800,
+            "id": "xiaomimimo/mimo-v2.5",
+            "object": "model",
+            "owned_by": "xiaomimimo",
+            "permission": null,
+            "root": "xiaomimimo/mimo-v2.5",
+            "parent": "",
+            "input_token_price_per_m": 40,
+            "output_token_price_per_m": 200,
+            "title": "Mimo-V2.5",
+            "description": "MiMo-V2.5 is a native omnimodal model with strong agentic capabilities, supporting text, image, video, and audio understanding within a unified architecture.",
+            "tags": [
+                "open-weight",
+                "reasoning"
+            ],
+            "context_size": 256000,
+            "status": 1,
+            "display_name": "Mimo-V2.5",
+            "model_type": "chat",
+            "max_output_tokens": 256000,
+            "features": [
+                "streaming",
+                "tools",
+                "reasoning",
+                "json-output"
+            ],
+            "endpoints": [
+                "completion"
+            ]
+        }
+    ]
 }

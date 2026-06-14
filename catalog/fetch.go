@@ -15,7 +15,7 @@ func LiveEntriesToCatalog(in []live.Entry) []ModelCatalogEntry {
 	}
 	out := make([]ModelCatalogEntry, len(in))
 	for i, e := range in {
-		out[i] = ModelCatalogEntry{
+		entry := ModelCatalogEntry{
 			ID:               e.ID,
 			DisplayName:      DisplayModelLabel(e.ID, e.DisplayName),
 			Description:      e.Description,
@@ -27,6 +27,20 @@ func LiveEntriesToCatalog(in []live.Entry) []ModelCatalogEntry {
 			ServerTools:      append([]string(nil), e.Features...),
 			LiveMetadata:     e.RawJSON,
 		}
+		// Propagate cached pricing if available.
+		if e.CachedReadPricePer1M > 0 || e.CachedWritePricePer1M > 0 {
+			entry.CachedReadPricePer1M = e.CachedReadPricePer1M
+			entry.CachedWritePricePer1M = e.CachedWritePricePer1M
+		}
+		// Propagate tiered pricing if available.
+		if e.TierThreshold > 0 {
+			entry.TierThreshold = e.TierThreshold
+			entry.TieredInputPricePer1M = e.TieredInputPricePer1M
+			entry.TieredOutputPricePer1M = e.TieredOutputPricePer1M
+			entry.TieredCachedReadPer1M = e.TieredCachedReadPer1M
+			entry.TieredCachedWritePer1M = e.TieredCachedWritePer1M
+		}
+		out[i] = entry
 	}
 	return out
 }

@@ -33,8 +33,8 @@ func TestFetchAnthropic_MockHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 models, got %d", len(entries))
+	if len(entries) != 17 {
+		t.Fatalf("expected 17 models, got %d", len(entries))
 	}
 	byID := map[string]Entry{}
 	for _, e := range entries {
@@ -44,14 +44,62 @@ func TestFetchAnthropic_MockHTTPServer(t *testing.T) {
 	if !ok {
 		t.Fatal("missing claude-sonnet-4-20250514")
 	}
-	if sonnet.DisplayName != "Claude Sonnet 4" {
+	if sonnet.DisplayName != "Claude Sonnet 4 (deprecated)" {
 		t.Fatalf("display name = %q", sonnet.DisplayName)
 	}
-	if sonnet.ContextWindow != 0 || sonnet.MaxOutput != 0 {
-		t.Fatalf("context/max = %d/%d (expected 0/0 — no hardcoded defaults)", sonnet.ContextWindow, sonnet.MaxOutput)
+	if sonnet.MaxInputTokens != 200000 {
+		t.Fatalf("max_input_tokens = %d (expected 200000)", sonnet.MaxInputTokens)
+	}
+	if sonnet.MaxOutput != 64000 {
+		t.Fatalf("max_output = %d (expected 64000)", sonnet.MaxOutput)
+	}
+	if !sonnet.ThinkingEnabled {
+		t.Fatal("expected thinking_enabled = true")
+	}
+	if !sonnet.ThinkingAdaptive {
+		t.Fatal("expected thinking_adaptive = true")
+	}
+	if sonnet.EffortSupported {
+		t.Fatal("expected effort_supported = false for sonnet-4")
+	}
+	if !sonnet.StructuredOutput {
+		t.Fatal("expected structured_output = true")
+	}
+	if !sonnet.CodeExecution {
+		t.Fatal("expected code_execution = true")
+	}
+	if !sonnet.CitationsSupported {
+		t.Fatal("expected citations_supported = true")
+	}
+	if !sonnet.PDFInput {
+		t.Fatal("expected pdf_input = true")
+	}
+	if !sonnet.ImageInput {
+		t.Fatal("expected image_input = true")
 	}
 	if len(sonnet.RawJSON) == 0 {
 		t.Fatal("expected RawJSON to be preserved")
+	}
+	// Check Features list
+	featureSet := map[string]bool{}
+	for _, f := range sonnet.Features {
+		featureSet[f] = true
+	}
+	for _, want := range []string{"thinking:enabled", "thinking:adaptive", "structured_output", "code_execution", "citations", "pdf_input", "image_input"} {
+		if !featureSet[want] {
+			t.Fatalf("expected feature %q in Features list", want)
+		}
+	}
+
+	haiku, ok := byID["claude-haiku-4-5-20251001"]
+	if !ok {
+		t.Fatal("missing claude-haiku-4-5-20251001")
+	}
+	if haiku.MaxInputTokens != 200000 {
+		t.Fatalf("haiku max_input_tokens = %d (expected 200000)", haiku.MaxInputTokens)
+	}
+	if haiku.CodeExecution {
+		t.Fatal("expected haiku code_execution = false")
 	}
 }
 

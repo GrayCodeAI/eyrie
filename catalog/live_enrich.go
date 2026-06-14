@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog/live"
+	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
@@ -41,6 +42,18 @@ func FetchLiveProviderCatalog(env map[string]string) (ModelCatalog, []LiveProvid
 		if len(models) == 0 {
 			enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: "no models returned", DurationMs: duration})
 			continue
+		}
+		// Update dynamic protocol map for OpenCodeGo.
+		if fetcherKey == "opencodego" {
+			protocolEntries := make([]struct{ ID, Protocol string }, 0, len(models))
+			for _, e := range models {
+				if e.Protocol != "" {
+					protocolEntries = append(protocolEntries, struct{ ID, Protocol string }{e.ID, e.Protocol})
+				}
+			}
+			if len(protocolEntries) > 0 {
+				opencodego.UpdateProtocolMap(protocolEntries)
+			}
 		}
 		cat.Providers[catalogKey] = LiveEntriesToCatalog(models)
 		enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, ModelCount: len(models), DurationMs: duration})
