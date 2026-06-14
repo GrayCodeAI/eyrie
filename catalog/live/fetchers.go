@@ -695,19 +695,29 @@ func entryFromVertexModelJSON(raw json.RawMessage) (Entry, bool) {
 }
 
 func FetchGrok(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "XAI_BASE_URL", DefaultGrokBaseURL),
 		env["XAI_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	enrichFromOpenRouter(entries, "x-ai/")
+	return entries, nil
 }
 
 func FetchZAI(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "ZAI_BASE_URL", DefaultZAIBaseURL),
 		env["ZAI_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	enrichFromOpenRouter(entries, "z-ai/")
+	return entries, nil
 }
 
 func FetchCanopyWave(env map[string]string) ([]Entry, error) {
@@ -1105,6 +1115,8 @@ func FetchAnthropic(env map[string]string) ([]Entry, error) {
 		}
 		entries = append(entries, entry)
 	}
+	// Enrich with pricing from OpenRouter (Anthropic API doesn't return pricing).
+	enrichFromOpenRouter(entries, "anthropic/")
 	return entries, nil
 }
 
@@ -1172,6 +1184,8 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 			RawJSON: append(json.RawMessage(nil), raw...),
 		})
 	}
+	// Enrich with pricing from OpenRouter (Gemini API doesn't return pricing).
+	enrichFromOpenRouter(entries, "google/")
 	return entries, nil
 }
 
@@ -1224,11 +1238,16 @@ func FetchOllama(env map[string]string) ([]Entry, error) {
 
 // FetchDeepSeek lists models from the DeepSeek OpenAI-compatible API.
 func FetchDeepSeek(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "DEEPSEEK_BASE_URL", DefaultDeepSeekBaseURL),
 		env["DEEPSEEK_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	enrichFromOpenRouter(entries, "deepseek/")
+	return entries, nil
 }
 
 func signAWSV4(req *http.Request, accessKeyID, secretAccessKey, sessionToken, region, service string, body []byte) {
