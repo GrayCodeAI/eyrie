@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestFetchXiaomiPayg_MockHTTPServer(t *testing.T) {
+func TestFetchXiaomiMimoPayg_MockHTTPServer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)
@@ -33,7 +33,7 @@ func TestFetchXiaomiPayg_MockHTTPServer(t *testing.T) {
 	}))
 	defer platformSrv.Close()
 
-	entries, err := FetchXiaomiPayg(map[string]string{
+	entries, err := FetchXiaomiMimoPayg(map[string]string{
 		"XIAOMI_MIMO_PAYG_API_KEY":        "test-xiaomi-key",
 		"XIAOMI_MIMO_PAYG_BASE_URL":       srv.URL,
 		"XIAOMI_MIMO_PLATFORM_MODELS_URL": platformSrv.URL,
@@ -49,7 +49,7 @@ func TestFetchXiaomiPayg_MockHTTPServer(t *testing.T) {
 	}
 }
 
-func TestFetchXiaomiPayg_EnrichesFromPlatformAPI(t *testing.T) {
+func TestFetchXiaomiMimoPayg_EnrichesFromPlatformAPI(t *testing.T) {
 	inferenceSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(struct {
 			Data []json.RawMessage `json:"data"`
@@ -62,7 +62,7 @@ func TestFetchXiaomiPayg_EnrichesFromPlatformAPI(t *testing.T) {
 			"data": []json.RawMessage{
 				json.RawMessage(`{
 					"id":"xiaomi/mimo-v2.5",
-					"name":"Xiaomi MiMo:mimo-v2.5",
+					"name":"XiaomiMimo MiMo:mimo-v2.5",
 					"context_length":1048576,
 					"max_output_length":131072,
 					"pricing":{"prompt":"0.00000014","completion":"0.00000028"}
@@ -72,7 +72,7 @@ func TestFetchXiaomiPayg_EnrichesFromPlatformAPI(t *testing.T) {
 	}))
 	defer platformSrv.Close()
 
-	entries, err := FetchXiaomiPayg(map[string]string{
+	entries, err := FetchXiaomiMimoPayg(map[string]string{
 		"XIAOMI_MIMO_PAYG_API_KEY":        "sk-test-key",
 		"XIAOMI_MIMO_PAYG_BASE_URL":       inferenceSrv.URL,
 		"XIAOMI_MIMO_PLATFORM_MODELS_URL": platformSrv.URL,
@@ -91,7 +91,7 @@ func TestFetchXiaomiPayg_EnrichesFromPlatformAPI(t *testing.T) {
 	}
 }
 
-func TestFetchXiaomiTokenPlan_RegionResolvesBase(t *testing.T) {
+func TestFetchXiaomiMimoTokenPlan_RegionResolvesBase(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)
@@ -108,7 +108,7 @@ func TestFetchXiaomiTokenPlan_RegionResolvesBase(t *testing.T) {
 	}))
 	defer platformSrv.Close()
 
-	entries, err := FetchXiaomiTokenPlan(map[string]string{
+	entries, err := FetchXiaomiMimoTokenPlan(map[string]string{
 		"XIAOMI_MIMO_TOKEN_PLAN_API_KEY":  "tp-test-key",
 		"XIAOMI_MIMO_TOKEN_PLAN_BASE_URL": srv.URL,
 		"XIAOMI_MIMO_PLATFORM_MODELS_URL": platformSrv.URL,
@@ -132,8 +132,8 @@ func TestResolveTokenPlanOpenAIBase_StaleOverrideUsesRegion(t *testing.T) {
 	}
 }
 
-func TestFetchXiaomiPayg_NoKey(t *testing.T) {
-	entries, err := FetchXiaomiPayg(map[string]string{})
+func TestFetchXiaomiMimoPayg_NoKey(t *testing.T) {
+	entries, err := FetchXiaomiMimoPayg(map[string]string{})
 	if err != nil {
 		t.Fatal(err)
 	}

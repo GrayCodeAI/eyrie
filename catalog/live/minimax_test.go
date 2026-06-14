@@ -27,7 +27,7 @@ func TestFetchMiniMaxTokenPlan_MockHTTPServer(t *testing.T) {
 	defer srv.Close()
 
 	entries, err := FetchMiniMaxTokenPlan(map[string]string{
-		"MINIMAX_TOKEN_PLAN_API_KEY": "test-key",
+		"MINIMAX_TOKEN_PLAN_API_KEY":  "test-key",
 		"MINIMAX_TOKEN_PLAN_BASE_URL": srv.URL,
 	})
 	if err != nil {
@@ -73,7 +73,7 @@ func TestFetchMiniMaxTokenPlan_Unauthorized(t *testing.T) {
 	defer srv.Close()
 
 	_, err := FetchMiniMaxTokenPlan(map[string]string{
-		"MINIMAX_TOKEN_PLAN_API_KEY": "bad-key",
+		"MINIMAX_TOKEN_PLAN_API_KEY":  "bad-key",
 		"MINIMAX_TOKEN_PLAN_BASE_URL": srv.URL,
 	})
 	if err == nil {
@@ -100,7 +100,7 @@ func TestFetchMiniMaxPayg_MockHTTPServer(t *testing.T) {
 	defer srv.Close()
 
 	entries, err := FetchMiniMaxPayg(map[string]string{
-		"MINIMAX_PAYG_API_KEY": "test-key",
+		"MINIMAX_PAYG_API_KEY":  "test-key",
 		"MINIMAX_PAYG_BASE_URL": srv.URL,
 	})
 	if err != nil {

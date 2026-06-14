@@ -1,21 +1,19 @@
 package config
 
 import (
-	"strings"
-
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 )
 
 const (
-	EnvXiaomiPaygAPIKey       = "XIAOMI_MIMO_PAYG_API_KEY"
-	EnvXiaomiTokenPlanAPIKey  = "XIAOMI_MIMO_TOKEN_PLAN_API_KEY"
-	EnvXiaomiPaygBaseURL      = "XIAOMI_MIMO_PAYG_BASE_URL"
-	EnvXiaomiTokenPlanBaseURL = "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL"
-	EnvXiaomiTokenPlanRegion  = "XIAOMI_MIMO_TOKEN_PLAN_REGION"
+	EnvXiaomiMimoPaygAPIKey       = "XIAOMI_MIMO_PAYG_API_KEY"
+	EnvXiaomiMimoTokenPlanAPIKey  = "XIAOMI_MIMO_TOKEN_PLAN_API_KEY"
+	EnvXiaomiMimoPaygBaseURL      = "XIAOMI_MIMO_PAYG_BASE_URL"
+	EnvXiaomiMimoTokenPlanBaseURL = "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL"
+	EnvXiaomiMimoTokenPlanRegion  = "XIAOMI_MIMO_TOKEN_PLAN_REGION"
 )
 
-// XiaomiTokenPlanRegionFromConfig reads persisted Token Plan cluster from provider.json.
-func XiaomiTokenPlanRegionFromConfig(cfg *ProviderConfig) xiaomi.Region {
+// XiaomiMimoTokenPlanRegionFromConfig reads persisted Token Plan cluster from provider.json.
+func XiaomiMimoTokenPlanRegionFromConfig(cfg *ProviderConfig) xiaomi.Region {
 	if cfg == nil {
 		return ""
 	}
@@ -23,8 +21,8 @@ func XiaomiTokenPlanRegionFromConfig(cfg *ProviderConfig) xiaomi.Region {
 	return r
 }
 
-// ResolveXiaomiOpenAIBase resolves the OpenAI-compat base for a MiMo gateway id.
-func ResolveXiaomiOpenAIBase(providerID string, cfg *ProviderConfig) (string, error) {
+// ResolveXiaomiMimoOpenAIBase resolves the OpenAI-compat base for a MiMo gateway id.
+func ResolveXiaomiMimoOpenAIBase(providerID string, cfg *ProviderConfig) (string, error) {
 	billing, ok := xiaomi.BillingForProvider(providerID)
 	if !ok {
 		return "", nil
@@ -39,19 +37,19 @@ func ResolveXiaomiOpenAIBase(providerID string, cfg *ProviderConfig) (string, er
 	case xiaomi.BillingTokenPlan:
 		if cfg != nil {
 			override = cfg.XiaomiMimoTokenPlanBaseURL
-			region = XiaomiTokenPlanRegionFromConfig(cfg)
+			region = XiaomiMimoTokenPlanRegionFromConfig(cfg)
 		}
 	}
 	return xiaomi.ResolveOpenAIBasePreferRegion(billing, region, override)
 }
 
-// ResolveXiaomiAnthropicBase resolves the Anthropic-compat base for a MiMo gateway id.
-func ResolveXiaomiAnthropicBase(providerID string, cfg *ProviderConfig) (string, error) {
+// ResolveXiaomiMimoAnthropicBase resolves the Anthropic-compat base for a MiMo gateway id.
+func ResolveXiaomiMimoAnthropicBase(providerID string, cfg *ProviderConfig) (string, error) {
 	billing, ok := xiaomi.BillingForProvider(providerID)
 	if !ok {
 		return "", nil
 	}
-	region := XiaomiTokenPlanRegionFromConfig(cfg)
+	region := XiaomiMimoTokenPlanRegionFromConfig(cfg)
 	return xiaomi.ResolveAnthropicBase(billing, region)
 }
 
@@ -59,25 +57,4 @@ func ResolveXiaomiAnthropicBase(providerID string, cfg *ProviderConfig) (string,
 func IsXiaomiMimoProvider(providerID string) bool {
 	_, ok := xiaomi.BillingForProvider(providerID)
 	return ok
-}
-
-// MigrateLegacyXiaomiProvider rewrites deprecated xiaomi_mimo ids and env to payg.
-func MigrateLegacyXiaomiProvider(cfg *ProviderConfig) {
-	if cfg == nil {
-		return
-	}
-	if strings.TrimSpace(cfg.ActiveProvider) == "xiaomi_mimo" {
-		cfg.ActiveProvider = xiaomi.ProviderPayAsYouGo
-	}
-	if base := strings.TrimSpace(cfg.XiaomiBaseURL); base != "" && strings.TrimSpace(cfg.XiaomiMimoPaygBaseURL) == "" {
-		cfg.XiaomiMimoPaygBaseURL = base
-	}
-	if cfg.Deployments != nil {
-		if dep, ok := cfg.Deployments["xiaomi_mimo-direct"]; ok {
-			if _, exists := cfg.Deployments["xiaomi_mimo_payg-direct"]; !exists {
-				cfg.Deployments["xiaomi_mimo_payg-direct"] = dep
-			}
-			delete(cfg.Deployments, "xiaomi_mimo-direct")
-		}
-	}
 }

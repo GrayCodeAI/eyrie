@@ -110,13 +110,13 @@ type EyrieUsage struct {
 
 // EyrieResponse is the response from a chat call.
 type EyrieResponse struct {
-	Content          string      `json:"content"`
-	Thinking         string      `json:"thinking,omitempty"`
-	Usage            *EyrieUsage `json:"usage,omitempty"`
-	ToolCalls        []ToolCall  `json:"tool_calls,omitempty"`
-	FinishReason     string      `json:"finish_reason"`
-	RequestID        string      `json:"request_id,omitempty"`
-	OrganizationID   string      `json:"organization_id,omitempty"`
+	Content        string      `json:"content"`
+	Thinking       string      `json:"thinking,omitempty"`
+	Usage          *EyrieUsage `json:"usage,omitempty"`
+	ToolCalls      []ToolCall  `json:"tool_calls,omitempty"`
+	FinishReason   string      `json:"finish_reason"`
+	RequestID      string      `json:"request_id,omitempty"`
+	OrganizationID string      `json:"organization_id,omitempty"`
 }
 
 // ToolCall represents a tool invocation.

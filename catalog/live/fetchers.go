@@ -28,7 +28,7 @@ const (
 	DefaultGrokBaseURL       = "https://api.x.ai/v1"
 	DefaultOpenCodeGoBaseURL = opencodego.DefaultBaseURL
 	DefaultKimiBaseURL       = "https://api.moonshot.ai/v1"
-	DefaultXiaomiBaseURL     = "https://api.xiaomimimo.com/v1"
+	DefaultXiaomiMimoBaseURL = "https://api.xiaomimimo.com/v1"
 	DefaultMiniMaxBaseURL    = "https://api.minimax.io/v1"
 )
 
@@ -51,8 +51,8 @@ var Registry = map[string]FetchFunc{
 	"canopywave":             FetchCanopyWave,
 	"opencodego":             FetchOpenCodeGo,
 	"kimi":                   FetchKimi,
-	"xiaomi_mimo_payg":       FetchXiaomiPayg,
-	"xiaomi_mimo_token_plan": FetchXiaomiTokenPlan,
+	"xiaomi_mimo_payg":       FetchXiaomiMimoPayg,
+	"xiaomi_mimo_token_plan": FetchXiaomiMimoTokenPlan,
 	"minimax_token_plan":     FetchMiniMaxTokenPlan,
 	"minimax_payg":           FetchMiniMaxPayg,
 	"ollama":                 FetchOllama,
@@ -88,12 +88,12 @@ type listModelJSON struct {
 	// Not all providers return this; empty means unknown.
 	APIType string `json:"api_type,omitempty"`
 	Pricing *struct {
-		Prompt       interface{} `json:"prompt"`
-		Completion   interface{} `json:"completion"`
-		CachedRead   interface{} `json:"cached_read,omitempty"`
-		CachedWrite  interface{} `json:"cached_write,omitempty"`
-		Request      interface{} `json:"request,omitempty"`
-		Image        interface{} `json:"image,omitempty"`
+		Prompt      interface{} `json:"prompt"`
+		Completion  interface{} `json:"completion"`
+		CachedRead  interface{} `json:"cached_read,omitempty"`
+		CachedWrite interface{} `json:"cached_write,omitempty"`
+		Request     interface{} `json:"request,omitempty"`
+		Image       interface{} `json:"image,omitempty"`
 	} `json:"pricing"`
 }
 
@@ -450,10 +450,10 @@ func enrichFromOpenRouter(entries []Entry, prefix string) {
 }
 
 type openRouterModelEntry struct {
-	ID                string `json:"id"`
-	ContextLength     int    `json:"context_length"`
+	ID                  string   `json:"id"`
+	ContextLength       int      `json:"context_length"`
 	SupportedParameters []string `json:"supported_parameters"`
-	TopProvider       struct {
+	TopProvider         struct {
 		MaxCompletionTokens int `json:"max_completion_tokens"`
 	} `json:"top_provider"`
 	Pricing struct {
@@ -831,11 +831,11 @@ func FetchKimi(env map[string]string) ([]Entry, error) {
 	return entries, nil
 }
 
-func FetchXiaomiPayg(env map[string]string) ([]Entry, error) {
-	return fetchMimoOpenAIModels(env, "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_PAYG_BASE_URL", DefaultXiaomiBaseURL)
+func FetchXiaomiMimoPayg(env map[string]string) ([]Entry, error) {
+	return fetchMimoOpenAIModels(env, "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_PAYG_BASE_URL", DefaultXiaomiMimoBaseURL)
 }
 
-func FetchXiaomiTokenPlan(env map[string]string) ([]Entry, error) {
+func FetchXiaomiMimoTokenPlan(env map[string]string) ([]Entry, error) {
 	base := resolveTokenPlanOpenAIBase(env)
 	if base != "" {
 		env2 := make(map[string]string, len(env)+1)
@@ -868,13 +868,10 @@ func fetchMimoOpenAIModels(env map[string]string, keyEnv, baseEnv, defaultBase s
 	}
 	base := strings.TrimSpace(env[baseEnv])
 	if base == "" {
-		base = strings.TrimSpace(env["XIAOMI_BASE_URL"])
-	}
-	if base == "" {
 		base = defaultBase
 	}
 	if base == "" {
-		return nil, fmt.Errorf("live: missing MiMo base URL (set %s or token plan region)", baseEnv)
+		return nil, fmt.Errorf("live: missing MiMo base URL (set %s)", baseEnv)
 	}
 	return fetchMimoModels(context.Background(), base, apiKey, env)
 }

@@ -2,6 +2,11 @@
     "object": "list",
     "data": [
         {
+            "id": "mimo-v2-flash",
+            "object": "model",
+            "owned_by": "xiaomi"
+        },
+        {
             "id": "mimo-v2-omni",
             "object": "model",
             "owned_by": "xiaomi"

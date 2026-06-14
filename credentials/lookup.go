@@ -37,24 +37,7 @@ func LookupSecret(ctx context.Context, envKey string) string {
 
 func lookupSecretAccount(ctx context.Context, account string) (string, error) {
 	secret, err := DefaultStore().Get(ctx, account)
-	if err == nil && strings.TrimSpace(secret) != "" {
-		return secret, nil
-	}
-	if legacy := legacyKeychainAccountFor(account); legacy != "" {
-		if legacySecret, legacyErr := DefaultStore().Get(ctx, legacy); legacyErr == nil && strings.TrimSpace(legacySecret) != "" {
-			return legacySecret, nil
-		}
-	}
-	return secret, err
-}
-
-func legacyKeychainAccountFor(account string) string {
-	switch strings.ToLower(strings.TrimSpace(account)) {
-	case "xiaomi_mimo_payg_api_key":
-		return "xiaomi_mimo_api_key"
-	default:
-		return ""
-	}
+	return strings.TrimSpace(secret), err
 }
 
 // HasSecret reports whether the store has a non-empty secret for an env key name.

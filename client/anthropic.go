@@ -93,8 +93,8 @@ type anthropicThinking struct {
 
 // anthropicToolChoice controls how the model uses tools.
 type anthropicToolChoice struct {
-	Type                   string `json:"type"`                               // "auto", "any", "tool", "none"
-	Name                   string `json:"name,omitempty"`                     // required when type="tool"
+	Type                   string `json:"type"`           // "auto", "any", "tool", "none"
+	Name                   string `json:"name,omitempty"` // required when type="tool"
 	DisableParallelToolUse bool   `json:"disable_parallel_tool_use,omitempty"`
 }
 
@@ -111,7 +111,7 @@ type anthropicOutputConfig struct {
 
 // anthropicOutputFormat specifies structured output format.
 type anthropicOutputFormat struct {
-	Type   string                 `json:"type"`             // "json_schema"
+	Type   string                 `json:"type"` // "json_schema"
 	Schema map[string]interface{} `json:"schema,omitempty"`
 }
 

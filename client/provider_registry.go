@@ -60,8 +60,8 @@ var OpenAICompatibleProviders = map[string]ProviderRegistryConfig{
 	"ollama":                 {Name: "ollama", Type: ProviderTypeOpenAICompatible, BaseURL: "http://localhost:11434/v1", EnvKey: "OLLAMA_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: false},
 	"opencodego":             {Name: "opencodego", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultOpenCodeGoBaseURL, EnvKey: "OPENCODEGO_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"kimi":                   {Name: "kimi", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultKimiOpenAIBaseURL, EnvKey: "MOONSHOT_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"xiaomi_mimo_payg":       {Name: "xiaomi_mimo_payg", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultXiaomiOpenAIBaseURL, EnvKey: config.EnvXiaomiPaygAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"xiaomi_mimo_token_plan": {Name: "xiaomi_mimo_token_plan", Type: ProviderTypeOpenAICompatible, BaseURL: "", EnvKey: config.EnvXiaomiTokenPlanAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"xiaomi_mimo_payg":       {Name: "xiaomi_mimo_payg", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultXiaomiMimoOpenAIBaseURL, EnvKey: config.EnvXiaomiMimoPaygAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"xiaomi_mimo_token_plan": {Name: "xiaomi_mimo_token_plan", Type: ProviderTypeOpenAICompatible, BaseURL: "", EnvKey: config.EnvXiaomiMimoTokenPlanAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 }
 
 // GetProviders lists all available providers.
@@ -177,11 +177,11 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 	default:
 		if config.IsXiaomiMimoProvider(providerName) {
 			providerCfg := config.LoadProviderConfig("")
-			openAIBase, err := config.ResolveXiaomiOpenAIBase(providerName, providerCfg)
+			openAIBase, err := config.ResolveXiaomiMimoOpenAIBase(providerName, providerCfg)
 			if err != nil {
 				return nil, err
 			}
-			anthropicBase, err := config.ResolveXiaomiAnthropicBase(providerName, providerCfg)
+			anthropicBase, err := config.ResolveXiaomiMimoAnthropicBase(providerName, providerCfg)
 			if err != nil {
 				return nil, err
 			}
@@ -219,10 +219,10 @@ func DetectProvider() string {
 		"opencodego": func() bool { return credentials.HasSecret(ctx, "OPENCODEGO_API_KEY") },
 		"kimi":       func() bool { return credentials.HasSecret(ctx, "MOONSHOT_API_KEY") },
 		"xiaomi_mimo_payg": func() bool {
-			return credentials.HasSecret(ctx, config.EnvXiaomiPaygAPIKey) || credentials.HasSecret(ctx, "XIAOMI_MIMO_API_KEY")
+			return credentials.HasSecret(ctx, config.EnvXiaomiMimoPaygAPIKey)
 		},
 		"xiaomi_mimo_token_plan": func() bool {
-			return credentials.HasSecret(ctx, config.EnvXiaomiTokenPlanAPIKey)
+			return credentials.HasSecret(ctx, config.EnvXiaomiMimoTokenPlanAPIKey)
 		},
 		"ollama": func() bool { return resolveEnvSecret("OLLAMA_BASE_URL") != "" },
 		"azure": func() bool {

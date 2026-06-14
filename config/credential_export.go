@@ -88,8 +88,8 @@ func mimoProbeConfigFromProvider() credential.MimoProbeConfig {
 	if cfg == nil {
 		return credential.MimoProbeConfig{}
 	}
-	region := XiaomiTokenPlanRegionFromConfig(cfg)
-	base, _ := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg)
+	region := XiaomiMimoTokenPlanRegionFromConfig(cfg)
+	base, _ := ResolveXiaomiMimoOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg)
 	return credential.MimoProbeConfig{
 		TokenPlanRegion: string(region),
 		TokenPlanBase:   base,

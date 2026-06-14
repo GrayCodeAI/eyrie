@@ -24,7 +24,7 @@ func TestMimoRetryableChatError_HTTPStatus(t *testing.T) {
 	}
 }
 
-func TestMimoRetryableChatError_UsesXiaomiHelper(t *testing.T) {
+func TestMimoRetryableChatError_UsesXiaomiMimoHelper(t *testing.T) {
 	if !xiaomi.IsRetryableHTTPStatus(http.StatusServiceUnavailable) {
 		t.Fatal("expected 503 retryable in xiaomi helper")
 	}
@@ -70,7 +70,7 @@ func TestMiMoClient_ChatFallsBackToAnthropicOnParamIncorrect(t *testing.T) {
 		}), nil
 	})
 
-	c := NewMiMoClient("tp-test-key", "https://openai.example/v1", "https://anthropic.example/anthropic", &XiaomiCompat, "xiaomi_mimo_token_plan")
+	c := NewMiMoClient("tp-test-key", "https://openai.example/v1", "https://anthropic.example/anthropic", &XiaomiMimoCompat, "xiaomi_mimo_token_plan")
 	c.router.OpenAI.httpClient = &http.Client{Transport: openAITransport}
 	c.router.Anthropic.httpClient = &http.Client{Transport: anthropicTransport}
 	resp, err := c.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "hi"}}, ChatOptions{
@@ -104,7 +104,7 @@ func jsonResponse(status int, payload interface{}) *http.Response {
 	}
 }
 
-func TestGetOrCreateProvider_XiaomiTokenPlanUsesMimoBase(t *testing.T) {
+func TestGetOrCreateProvider_XiaomiMimoTokenPlanUsesMimoBase(t *testing.T) {
 	t.Setenv("HAWK_CONFIG_DIR", t.TempDir())
 	if err := eyriecfg.SaveProviderConfig(&eyriecfg.ProviderConfig{
 		XiaomiMimoTokenPlanRegion: "sgp",

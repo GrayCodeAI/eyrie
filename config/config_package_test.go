@@ -395,8 +395,11 @@ func TestGetProviderModel_TableDriven(t *testing.T) {
 		OpenRouterModel: "or-model",
 		OllamaModel:     "llama3.1:8b",
 		OpenCodeGoModel: "ocg-model",
-		MoonshotModel:   "kimi-k2.6",
-		XiaomiModel:     "mimo-v2-flash",
+		MoonshotModel:            "kimi-k2.6",
+		XiaomiMimoPaygModel:      "mimo-v2-flash",
+		XiaomiMimoTokenPlanModel: "mimo-v2-flash",
+		MiniMaxPaygModel:         "MiniMax-M3",
+		MiniMaxTokenPlanModel:    "MiniMax-M3",
 	}
 
 	tests := []struct {
@@ -428,16 +431,16 @@ func TestGetProviderModel_TableDriven(t *testing.T) {
 
 func TestGetProviderAPIKey_TableDriven(t *testing.T) {
 	cfg := &ProviderConfig{
-		AnthropicAPIKey:  "sk-ant-key",
-		OpenAIAPIKey:     "sk-openai-key",
-		GeminiAPIKey:     "gemini-key",
-		GrokAPIKey:       "",
-		XAIAPIKey:        "xai-key",
-		CanopyWaveAPIKey: "cw-key",
-		ZAIAPIKey:        "zai-key",
-		OpenRouterAPIKey: "or-key",
-		OpenCodeGoAPIKey: "ocg-key",
-		MoonshotAPIKey:   "moonshot-key",
+		AnthropicAPIKey:      "sk-ant-key",
+		OpenAIAPIKey:         "sk-openai-key",
+		GeminiAPIKey:         "gemini-key",
+		GrokAPIKey:           "",
+		XAIAPIKey:            "xai-key",
+		CanopyWaveAPIKey:     "cw-key",
+		ZAIAPIKey:            "zai-key",
+		OpenRouterAPIKey:     "or-key",
+		OpenCodeGoAPIKey:     "ocg-key",
+		MoonshotAPIKey:       "moonshot-key",
 		XiaomiMimoPaygAPIKey: "xiaomi-key",
 	}
 
@@ -913,6 +916,7 @@ func TestProviderDetectionOrder_AllProvidersCovered(t *testing.T) {
 		ProviderZAI, ProviderOpenRouter, ProviderGrok,
 		ProviderGemini, ProviderOllama, ProviderOpenCodeGo,
 		ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan,
+		ProviderMiniMaxTokenPlan, ProviderMiniMaxPayg,
 	}
 
 	for _, p := range allProviders {

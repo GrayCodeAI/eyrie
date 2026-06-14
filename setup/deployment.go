@@ -268,9 +268,9 @@ func newMiMoDeploymentClient(deployment config.DeploymentConfig, providerID, env
 		return nil, false
 	}
 	cfg := config.LoadProviderConfig("")
-	openBase, err := config.ResolveXiaomiOpenAIBase(providerID, cfg)
+	openBase, err := config.ResolveXiaomiMimoOpenAIBase(providerID, cfg)
 	if err != nil || openBase == "" {
-		openBase = FirstNonEmpty(deployment.BaseURL, config.DefaultXiaomiOpenAIBaseURL)
+		openBase = FirstNonEmpty(deployment.BaseURL, config.DefaultXiaomiMimoOpenAIBaseURL)
 	}
 	// Token Plan hosts are region-specific; do not let stale deployment.BaseURL override provider.json routing.
 	if billing, ok := xiaomi.BillingForProvider(providerID); !ok || billing != xiaomi.BillingTokenPlan {
@@ -278,8 +278,8 @@ func newMiMoDeploymentClient(deployment config.DeploymentConfig, providerID, env
 			openBase = override
 		}
 	}
-	anthropicBase, _ := config.ResolveXiaomiAnthropicBase(providerID, cfg)
-	return client.NewMiMoClient(apiKey, openBase, anthropicBase, &client.XiaomiCompat, providerID), true
+	anthropicBase, _ := config.ResolveXiaomiMimoAnthropicBase(providerID, cfg)
+	return client.NewMiMoClient(apiKey, openBase, anthropicBase, &client.XiaomiMimoCompat, providerID), true
 }
 
 // DefaultDeploymentForProvider maps a logical provider name to a deployment ID.
@@ -360,7 +360,7 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 			BaseURL: cfg.XiaomiMimoPaygBaseURL,
 		}
 	case config.ProviderXiaomiMimoTokenPlan:
-		base, _ := config.ResolveXiaomiOpenAIBase(config.ProviderXiaomiMimoTokenPlan, cfg)
+		base, _ := config.ResolveXiaomiMimoOpenAIBase(config.ProviderXiaomiMimoTokenPlan, cfg)
 		return config.DeploymentConfig{APIKey: cfg.XiaomiMimoTokenPlanAPIKey, BaseURL: base}
 	case config.ProviderMiniMaxTokenPlan:
 		return config.DeploymentConfig{APIKey: cfg.MiniMaxTokenPlanAPIKey, BaseURL: cfg.MiniMaxTokenPlanBaseURL}

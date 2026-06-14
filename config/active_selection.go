@@ -82,10 +82,14 @@ func SetProviderModel(cfg *ProviderConfig, provider, model string) {
 		cfg.OpenCodeGoModel = model
 	case ProviderKimi:
 		cfg.MoonshotModel = model
-	case ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan:
-		cfg.XiaomiModel = model
-	case ProviderMiniMaxTokenPlan, ProviderMiniMaxPayg:
-		cfg.MiniMaxModel = model
+	case ProviderXiaomiMimoPayg:
+		cfg.XiaomiMimoPaygModel = model
+	case ProviderXiaomiMimoTokenPlan:
+		cfg.XiaomiMimoTokenPlanModel = model
+	case ProviderMiniMaxPayg:
+		cfg.MiniMaxPaygModel = model
+	case ProviderMiniMaxTokenPlan:
+		cfg.MiniMaxTokenPlanModel = model
 	default:
 		// Unknown/custom provider: active_model + active_provider are enough.
 	}

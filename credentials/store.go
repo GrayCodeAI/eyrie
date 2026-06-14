@@ -73,8 +73,6 @@ func EnvForAccount(account string) string {
 		return "OPENCODEGO_API_KEY"
 	case "moonshot_api_key":
 		return "MOONSHOT_API_KEY"
-	case "xiaomi_mimo_api_key":
-		return "XIAOMI_MIMO_API_KEY"
 	case "xiaomi_mimo_payg_api_key":
 		return "XIAOMI_MIMO_PAYG_API_KEY"
 	case "xiaomi_mimo_token_plan_api_key":
@@ -112,7 +110,7 @@ func discoveryEnvKeys(ctx context.Context) []string {
 	return []string{
 		"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY",
 		"GEMINI_API_KEY", "XAI_API_KEY",
-		"MOONSHOT_API_KEY", "XIAOMI_MIMO_API_KEY", "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
+		"MOONSHOT_API_KEY", "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", "MINIMAX_TOKEN_PLAN_API_KEY", "MINIMAX_PAYG_API_KEY",
 		"CANOPYWAVE_API_KEY", "OPENCODEGO_API_KEY",
 		"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
 		"VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN",

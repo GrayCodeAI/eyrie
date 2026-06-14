@@ -41,15 +41,13 @@ type ProviderConfig struct {
 	OpenRouterBaseURL          string                      `json:"openrouter_base_url,omitempty"`
 	GeminiBaseURL              string                      `json:"gemini_base_url,omitempty"`
 	OpenCodeGoBaseURL          string                      `json:"opencodego_base_url,omitempty"`
-	MoonshotBaseURL            string                      `json:"moonshot_base_url,omitempty"`
-	XiaomiBaseURL              string                      `json:"xiaomi_mimo_base_url,omitempty"`
-	XiaomiMimoPaygBaseURL      string                      `json:"xiaomi_mimo_payg_base_url,omitempty"`
-	XiaomiMimoTokenPlanBaseURL string                      `json:"xiaomi_mimo_token_plan_base_url,omitempty"`
-	XiaomiMimoTokenPlanRegion  string                      `json:"xiaomi_mimo_token_plan_region,omitempty"`
-	MiniMaxTokenPlanBaseURL    string                      `json:"minimax_token_plan_base_url,omitempty"`
-	MiniMaxPaygBaseURL         string                      `json:"minimax_payg_base_url,omitempty"`
-	MiniMaxModel               string                      `json:"minimax_model,omitempty"`
-	AnthropicModel             string                      `json:"anthropic_model,omitempty"`
+	MoonshotBaseURL                string                      `json:"moonshot_base_url,omitempty"`
+	XiaomiMimoPaygBaseURL          string                      `json:"xiaomi_mimo_payg_base_url,omitempty"`
+	XiaomiMimoTokenPlanBaseURL     string                      `json:"xiaomi_mimo_token_plan_base_url,omitempty"`
+	XiaomiMimoTokenPlanRegion      string                      `json:"xiaomi_mimo_token_plan_region,omitempty"`
+	MiniMaxTokenPlanBaseURL        string                      `json:"minimax_token_plan_base_url,omitempty"`
+	MiniMaxPaygBaseURL             string                      `json:"minimax_payg_base_url,omitempty"`
+	AnthropicModel                 string                      `json:"anthropic_model,omitempty"`
 	OpenAIModel                string                      `json:"openai_model,omitempty"`
 	CanopyWaveModel            string                      `json:"canopywave_model,omitempty"`
 	DeepSeekModel              string                      `json:"deepseek_model,omitempty"`
@@ -60,9 +58,12 @@ type ProviderConfig struct {
 	GeminiModel                string                      `json:"gemini_model,omitempty"`
 	OllamaModel                string                      `json:"ollama_model,omitempty"`
 	OpenCodeGoModel            string                      `json:"opencodego_model,omitempty"`
-	MoonshotModel              string                      `json:"moonshot_model,omitempty"`
-	XiaomiModel                string                      `json:"xiaomi_mimo_model,omitempty"`
-	ActiveModel                string                      `json:"active_model,omitempty"`
+	MoonshotModel                  string                      `json:"moonshot_model,omitempty"`
+	XiaomiMimoPaygModel            string                      `json:"xiaomi_mimo_payg_model,omitempty"`
+	XiaomiMimoTokenPlanModel       string                      `json:"xiaomi_mimo_token_plan_model,omitempty"`
+	MiniMaxPaygModel               string                      `json:"minimax_payg_model,omitempty"`
+	MiniMaxTokenPlanModel          string                      `json:"minimax_token_plan_model,omitempty"`
+	ActiveModel                    string                      `json:"active_model,omitempty"`
 	ExplorationModel           string                      `json:"exploration_model,omitempty"`
 	AnthropicVersion           string                      `json:"anthropic_version,omitempty"`
 	Deployments                map[string]DeploymentConfig `json:"deployments,omitempty"`
@@ -179,13 +180,23 @@ var providerFields = map[string]providerFieldMap{
 		APIKeys: func(c *ProviderConfig) []string {
 			return []string{c.XiaomiMimoPaygAPIKey}
 		},
-		Models:  func(c *ProviderConfig) []string { return []string{c.XiaomiModel} },
-		BaseURL: func(c *ProviderConfig) string { return firstNonEmpty(c.XiaomiMimoPaygBaseURL, c.XiaomiBaseURL) },
+		Models:  func(c *ProviderConfig) []string { return []string{c.XiaomiMimoPaygModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.XiaomiMimoPaygBaseURL },
 	},
 	ProviderXiaomiMimoTokenPlan: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.XiaomiMimoTokenPlanAPIKey} },
-		Models:  func(c *ProviderConfig) []string { return []string{c.XiaomiModel} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.XiaomiMimoTokenPlanModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.XiaomiMimoTokenPlanBaseURL },
+	},
+	ProviderMiniMaxPayg: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.MiniMaxPaygAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.MiniMaxPaygModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.MiniMaxPaygBaseURL },
+	},
+	ProviderMiniMaxTokenPlan: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.MiniMaxTokenPlanAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.MiniMaxTokenPlanModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.MiniMaxTokenPlanBaseURL },
 	},
 }
 
@@ -443,8 +454,12 @@ func ClearProviderRuntimeEnv() {
 		"OPENCODEGO_API_KEY", "OPENCODEGO_MODEL", "OPENCODEGO_BASE_URL",
 		"MOONSHOT_API_KEY", "MOONSHOT_MODEL", "MOONSHOT_BASE_URL",
 		"XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
-		"XIAOMI_MIMO_TOKEN_PLAN_REGION", "XIAOMI_MODEL", "XIAOMI_BASE_URL",
-		"XIAOMI_MIMO_PAYG_BASE_URL", "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL",
+		"XIAOMI_MIMO_TOKEN_PLAN_REGION",
+		"XIAOMI_MIMO_PAYG_MODEL", "XIAOMI_MIMO_PAYG_BASE_URL",
+		"XIAOMI_MIMO_TOKEN_PLAN_MODEL", "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL",
+		"MINIMAX_PAYG_API_KEY", "MINIMAX_TOKEN_PLAN_API_KEY",
+		"MINIMAX_PAYG_MODEL", "MINIMAX_PAYG_BASE_URL",
+		"MINIMAX_TOKEN_PLAN_MODEL", "MINIMAX_TOKEN_PLAN_BASE_URL",
 	}
 	for _, k := range keys {
 		_ = os.Unsetenv(k)
@@ -610,31 +625,31 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		collectOpenAICompatibleProvider(env, "MOONSHOT", apiKey, m, base, overwrite)
 	case ProviderXiaomiMimoPayg:
 		apiKey := config.XiaomiMimoPaygAPIKey
-		base, _ := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoPayg, config)
+		base, _ := ResolveXiaomiMimoOpenAIBase(ProviderXiaomiMimoPayg, config)
 		if base == "" {
-			base = DefaultXiaomiOpenAIBaseURL
+			base = DefaultXiaomiMimoOpenAIBaseURL
 		}
 		m := activeModel
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("xiaomi_mimo_payg", cat)
 		}
-		collectEnvValue(env, EnvXiaomiPaygAPIKey, apiKey, overwrite)
-		collectEnvValue(env, EnvXiaomiPaygBaseURL, base, overwrite)
+		collectEnvValue(env, EnvXiaomiMimoPaygAPIKey, apiKey, overwrite)
+		collectEnvValue(env, EnvXiaomiMimoPaygBaseURL, base, overwrite)
 		collectOpenAICompatibleProvider(env, "XIAOMI", apiKey, m, base, overwrite)
 	case ProviderXiaomiMimoTokenPlan:
 		apiKey := AsNonEmptyString(config.XiaomiMimoTokenPlanAPIKey)
-		base, err := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoTokenPlan, config)
+		base, err := ResolveXiaomiMimoOpenAIBase(ProviderXiaomiMimoTokenPlan, config)
 		if err == nil && base != "" {
-			collectEnvValue(env, EnvXiaomiTokenPlanBaseURL, base, overwrite)
+			collectEnvValue(env, EnvXiaomiMimoTokenPlanBaseURL, base, overwrite)
 		}
 		if r := strings.TrimSpace(config.XiaomiMimoTokenPlanRegion); r != "" {
-			collectEnvValue(env, EnvXiaomiTokenPlanRegion, r, overwrite)
+			collectEnvValue(env, EnvXiaomiMimoTokenPlanRegion, r, overwrite)
 		}
 		m := activeModel
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("xiaomi_mimo_token_plan", cat)
 		}
-		collectEnvValue(env, EnvXiaomiTokenPlanAPIKey, apiKey, overwrite)
+		collectEnvValue(env, EnvXiaomiMimoTokenPlanAPIKey, apiKey, overwrite)
 		if base != "" {
 			collectOpenAICompatibleProvider(env, "XIAOMI", apiKey, m, base, overwrite)
 		}

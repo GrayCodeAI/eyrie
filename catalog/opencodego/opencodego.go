@@ -135,11 +135,11 @@ func DefaultUsageLimits() UsageLimits {
 
 // UsageRecord tracks a single spend event.
 type UsageRecord struct {
-	Timestamp   time.Time
-	Model       string
+	Timestamp    time.Time
+	Model        string
 	InputTokens  int
 	OutputTokens int
-	CostUSD     float64
+	CostUSD      float64
 }
 
 // UsageTracker tracks cumulative spend with sliding time windows.

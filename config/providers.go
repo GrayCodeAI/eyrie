@@ -30,7 +30,7 @@ const (
 	DefaultGrokOpenAIBaseURL       = "https://api.x.ai/v1"
 	DefaultOpenCodeGoBaseURL       = opencodego.DefaultBaseURL
 	DefaultKimiOpenAIBaseURL       = "https://api.moonshot.ai/v1"
-	DefaultXiaomiOpenAIBaseURL     = "https://api.xiaomimimo.com/v1"
+	DefaultXiaomiMimoOpenAIBaseURL = "https://api.xiaomimimo.com/v1"
 	DefaultMiniMaxOpenAIBaseURL    = "https://api.minimax.io/v1"
 	DefaultMiniMaxAnthropicBaseURL = "https://api.minimax.io/anthropic"
 )

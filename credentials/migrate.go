@@ -50,9 +50,7 @@ func MigrateLegacyEnvFile(ctx context.Context) (int, error) {
 	return total, nil
 }
 
-var legacyKeychainAccountCopies = []struct{ from, to string }{
-	{"xiaomi_mimo_api_key", "xiaomi_mimo_payg_api_key"},
-}
+var legacyKeychainAccountCopies = []struct{ from, to string }{}
 
 // MigrateLegacyKeychainAccounts copies secrets from deprecated keychain accounts when the new account is empty.
 func MigrateLegacyKeychainAccounts(ctx context.Context) (int, error) {

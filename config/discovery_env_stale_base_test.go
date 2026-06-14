@@ -18,7 +18,7 @@ func TestDiscoveryCredentials_StaleBaseURLUsesRegion(t *testing.T) {
 	}
 	creds := DiscoveryCredentials(context.Background())
 	want := "https://token-plan-sgp.xiaomimimo.com/v1"
-	if creds.APIKeys[EnvXiaomiTokenPlanBaseURL] != want {
-		t.Fatalf("base = %q, want %s", creds.APIKeys[EnvXiaomiTokenPlanBaseURL], want)
+	if creds.APIKeys[EnvXiaomiMimoTokenPlanBaseURL] != want {
+		t.Fatalf("base = %q, want %s", creds.APIKeys[EnvXiaomiMimoTokenPlanBaseURL], want)
 	}
 }

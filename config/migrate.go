@@ -7,7 +7,6 @@ func EnsureDeploymentConfigV2(cfg *ProviderConfig) *ProviderConfig {
 	if cfg == nil {
 		return nil
 	}
-	MigrateLegacyXiaomiProvider(cfg)
 	if cfg.ConfigVersion >= 2 || len(cfg.Deployments) > 0 || cfg.Routing != nil {
 		if cfg.ConfigVersion < 2 && (len(cfg.Deployments) > 0 || cfg.Routing != nil) {
 			cfg.ConfigVersion = 2
@@ -31,6 +30,8 @@ func EnsureDeploymentConfigV2(cfg *ProviderConfig) *ProviderConfig {
 		{ProviderKimi, "kimi-direct"},
 		{ProviderXiaomiMimoPayg, "xiaomi_mimo_payg-direct"},
 		{ProviderXiaomiMimoTokenPlan, "xiaomi_mimo_token_plan-direct"},
+		{ProviderMiniMaxPayg, "minimax_payg-direct"},
+		{ProviderMiniMaxTokenPlan, "minimax_token_plan-direct"},
 	}
 	for _, item := range legacy {
 		dep := legacyDeploymentConfig(cfg, item.provider)
@@ -80,8 +81,12 @@ func legacyDeploymentConfig(cfg *ProviderConfig, provider string) DeploymentConf
 			BaseURL: cfg.XiaomiMimoPaygBaseURL,
 		}
 	case ProviderXiaomiMimoTokenPlan:
-		base, _ := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg)
+		base, _ := ResolveXiaomiMimoOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg)
 		return DeploymentConfig{APIKey: cfg.XiaomiMimoTokenPlanAPIKey, BaseURL: base}
+	case ProviderMiniMaxPayg:
+		return DeploymentConfig{APIKey: cfg.MiniMaxPaygAPIKey, BaseURL: cfg.MiniMaxPaygBaseURL}
+	case ProviderMiniMaxTokenPlan:
+		return DeploymentConfig{APIKey: cfg.MiniMaxTokenPlanAPIKey, BaseURL: cfg.MiniMaxTokenPlanBaseURL}
 	default:
 		return DeploymentConfig{}
 	}

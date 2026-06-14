@@ -60,8 +60,8 @@ func TestCompatMatrixMaxTokensFieldValues(t *testing.T) {
 		{"ollama", "max_tokens", &OllamaCompat},
 		{"opencodego", "max_tokens", &OpenCodeGoCompat},
 		{"kimi", "max_tokens", &KimiCompat},
-		{"xiaomi_mimo_payg", "max_completion_tokens", &XiaomiCompat},
-		{"xiaomi_mimo_token_plan", "max_completion_tokens", &XiaomiCompat},
+		{"xiaomi_mimo_payg", "max_completion_tokens", &XiaomiMimoCompat},
+		{"xiaomi_mimo_token_plan", "max_completion_tokens", &XiaomiMimoCompat},
 	}
 	for _, tc := range tests {
 		if tc.compat.MaxTokensField != tc.field {
@@ -86,7 +86,7 @@ func TestCompatMatrixOpenAIUniqueCapabilities(t *testing.T) {
 	others := []*OpenAICompatConfig{
 		&GrokCompat, &OpenRouterCompat, &GeminiCompat,
 		&ZAICompat, &CanopyWaveCompat, &OllamaCompat,
-		&OpenCodeGoCompat, &KimiCompat, &XiaomiCompat,
+		&OpenCodeGoCompat, &KimiCompat, &XiaomiMimoCompat,
 		&AzureCompat, &BedrockCompat, &VertexCompat,
 	}
 	for _, c := range others {
@@ -118,7 +118,7 @@ func TestCompatMatrixThinkingFormatValues(t *testing.T) {
 	noFormat := []*OpenAICompatConfig{
 		&OpenAICompat, &GrokCompat, &GeminiCompat,
 		&CanopyWaveCompat, &OllamaCompat,
-		&KimiCompat, &XiaomiCompat, &AzureCompat,
+		&KimiCompat, &XiaomiMimoCompat, &AzureCompat,
 		&BedrockCompat, &VertexCompat,
 	}
 	for _, c := range noFormat {
@@ -142,7 +142,7 @@ func TestCompatMatrixUsageInStreaming(t *testing.T) {
 	// Providers that do NOT report usage in streaming.
 	noUsage := []*OpenAICompatConfig{
 		&GrokCompat, &CanopyWaveCompat, &OllamaCompat,
-		&KimiCompat, &XiaomiCompat,
+		&KimiCompat, &XiaomiMimoCompat,
 		&AzureCompat, &BedrockCompat, &VertexCompat,
 	}
 	for _, c := range noUsage {

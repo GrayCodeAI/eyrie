@@ -118,8 +118,8 @@ func TestFeatureSetFromCatalog_OverridesHardcoded(t *testing.T) {
 			"anthropic-direct": {
 				{
 					CanonicalModelID: "anthropic/claude-haiku-4-5",
-					NativeModelID:   "claude-haiku-4-5-20251001",
-					DeploymentID:    "anthropic-direct",
+					NativeModelID:    "claude-haiku-4-5-20251001",
+					DeploymentID:     "anthropic-direct",
 					Capabilities: catalog.CapabilitySetV1{
 						ExplicitThinkingBudget: catalog.CapabilitySupported,
 						AdaptiveThinking:       catalog.CapabilitySupported,
@@ -131,8 +131,8 @@ func TestFeatureSetFromCatalog_OverridesHardcoded(t *testing.T) {
 				},
 				{
 					CanonicalModelID: "anthropic/claude-opus-4-8",
-					NativeModelID:   "claude-opus-4-8",
-					DeploymentID:    "anthropic-direct",
+					NativeModelID:    "claude-opus-4-8",
+					DeploymentID:     "anthropic-direct",
 					Capabilities: catalog.CapabilitySetV1{
 						ExplicitThinkingBudget: catalog.CapabilitySupported,
 						AdaptiveThinking:       catalog.CapabilitySupported,
@@ -151,8 +151,8 @@ func TestFeatureSetFromCatalog_OverridesHardcoded(t *testing.T) {
 			"anthropic/claude-haiku-4-5": {
 				{
 					CanonicalModelID: "anthropic/claude-haiku-4-5",
-					NativeModelID:   "claude-haiku-4-5-20251001",
-					DeploymentID:    "anthropic-direct",
+					NativeModelID:    "claude-haiku-4-5-20251001",
+					DeploymentID:     "anthropic-direct",
 					Capabilities: catalog.CapabilitySetV1{
 						ExplicitThinkingBudget: catalog.CapabilitySupported,
 						MaxInputTokens:         200000,
@@ -224,15 +224,37 @@ func TestFeatureSetFromCapabilities(t *testing.T) {
 		MaxOutputTokens:        128000,
 	}
 	fs := featureSetFromCapabilities(caps)
-	if !fs.Thinking { t.Error("expected thinking") }
-	if !fs.AdaptiveThinking { t.Error("expected adaptive thinking") }
-	if !fs.ToolUse { t.Error("expected tool use") }
-	if !fs.Images { t.Error("expected images") }
-	if !fs.Effort { t.Error("expected effort") }
-	if !fs.StructuredOutput { t.Error("expected structured output") }
-	if !fs.CodeExecution { t.Error("expected code execution") }
-	if !fs.Citations { t.Error("expected citations") }
-	if !fs.PDFInput { t.Error("expected pdf input") }
-	if fs.MaxContext != 1000000 { t.Errorf("MaxContext = %d", fs.MaxContext) }
-	if fs.MaxOutput != 128000 { t.Errorf("MaxOutput = %d", fs.MaxOutput) }
+	if !fs.Thinking {
+		t.Error("expected thinking")
+	}
+	if !fs.AdaptiveThinking {
+		t.Error("expected adaptive thinking")
+	}
+	if !fs.ToolUse {
+		t.Error("expected tool use")
+	}
+	if !fs.Images {
+		t.Error("expected images")
+	}
+	if !fs.Effort {
+		t.Error("expected effort")
+	}
+	if !fs.StructuredOutput {
+		t.Error("expected structured output")
+	}
+	if !fs.CodeExecution {
+		t.Error("expected code execution")
+	}
+	if !fs.Citations {
+		t.Error("expected citations")
+	}
+	if !fs.PDFInput {
+		t.Error("expected pdf input")
+	}
+	if fs.MaxContext != 1000000 {
+		t.Errorf("MaxContext = %d", fs.MaxContext)
+	}
+	if fs.MaxOutput != 128000 {
+		t.Errorf("MaxOutput = %d", fs.MaxOutput)
+	}
 }

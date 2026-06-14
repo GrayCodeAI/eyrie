@@ -33,16 +33,16 @@ func mergeDiscoveryEnvFromProviderConfig(env map[string]string) {
 	}
 	r := strings.TrimSpace(cfg.XiaomiMimoTokenPlanRegion)
 	if r == "" {
-		r = strings.TrimSpace(os.Getenv(EnvXiaomiTokenPlanRegion))
+		r = strings.TrimSpace(os.Getenv(EnvXiaomiMimoTokenPlanRegion))
 	}
 	if norm, err := xiaomi.NormalizeRegion(r); err == nil {
-		env[EnvXiaomiTokenPlanRegion] = string(norm)
+		env[EnvXiaomiMimoTokenPlanRegion] = string(norm)
 	}
-	if base, err := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg); err == nil && base != "" {
-		env[EnvXiaomiTokenPlanBaseURL] = base
+	if base, err := ResolveXiaomiMimoOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg); err == nil && base != "" {
+		env[EnvXiaomiMimoTokenPlanBaseURL] = base
 	}
 	if paygBase := strings.TrimSpace(cfg.XiaomiMimoPaygBaseURL); paygBase != "" {
-		env[EnvXiaomiPaygBaseURL] = paygBase
+		env[EnvXiaomiMimoPaygBaseURL] = paygBase
 	}
 	if ollamaBase := NormalizeOllamaOpenAIBaseURL(AsNonEmptyString(cfg.OllamaBaseURL)); ollamaBase != "" {
 		env["OLLAMA_BASE_URL"] = ollamaBase

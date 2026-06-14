@@ -136,32 +136,32 @@ var (
 		BaseURLEnv:   []string{"MOONSHOT_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "MOONSHOT_API_KEY", Source: "kimi"}},
 	}
-	XiaomiPaygRuntimeProfile = RuntimeProviderProfile{
-		Mode: "openai", DefaultBaseURL: DefaultXiaomiOpenAIBaseURL,
-		DetectionEnv: []string{EnvXiaomiPaygAPIKey},
-		ModelEnv:     []string{"XIAOMI_MIMO_PAYG_MODEL", "XIAOMI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{EnvXiaomiPaygBaseURL, "XIAOMI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
-		APIKeys:      []APIKeyDef{{Env: EnvXiaomiPaygAPIKey, Source: "xiaomi_mimo_payg"}},
+	XiaomiMimoPaygRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultXiaomiMimoOpenAIBaseURL,
+		DetectionEnv: []string{EnvXiaomiMimoPaygAPIKey},
+		ModelEnv:     []string{"XIAOMI_MIMO_PAYG_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{EnvXiaomiMimoPaygBaseURL, "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: EnvXiaomiMimoPaygAPIKey, Source: "xiaomi_mimo_payg"}},
 	}
-	XiaomiTokenPlanRuntimeProfile = RuntimeProviderProfile{
+	XiaomiMimoTokenPlanRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: "",
-		DetectionEnv: []string{EnvXiaomiTokenPlanAPIKey},
-		ModelEnv:     []string{"XIAOMI_MIMO_TOKEN_PLAN_MODEL", "XIAOMI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{EnvXiaomiTokenPlanBaseURL, "OPENAI_BASE_URL", "OPENAI_API_BASE"},
-		APIKeys:      []APIKeyDef{{Env: EnvXiaomiTokenPlanAPIKey, Source: "xiaomi_mimo_token_plan"}},
+		DetectionEnv: []string{EnvXiaomiMimoTokenPlanAPIKey},
+		ModelEnv:     []string{"XIAOMI_MIMO_TOKEN_PLAN_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{EnvXiaomiMimoTokenPlanBaseURL, "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: EnvXiaomiMimoTokenPlanAPIKey, Source: "xiaomi_mimo_token_plan"}},
 	}
 	MiniMaxTokenPlanRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultMiniMaxOpenAIBaseURL,
 		DetectionEnv: []string{"MINIMAX_TOKEN_PLAN_API_KEY"},
-		ModelEnv:     []string{"MINIMAX_TOKEN_PLAN_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"MINIMAX_TOKEN_PLAN_BASE_URL", "MINIMAX_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		ModelEnv:     []string{"MINIMAX_TOKEN_PLAN_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"MINIMAX_TOKEN_PLAN_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "MINIMAX_TOKEN_PLAN_API_KEY", Source: "minimax_token_plan"}},
 	}
 	MiniMaxPaygRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultMiniMaxOpenAIBaseURL,
 		DetectionEnv: []string{"MINIMAX_PAYG_API_KEY"},
-		ModelEnv:     []string{"MINIMAX_PAYG_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"MINIMAX_PAYG_BASE_URL", "MINIMAX_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		ModelEnv:     []string{"MINIMAX_PAYG_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"MINIMAX_PAYG_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "MINIMAX_PAYG_API_KEY", Source: "minimax_payg"}},
 	}
 )
@@ -189,10 +189,10 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 	ProviderOllama:              {"OLLAMA_MODEL", "OPENAI_MODEL"},
 	ProviderOpenCodeGo:          OpenCodeGoRuntimeProfile.ModelEnv,
 	ProviderKimi:                KimiRuntimeProfile.ModelEnv,
-	ProviderXiaomiMimoPayg:      XiaomiPaygRuntimeProfile.ModelEnv,
-	ProviderXiaomiMimoTokenPlan: XiaomiTokenPlanRuntimeProfile.ModelEnv,
-	ProviderMiniMaxTokenPlan:    {"MINIMAX_TOKEN_PLAN_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
-	ProviderMiniMaxPayg:         {"MINIMAX_PAYG_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
+	ProviderXiaomiMimoPayg:      XiaomiMimoPaygRuntimeProfile.ModelEnv,
+	ProviderXiaomiMimoTokenPlan: XiaomiMimoTokenPlanRuntimeProfile.ModelEnv,
+	ProviderMiniMaxTokenPlan:    {"MINIMAX_TOKEN_PLAN_MODEL", "OPENAI_MODEL"},
+	ProviderMiniMaxPayg:         {"MINIMAX_PAYG_MODEL", "OPENAI_MODEL"},
 }
 
 const (
@@ -217,8 +217,8 @@ var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
 	"openrouter":             OpenRouterRuntimeProfile,
 	"opencodego":             OpenCodeGoRuntimeProfile,
 	"kimi":                   KimiRuntimeProfile,
-	"xiaomi_mimo_payg":       XiaomiPaygRuntimeProfile,
-	"xiaomi_mimo_token_plan": XiaomiTokenPlanRuntimeProfile,
+	"xiaomi_mimo_payg":       XiaomiMimoPaygRuntimeProfile,
+	"xiaomi_mimo_token_plan": XiaomiMimoTokenPlanRuntimeProfile,
 	"minimax_token_plan":     MiniMaxTokenPlanRuntimeProfile,
 	"minimax_payg":           MiniMaxPaygRuntimeProfile,
 }
