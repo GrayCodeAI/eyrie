@@ -25,8 +25,8 @@ func TestOpenCodeGoUsesMessagesAPI(t *testing.T) {
 		{"mimo-v2.5-pro", false},
 	}
 	for _, tc := range tests {
-		if got := opencodego.UsesMessagesAPI(tc.model); got != tc.want {
-			t.Errorf("UsesMessagesAPI(%q) = %v, want %v", tc.model, got, tc.want)
+		if got := opencodego.ProtocolForModel(tc.model) == "anthropic"; got != tc.want {
+			t.Errorf("ProtocolForModel(%q) = %v, want %v", tc.model, got, tc.want)
 		}
 	}
 }

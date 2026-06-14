@@ -222,11 +222,6 @@ func TestFetchOpenCodeGo_FullActualResponse(t *testing.T) {
 		t.Errorf("glm-5.1 cached read = %.3f, want 0.26", e.CachedReadPricePer1M)
 	}
 
-	// Verify tiered pricing for qwen3.7-plus.
-	if e := byID["qwen3.7-plus"]; e.TierThreshold != 256000 {
-		t.Errorf("qwen3.7-plus tier threshold = %d, want 256000", e.TierThreshold)
-	}
-
 	// Verify context window.
 	if e := byID["kimi-k2.6"]; e.ContextWindow != 128000 {
 		t.Errorf("kimi-k2.6 context = %d, want 128000", e.ContextWindow)

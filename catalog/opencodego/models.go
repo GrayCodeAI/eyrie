@@ -18,11 +18,6 @@ type ModelMetadata struct {
 	Context     int     // context window tokens
 	MaxOutput   int     // max output tokens
 	// Tiered pricing (Qwen models: different rate above threshold)
-	TierThreshold     int     // 0 = no tiering (e.g., 256000 for Qwen)
-	TieredInputPer1M  float64 // rate above threshold
-	TieredOutputPer1M float64
-	TieredCachedRead  float64
-	TieredCachedWrite float64
 }
 
 // KnownModels is the static metadata map keyed by model ID.
@@ -49,14 +44,10 @@ var KnownModels = map[string]ModelMetadata{
 	"qwen3.7-plus": {
 		Protocol: "anthropic", InputPer1M: 0.40, OutputPer1M: 1.60,
 		CachedRead: 0.04, CachedWrite: 0.50, Context: 128000, MaxOutput: 8000,
-		TierThreshold: 256000, TieredInputPer1M: 1.20, TieredOutputPer1M: 4.80,
-		TieredCachedRead: 0.12, TieredCachedWrite: 1.50,
 	},
 	"qwen3.6-plus": {
 		Protocol: "anthropic", InputPer1M: 0.50, OutputPer1M: 3.00,
 		CachedRead: 0.05, CachedWrite: 0.625, Context: 128000, MaxOutput: 8000,
-		TierThreshold: 256000, TieredInputPer1M: 2.00, TieredOutputPer1M: 6.00,
-		TieredCachedRead: 0.20, TieredCachedWrite: 2.50,
 	},
 	"qwen3.5-plus": {
 		Protocol: "anthropic", InputPer1M: 0.50, OutputPer1M: 3.00,

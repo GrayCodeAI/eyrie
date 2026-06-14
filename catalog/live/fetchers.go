@@ -807,13 +807,6 @@ func enrichFromStaticMeta(e Entry, meta opencodego.ModelMetadata) Entry {
 	if e.MaxOutput == 0 {
 		e.MaxOutput = meta.MaxOutput
 	}
-	if meta.TierThreshold > 0 {
-		e.TierThreshold = meta.TierThreshold
-		e.TieredInputPricePer1M = meta.TieredInputPer1M
-		e.TieredOutputPricePer1M = meta.TieredOutputPer1M
-		e.TieredCachedReadPer1M = meta.TieredCachedRead
-		e.TieredCachedWritePer1M = meta.TieredCachedWrite
-	}
 	return e
 }
 

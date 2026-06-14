@@ -16,14 +16,7 @@ type Entry struct {
 	CachedReadPricePer1M float64
 	// CachedWritePricePer1M is the price per 1M tokens for cached writes (cache creation).
 	CachedWritePricePer1M float64
-	// Tiered pricing: when input tokens exceed TierThreshold, TieredInputPricePer1M applies.
-	// Same for output. 0 means no tiering.
-	TierThreshold          int     `json:"tier_threshold,omitempty"`
-	TieredInputPricePer1M  float64 `json:"tiered_input_price_per_1m,omitempty"`
-	TieredOutputPricePer1M float64 `json:"tiered_output_price_per_1m,omitempty"`
-	TieredCachedReadPer1M  float64 `json:"tiered_cached_read_per_1m,omitempty"`
-	TieredCachedWritePer1M float64 `json:"tiered_cached_write_per_1m,omitempty"`
-	Features               []string
+	Features              []string
 	// Protocol indicates which API protocol the model uses ("openai" or "anthropic").
 	// Populated from live API metadata when available; empty means unknown/heuristic.
 	Protocol string

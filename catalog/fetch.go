@@ -32,14 +32,6 @@ func LiveEntriesToCatalog(in []live.Entry) []ModelCatalogEntry {
 			entry.CachedReadPricePer1M = e.CachedReadPricePer1M
 			entry.CachedWritePricePer1M = e.CachedWritePricePer1M
 		}
-		// Propagate tiered pricing if available.
-		if e.TierThreshold > 0 {
-			entry.TierThreshold = e.TierThreshold
-			entry.TieredInputPricePer1M = e.TieredInputPricePer1M
-			entry.TieredOutputPricePer1M = e.TieredOutputPricePer1M
-			entry.TieredCachedReadPer1M = e.TieredCachedReadPer1M
-			entry.TieredCachedWritePer1M = e.TieredCachedWritePer1M
-		}
 		out[i] = entry
 	}
 	return out

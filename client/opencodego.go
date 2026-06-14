@@ -31,7 +31,7 @@ func (c *OpenCodeGoClient) Name() string { return "opencodego" }
 
 func (c *OpenCodeGoClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
 	opts.Model = opencodego.NativeModelID(opts.Model)
-	if opencodego.UsesMessagesAPI(opts.Model) {
+	if opencodego.ProtocolForModel(opts.Model) == "anthropic" {
 		return c.router.Chat(ctx, messages, opts, ChatProtocolMessages, openCodeGoMessagesFallback)
 	}
 	return c.router.OpenAI.Chat(ctx, messages, opts)
@@ -39,7 +39,7 @@ func (c *OpenCodeGoClient) Chat(ctx context.Context, messages []EyrieMessage, op
 
 func (c *OpenCodeGoClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
 	opts.Model = opencodego.NativeModelID(opts.Model)
-	if opencodego.UsesMessagesAPI(opts.Model) {
+	if opencodego.ProtocolForModel(opts.Model) == "anthropic" {
 		return c.router.StreamChat(ctx, messages, opts, ProtocolStreamConfig{
 			Primary:               ChatProtocolMessages,
 			ReasoningOnlyFallback: true,
