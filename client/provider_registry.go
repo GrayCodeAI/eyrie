@@ -192,6 +192,11 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 			p = NewOpenCodeGoClient(apiKey, baseURL)
 			break
 		}
+		if providerName == "deepseek" {
+			anthropicBase := "https://api.deepseek.com/anthropic"
+			p = NewDeepSeekClient(apiKey, baseURL, anthropicBase, info.Compat)
+			break
+		}
 		p = NewOpenAIClient(apiKey, baseURL, info.Compat)
 	}
 

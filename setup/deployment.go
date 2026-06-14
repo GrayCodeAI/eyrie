@@ -217,7 +217,9 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 		if apiKey == "" {
 			return nil, false
 		}
-		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://api.deepseek.com/v1"), &client.DeepSeekCompat), true
+		openBase := FirstNonEmpty(deployment.BaseURL, "https://api.deepseek.com/v1")
+		anthropicBase := "https://api.deepseek.com/anthropic"
+		return client.NewDeepSeekClient(apiKey, openBase, anthropicBase, &client.DeepSeekCompat), true
 	case "z-ai-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("ZAI_API_KEY"))
 		if apiKey == "" {
@@ -243,6 +245,18 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 		return newMiMoDeploymentClient(deployment, config.ProviderXiaomiMimoPayg, "XIAOMI_MIMO_PAYG_API_KEY", storeSecret)
 	case "xiaomi_mimo_token_plan-direct":
 		return newMiMoDeploymentClient(deployment, config.ProviderXiaomiMimoTokenPlan, "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", storeSecret)
+	case "minimax_token_plan-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MINIMAX_TOKEN_PLAN_API_KEY", "MINIMAX_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return newMiniMaxDualProtocolClient(apiKey, deployment.BaseURL), true
+	case "minimax_payg-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MINIMAX_PAYG_API_KEY", "MINIMAX_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return newMiniMaxDualProtocolClient(apiKey, deployment.BaseURL), true
 	default:
 		return nil, false
 	}
@@ -303,6 +317,10 @@ func DefaultDeploymentForProvider(provider string) string {
 		return "xiaomi_mimo_payg-direct"
 	case config.ProviderXiaomiMimoTokenPlan:
 		return "xiaomi_mimo_token_plan-direct"
+	case config.ProviderMiniMaxTokenPlan:
+		return "minimax_token_plan-direct"
+	case config.ProviderMiniMaxPayg:
+		return "minimax_payg-direct"
 	default:
 		return ""
 	}
@@ -344,6 +362,10 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 	case config.ProviderXiaomiMimoTokenPlan:
 		base, _ := config.ResolveXiaomiOpenAIBase(config.ProviderXiaomiMimoTokenPlan, cfg)
 		return config.DeploymentConfig{APIKey: cfg.XiaomiMimoTokenPlanAPIKey, BaseURL: base}
+	case config.ProviderMiniMaxTokenPlan:
+		return config.DeploymentConfig{APIKey: FirstNonEmpty(cfg.MiniMaxTokenPlanAPIKey, cfg.MiniMaxAPIKey), BaseURL: FirstNonEmpty(cfg.MiniMaxTokenPlanBaseURL, cfg.MiniMaxBaseURL)}
+	case config.ProviderMiniMaxPayg:
+		return config.DeploymentConfig{APIKey: FirstNonEmpty(cfg.MiniMaxPaygAPIKey, cfg.MiniMaxAPIKey), BaseURL: FirstNonEmpty(cfg.MiniMaxPaygBaseURL, cfg.MiniMaxBaseURL)}
 	default:
 		return config.DeploymentConfig{}
 	}
@@ -394,6 +416,16 @@ func FirstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// newMiniMaxDualProtocolClient creates a FallbackProvider that tries OpenAI-compatible
+// endpoint first, then falls back to Anthropic-compatible endpoint. Both use the same API key.
+func newMiniMaxDualProtocolClient(apiKey, baseURL string) client.Provider {
+	openaiBase := FirstNonEmpty(baseURL, config.DefaultMiniMaxOpenAIBaseURL)
+	anthropicBase := config.DefaultMiniMaxAnthropicBaseURL
+	openaiClient := client.NewOpenAIClient(apiKey, openaiBase, &client.OpenAICompat)
+	anthropicClient := client.NewAnthropicClient(apiKey, anthropicBase)
+	return client.NewFallbackProvider(openaiClient, anthropicClient)
 }
 
 // CloneStringMap returns a shallow copy of m.
