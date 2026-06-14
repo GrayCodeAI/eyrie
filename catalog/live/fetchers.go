@@ -29,6 +29,7 @@ const (
 	DefaultOpenCodeGoBaseURL = opencodego.DefaultBaseURL
 	DefaultKimiBaseURL       = "https://api.moonshot.ai/v1"
 	DefaultXiaomiBaseURL     = "https://api.xiaomimimo.com/v1"
+	DefaultMiniMaxBaseURL    = "https://api.minimax.io/v1"
 )
 
 // FetchFunc lists models from a live provider API.
@@ -52,6 +53,8 @@ var Registry = map[string]FetchFunc{
 	"kimi":                   FetchKimi,
 	"xiaomi_mimo_payg":       FetchXiaomiPayg,
 	"xiaomi_mimo_token_plan": FetchXiaomiTokenPlan,
+	"minimax_token_plan":     FetchMiniMaxTokenPlan,
+	"minimax_payg":           FetchMiniMaxPayg,
 	"ollama":                 FetchOllama,
 	"deepseek":               FetchDeepSeek,
 }
@@ -468,6 +471,22 @@ func appendUnique(slice []string, s string) []string {
 	return append(slice, s)
 }
 
+func FetchMiniMaxTokenPlan(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "MINIMAX_TOKEN_PLAN_BASE_URL", DefaultMiniMaxBaseURL),
+		env["MINIMAX_TOKEN_PLAN_API_KEY"], "Bearer",
+	)
+}
+
+func FetchMiniMaxPayg(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "MINIMAX_PAYG_BASE_URL", DefaultMiniMaxBaseURL),
+		env["MINIMAX_PAYG_API_KEY"], "Bearer",
+	)
+}
+
 func FetchAzure(env map[string]string) ([]Entry, error) {
 	if id := firstEnv(env, "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_MODEL", "OPENAI_MODEL"); id != "" {
 		return []Entry{{ID: id, DisplayName: id}}, nil
@@ -844,9 +863,6 @@ func resolveTokenPlanOpenAIBase(env map[string]string) string {
 
 func fetchMimoOpenAIModels(env map[string]string, keyEnv, baseEnv, defaultBase string) ([]Entry, error) {
 	apiKey := strings.TrimSpace(env[keyEnv])
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(env["XIAOMI_MIMO_API_KEY"])
-	}
 	if apiKey == "" {
 		return nil, nil
 	}

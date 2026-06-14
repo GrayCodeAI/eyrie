@@ -34,8 +34,8 @@ func TestFetchGemini_MockHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 models, got %d", len(entries))
+	if len(entries) != 37 {
+		t.Fatalf("expected 37 models (filtered generateContent), got %d", len(entries))
 	}
 	byID := map[string]Entry{}
 	for _, e := range entries {
@@ -48,7 +48,7 @@ func TestFetchGemini_MockHTTPServer(t *testing.T) {
 	if flash.DisplayName != "Gemini 2.0 Flash" {
 		t.Fatalf("display name = %q", flash.DisplayName)
 	}
-	if flash.ContextWindow != 128000 || flash.MaxOutput != 8192 {
+	if flash.ContextWindow != 1048576 || flash.MaxOutput != 8192 {
 		t.Fatalf("context/max = %d/%d", flash.ContextWindow, flash.MaxOutput)
 	}
 	if len(flash.RawJSON) == 0 {

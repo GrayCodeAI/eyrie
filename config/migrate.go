@@ -76,8 +76,8 @@ func legacyDeploymentConfig(cfg *ProviderConfig, provider string) DeploymentConf
 		return DeploymentConfig{APIKey: cfg.MoonshotAPIKey, BaseURL: cfg.MoonshotBaseURL}
 	case ProviderXiaomiMimoPayg:
 		return DeploymentConfig{
-			APIKey:  legacyFirstNonEmpty(cfg.XiaomiMimoPaygAPIKey, cfg.XiaomiAPIKey),
-			BaseURL: legacyFirstNonEmpty(cfg.XiaomiMimoPaygBaseURL, cfg.XiaomiBaseURL),
+			APIKey:  cfg.XiaomiMimoPaygAPIKey,
+			BaseURL: cfg.XiaomiMimoPaygBaseURL,
 		}
 	case ProviderXiaomiMimoTokenPlan:
 		base, _ := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoTokenPlan, cfg)

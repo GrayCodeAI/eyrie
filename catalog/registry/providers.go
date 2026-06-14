@@ -88,10 +88,26 @@ func providerSpecs() []ProviderSpec {
 			LiveFetcherKey: "xiaomi_mimo_payg", LiveCatalogKey: "xiaomi_mimo_payg",
 			APIProtocolID: "openai-chat-completions", AdapterID: "xiaomi_mimo",
 		},
+		{
+			ProviderID: "minimax_token_plan", DisplayName: "MiniMax — Token Plan", DeploymentID: "minimax_token_plan-direct", SortOrder: 10,
+			RequiresKey: true, CredentialEnv: "MINIMAX_TOKEN_PLAN_API_KEY",
+			BaseURLEnv: []string{"MINIMAX_TOKEN_PLAN_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.minimax.io/v1",
+			LiveFetcherKey: "minimax_token_plan", LiveCatalogKey: "minimax_token_plan",
+			APIProtocolID: "openai-chat-completions", AdapterID: "openai",
+		},
+		{
+			ProviderID: "minimax_payg", DisplayName: "MiniMax — Pay-as-you-go", DeploymentID: "minimax_payg-direct", SortOrder: 11,
+			RequiresKey: true, CredentialEnv: "MINIMAX_PAYG_API_KEY",
+			BaseURLEnv: []string{"MINIMAX_PAYG_BASE_URL", "MINIMAX_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.minimax.io/v1",
+			LiveFetcherKey: "minimax_payg", LiveCatalogKey: "minimax_payg",
+			APIProtocolID: "openai-chat-completions", AdapterID: "openai",
+		},
 
 		// ── Cloud platform providers ──────────────────────────────────────
 		{
-			ProviderID: "azure", DisplayName: "Azure OpenAI", DeploymentID: "openai-azure", SortOrder: 10,
+			ProviderID: "azure", DisplayName: "Azure OpenAI", DeploymentID: "openai-azure", SortOrder: 12,
 			RequiresKey: true, CredentialEnv: "AZURE_OPENAI_API_KEY",
 			BaseURLEnv: []string{"AZURE_OPENAI_ENDPOINT"},
 			ProbeKind:  ProbeNone,
@@ -99,7 +115,7 @@ func providerSpecs() []ProviderSpec {
 			APIProtocolID: "openai-chat-completions", AdapterID: "openai-azure",
 		},
 		{
-			ProviderID: "bedrock", DisplayName: "Amazon Bedrock", DeploymentID: "anthropic-bedrock", SortOrder: 11,
+			ProviderID: "bedrock", DisplayName: "Amazon Bedrock", DeploymentID: "anthropic-bedrock", SortOrder: 13,
 			RequiresKey: true, CredentialEnv: "AWS_SECRET_ACCESS_KEY",
 			CredentialEnvFallbacks: []string{"AWS_ACCESS_KEY_ID", "AWS_SESSION_TOKEN"},
 			BaseURLEnv:             []string{"AWS_REGION", "AWS_DEFAULT_REGION"},
@@ -108,7 +124,7 @@ func providerSpecs() []ProviderSpec {
 			APIProtocolID: "anthropic-messages", AdapterID: "anthropic-bedrock",
 		},
 		{
-			ProviderID: "vertex", DisplayName: "Vertex AI", DeploymentID: "gemini-vertex", SortOrder: 12,
+			ProviderID: "vertex", DisplayName: "Vertex AI", DeploymentID: "gemini-vertex", SortOrder: 14,
 			RequiresKey: true, CredentialEnv: "VERTEX_ACCESS_TOKEN",
 			CredentialEnvFallbacks: []string{"GOOGLE_OAUTH_ACCESS_TOKEN"},
 			BaseURLEnv:             []string{"VERTEX_PROJECT_ID", "VERTEX_REGION"},
@@ -119,7 +135,7 @@ func providerSpecs() []ProviderSpec {
 
 		// ── Aggregators ───────────────────────────────────────────────────
 		{
-			ProviderID: "openrouter", DisplayName: "OpenRouter", DeploymentID: "openrouter", SortOrder: 13,
+			ProviderID: "openrouter", DisplayName: "OpenRouter", DeploymentID: "openrouter", SortOrder: 15,
 			RequiresKey: true, CredentialEnv: "OPENROUTER_API_KEY",
 			BaseURLEnv: []string{"OPENROUTER_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://openrouter.ai/api/v1",
@@ -129,7 +145,7 @@ func providerSpecs() []ProviderSpec {
 
 		// ── Niche ─────────────────────────────────────────────────────────
 		{
-			ProviderID: "canopywave", DisplayName: "CanopyWave", DeploymentID: "canopywave", SortOrder: 14,
+			ProviderID: "canopywave", DisplayName: "CanopyWave", DeploymentID: "canopywave", SortOrder: 16,
 			RequiresKey: true, CredentialEnv: "CANOPYWAVE_API_KEY",
 			BaseURLEnv: []string{"CANOPYWAVE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://inference.canopywave.io/v1",
@@ -137,7 +153,7 @@ func providerSpecs() []ProviderSpec {
 			APIProtocolID: "openai-chat-completions", AdapterID: "canopywave",
 		},
 		{
-			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 15,
+			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 17,
 			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY",
 			BaseURLEnv:   []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:    ProbeOpenAIModels,
@@ -148,7 +164,7 @@ func providerSpecs() []ProviderSpec {
 
 		// ── Local ─────────────────────────────────────────────────────────
 		{
-			ProviderID: "ollama", DisplayName: "Ollama", DeploymentID: "ollama-local", SortOrder: 16,
+			ProviderID: "ollama", DisplayName: "Ollama", DeploymentID: "ollama-local", SortOrder: 18,
 			RequiresKey: false, CredentialEnv: "OLLAMA_BASE_URL",
 			BaseURLEnv:     []string{"OLLAMA_BASE_URL"},
 			ProbeKind:      ProbeOllama,

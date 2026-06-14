@@ -246,13 +246,13 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 	case "xiaomi_mimo_token_plan-direct":
 		return newMiMoDeploymentClient(deployment, config.ProviderXiaomiMimoTokenPlan, "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", storeSecret)
 	case "minimax_token_plan-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MINIMAX_TOKEN_PLAN_API_KEY", "MINIMAX_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MINIMAX_TOKEN_PLAN_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return newMiniMaxDualProtocolClient(apiKey, deployment.BaseURL), true
 	case "minimax_payg-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MINIMAX_PAYG_API_KEY", "MINIMAX_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MINIMAX_PAYG_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
@@ -263,7 +263,7 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 }
 
 func newMiMoDeploymentClient(deployment config.DeploymentConfig, providerID, envKey string, lookup func(...string) string) (client.Provider, bool) {
-	apiKey := FirstNonEmpty(deployment.APIKey, lookup(envKey, "XIAOMI_MIMO_API_KEY"))
+	apiKey := FirstNonEmpty(deployment.APIKey, lookup(envKey))
 	if apiKey == "" {
 		return nil, false
 	}
@@ -356,16 +356,16 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 		return config.DeploymentConfig{APIKey: cfg.MoonshotAPIKey, BaseURL: cfg.MoonshotBaseURL}
 	case config.ProviderXiaomiMimoPayg:
 		return config.DeploymentConfig{
-			APIKey:  FirstNonEmpty(cfg.XiaomiMimoPaygAPIKey, cfg.XiaomiAPIKey),
-			BaseURL: FirstNonEmpty(cfg.XiaomiMimoPaygBaseURL, cfg.XiaomiBaseURL),
+			APIKey:  cfg.XiaomiMimoPaygAPIKey,
+			BaseURL: cfg.XiaomiMimoPaygBaseURL,
 		}
 	case config.ProviderXiaomiMimoTokenPlan:
 		base, _ := config.ResolveXiaomiOpenAIBase(config.ProviderXiaomiMimoTokenPlan, cfg)
 		return config.DeploymentConfig{APIKey: cfg.XiaomiMimoTokenPlanAPIKey, BaseURL: base}
 	case config.ProviderMiniMaxTokenPlan:
-		return config.DeploymentConfig{APIKey: FirstNonEmpty(cfg.MiniMaxTokenPlanAPIKey, cfg.MiniMaxAPIKey), BaseURL: FirstNonEmpty(cfg.MiniMaxTokenPlanBaseURL, cfg.MiniMaxBaseURL)}
+		return config.DeploymentConfig{APIKey: cfg.MiniMaxTokenPlanAPIKey, BaseURL: cfg.MiniMaxTokenPlanBaseURL}
 	case config.ProviderMiniMaxPayg:
-		return config.DeploymentConfig{APIKey: FirstNonEmpty(cfg.MiniMaxPaygAPIKey, cfg.MiniMaxAPIKey), BaseURL: FirstNonEmpty(cfg.MiniMaxPaygBaseURL, cfg.MiniMaxBaseURL)}
+		return config.DeploymentConfig{APIKey: cfg.MiniMaxPaygAPIKey, BaseURL: cfg.MiniMaxPaygBaseURL}
 	default:
 		return config.DeploymentConfig{}
 	}

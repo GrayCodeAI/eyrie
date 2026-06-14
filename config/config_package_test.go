@@ -438,7 +438,7 @@ func TestGetProviderAPIKey_TableDriven(t *testing.T) {
 		OpenRouterAPIKey: "or-key",
 		OpenCodeGoAPIKey: "ocg-key",
 		MoonshotAPIKey:   "moonshot-key",
-		XiaomiAPIKey:     "xiaomi-key",
+		XiaomiMimoPaygAPIKey: "xiaomi-key",
 	}
 
 	tests := []struct {
