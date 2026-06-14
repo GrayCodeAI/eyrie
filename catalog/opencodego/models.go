@@ -18,8 +18,8 @@ type ModelMetadata struct {
 	Context     int     // context window tokens
 	MaxOutput   int     // max output tokens
 	// Tiered pricing (Qwen models: different rate above threshold)
-	TierThreshold    int     // 0 = no tiering (e.g., 256000 for Qwen)
-	TieredInputPer1M float64 // rate above threshold
+	TierThreshold     int     // 0 = no tiering (e.g., 256000 for Qwen)
+	TieredInputPer1M  float64 // rate above threshold
 	TieredOutputPer1M float64
 	TieredCachedRead  float64
 	TieredCachedWrite float64

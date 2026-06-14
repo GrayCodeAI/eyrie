@@ -109,8 +109,8 @@ func providerSpecs() []ProviderSpec {
 		{
 			ProviderID: "azure", DisplayName: "Azure OpenAI", DeploymentID: "openai-azure", SortOrder: 12,
 			RequiresKey: true, CredentialEnv: "AZURE_OPENAI_API_KEY",
-			BaseURLEnv: []string{"AZURE_OPENAI_ENDPOINT"},
-			ProbeKind:  ProbeNone,
+			BaseURLEnv:     []string{"AZURE_OPENAI_ENDPOINT"},
+			ProbeKind:      ProbeNone,
 			LiveFetcherKey: "azure", LiveCatalogKey: "azure",
 			APIProtocolID: "openai-chat-completions", AdapterID: "openai-azure",
 		},
@@ -120,7 +120,7 @@ func providerSpecs() []ProviderSpec {
 			CredentialEnvFallbacks: []string{"AWS_ACCESS_KEY_ID", "AWS_SESSION_TOKEN"},
 			BaseURLEnv:             []string{"AWS_REGION", "AWS_DEFAULT_REGION"},
 			ProbeKind:              ProbeNone,
-			LiveFetcherKey: "bedrock", LiveCatalogKey: "bedrock",
+			LiveFetcherKey:         "bedrock", LiveCatalogKey: "bedrock",
 			APIProtocolID: "anthropic-messages", AdapterID: "anthropic-bedrock",
 		},
 		{
@@ -129,7 +129,7 @@ func providerSpecs() []ProviderSpec {
 			CredentialEnvFallbacks: []string{"GOOGLE_OAUTH_ACCESS_TOKEN"},
 			BaseURLEnv:             []string{"VERTEX_PROJECT_ID", "VERTEX_REGION"},
 			ProbeKind:              ProbeNone,
-			LiveFetcherKey: "vertex", LiveCatalogKey: "vertex",
+			LiveFetcherKey:         "vertex", LiveCatalogKey: "vertex",
 			APIProtocolID: "gemini-generate-content", AdapterID: "gemini-vertex",
 		},
 
@@ -155,9 +155,9 @@ func providerSpecs() []ProviderSpec {
 		{
 			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 17,
 			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY",
-			BaseURLEnv:   []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
-			ProbeKind:    ProbeOpenAIModels,
-			ProbeBaseURL: opencodego.DefaultBaseURL,
+			BaseURLEnv:     []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind:      ProbeOpenAIModels,
+			ProbeBaseURL:   opencodego.DefaultBaseURL,
 			LiveFetcherKey: "opencodego", LiveCatalogKey: "opencodego",
 			APIProtocolID: "openai-chat-completions", AdapterID: "opencodego",
 		},

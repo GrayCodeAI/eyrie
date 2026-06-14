@@ -57,34 +57,34 @@ type ChatOptions struct {
 	KimiCacheResetTTL bool `json:"kimi_cache_reset_ttl,omitempty"`
 
 	// Shared parameters (Anthropic + OpenAI)
-	TopP           *float64          `json:"top_p,omitempty"`              // nucleus sampling (0.0-1.0)
-	TopK           *int              `json:"top_k,omitempty"`              // top-K sampling (Anthropic only)
-	StopSequences  []string          `json:"stop_sequences,omitempty"`     // custom stop sequences
-	ToolChoice     *ToolChoiceOption `json:"tool_choice,omitempty"`        // tool use control
-	MetadataUserID string            `json:"metadata_user_id,omitempty"`   // user ID for abuse detection / monitoring
-	ServiceTier    string            `json:"service_tier,omitempty"`       // "auto", "default", "flex", "priority"
-	OutputEffort   string            `json:"output_effort,omitempty"`      // "low","medium","high","xhigh","max" (Anthropic)
-	OutputSchema   string            `json:"output_schema,omitempty"`      // JSON schema string for structured output (Anthropic)
+	TopP           *float64          `json:"top_p,omitempty"`            // nucleus sampling (0.0-1.0)
+	TopK           *int              `json:"top_k,omitempty"`            // top-K sampling (Anthropic only)
+	StopSequences  []string          `json:"stop_sequences,omitempty"`   // custom stop sequences
+	ToolChoice     *ToolChoiceOption `json:"tool_choice,omitempty"`      // tool use control
+	MetadataUserID string            `json:"metadata_user_id,omitempty"` // user ID for abuse detection / monitoring
+	ServiceTier    string            `json:"service_tier,omitempty"`     // "auto", "default", "flex", "priority"
+	OutputEffort   string            `json:"output_effort,omitempty"`    // "low","medium","high","xhigh","max" (Anthropic)
+	OutputSchema   string            `json:"output_schema,omitempty"`    // JSON schema string for structured output (Anthropic)
 
 	// OpenAI-specific parameters
-	PresencePenalty  *float64         `json:"presence_penalty,omitempty"`  // -2.0 to 2.0
-	FrequencyPenalty *float64         `json:"frequency_penalty,omitempty"` // -2.0 to 2.0
-	N                *int             `json:"n,omitempty"`                 // number of completions (1-128)
-	LogProbs         *bool            `json:"logprobs,omitempty"`          // return log probabilities
-	TopLogProbs      *int             `json:"top_logprobs,omitempty"`      // 0-20, requires logprobs=true
-	Seed             *int             `json:"seed,omitempty"`              // deterministic sampling
-	Store            *bool            `json:"store,omitempty"`             // store output for Responses API
-	Metadata         map[string]string `json:"metadata,omitempty"`         // developer tags
-	Modalities       []string         `json:"modalities,omitempty"`        // "text", "audio"
-	AudioConfig      string           `json:"audio_config,omitempty"`      // JSON: {voice, format}
-	Prediction       string           `json:"prediction,omitempty"`        // JSON: {type:"content", content:"..."}
-	WebSearchOptions string           `json:"web_search_options,omitempty"` // JSON: {search_context_size, user_location}
+	PresencePenalty  *float64          `json:"presence_penalty,omitempty"`   // -2.0 to 2.0
+	FrequencyPenalty *float64          `json:"frequency_penalty,omitempty"`  // -2.0 to 2.0
+	N                *int              `json:"n,omitempty"`                  // number of completions (1-128)
+	LogProbs         *bool             `json:"logprobs,omitempty"`           // return log probabilities
+	TopLogProbs      *int              `json:"top_logprobs,omitempty"`       // 0-20, requires logprobs=true
+	Seed             *int              `json:"seed,omitempty"`               // deterministic sampling
+	Store            *bool             `json:"store,omitempty"`              // store output for Responses API
+	Metadata         map[string]string `json:"metadata,omitempty"`           // developer tags
+	Modalities       []string          `json:"modalities,omitempty"`         // "text", "audio"
+	AudioConfig      string            `json:"audio_config,omitempty"`       // JSON: {voice, format}
+	Prediction       string            `json:"prediction,omitempty"`         // JSON: {type:"content", content:"..."}
+	WebSearchOptions string            `json:"web_search_options,omitempty"` // JSON: {search_context_size, user_location}
 }
 
 // ToolChoiceOption controls how the model uses tools (Anthropic).
 type ToolChoiceOption struct {
-	Type                   string `json:"type"`                               // "auto", "any", "tool", "none"
-	Name                   string `json:"name,omitempty"`                     // required when type="tool"
+	Type                   string `json:"type"`           // "auto", "any", "tool", "none"
+	Name                   string `json:"name,omitempty"` // required when type="tool"
 	DisableParallelToolUse bool   `json:"disable_parallel_tool_use,omitempty"`
 }
 

@@ -822,8 +822,8 @@ func canonicalProviderID(providerID string) string {
 
 func capabilitySetFromLegacy(entry ModelCatalogEntry) CapabilitySetV1 {
 	set := CapabilitySetV1{
-		ServerTools:    map[string]CapabilityState{},
-		MaxInputTokens: entry.ContextWindow,
+		ServerTools:     map[string]CapabilityState{},
+		MaxInputTokens:  entry.ContextWindow,
 		MaxOutputTokens: entry.MaxOutput,
 	}
 	for _, tool := range entry.ServerTools {

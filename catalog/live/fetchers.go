@@ -88,12 +88,12 @@ type listModelJSON struct {
 	// Not all providers return this; empty means unknown.
 	APIType string `json:"api_type,omitempty"`
 	Pricing *struct {
-		Prompt       interface{} `json:"prompt"`
-		Completion   interface{} `json:"completion"`
-		CachedRead   interface{} `json:"cached_read,omitempty"`
-		CachedWrite  interface{} `json:"cached_write,omitempty"`
-		Request      interface{} `json:"request,omitempty"`
-		Image        interface{} `json:"image,omitempty"`
+		Prompt      interface{} `json:"prompt"`
+		Completion  interface{} `json:"completion"`
+		CachedRead  interface{} `json:"cached_read,omitempty"`
+		CachedWrite interface{} `json:"cached_write,omitempty"`
+		Request     interface{} `json:"request,omitempty"`
+		Image       interface{} `json:"image,omitempty"`
 	} `json:"pricing"`
 }
 
@@ -450,10 +450,10 @@ func enrichFromOpenRouter(entries []Entry, prefix string) {
 }
 
 type openRouterModelEntry struct {
-	ID                string `json:"id"`
-	ContextLength     int    `json:"context_length"`
+	ID                  string   `json:"id"`
+	ContextLength       int      `json:"context_length"`
 	SupportedParameters []string `json:"supported_parameters"`
-	TopProvider       struct {
+	TopProvider         struct {
 		MaxCompletionTokens int `json:"max_completion_tokens"`
 	} `json:"top_provider"`
 	Pricing struct {

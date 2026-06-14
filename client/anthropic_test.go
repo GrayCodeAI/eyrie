@@ -1431,8 +1431,8 @@ func TestAnthropicChat_ThinkingBlocksInResponse(t *testing.T) {
 
 	client := NewAnthropicClient("sk-test", server.URL, WithRetry(NewRetryConfig(0, 0, 0)))
 	resp, err := client.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "What is the answer?"}}, ChatOptions{
-		Model:              "claude-sonnet-4-6",
-		ThinkingMode:       "enabled",
+		Model:                "claude-sonnet-4-6",
+		ThinkingMode:         "enabled",
 		ThinkingBudgetTokens: 5000,
 	})
 	if err != nil {
@@ -1525,7 +1525,10 @@ func TestAnthropicRequest_WithTopPAndStopSequences(t *testing.T) {
 // Helpers
 func float64Ptr(f float64) *float64 { return &f }
 func intPtr(i int) *int             { return &i }
-func contains(s, sub string) bool   { return len(s) >= len(sub) && (s == sub || len(s) > 0 && containsSubstring(s, sub)) }
+func contains(s, sub string) bool {
+	return len(s) >= len(sub) && (s == sub || len(s) > 0 && containsSubstring(s, sub))
+}
+
 func containsSubstring(s, sub string) bool {
 	for i := 0; i <= len(s)-len(sub); i++ {
 		if s[i:i+len(sub)] == sub {

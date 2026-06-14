@@ -179,20 +179,20 @@ type geminiFunctionResponse struct {
 }
 
 type geminiGenerationConfig struct {
-	MaxOutputTokens   int                    `json:"maxOutputTokens,omitempty"`
-	Temperature       *float64               `json:"temperature,omitempty"`
-	TopP              *float64               `json:"topP,omitempty"`
-	TopK              *int                   `json:"topK,omitempty"`
-	StopSequences     []string               `json:"stopSequences,omitempty"`
-	ResponseMimeType  string                 `json:"responseMimeType,omitempty"`
-	ResponseSchema    map[string]interface{} `json:"responseSchema,omitempty"`
-	ThinkingConfig    *geminiThinkingConfig  `json:"thinkingConfig,omitempty"`
-	PresencePenalty   *float64               `json:"presencePenalty,omitempty"`
-	FrequencyPenalty  *float64               `json:"frequencyPenalty,omitempty"`
-	Seed              *int                   `json:"seed,omitempty"`
-	ResponseLogprobs  *bool                  `json:"responseLogprobs,omitempty"`
-	Logprobs          *int                   `json:"logprobs,omitempty"`
-	CandidateCount    *int                   `json:"candidateCount,omitempty"`
+	MaxOutputTokens  int                    `json:"maxOutputTokens,omitempty"`
+	Temperature      *float64               `json:"temperature,omitempty"`
+	TopP             *float64               `json:"topP,omitempty"`
+	TopK             *int                   `json:"topK,omitempty"`
+	StopSequences    []string               `json:"stopSequences,omitempty"`
+	ResponseMimeType string                 `json:"responseMimeType,omitempty"`
+	ResponseSchema   map[string]interface{} `json:"responseSchema,omitempty"`
+	ThinkingConfig   *geminiThinkingConfig  `json:"thinkingConfig,omitempty"`
+	PresencePenalty  *float64               `json:"presencePenalty,omitempty"`
+	FrequencyPenalty *float64               `json:"frequencyPenalty,omitempty"`
+	Seed             *int                   `json:"seed,omitempty"`
+	ResponseLogprobs *bool                  `json:"responseLogprobs,omitempty"`
+	Logprobs         *int                   `json:"logprobs,omitempty"`
+	CandidateCount   *int                   `json:"candidateCount,omitempty"`
 }
 
 type geminiThinkingConfig struct {
@@ -403,8 +403,8 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 // --- Response parsing ---
 
 type geminiResponse struct {
-	Candidates     []geminiCandidate  `json:"candidates"`
-	Usage          *geminiUsage       `json:"usageMetadata,omitempty"`
+	Candidates     []geminiCandidate     `json:"candidates"`
+	Usage          *geminiUsage          `json:"usageMetadata,omitempty"`
 	PromptFeedback *geminiPromptFeedback `json:"promptFeedback,omitempty"`
 }
 
@@ -423,7 +423,7 @@ type geminiUsage struct {
 }
 
 type geminiPromptFeedback struct {
-	BlockReason  string `json:"blockReason,omitempty"`
+	BlockReason        string `json:"blockReason,omitempty"`
 	BlockReasonMessage string `json:"blockReasonMessage,omitempty"`
 }
 
