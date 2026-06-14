@@ -355,25 +355,7 @@ func TestAnthropicChat_Success(t *testing.T) {
 		}
 
 		w.Header().Set("Request-Id", "req-abc-123")
-		_ = json.NewEncoder(w).Encode(anthropicResponse{
-			ID: "msg_001",
-			Content: []struct {
-				Type  string          `json:"type"`
-				Text  string          `json:"text,omitempty"`
-				ID    string          `json:"id,omitempty"`
-				Name  string          `json:"name,omitempty"`
-				Input json.RawMessage `json:"input,omitempty"`
-			}{
-				{Type: "text", Text: "Hello! How can I help?"},
-			},
-			StopReason: "end_turn",
-			Usage: struct {
-				InputTokens              int `json:"input_tokens"`
-				OutputTokens             int `json:"output_tokens"`
-				CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
-				CacheReadInputTokens     int `json:"cache_read_input_tokens"`
-			}{InputTokens: 25, OutputTokens: 12},
-		})
+		_, _ = w.Write([]byte(`{"id":"msg_001","content":[{"type":"text","text":"Hello! How can I help?"}],"stop_reason":"end_turn","usage":{"input_tokens":25,"output_tokens":12}}`))
 	}))
 	defer server.Close()
 
@@ -1345,4 +1327,210 @@ func TestAnthropicChat_FullToolRoundTrip(t *testing.T) {
 	if resp2.FinishReason != "end_turn" {
 		t.Errorf("expected end_turn, got %s", resp2.FinishReason)
 	}
+}
+
+// =============================================================================
+// New feature tests
+// =============================================================================
+
+func TestResolveThinking_Modes(t *testing.T) {
+	tests := []struct {
+		name     string
+		opts     ChatOptions
+		wantType string
+		wantNil  bool
+	}{
+		{"adaptive", ChatOptions{ThinkingMode: "adaptive"}, "adaptive", false},
+		{"disabled", ChatOptions{ThinkingMode: "disabled"}, "disabled", false},
+		{"enabled with budget", ChatOptions{ThinkingMode: "enabled", ThinkingBudgetTokens: 10000}, "enabled", false},
+		{"enabled zero budget", ChatOptions{ThinkingMode: "enabled"}, "", true},
+		{"legacy budget", ChatOptions{ThinkingBudgetTokens: 5000}, "enabled", false},
+		{"legacy zero", ChatOptions{}, "", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resolveThinking(tt.opts)
+			if tt.wantNil {
+				if got != nil {
+					t.Fatalf("expected nil, got %+v", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("expected non-nil")
+			}
+			if got.Type != tt.wantType {
+				t.Errorf("type = %q, want %q", got.Type, tt.wantType)
+			}
+		})
+	}
+}
+
+func TestResolveThinking_Display(t *testing.T) {
+	got := resolveThinking(ChatOptions{ThinkingMode: "enabled", ThinkingBudgetTokens: 5000, ThinkingDisplay: "omitted"})
+	if got == nil || got.Display != "omitted" {
+		t.Fatalf("expected display=omitted, got %+v", got)
+	}
+}
+
+func TestResolveToolChoice(t *testing.T) {
+	if resolveToolChoice(nil) != nil {
+		t.Fatal("expected nil for nil input")
+	}
+	tc := resolveToolChoice(&ToolChoiceOption{Type: "tool", Name: "search", DisableParallelToolUse: true})
+	if tc.Type != "tool" || tc.Name != "search" || !tc.DisableParallelToolUse {
+		t.Fatalf("unexpected: %+v", tc)
+	}
+}
+
+func TestResolveOutputConfig(t *testing.T) {
+	if resolveOutputConfig(ChatOptions{}) != nil {
+		t.Fatal("expected nil for empty opts")
+	}
+	cfg := resolveOutputConfig(ChatOptions{OutputEffort: "high"})
+	if cfg.Effort != "high" || cfg.Format != nil {
+		t.Fatalf("unexpected: %+v", cfg)
+	}
+	cfg2 := resolveOutputConfig(ChatOptions{OutputSchema: `{"type":"object","properties":{"x":{"type":"string"}}}`})
+	if cfg2.Format == nil || cfg2.Format.Type != "json_schema" {
+		t.Fatalf("unexpected: %+v", cfg2)
+	}
+}
+
+func TestAnthropicRequest_NewFields(t *testing.T) {
+	req := anthropicRequest{
+		Model:         "claude-sonnet-4-6",
+		MaxTokens:     4096,
+		TopP:          float64Ptr(0.9),
+		TopK:          intPtr(50),
+		StopSequences: []string{"STOP"},
+		ToolChoice:    &anthropicToolChoice{Type: "any"},
+		Thinking:      &anthropicThinking{Type: "adaptive"},
+		Metadata:      &anthropicMetadata{UserID: "user-123"},
+		ServiceTier:   "standard_only",
+		OutputConfig:  &anthropicOutputConfig{Effort: "high"},
+	}
+	data, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(data)
+	for _, want := range []string{`"top_p":0.9`, `"top_k":50`, `"stop_sequences":["STOP"]`, `"tool_choice":{"type":"any"}`, `"thinking":{"type":"adaptive"}`, `"metadata":{"user_id":"user-123"}`, `"service_tier":"standard_only"`, `"output_config":{"effort":"high"}`} {
+		if !contains(s, want) {
+			t.Errorf("missing %q in JSON: %s", want, s)
+		}
+	}
+}
+
+func TestAnthropicChat_ThinkingBlocksInResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Request-Id", "req-think-1")
+		_, _ = w.Write([]byte(`{"id":"msg_think","content":[{"type":"thinking","thinking":"Let me reason..."},{"type":"text","text":"The answer is 42."}],"stop_reason":"end_turn","usage":{"input_tokens":10,"output_tokens":20,"output_tokens_details":{"thinking_tokens":10}}}`))
+	}))
+	defer server.Close()
+
+	client := NewAnthropicClient("sk-test", server.URL, WithRetry(NewRetryConfig(0, 0, 0)))
+	resp, err := client.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "What is the answer?"}}, ChatOptions{
+		Model:              "claude-sonnet-4-6",
+		ThinkingMode:       "enabled",
+		ThinkingBudgetTokens: 5000,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Content != "The answer is 42." {
+		t.Errorf("content = %q", resp.Content)
+	}
+	if resp.Thinking != "Let me reason..." {
+		t.Errorf("thinking = %q", resp.Thinking)
+	}
+	if resp.Usage.ThinkingTokens != 10 {
+		t.Errorf("thinking_tokens = %d", resp.Usage.ThinkingTokens)
+	}
+}
+
+func TestAnthropicChat_RedactedThinkingSkipped(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"id":"msg_rt","content":[{"type":"redacted_thinking","data":"encrypted"},{"type":"text","text":"Done."}],"stop_reason":"end_turn","usage":{"input_tokens":5,"output_tokens":3}}`))
+	}))
+	defer server.Close()
+
+	client := NewAnthropicClient("sk-test", server.URL, WithRetry(NewRetryConfig(0, 0, 0)))
+	resp, err := client.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Hi"}}, ChatOptions{Model: "claude-sonnet-4-6"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Content != "Done." {
+		t.Errorf("content = %q", resp.Content)
+	}
+	if resp.Thinking != "" {
+		t.Errorf("thinking should be empty for redacted, got %q", resp.Thinking)
+	}
+}
+
+func TestAnthropicRequest_WithToolChoice(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		tc, ok := body["tool_choice"].(map[string]interface{})
+		if !ok {
+			t.Errorf("expected tool_choice in request, got %v", body["tool_choice"])
+			w.WriteHeader(400)
+			return
+		}
+		if tc["type"] != "tool" || tc["name"] != "search" {
+			t.Errorf("unexpected tool_choice: %v", tc)
+		}
+		_, _ = w.Write([]byte(`{"id":"msg","content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":1}}`))
+	}))
+	defer server.Close()
+
+	client := NewAnthropicClient("sk-test", server.URL, WithRetry(NewRetryConfig(0, 0, 0)))
+	_, err := client.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "search"}}, ChatOptions{
+		Model:      "claude-sonnet-4-6",
+		ToolChoice: &ToolChoiceOption{Type: "tool", Name: "search"},
+		Tools:      []EyrieTool{{Name: "search", Description: "Search", Parameters: map[string]interface{}{"type": "object"}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAnthropicRequest_WithTopPAndStopSequences(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body["top_p"] != 0.8 {
+			t.Errorf("top_p = %v", body["top_p"])
+		}
+		stops, ok := body["stop_sequences"].([]interface{})
+		if !ok || len(stops) != 1 || stops[0] != "END" {
+			t.Errorf("stop_sequences = %v", body["stop_sequences"])
+		}
+		_, _ = w.Write([]byte(`{"id":"msg","content":[{"type":"text","text":"ok"}],"stop_reason":"stop_sequence","usage":{"input_tokens":1,"output_tokens":1}}`))
+	}))
+	defer server.Close()
+
+	client := NewAnthropicClient("sk-test", server.URL, WithRetry(NewRetryConfig(0, 0, 0)))
+	_, err := client.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "Go"}}, ChatOptions{
+		Model:         "claude-sonnet-4-6",
+		TopP:          float64Ptr(0.8),
+		StopSequences: []string{"END"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Helpers
+func float64Ptr(f float64) *float64 { return &f }
+func intPtr(i int) *int             { return &i }
+func contains(s, sub string) bool   { return len(s) >= len(sub) && (s == sub || len(s) > 0 && containsSubstring(s, sub)) }
+func containsSubstring(s, sub string) bool {
+	for i := 0; i <= len(s)-len(sub); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
 }

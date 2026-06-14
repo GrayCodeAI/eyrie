@@ -10,6 +10,9 @@ import (
 	"net/http"
 )
 
+// maxVertexRequestSize is the maximum request body size for Vertex AI (30 MB).
+const maxVertexRequestSize = 30 * 1024 * 1024
+
 type VertexClient struct {
 	projectID  string
 	region     string
@@ -17,6 +20,7 @@ type VertexClient struct {
 	httpClient *http.Client
 	retry      RetryConfig
 	logger     *slog.Logger
+	guardrails *Guardrails
 }
 
 var _ Provider = (*VertexClient)(nil)
@@ -39,12 +43,18 @@ func (c *VertexClient) baseURL() string {
 }
 
 func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for vertex")
 	}
 	body, err := c.buildBody(messages, opts, false)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check request size (30 MB Vertex limit)
+	if len(body) > maxVertexRequestSize {
+		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Vertex limit of %d bytes", len(body), maxVertexRequestSize)
 	}
 
 	url := fmt.Sprintf("%s/%s:rawPredict", c.baseURL(), opts.Model)
@@ -61,34 +71,27 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	requestID := resp.Header.Get("X-Goog-Request-Id")
+
 	if resp.StatusCode != 200 {
-		return nil, formatAPIError("vertex", resp.StatusCode, resp.Header.Get("X-Goog-Request-Id"), parseProviderError(resp.Body))
+		return nil, formatAPIError("vertex", resp.StatusCode, requestID, parseProviderError(resp.Body))
 	}
 
-	var ar struct {
-		Content []struct {
-			Type  string          `json:"type"`
-			Text  string          `json:"text,omitempty"`
-			ID    string          `json:"id,omitempty"`
-			Name  string          `json:"name,omitempty"`
-			Input json.RawMessage `json:"input,omitempty"`
-		} `json:"content"`
-		StopReason string `json:"stop_reason"`
-		Usage      struct {
-			InputTokens  int `json:"input_tokens"`
-			OutputTokens int `json:"output_tokens"`
-		} `json:"usage"`
-	}
+	var ar anthropicResponse
 	if err := json.NewDecoder(resp.Body).Decode(&ar); err != nil {
 		return nil, fmt.Errorf("eyrie: vertex decode failed: %w", err)
 	}
 
-	var content string
+	var content, thinkingContent string
 	var toolCalls []ToolCall
 	for _, block := range ar.Content {
 		switch block.Type {
 		case "text":
 			content += block.Text
+		case "thinking":
+			thinkingContent += block.Thinking
+		case "redacted_thinking":
+			continue
 		case "tool_use":
 			var args map[string]interface{}
 			_ = json.Unmarshal(block.Input, &args)
@@ -96,23 +99,39 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		}
 	}
 
-	return &EyrieResponse{
-		Content: content, FinishReason: ar.StopReason, ToolCalls: toolCalls,
+	eyrieResp := &EyrieResponse{
+		Content: content, Thinking: thinkingContent, FinishReason: ar.StopReason, ToolCalls: toolCalls,
+		RequestID: requestID,
 		Usage: &EyrieUsage{
-			PromptTokens:     ar.Usage.InputTokens,
-			CompletionTokens: ar.Usage.OutputTokens,
-			TotalTokens:      ar.Usage.InputTokens + ar.Usage.OutputTokens,
+			PromptTokens:        ar.Usage.InputTokens,
+			CompletionTokens:    ar.Usage.OutputTokens,
+			TotalTokens:         ar.Usage.InputTokens + ar.Usage.OutputTokens,
+			CacheCreationTokens: ar.Usage.CacheCreationInputTokens,
+			CacheReadTokens:     ar.Usage.CacheReadInputTokens,
+			ThinkingTokens:      ar.Usage.OutputTokensDetails.ThinkingTokens,
 		},
-	}, nil
+	}
+
+	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
+		return nil, err
+	}
+
+	return eyrieResp, nil
 }
 
 func (c *VertexClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for vertex")
 	}
 	body, err := c.buildBody(messages, opts, true)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check request size (30 MB Vertex limit)
+	if len(body) > maxVertexRequestSize {
+		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Vertex limit of %d bytes", len(body), maxVertexRequestSize)
 	}
 
 	url := fmt.Sprintf("%s/%s:streamRawPredict", c.baseURL(), opts.Model)
@@ -179,21 +198,36 @@ func (c *VertexClient) buildBody(messages []EyrieMessage, opts ChatOptions, stre
 	if maxTokens == 0 {
 		maxTokens = 4096
 	}
-	reqBody := map[string]interface{}{
-		"anthropic_version": "vertex-2023-10-16",
-		"model":             opts.Model,
-		"max_tokens":        maxTokens,
-		"messages":          msgs,
-		"stream":            stream,
+	thinking := resolveThinking(opts)
+
+	reqBody := anthropicRequest{
+		Model:         opts.Model,
+		MaxTokens:     maxTokens,
+		Messages:      msgs,
+		System:        system,
+		Temperature:   opts.Temperature,
+		TopP:          opts.TopP,
+		TopK:          opts.TopK,
+		StopSequences: opts.StopSequences,
+		Stream:        stream,
+		Tools:         convertToAnthropicTools(opts.Tools),
+		ToolChoice:    resolveToolChoice(opts.ToolChoice),
+		Thinking:      thinking,
+		Metadata:      resolveMetadata(opts),
+		ServiceTier:   opts.ServiceTier,
+		OutputConfig:  resolveOutputConfig(opts),
 	}
-	if system != "" {
-		reqBody["system"] = system
+
+	// Marshal and inject anthropic_version (Vertex-specific)
+	data, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, err
 	}
-	if opts.Temperature != nil {
-		reqBody["temperature"] = *opts.Temperature
+	// Add anthropic_version field which is required for Vertex
+	var m map[string]interface{}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, err
 	}
-	if len(opts.Tools) > 0 {
-		reqBody["tools"] = convertToAnthropicTools(opts.Tools)
-	}
-	return json.Marshal(reqBody)
+	m["anthropic_version"] = "vertex-2023-10-16"
+	return json.Marshal(m)
 }

@@ -100,12 +100,30 @@ type openaiRequest struct {
 	MaxTokens           *int                     `json:"max_tokens,omitempty"`
 	MaxCompletionTokens *int                     `json:"max_completion_tokens,omitempty"`
 	Temperature         *float64                 `json:"temperature,omitempty"`
+	TopP                *float64                 `json:"top_p,omitempty"`
 	Stream              bool                     `json:"stream,omitempty"`
 	StreamOptions       *streamOptions           `json:"stream_options,omitempty"`
 	Tools               []map[string]interface{} `json:"tools,omitempty"`
+	ToolChoice          interface{}              `json:"tool_choice,omitempty"`
+	ParallelToolCalls   *bool                    `json:"parallel_tool_calls,omitempty"`
 	ResponseFormat      map[string]interface{}   `json:"response_format,omitempty"`
 	ReasoningEffort     string                   `json:"reasoning_effort,omitempty"`
 	Thinking            map[string]interface{}   `json:"thinking,omitempty"`
+	Stop                interface{}              `json:"stop,omitempty"`
+	ServiceTier         string                   `json:"service_tier,omitempty"`
+	User                string                   `json:"user,omitempty"`
+	PresencePenalty     *float64                 `json:"presence_penalty,omitempty"`
+	FrequencyPenalty    *float64                 `json:"frequency_penalty,omitempty"`
+	N                   *int                     `json:"n,omitempty"`
+	LogProbs            *bool                    `json:"logprobs,omitempty"`
+	TopLogProbs         *int                     `json:"top_logprobs,omitempty"`
+	Seed                *int                     `json:"seed,omitempty"`
+	Store               *bool                    `json:"store,omitempty"`
+	Metadata            map[string]string        `json:"metadata,omitempty"`
+	Modalities          []string                 `json:"modalities,omitempty"`
+	Audio               map[string]interface{}   `json:"audio,omitempty"`
+	Prediction          map[string]interface{}   `json:"prediction,omitempty"`
+	WebSearchOptions    map[string]interface{}   `json:"web_search_options,omitempty"`
 }
 
 type streamOptions struct {
@@ -138,6 +156,37 @@ type openaiResponse struct {
 	} `json:"usage"`
 }
 
+// openAIToolChoice converts an Anthropic-style ToolChoiceOption to OpenAI wire format.
+// Anthropic: {type: "auto"|"any"|"tool"|"none", name: "X"}
+// OpenAI:    "auto" | "none" | "required" | {type: "function", function: {name: "X"}}
+func openAIToolChoice(tc *ToolChoiceOption) interface{} {
+	if tc == nil {
+		return nil
+	}
+	switch tc.Type {
+	case "auto":
+		return "auto"
+	case "none":
+		return "none"
+	case "any":
+		return "required" // Anthropic "any" = OpenAI "required"
+	case "tool":
+		// Anthropic: {type: "tool", name: "X"}
+		// OpenAI:    {type: "function", function: {name: "X"}}
+		if tc.Name != "" {
+			return map[string]interface{}{
+				"type": "function",
+				"function": map[string]interface{}{
+					"name": tc.Name,
+				},
+			}
+		}
+		return "required"
+	default:
+		return tc.Type // pass through unknown values
+	}
+}
+
 // buildRequestBase builds an OpenAI-compatible request body.
 // When compat is non-nil, MaxTokensField and SupportsUsageInStreaming overrides are applied.
 // EyrieMessage.Thinking (reasoning_content from prior responses) is never forwarded into
@@ -147,11 +196,15 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 	for _, m := range messages {
 		if len(m.ToolResults) > 0 {
 			for _, tr := range m.ToolResults {
-				msgs = append(msgs, map[string]interface{}{
+				toolMsg := map[string]interface{}{
 					"role":         "tool",
 					"content":      tr.Content,
 					"tool_call_id": tr.ToolUseID,
-				})
+				}
+				if tr.IsError {
+					toolMsg["is_error"] = true
+				}
+				msgs = append(msgs, toolMsg)
 			}
 			continue
 		}
@@ -275,6 +328,67 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 	}
 	if compat != nil && compat.SupportsReasoningEffort && opts.ReasoningEffort != "" {
 		req.ReasoningEffort = opts.ReasoningEffort
+	}
+	// Map ChatOptions fields that apply to all OpenAI-compatible providers
+	if opts.TopP != nil {
+		req.TopP = opts.TopP
+	}
+	if len(opts.StopSequences) > 0 {
+		req.Stop = opts.StopSequences
+	}
+	if opts.ServiceTier != "" {
+		req.ServiceTier = opts.ServiceTier
+	}
+	if opts.MetadataUserID != "" {
+		req.User = opts.MetadataUserID
+	}
+	if opts.ToolChoice != nil {
+		req.ToolChoice = openAIToolChoice(opts.ToolChoice)
+	}
+	if opts.PresencePenalty != nil {
+		req.PresencePenalty = opts.PresencePenalty
+	}
+	if opts.FrequencyPenalty != nil {
+		req.FrequencyPenalty = opts.FrequencyPenalty
+	}
+	if opts.WebSearchOptions != "" {
+		var wso map[string]interface{}
+		if json.Unmarshal([]byte(opts.WebSearchOptions), &wso) == nil {
+			req.WebSearchOptions = wso
+		}
+	}
+	if opts.Prediction != "" {
+		var pred map[string]interface{}
+		if json.Unmarshal([]byte(opts.Prediction), &pred) == nil {
+			req.Prediction = pred
+		}
+	}
+	if len(opts.Modalities) > 0 {
+		req.Modalities = opts.Modalities
+	}
+	if opts.AudioConfig != "" {
+		var audio map[string]interface{}
+		if json.Unmarshal([]byte(opts.AudioConfig), &audio) == nil {
+			req.Audio = audio
+		}
+	}
+	if opts.N != nil {
+		req.N = opts.N
+	}
+	if opts.LogProbs != nil {
+		req.LogProbs = opts.LogProbs
+	}
+	if opts.TopLogProbs != nil {
+		req.TopLogProbs = opts.TopLogProbs
+	}
+	if opts.Seed != nil {
+		req.Seed = opts.Seed
+	}
+	if opts.Store != nil {
+		req.Store = opts.Store
+	}
+	if len(opts.Metadata) > 0 {
+		req.Metadata = opts.Metadata
 	}
 	if compat != nil && compat.ThinkingFormat == "zai" && opts.GLMThinkingEnabled != nil {
 		thinkingType := "disabled"
