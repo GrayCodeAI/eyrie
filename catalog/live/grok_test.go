@@ -33,8 +33,8 @@ func TestFetchGrok_MockHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 models, got %d", len(entries))
+	if len(entries) != 4 {
+		t.Fatalf("expected 4 models, got %d", len(entries))
 	}
 }
 

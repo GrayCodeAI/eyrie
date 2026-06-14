@@ -1,17 +1,29 @@
 {
-  "object": "list",
-  "data": [
-    {
-      "id": "grok-3-beta",
-      "object": "model",
-      "created": 1740000000,
-      "owned_by": "xai"
-    },
-    {
-      "id": "grok-3-mini-beta",
-      "object": "model",
-      "created": 1740000001,
-      "owned_by": "xai"
-    }
-  ]
+    "object": "list",
+    "data": [
+        {
+            "id": "grok-build-0.1",
+            "object": "model",
+            "created": 1781386234,
+            "owned_by": "xai"
+        },
+        {
+            "id": "grok-4.3",
+            "object": "model",
+            "created": 1781386234,
+            "owned_by": "xai"
+        },
+        {
+            "id": "grok-4.20-multi-agent",
+            "object": "model",
+            "created": 1781386234,
+            "owned_by": "xai"
+        },
+        {
+            "id": "grok-4.20",
+            "object": "model",
+            "created": 1781386234,
+            "owned_by": "xai"
+        }
+    ]
 }
