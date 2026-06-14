@@ -456,8 +456,8 @@ func TestProviderForDeployment_DeepSeekDirect(t *testing.T) {
 	if !ok {
 		t.Fatal("expected deepseek-direct to be configured")
 	}
-	if p.Name() != "openai" {
-		t.Fatalf("provider name = %q, want openai", p.Name())
+	if p.Name() != "deepseek" {
+		t.Fatalf("provider name = %q, want deepseek", p.Name())
 	}
 }
 

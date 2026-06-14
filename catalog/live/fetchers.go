@@ -29,6 +29,7 @@ const (
 	DefaultOpenCodeGoBaseURL = opencodego.DefaultBaseURL
 	DefaultKimiBaseURL       = "https://api.moonshot.ai/v1"
 	DefaultXiaomiBaseURL     = "https://api.xiaomimimo.com/v1"
+	DefaultMiniMaxBaseURL    = "https://api.minimax.io/v1"
 )
 
 // FetchFunc lists models from a live provider API.
@@ -52,6 +53,8 @@ var Registry = map[string]FetchFunc{
 	"kimi":                   FetchKimi,
 	"xiaomi_mimo_payg":       FetchXiaomiPayg,
 	"xiaomi_mimo_token_plan": FetchXiaomiTokenPlan,
+	"minimax_token_plan":     FetchMiniMaxTokenPlan,
+	"minimax_payg":           FetchMiniMaxPayg,
 	"ollama":                 FetchOllama,
 	"deepseek":               FetchDeepSeek,
 }
@@ -389,6 +392,63 @@ func enrichOpenAIWithOpenRouter(entries []Entry) {
 	}
 }
 
+// enrichFromOpenRouter fetches OpenRouter's model list and enriches entries
+// with pricing and context data. prefix is the OpenRouter provider prefix (e.g., "moonshotai/").
+func enrichFromOpenRouter(entries []Entry, prefix string) {
+	if len(entries) == 0 {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, DefaultOpenRouterBaseURL+"/models", nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
+	var payload struct {
+		Data []openRouterModelEntry `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return
+	}
+	// Build lookup map by stripping prefix
+	lookup := map[string]openRouterModelEntry{}
+	for _, m := range payload.Data {
+		nativeID := strings.TrimPrefix(m.ID, prefix)
+		if nativeID != m.ID {
+			lookup[nativeID] = m
+		}
+	}
+	// Enrich entries
+	for i := range entries {
+		or, ok := lookup[entries[i].ID]
+		if !ok {
+			continue
+		}
+		if or.ContextLength > 0 && entries[i].ContextWindow == 0 {
+			entries[i].ContextWindow = or.ContextLength
+		}
+		if or.TopProvider.MaxCompletionTokens > 0 && entries[i].MaxOutput == 0 {
+			entries[i].MaxOutput = or.TopProvider.MaxCompletionTokens
+		}
+		if p, err := strconv.ParseFloat(or.Pricing.Prompt, 64); err == nil && p > 0 && entries[i].InputPricePer1M == 0 {
+			entries[i].InputPricePer1M = p * 1_000_000
+		}
+		if p, err := strconv.ParseFloat(or.Pricing.Completion, 64); err == nil && p > 0 && entries[i].OutputPricePer1M == 0 {
+			entries[i].OutputPricePer1M = p * 1_000_000
+		}
+	}
+}
+
 type openRouterModelEntry struct {
 	ID                string `json:"id"`
 	ContextLength     int    `json:"context_length"`
@@ -409,6 +469,22 @@ func appendUnique(slice []string, s string) []string {
 		}
 	}
 	return append(slice, s)
+}
+
+func FetchMiniMaxTokenPlan(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "MINIMAX_TOKEN_PLAN_BASE_URL", DefaultMiniMaxBaseURL),
+		env["MINIMAX_TOKEN_PLAN_API_KEY"], "Bearer",
+	)
+}
+
+func FetchMiniMaxPayg(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "MINIMAX_PAYG_BASE_URL", DefaultMiniMaxBaseURL),
+		env["MINIMAX_PAYG_API_KEY"], "Bearer",
+	)
 }
 
 func FetchAzure(env map[string]string) ([]Entry, error) {
@@ -638,19 +714,29 @@ func entryFromVertexModelJSON(raw json.RawMessage) (Entry, bool) {
 }
 
 func FetchGrok(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "XAI_BASE_URL", DefaultGrokBaseURL),
 		env["XAI_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	enrichFromOpenRouter(entries, "x-ai/")
+	return entries, nil
 }
 
 func FetchZAI(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "ZAI_BASE_URL", DefaultZAIBaseURL),
 		env["ZAI_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	enrichFromOpenRouter(entries, "z-ai/")
+	return entries, nil
 }
 
 func FetchCanopyWave(env map[string]string) ([]Entry, error) {
@@ -732,11 +818,17 @@ func enrichFromStaticMeta(e Entry, meta opencodego.ModelMetadata) Entry {
 }
 
 func FetchKimi(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "MOONSHOT_BASE_URL", DefaultKimiBaseURL),
 		env["MOONSHOT_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	// Enrich with pricing from OpenRouter (Kimi API doesn't return pricing).
+	enrichFromOpenRouter(entries, "moonshotai/")
+	return entries, nil
 }
 
 func FetchXiaomiPayg(env map[string]string) ([]Entry, error) {
@@ -771,9 +863,6 @@ func resolveTokenPlanOpenAIBase(env map[string]string) string {
 
 func fetchMimoOpenAIModels(env map[string]string, keyEnv, baseEnv, defaultBase string) ([]Entry, error) {
 	apiKey := strings.TrimSpace(env[keyEnv])
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(env["XIAOMI_MIMO_API_KEY"])
-	}
 	if apiKey == "" {
 		return nil, nil
 	}
@@ -1042,6 +1131,8 @@ func FetchAnthropic(env map[string]string) ([]Entry, error) {
 		}
 		entries = append(entries, entry)
 	}
+	// Enrich with pricing from OpenRouter (Anthropic API doesn't return pricing).
+	enrichFromOpenRouter(entries, "anthropic/")
 	return entries, nil
 }
 
@@ -1109,6 +1200,8 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 			RawJSON: append(json.RawMessage(nil), raw...),
 		})
 	}
+	// Enrich with pricing from OpenRouter (Gemini API doesn't return pricing).
+	enrichFromOpenRouter(entries, "google/")
 	return entries, nil
 }
 
@@ -1161,11 +1254,16 @@ func FetchOllama(env map[string]string) ([]Entry, error) {
 
 // FetchDeepSeek lists models from the DeepSeek OpenAI-compatible API.
 func FetchDeepSeek(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
+	entries, err := fetchOpenAICompatModels(
 		context.Background(),
 		envOr(env, "DEEPSEEK_BASE_URL", DefaultDeepSeekBaseURL),
 		env["DEEPSEEK_API_KEY"], "Bearer",
 	)
+	if err != nil {
+		return nil, err
+	}
+	enrichFromOpenRouter(entries, "deepseek/")
+	return entries, nil
 }
 
 func signAWSV4(req *http.Request, accessKeyID, secretAccessKey, sessionToken, region, service string, body []byte) {
