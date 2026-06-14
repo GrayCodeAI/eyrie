@@ -772,17 +772,80 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 	}
 	for i := range entries {
 		entries[i].ID = opencodego.NativeModelID(entries[i].ID)
-		// Merge with static metadata from docs (pricing, protocol, context windows).
+	}
+	// Enrich with pricing from OpenRouter first (dynamic, most current).
+	// OpenCodeGo models appear under various provider prefixes in OpenRouter.
+	enrichOpenCodeGoFromOpenRouter(entries)
+	// Then fill remaining gaps (protocol, pricing, context) from static metadata.
+	for i := range entries {
 		if meta, ok := opencodego.MetadataForModel(entries[i].ID); ok {
 			entries[i] = enrichFromStaticMeta(entries[i], meta)
 		} else {
-			// Unknown model — derive protocol from name pattern.
 			if entries[i].Protocol == "" {
 				entries[i].Protocol = opencodego.ProtocolForModel(entries[i].ID)
 			}
 		}
 	}
 	return entries, nil
+}
+
+// enrichOpenCodeGoFromOpenRouter enriches entries using OpenRouter model data
+// matched by suffix (e.g. "glm-5.1" matches "z-ai/glm-5.1").
+func enrichOpenCodeGoFromOpenRouter(entries []Entry) {
+	if len(entries) == 0 {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, DefaultOpenRouterBaseURL+"/models", nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
+	var payload struct {
+		Data []openRouterModelEntry `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return
+	}
+	// Build lookup map by suffix (model ID without the provider/ prefix).
+	lookup := map[string]openRouterModelEntry{}
+	for _, m := range payload.Data {
+		if i := strings.LastIndex(m.ID, "/"); i >= 0 {
+			suffix := strings.TrimSpace(m.ID[i+1:])
+			if suffix != "" {
+				lookup[suffix] = m
+			}
+		}
+	}
+	// Enrich entries
+	for i := range entries {
+		or, ok := lookup[entries[i].ID]
+		if !ok {
+			continue
+		}
+		if or.ContextLength > 0 && entries[i].ContextWindow == 0 {
+			entries[i].ContextWindow = or.ContextLength
+		}
+		if or.TopProvider.MaxCompletionTokens > 0 && entries[i].MaxOutput == 0 {
+			entries[i].MaxOutput = or.TopProvider.MaxCompletionTokens
+		}
+		if p, err := strconv.ParseFloat(or.Pricing.Prompt, 64); err == nil && p > 0 && entries[i].InputPricePer1M == 0 {
+			entries[i].InputPricePer1M = p * 1_000_000
+		}
+		if p, err := strconv.ParseFloat(or.Pricing.Completion, 64); err == nil && p > 0 && entries[i].OutputPricePer1M == 0 {
+			entries[i].OutputPricePer1M = p * 1_000_000
+		}
+	}
 }
 
 // enrichFromStaticMeta fills Entry fields from the static docs-based metadata.
