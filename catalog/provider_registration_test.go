@@ -7,7 +7,7 @@ import (
 )
 
 func TestSpecByProviderID_RegisteredProviders(t *testing.T) {
-	providers := []string{"anthropic", "openai", "gemini", "grok", "openrouter", "z-ai", "canopywave", "ollama", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan"}
+	providers := []string{"anthropic", "openai", "gemini", "grok", "openrouter", "zai_payg", "zai_coding", "canopywave", "ollama", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan"}
 	for _, id := range providers {
 		spec, ok := SpecByProviderID(id)
 		if !ok {

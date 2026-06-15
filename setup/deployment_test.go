@@ -267,7 +267,8 @@ func TestDefaultDeploymentForProvider(t *testing.T) {
 		{config.ProviderOpenRouter, "openrouter"},
 		{config.ProviderCanopyWave, "canopywave"},
 		{config.ProviderDeepSeek, "deepseek-direct"},
-		{config.ProviderZAI, "z-ai-direct"},
+		{config.ProviderZAIPayg, "zai_payg-direct"},
+		{config.ProviderZAICoding, "zai_coding-direct"},
 		{config.ProviderOllama, "ollama-local"},
 		{config.ProviderOpenCodeGo, "opencodego"},
 		{config.ProviderKimi, "kimi-direct"},
@@ -462,12 +463,12 @@ func TestProviderForDeployment_DeepSeekDirect(t *testing.T) {
 }
 
 func TestProviderForDeployment_ZAIDirect(t *testing.T) {
-	p, ok := ProviderForDeployment("z-ai-direct", config.DeploymentConfig{APIKey: "test-key"})
+	p, ok := ProviderForDeployment("zai_payg-direct", config.DeploymentConfig{APIKey: "test-key"})
 	if !ok {
-		t.Fatal("expected z-ai-direct to be configured")
+		t.Fatal("expected zai_payg-direct to be configured")
 	}
-	if p.Name() != "openai" {
-		t.Fatalf("provider name = %q, want openai", p.Name())
+	if p.Name() != "zai_payg" {
+		t.Fatalf("provider name = %q, want zai_payg", p.Name())
 	}
 }
 

@@ -75,7 +75,7 @@ func TestAllProvidersAreLiveOnly(t *testing.T) {
 	// All providers should now return nil candidates (fully dynamic)
 	allProviders := []string{
 		"anthropic", "openai", "gemini", "grok", "opencodego",
-		"canopywave", "z-ai", "openrouter", "ollama",
+		"canopywave", "z_ai", "openrouter", "ollama",
 		"azure", "bedrock", "vertex", "kimi",
 		"xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "deepseek",
 	}

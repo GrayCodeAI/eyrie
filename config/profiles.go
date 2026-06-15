@@ -11,7 +11,8 @@ const (
 	ProviderAzure               APIProvider = "azure"
 	ProviderCanopyWave          APIProvider = "canopywave"
 	ProviderDeepSeek            APIProvider = "deepseek"
-	ProviderZAI                 APIProvider = "z-ai"
+	ProviderZAICoding           APIProvider = "zai_coding"
+	ProviderZAIPayg             APIProvider = "zai_payg"
 	ProviderOpenRouter          APIProvider = "openrouter"
 	ProviderGrok                APIProvider = "grok"
 	ProviderGemini              APIProvider = "gemini"
@@ -101,12 +102,19 @@ var (
 		BaseURLEnv:   []string{"OPENROUTER_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "OPENROUTER_API_KEY", Source: "openrouter"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
-	ZAIRuntimeProfile = RuntimeProviderProfile{
+	ZAIPaygRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultZAIOpenAIBaseURL,
 		DetectionEnv: []string{"ZAI_API_KEY"},
 		ModelEnv:     []string{"ZAI_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{"ZAI_BASE_URL", "ZAI_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
-		APIKeys:      []APIKeyDef{{Env: "ZAI_API_KEY", Source: "z-ai"}},
+		APIKeys:      []APIKeyDef{{Env: "ZAI_API_KEY", Source: "zai_payg"}},
+	}
+	ZAICodingRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultZAICodingOpenAIBaseURL,
+		DetectionEnv: []string{"ZAI_CODING_API_KEY"},
+		ModelEnv:     []string{"ZAI_CODING_MODEL", "ZAI_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"ZAI_CODING_BASE_URL", "ZAI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "ZAI_CODING_API_KEY", Source: "zai_coding"}},
 	}
 	CanopyWaveRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultCanopyWaveOpenAIBaseURL,
@@ -169,7 +177,7 @@ var (
 // APIProviderDetectionOrder is the priority order for provider detection.
 var APIProviderDetectionOrder = []APIProvider{
 	ProviderAnthropic, ProviderOpenRouter, ProviderGrok, ProviderGemini,
-	ProviderVertex, ProviderBedrock, ProviderZAI, ProviderCanopyWave, ProviderDeepSeek, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
+	ProviderVertex, ProviderBedrock, ProviderZAICoding, ProviderZAIPayg, ProviderCanopyWave, ProviderDeepSeek, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
 	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderMiniMaxTokenPlan, ProviderMiniMaxPayg, ProviderOllama,
 }
 
@@ -180,7 +188,8 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 	ProviderAzure:               AzureRuntimeProfile.ModelEnv,
 	ProviderCanopyWave:          CanopyWaveRuntimeProfile.ModelEnv,
 	ProviderDeepSeek:            DeepSeekRuntimeProfile.ModelEnv,
-	ProviderZAI:                 ZAIRuntimeProfile.ModelEnv,
+	ProviderZAIPayg:             ZAIPaygRuntimeProfile.ModelEnv,
+	ProviderZAICoding:           ZAICodingRuntimeProfile.ModelEnv,
 	ProviderOpenRouter:          OpenRouterRuntimeProfile.ModelEnv,
 	ProviderGrok:                GrokRuntimeProfile.ModelEnv,
 	ProviderGemini:              GeminiRuntimeProfile.ModelEnv,
@@ -202,7 +211,7 @@ const (
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.
 var OpenAICompatibleRuntimeProfileOrder = []string{
-	"openrouter", "grok", "gemini", "anthropic", "z-ai", "canopywave", "deepseek", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "minimax_token_plan", "minimax_payg",
+	"openrouter", "grok", "gemini", "anthropic", "zai_coding", "zai_payg", "canopywave", "deepseek", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "minimax_token_plan", "minimax_payg",
 }
 
 // OpenAICompatibleRuntimeProfiles maps profile key to its runtime profile.
@@ -210,7 +219,8 @@ var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
 	"anthropic":              AnthropicRuntimeProfile,
 	"grok":                   GrokRuntimeProfile,
 	"gemini":                 GeminiRuntimeProfile,
-	"z-ai":                   ZAIRuntimeProfile,
+	"zai_payg":               ZAIPaygRuntimeProfile,
+	"zai_coding":             ZAICodingRuntimeProfile,
 	"canopywave":             CanopyWaveRuntimeProfile,
 	"deepseek":               DeepSeekRuntimeProfile,
 	"openai":                 OpenAIRuntimeProfile,

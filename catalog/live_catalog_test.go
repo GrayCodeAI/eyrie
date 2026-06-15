@@ -9,7 +9,7 @@ import (
 func TestIsLiveOnlyProvider(t *testing.T) {
 	// All providers are now fully dynamic
 	allProviders := []string{
-		"anthropic", "openai", "gemini", "grok", "canopywave", "z-ai", "openrouter", "ollama", "opencodego",
+		"anthropic", "openai", "gemini", "grok", "canopywave", "z_ai", "openrouter", "ollama", "opencodego",
 		"azure", "bedrock", "vertex", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "deepseek",
 	}
 	for _, p := range allProviders {
@@ -21,12 +21,12 @@ func TestIsLiveOnlyProvider(t *testing.T) {
 
 func TestFirstModelForProvider(t *testing.T) {
 	c := catalog.TestSeedCatalogV1()
-	c.Models["z-ai/glm-5.1"] = catalog.ModelV1{ID: "z-ai/glm-5.1", ProviderID: "z-ai", Name: "GLM-5.1"}
+	c.Models["zai_payg/glm-5.1"] = catalog.ModelV1{ID: "zai_payg/glm-5.1", ProviderID: "zai_payg", Name: "GLM-5.1"}
 	compiled, err := catalog.CompileCatalogV1(&c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := catalog.FirstModelForProvider(compiled, "z-ai"); got != "z-ai/glm-5.1" {
+	if got := catalog.FirstModelForProvider(compiled, "zai_payg"); got != "zai_payg/glm-5.1" {
 		t.Fatalf("FirstModelForProvider = %q", got)
 	}
 }
