@@ -17,8 +17,11 @@ func TestPrimaryAPIKeyEnvForProvider(t *testing.T) {
 	if got := PrimaryAPIKeyEnvForProvider(compiled, "canopywave"); got != "CANOPYWAVE_API_KEY" {
 		t.Fatalf("canopywave env = %q", got)
 	}
-	if got := PrimaryAPIKeyEnvForProvider(compiled, "z-ai"); got != "ZAI_API_KEY" {
-		t.Fatalf("z-ai env = %q", got)
+	if got := PrimaryAPIKeyEnvForProvider(compiled, "zai_payg"); got != "ZAI_API_KEY" {
+		t.Fatalf("zai_payg env = %q", got)
+	}
+	if got := PrimaryAPIKeyEnvForProvider(compiled, "zai_coding"); got != "ZAI_CODING_API_KEY" {
+		t.Fatalf("zai_coding env = %q", got)
 	}
 }
 

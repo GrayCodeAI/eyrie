@@ -10,8 +10,8 @@ import (
 
 func TestAllProviders_LiveFetchParity(t *testing.T) {
 	specs := registry.All()
-	if len(specs) != 18 {
-		t.Fatalf("expected 16 providers, got %d", len(specs))
+	if len(specs) != 19 {
+		t.Fatalf("expected 19 providers, got %d", len(specs))
 	}
 	for _, spec := range specs {
 		t.Run(spec.ProviderID, func(t *testing.T) {

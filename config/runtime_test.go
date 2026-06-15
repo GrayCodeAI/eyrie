@@ -18,7 +18,7 @@ func TestRuntimeProfileFields(t *testing.T) {
 		"openrouter": OpenRouterRuntimeProfile,
 		"canopywave": CanopyWaveRuntimeProfile,
 		"deepseek":   DeepSeekRuntimeProfile,
-		"z-ai":       ZAIRuntimeProfile,
+		"zai_payg":   ZAIPaygRuntimeProfile,
 		"opencodego": OpenCodeGoRuntimeProfile,
 	}
 
@@ -52,7 +52,7 @@ func TestRuntimeProfileAPIKeys(t *testing.T) {
 		"openrouter": OpenRouterRuntimeProfile,
 		"canopywave": CanopyWaveRuntimeProfile,
 		"deepseek":   DeepSeekRuntimeProfile,
-		"z-ai":       ZAIRuntimeProfile,
+		"zai_payg":   ZAIPaygRuntimeProfile,
 		"opencodego": OpenCodeGoRuntimeProfile,
 	}
 

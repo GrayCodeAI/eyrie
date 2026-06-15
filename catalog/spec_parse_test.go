@@ -267,7 +267,7 @@ func TestCanonicalModelID(t *testing.T) {
 		{"anthropic", "claude-sonnet-4-6", "anthropic/claude-sonnet-4-6"},
 		{"openai", "gpt-4o", "openai/gpt-4o"},
 		{"openrouter", "anthropic/claude-sonnet-4-6", "openrouter/anthropic/claude-sonnet-4-6"},
-		{"z-ai", "zai/glm-5.1", "zai/glm-5.1"},
+		{"zai_payg", "zai/glm-5.1", "zai_payg/glm-5.1"},
 	}
 	for _, tt := range tests {
 		got := canonicalModelID(tt.provider, tt.native)
@@ -287,7 +287,8 @@ func TestCanonicalProviderID(t *testing.T) {
 		{"openai", "openai"},
 		{"gemini", "google"},
 		{"grok", "xai"},
-		{"zai", "z-ai"},
+		{"zai_payg", "zai_payg"},
+		{"zai_coding", "zai_coding"},
 		{"ollama", "ollama"},
 		{"xiaomi-mimo", "xiaomi_mimo_payg"},
 		{"xiaomi-mimo-payg", "xiaomi_mimo_payg"},

@@ -644,7 +644,8 @@ func defaultProvidersV1() map[string]ProviderV1 {
 		"xai":                    {ID: "xai", Name: "xAI"},
 		"openrouter":             {ID: "openrouter", Name: "OpenRouter"},
 		"canopywave":             {ID: "canopywave", Name: "CanopyWave"},
-		"z-ai":                   {ID: "z-ai", Name: "Z.AI"},
+		"zai_payg":               {ID: "zai_payg", Name: "Z.AI Pay-as-you-go"},
+		"zai_coding":             {ID: "zai_coding", Name: "Z.AI Coding Plan"},
 		"ollama":                 {ID: "ollama", Name: "Ollama"},
 		"opencodego":             {ID: "opencodego", Name: "OpenCode Go"},
 		"moonshotai":             {ID: "moonshotai", Name: "Moonshot AI"},
@@ -674,7 +675,8 @@ func defaultDeploymentsV1() map[string]DeploymentV1 {
 		"gemini-vertex":                 deployment("gemini-vertex", "Gemini on Vertex", "google", "gemini-generate-content", "gemini-vertex", NativeModelIDCatalogKnown),
 		"grok-direct":                   deployment("grok-direct", "Grok", "xai", "openai-chat-completions", "grok", NativeModelIDCatalogKnown),
 		"openrouter":                    deployment("openrouter", "OpenRouter", "openrouter", "openai-chat-completions", "openrouter", NativeModelIDDiscovered),
-		"z-ai-direct":                   deployment("z-ai-direct", "Z.AI", "z-ai", "openai-chat-completions", "z-ai", NativeModelIDCatalogKnown),
+		"zai_payg-direct":               deployment("zai_payg-direct", "Z.AI Pay-as-you-go", "zai_payg", "openai-chat-completions", "zai_payg", NativeModelIDCatalogKnown),
+		"zai_coding-direct":             deployment("zai_coding-direct", "Z.AI Coding Plan", "zai_coding", "openai-chat-completions", "zai_coding", NativeModelIDCatalogKnown),
 		"canopywave":                    deployment("canopywave", "CanopyWave", "canopywave", "openai-chat-completions", "canopywave", NativeModelIDDiscovered),
 		"ollama-local":                  localDeployment(),
 		"opencodego":                    deployment("opencodego", "OpenCode Go", "opencodego", "openai-chat-completions", "opencodego", NativeModelIDDiscovered),
@@ -762,8 +764,10 @@ func legacyDeploymentAndOwner(provider string) (deploymentID, ownerProviderID st
 		return "gemini-vertex", "google"
 	case "openrouter":
 		return "openrouter", "openrouter"
-	case "z-ai", "zai":
-		return "z-ai-direct", "z-ai"
+	case "zai_payg":
+		return "zai_payg-direct", "zai_payg"
+	case "zai_coding":
+		return "zai_coding-direct", "zai_coding"
 	case "canopywave":
 		return "canopywave", "canopywave"
 	case "ollama":
@@ -790,8 +794,8 @@ func canonicalModelID(ownerProviderID, nativeID string) string {
 			return nativeID
 		}
 	}
-	if ownerProviderID == "z-ai" && strings.HasPrefix(nativeID, "zai/") {
-		return "z-ai/" + strings.TrimPrefix(nativeID, "zai/")
+	if ownerProviderID == "zai_payg" && strings.HasPrefix(nativeID, "zai/") {
+		return "zai_payg/" + strings.TrimPrefix(nativeID, "zai/")
 	}
 	return ownerProviderID + "/" + nativeID
 }
@@ -807,8 +811,7 @@ func canonicalProviderID(providerID string) string {
 		return "google"
 	case "grok":
 		return "xai"
-	case "zai":
-		return "z-ai"
+	// No legacy aliases — zai_payg and zai_coding are the only valid IDs.
 	case "moonshotai":
 		return "moonshotai"
 	case "xiaomi-mimo", "xiaomi_mimo", "xiaomi-mimo-payg":

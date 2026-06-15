@@ -8,8 +8,8 @@ import (
 )
 
 func TestAllProviders_Count(t *testing.T) {
-	if n := len(registry.All()); n != 18 {
-		t.Fatalf("expected 18 providers, got %d", n)
+	if n := len(registry.All()); n != 19 {
+		t.Fatalf("expected 19 providers, got %d", n)
 	}
 }
 
@@ -21,8 +21,8 @@ func TestCredentialRegistry_MatchesAll(t *testing.T) {
 
 func TestLiveFetcherKeys_AllProviders(t *testing.T) {
 	keys := registry.LiveFetcherKeys()
-	if len(keys) != 18 {
-		t.Fatalf("expected 18 live fetcher keys, got %d", len(keys))
+	if len(keys) != 19 {
+		t.Fatalf("expected 19 live fetcher keys, got %d", len(keys))
 	}
 }
 
@@ -59,7 +59,8 @@ func TestProviderSpecs_TableDriven(t *testing.T) {
 		{"vertex", "vertex", true, registry.ProbeNone, true, "gemini-vertex"},
 		{"openrouter", "openrouter", true, registry.ProbeOpenAIModels, true, "openrouter"},
 		{"grok", "grok", true, registry.ProbeOpenAIModels, true, "grok-direct"},
-		{"z-ai", "z-ai", true, registry.ProbeOpenAIModels, true, "z-ai-direct"},
+		{"zai_payg", "zai_payg", true, registry.ProbeOpenAIModels, true, "zai_payg-direct"},
+		{"zai_coding", "zai_coding", true, registry.ProbeOpenAIModels, true, "zai_coding-direct"},
 		{"canopywave", "canopywave", true, registry.ProbeOpenAIModels, true, "canopywave"},
 		{"opencodego", "opencodego", true, registry.ProbeOpenAIModels, true, "opencodego"},
 		{"kimi", "kimi", true, registry.ProbeOpenAIModels, true, "kimi-direct"},

@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🦅 eyrie Architecture
+# <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/bird.svg" width="16" height="16" alt="bird" /> eyrie Architecture
 
 **Universal LLM Provider Runtime**
 
@@ -12,54 +12,54 @@
 
 ---
 
-## 🎯 Overview
+## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/target.svg" width="16" height="16" alt="target" /> Overview
 
 eyrie is the LLM provider runtime for the hawk ecosystem. It sits between the application and LLM APIs, handling **authentication**, **model resolution**, **streaming**, **retries**, **rate limiting**, and **caching**.
 
-> 💡 No hawk ecosystem component talks to an LLM API directly — all communication goes through eyrie.
+> <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/lightbulb.svg" width="16" height="16" alt="lightbulb" /> No hawk ecosystem component talks to an LLM API directly — all communication goes through eyrie.
 
 ---
 
-## 🧱 Components
+## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/blocks.svg" width="16" height="16" alt="blocks" /> Components
 
 ```
 eyrie/
-├── api/openapi.yaml         📜 REST API contract (OpenAPI 3.1) — embedded HTTP server surface
+├── api/openapi.yaml         <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/file-text.svg" width="16" height="16" alt="file-text" /> REST API contract (OpenAPI 3.1) — embedded HTTP server surface
 ├── client/
-│   ├── client.go            🔌 Provider interface + EyrieClient factory
-│   ├── anthropic.go         🟠 Anthropic Claude provider
-│   ├── openai.go            🟢 OpenAI / OpenAI-compat provider
-│   ├── gemini.go            🔵 Google Gemini provider
-│   ├── bedrock.go           🟡 AWS Bedrock provider
-│   ├── vertex.go            🔵 Google Vertex AI provider
-│   ├── azure.go             🔷 Azure OpenAI provider
-│   ├── provider_registry.go 🔍 Auto-detection + registration
-│   ├── compat.go            🔧 Compatibility configs (Grok, OpenRouter, etc.)
-│   ├── stream.go            📡 SSE stream parsing
-│   ├── retry.go             🔄 Exponential backoff + Retry-After
-│   ├── ratelimit.go         🪣 Token-bucket rate limiting per provider
-│   ├── cache.go             💾 Response caching
-│   ├── semantic_cache.go    🧠 Similarity-based cache lookup
-│   ├── fallback.go          🔀 Provider fallback chains
-│   └── errors.go            ❌ EyrieError type
-├── catalog/                 📋 Model catalog — pricing, context windows, tiers
-├── config/                  ⚙️ Configuration and credential resolution
-├── conversation/            🌳 Conversation graph engine (branching DAG)
-├── credentials/             🔑 API key management and env detection
-├── router/                  🚦 Weighted provider routing
-├── storage/                 🗄️ Conversation store (SQLite DAG)
+│   ├── client.go            <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/plug.svg" width="16" height="16" alt="plug" /> Provider interface + EyrieClient factory
+│   ├── anthropic.go         <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/circle.svg" width="16" height="16" alt="circle" /> Anthropic Claude provider
+│   ├── openai.go            <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/circle.svg" width="16" height="16" alt="circle" /> OpenAI / OpenAI-compat provider
+│   ├── gemini.go            <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/circle.svg" width="16" height="16" alt="circle" /> Google Gemini provider
+│   ├── bedrock.go           <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/circle.svg" width="16" height="16" alt="circle" /> AWS Bedrock provider
+│   ├── vertex.go            <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/circle.svg" width="16" height="16" alt="circle" /> Google Vertex AI provider
+│   ├── azure.go             <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/diamond.svg" width="16" height="16" alt="diamond" /> Azure OpenAI provider
+│   ├── provider_registry.go <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/search.svg" width="16" height="16" alt="search" /> Auto-detection + registration
+│   ├── compat.go            <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/wrench.svg" width="16" height="16" alt="wrench" /> Compatibility configs (Grok, OpenRouter, etc.)
+│   ├── stream.go            <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/radio.svg" width="16" height="16" alt="radio" /> SSE stream parsing
+│   ├── retry.go             <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/refresh-cw.svg" width="16" height="16" alt="refresh-cw" /> Exponential backoff + Retry-After
+│   ├── ratelimit.go         <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/bucket.svg" width="16" height="16" alt="bucket" /> Token-bucket rate limiting per provider
+│   ├── cache.go             <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/database.svg" width="16" height="16" alt="database" /> Response caching
+│   ├── semantic_cache.go    <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/brain.svg" width="16" height="16" alt="brain" /> Similarity-based cache lookup
+│   ├── fallback.go          <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/shuffle.svg" width="16" height="16" alt="shuffle" /> Provider fallback chains
+│   └── errors.go            <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/x-circle.svg" width="16" height="16" alt="x-circle" /> EyrieError type
+├── catalog/                 <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/list.svg" width="16" height="16" alt="list" /> Model catalog — pricing, context windows, tiers
+├── config/                  <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/settings.svg" width="16" height="16" alt="settings" /> Configuration and credential resolution
+├── conversation/            <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/git-branch.svg" width="16" height="16" alt="git-branch" /> Conversation graph engine (branching DAG)
+├── credentials/             <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/key.svg" width="16" height="16" alt="key" /> API key management and env detection
+├── router/                  <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/traffic-cone.svg" width="16" height="16" alt="traffic-cone" /> Weighted provider routing
+├── storage/                 <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/archive.svg" width="16" height="16" alt="archive" /> Conversation store (SQLite DAG)
 └── internal/
-    ├── api/                 🌐 HTTP server, route handlers, auth middleware
-    ├── cache/               💾 Cache infrastructure
-    ├── health/              💚 Provider health checker
-    ├── observability/       📊 OpenTelemetry spans and metrics
-    ├── shrink/              📦 Response compression
-    └── version/             🏷️ Version constants
+    ├── api/                 <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/globe.svg" width="16" height="16" alt="globe" /> HTTP server, route handlers, auth middleware
+    ├── cache/               <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/database.svg" width="16" height="16" alt="database" /> Cache infrastructure
+    ├── health/              <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/heart.svg" width="16" height="16" alt="heart" /> Provider health checker
+    ├── observability/       <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/bar-chart.svg" width="16" height="16" alt="bar-chart" /> OpenTelemetry spans and metrics
+    ├── shrink/              <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/package.svg" width="16" height="16" alt="package" /> Response compression
+    └── version/             <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/tag.svg" width="16" height="16" alt="tag" /> Version constants
 ```
 
 ---
 
-## 🌐 API
+## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/globe.svg" width="16" height="16" alt="globe" /> API
 
 | | |
 |---|---|
@@ -68,7 +68,7 @@ eyrie/
 | **Auth** | Bearer token or `X-API-Key` header. Set via `EYRIE_API_KEY` |
 
 <details>
-<summary><b>📡 Endpoint Summary</b></summary>
+<summary><b><img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/radio.svg" width="16" height="16" alt="radio" /> Endpoint Summary</b></summary>
 
 | Method | Path | Tag | Description |
 |--------|------|-----|-------------|
@@ -89,24 +89,24 @@ eyrie/
 
 ---
 
-## 🔍 Provider Detection
+## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/search.svg" width="16" height="16" alt="search" /> Provider Detection
 
 Auto-detects active provider from env vars in priority order:
 
 | Priority | Env Var | Provider |
 |:--------:|---------|----------|
-| 1 | `ANTHROPIC_API_KEY` | 🟠 Anthropic Claude |
-| 2 | `OPENAI_API_KEY` | 🟢 OpenAI |
-| 3 | `GEMINI_API_KEY` | 🔵 Google Gemini |
-| 4 | `OPENROUTER_API_KEY` | 🔀 OpenRouter |
-| 5 | `CANOPYWAVE_API_KEY` | 📡 CanopyWave |
-| 6 | `XAI_API_KEY` | ⚡ Grok (xAI) |
-| 7 | `ZAI_API_KEY` | 🤖 ZAI |
-| 8 | — | 🦙 Ollama (localhost socket) |
+| 1 | `ANTHROPIC_API_KEY` | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/circle.svg" width="16" height="16" alt="circle" /> Anthropic Claude |
+| 2 | `OPENAI_API_KEY` | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/circle.svg" width="16" height="16" alt="circle" /> OpenAI |
+| 3 | `GEMINI_API_KEY` | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/circle.svg" width="16" height="16" alt="circle" /> Google Gemini |
+| 4 | `OPENROUTER_API_KEY` | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/shuffle.svg" width="16" height="16" alt="shuffle" /> OpenRouter |
+| 5 | `CANOPYWAVE_API_KEY` | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/radio.svg" width="16" height="16" alt="radio" /> CanopyWave |
+| 6 | `XAI_API_KEY` | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/zap.svg" width="16" height="16" alt="zap" /> Grok (xAI) |
+| 7 | `ZAI_API_KEY` | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/bot.svg" width="16" height="16" alt="bot" /> ZAI |
+| 8 | — | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/server.svg" width="16" height="16" alt="server" /> Ollama (localhost socket) |
 
 ---
 
-## 📡 Streaming
+## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/radio.svg" width="16" height="16" alt="radio" /> Streaming
 
 All responses are streamed via **SSE**. Blocking responses wrap the stream internally.
 
@@ -118,7 +118,7 @@ for event := range sr.Events() { ... }
 
 ---
 
-## 🔄 Retry & Rate Limiting
+## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/refresh-cw.svg" width="16" height="16" alt="refresh-cw" /> Retry & Rate Limiting
 
 | Feature | Behavior |
 |---------|----------|
@@ -129,7 +129,7 @@ for event := range sr.Events() { ... }
 
 ---
 
-## 💾 Caching
+## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/database.svg" width="16" height="16" alt="database" /> Caching
 
 | Layer | Strategy | Key |
 |-------|----------|-----|
@@ -138,6 +138,6 @@ for event := range sr.Events() { ... }
 
 ---
 
-## 🌳 Conversation Graph
+## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/git-branch.svg" width="16" height="16" alt="git-branch" /> Conversation Graph
 
 Conversations are stored as a **DAG** in SQLite. Each prompt creates a `Node`; branching is first-class. Nodes are addressable by ID or named alias.

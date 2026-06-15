@@ -48,9 +48,9 @@ func TestDefaultDeploymentEnvFallbacks_GrokHasXAIAPIKey(t *testing.T) {
 
 func TestDefaultDeploymentEnvFallbacks_ZAIHasZAIAPIBase(t *testing.T) {
 	fbs := DefaultDeploymentEnvFallbacks
-	zai, ok := fbs["z-ai-direct"]
+	zai, ok := fbs["zai_payg-direct"]
 	if !ok {
-		t.Fatal("z-ai-direct not found in env fallbacks")
+		t.Fatal("zai_payg-direct not found in env fallbacks")
 	}
 	hasZAIAPIBase := false
 	for _, fb := range zai {
@@ -63,7 +63,7 @@ func TestDefaultDeploymentEnvFallbacks_ZAIHasZAIAPIBase(t *testing.T) {
 		}
 	}
 	if !hasZAIAPIBase {
-		t.Error("z-ai-direct base_url fallbacks should include ZAI_API_BASE")
+		t.Error("zai_payg-direct base_url fallbacks should include ZAI_API_BASE")
 	}
 }
 

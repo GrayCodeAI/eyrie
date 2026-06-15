@@ -54,7 +54,8 @@ var OpenAICompatibleProviders = map[string]ProviderRegistryConfig{
 	"deepseek":               {Name: "deepseek", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.deepseek.com/v1", EnvKey: "DEEPSEEK_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"grok":                   {Name: "grok", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.x.ai/v1", EnvKey: "XAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"openrouter":             {Name: "openrouter", Type: ProviderTypeOpenAICompatible, BaseURL: "https://openrouter.ai/api/v1", EnvKey: "OPENROUTER_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"z-ai":                   {Name: "z-ai", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.z.ai/api/paas/v4", EnvKey: "ZAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"zai_payg":               {Name: "zai_payg", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.z.ai/api/paas/v4", EnvKey: "ZAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"zai_coding":             {Name: "zai_coding", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.z.ai/api/coding/paas/v4", EnvKey: "ZAI_CODING_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"canopywave":             {Name: "canopywave", Type: ProviderTypeOpenAICompatible, BaseURL: "https://inference.canopywave.io/v1", EnvKey: "CANOPYWAVE_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"gemini":                 {Name: "gemini", Type: ProviderTypeOpenAICompatible, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", EnvKey: "GEMINI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"ollama":                 {Name: "ollama", Type: ProviderTypeOpenAICompatible, BaseURL: "http://localhost:11434/v1", EnvKey: "OLLAMA_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: false},
@@ -175,6 +176,16 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 		}
 		p = NewGeminiClient(apiKey, baseURL)
 	default:
+		if config.IsZAIProvider(providerName) {
+			providerCfg := config.LoadProviderConfig("")
+			openAIBase, err := config.ResolveZAIOpenAIBase(providerName, providerCfg)
+			if err != nil {
+				return nil, err
+			}
+			anthropicBase := config.ResolveZAIAnthropicBase(providerCfg)
+			p = NewZAIClient(apiKey, openAIBase, anthropicBase, info.Compat, providerName)
+			break
+		}
 		if config.IsXiaomiMimoProvider(providerName) {
 			providerCfg := config.LoadProviderConfig("")
 			openAIBase, err := config.ResolveXiaomiOpenAIBase(providerName, providerCfg)
@@ -208,7 +219,8 @@ func DetectProvider() string {
 		"openrouter": func() bool { return credentials.HasSecret(ctx, "OPENROUTER_API_KEY") },
 		"grok":       func() bool { return credentials.HasSecret(ctx, "XAI_API_KEY") },
 		"gemini":     func() bool { return credentials.HasSecret(ctx, "GEMINI_API_KEY") },
-		"z-ai":       func() bool { return credentials.HasSecret(ctx, "ZAI_API_KEY") },
+		"zai_payg":   func() bool { return credentials.HasSecret(ctx, "ZAI_API_KEY") },
+		"zai_coding": func() bool { return credentials.HasSecret(ctx, "ZAI_CODING_API_KEY") },
 		"canopywave": func() bool { return credentials.HasSecret(ctx, "CANOPYWAVE_API_KEY") },
 		"openai":     func() bool { return credentials.HasSecret(ctx, "OPENAI_API_KEY") },
 		"opencodego": func() bool { return credentials.HasSecret(ctx, "OPENCODEGO_API_KEY") },

@@ -24,6 +24,7 @@ const (
 	DefaultOpenRouterBaseURL = "https://openrouter.ai/api/v1"
 	DefaultCanopyWaveBaseURL = "https://inference.canopywave.io/v1"
 	DefaultZAIBaseURL        = "https://api.z.ai/api/paas/v4"
+	DefaultZAICodingBaseURL  = "https://api.z.ai/api/coding/paas/v4"
 	DefaultOpenAIBaseURL     = "https://api.openai.com/v1"
 	DefaultGrokBaseURL       = "https://api.x.ai/v1"
 	DefaultOpenCodeGoBaseURL = opencodego.DefaultBaseURL
@@ -47,7 +48,8 @@ var Registry = map[string]FetchFunc{
 	"vertex":                 FetchVertex,
 	"openrouter":             FetchOpenRouter,
 	"grok":                   FetchGrok,
-	"z-ai":                   FetchZAI,
+	"zai_payg":               FetchZAI,
+	"zai_coding":             FetchZAICoding,
 	"canopywave":             FetchCanopyWave,
 	"opencodego":             FetchOpenCodeGo,
 	"kimi":                   FetchKimi,
@@ -737,6 +739,17 @@ func FetchZAI(env map[string]string) ([]Entry, error) {
 	}
 	enrichFromOpenRouter(entries, "z-ai/")
 	return entries, nil
+}
+
+// FetchZAICoding lists models using the GLM Coding Plan dedicated endpoint.
+// It expects ZAI_CODING_API_KEY (and optional ZAI_CODING_BASE_URL) in the env map.
+// This ensures proper quota/billing separation from the general pay-as-you-go path.
+func FetchZAICoding(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "ZAI_CODING_BASE_URL", DefaultZAICodingBaseURL),
+		env["ZAI_CODING_API_KEY"], "Bearer",
+	)
 }
 
 func FetchCanopyWave(env map[string]string) ([]Entry, error) {

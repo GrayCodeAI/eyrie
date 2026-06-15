@@ -408,7 +408,7 @@ func TestGetProviderModel_TableDriven(t *testing.T) {
 		{ProviderGemini, "gemini-2.0-flash"},
 		{ProviderGrok, "grok-2"}, // falls through GrokModel to XAIModel
 		{ProviderCanopyWave, "cw-model"},
-		{ProviderZAI, "zai-model"},
+		{ProviderZAIPayg, "zai-model"},
 		{ProviderOpenRouter, "or-model"},
 		{ProviderOllama, "llama3.1:8b"},
 		{ProviderOpenCodeGo, "ocg-model"},
@@ -450,7 +450,7 @@ func TestGetProviderAPIKey_TableDriven(t *testing.T) {
 		{ProviderGemini, "gemini-key"},
 		{ProviderGrok, "xai-key"}, // falls through GrokAPIKey to XAIAPIKey
 		{ProviderCanopyWave, "cw-key"},
-		{ProviderZAI, "zai-key"},
+		{ProviderZAIPayg, "zai-key"},
 		{ProviderOpenRouter, "or-key"},
 		{ProviderOllama, ""}, // no API key for ollama
 		{ProviderOpenCodeGo, "ocg-key"},
@@ -856,7 +856,7 @@ func TestApplyProviderEnv_AllProviders(t *testing.T) {
 		{ProviderGemini, "gemini-key-1234567890", "GEMINI_API_KEY", "gemini-2.0-flash", "GEMINI_API_KEY", "GEMINI_MODEL"},
 		{ProviderOpenRouter, "or-key-1234567890", "OPENROUTER_API_KEY", "or-model", "OPENROUTER_API_KEY", "OPENROUTER_MODEL"},
 		{ProviderCanopyWave, "cw-key-1234567890", "CANOPYWAVE_API_KEY", "cw-model", "CANOPYWAVE_API_KEY", "CANOPYWAVE_MODEL"},
-		{ProviderZAI, "zai-key-1234567890", "ZAI_API_KEY", "zai-model", "ZAI_API_KEY", "ZAI_MODEL"},
+		{ProviderZAIPayg, "zai-key-1234567890", "ZAI_API_KEY", "zai-model", "ZAI_API_KEY", "ZAI_MODEL"},
 	}
 
 	cat := testModelCatalog()
@@ -876,7 +876,7 @@ func TestApplyProviderEnv_AllProviders(t *testing.T) {
 				cfg.OpenRouterAPIKey = tt.apiKey
 			case ProviderCanopyWave:
 				cfg.CanopyWaveAPIKey = tt.apiKey
-			case ProviderZAI:
+			case ProviderZAIPayg:
 				cfg.ZAIAPIKey = tt.apiKey
 			}
 
@@ -910,7 +910,7 @@ func TestApplyProviderEnv_GrokUsesXAIFallback(t *testing.T) {
 func TestProviderDetectionOrder_AllProvidersCovered(t *testing.T) {
 	allProviders := []string{
 		ProviderAnthropic, ProviderOpenAI, ProviderCanopyWave,
-		ProviderZAI, ProviderOpenRouter, ProviderGrok,
+		ProviderZAIPayg, ProviderOpenRouter, ProviderGrok,
 		ProviderGemini, ProviderOllama, ProviderOpenCodeGo,
 		ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan,
 	}

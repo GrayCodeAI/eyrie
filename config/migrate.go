@@ -24,7 +24,8 @@ func EnsureDeploymentConfigV2(cfg *ProviderConfig) *ProviderConfig {
 		{ProviderGrok, "grok-direct"},
 		{ProviderGemini, "gemini-direct"},
 		{ProviderOpenRouter, "openrouter"},
-		{ProviderZAI, "z-ai-direct"},
+		{ProviderZAIPayg, "zai_payg-direct"},
+		{ProviderZAICoding, "zai_coding-direct"},
 		{ProviderCanopyWave, "canopywave"},
 		{ProviderOllama, "ollama-local"},
 		{ProviderOpenCodeGo, "opencodego"},
@@ -66,8 +67,10 @@ func legacyDeploymentConfig(cfg *ProviderConfig, provider string) DeploymentConf
 		return DeploymentConfig{APIKey: cfg.OpenRouterAPIKey, BaseURL: cfg.OpenRouterBaseURL}
 	case ProviderCanopyWave:
 		return DeploymentConfig{APIKey: cfg.CanopyWaveAPIKey, BaseURL: cfg.CanopyWaveBaseURL}
-	case ProviderZAI:
+	case ProviderZAIPayg:
 		return DeploymentConfig{APIKey: cfg.ZAIAPIKey, BaseURL: cfg.ZAIBaseURL}
+	case ProviderZAICoding:
+		return DeploymentConfig{APIKey: cfg.ZAICodingAPIKey, BaseURL: cfg.ZAICodingBaseURL}
 	case ProviderOllama:
 		return DeploymentConfig{BaseURL: cfg.OllamaBaseURL}
 	case ProviderOpenCodeGo:
@@ -158,8 +161,10 @@ func deploymentOwnerProviderID(deploymentID string) string {
 		return "openrouter"
 	case "canopywave":
 		return "canopywave"
-	case "z-ai-direct":
-		return "z-ai"
+	case "zai_payg-direct":
+		return "zai_payg"
+	case "zai_coding-direct":
+		return "zai_coding"
 	case "ollama-local":
 		return "ollama"
 	case "opencodego":

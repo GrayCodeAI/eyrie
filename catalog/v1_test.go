@@ -34,14 +34,14 @@ func TestCatalogV1FromLegacyCompiles(t *testing.T) {
 
 func TestCatalogV1FromLegacyZAIDirectModels(t *testing.T) {
 	legacy := testLegacyModelCatalog()
-	legacy.Providers["z-ai"] = []ModelCatalogEntry{{ID: "glm-5.1", DisplayName: "GLM-5.1"}}
+	legacy.Providers["zai_payg"] = []ModelCatalogEntry{{ID: "glm-5.1", DisplayName: "GLM-5.1"}}
 	c := CatalogV1FromLegacy(legacy)
 	compiled, err := CompileCatalogV1(&c)
 	if err != nil {
 		t.Fatalf("CompileCatalogV1 failed: %v", err)
 	}
-	if _, ok := compiled.OfferingForDeployment("z-ai/glm-5.1", "z-ai-direct"); !ok {
-		t.Fatal("expected z-ai-direct offering on z-ai/glm-5.1")
+	if _, ok := compiled.OfferingForDeployment("zai_payg/glm-5.1", "zai_payg-direct"); !ok {
+		t.Fatal("expected zai_payg-direct offering on zai_payg/glm-5.1")
 	}
 }
 
