@@ -22,6 +22,7 @@ type ProviderConfig struct {
 	CanopyWaveAPIKey           string                      `json:"canopywave_api_key,omitempty"`
 	DeepSeekAPIKey             string                      `json:"deepseek_api_key,omitempty"`
 	ZAIAPIKey                  string                      `json:"zai_api_key,omitempty"`
+	ZAICodingAPIKey            string                      `json:"zai_coding_api_key,omitempty"`
 	OpenRouterAPIKey           string                      `json:"openrouter_api_key,omitempty"`
 	GeminiAPIKey               string                      `json:"gemini_api_key,omitempty"`
 	OllamaBaseURL              string                      `json:"ollama_base_url,omitempty"`
@@ -35,6 +36,9 @@ type ProviderConfig struct {
 	CanopyWaveBaseURL          string                      `json:"canopywave_base_url,omitempty"`
 	DeepSeekBaseURL            string                      `json:"deepseek_base_url,omitempty"`
 	ZAIBaseURL                 string                      `json:"zai_base_url,omitempty"`
+	ZAICodingBaseURL           string                      `json:"zai_coding_base_url,omitempty"`
+	ZAIRegion                  string                      `json:"zai_region,omitempty"`
+	ZAICodingRegion            string                      `json:"zai_coding_region,omitempty"`
 	GrokBaseURL                string                      `json:"grok_base_url,omitempty"`
 	XAIBaseURL                 string                      `json:"xai_base_url,omitempty"`
 	OpenAIBaseURL              string                      `json:"openai_base_url,omitempty"`
@@ -140,10 +144,15 @@ var providerFields = map[string]providerFieldMap{
 		Models:  func(c *ProviderConfig) []string { return []string{c.DeepSeekModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.DeepSeekBaseURL },
 	},
-	ProviderZAI: {
+	ProviderZAIPayg: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.ZAIAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.ZAIModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.ZAIBaseURL },
+	},
+	ProviderZAICoding: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.ZAICodingAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.ZAIModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.ZAICodingBaseURL },
 	},
 	ProviderOpenRouter: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.OpenRouterAPIKey} },
@@ -436,7 +445,8 @@ func ClearProviderRuntimeEnv() {
 		"OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL",
 		"CANOPYWAVE_API_KEY", "CANOPYWAVE_MODEL", "CANOPYWAVE_BASE_URL",
 		"DEEPSEEK_API_KEY", "DEEPSEEK_MODEL", "DEEPSEEK_BASE_URL",
-		"ZAI_API_KEY", "ZAI_MODEL", "ZAI_BASE_URL", "ZAI_API_BASE",
+		"ZAI_API_KEY", "ZAI_CODING_API_KEY", "ZAI_MODEL", "ZAI_BASE_URL", "ZAI_CODING_BASE_URL", "ZAI_API_BASE",
+		"ZAI_REGION", "ZAI_CODING_REGION",
 		"XAI_API_KEY", "XAI_MODEL", "XAI_BASE_URL",
 		"GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL",
 		"OLLAMA_BASE_URL",
@@ -564,14 +574,22 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 			m = catalog.GetProviderDefaultModel("deepseek", cat)
 		}
 		collectOpenAICompatibleProvider(env, "DEEPSEEK", apiKey, m, base, overwrite)
-	case ProviderZAI:
+	case ProviderZAIPayg:
 		apiKey := AsNonEmptyString(config.ZAIAPIKey)
 		base := firstNonEmpty(config.ZAIBaseURL, DefaultZAIOpenAIBaseURL)
 		m := activeModel
 		if m == "" {
-			m = catalog.GetProviderDefaultModel("z-ai", cat)
+			m = catalog.GetProviderDefaultModel("zai_payg", cat)
 		}
 		collectOpenAICompatibleProvider(env, "ZAI", apiKey, m, base, overwrite)
+	case ProviderZAICoding:
+		apiKey := AsNonEmptyString(config.ZAICodingAPIKey)
+		base := firstNonEmpty(config.ZAICodingBaseURL, DefaultZAICodingOpenAIBaseURL)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("zai_coding", cat)
+		}
+		collectOpenAICompatibleProvider(env, "ZAI_CODING", apiKey, m, base, overwrite)
 	case ProviderOpenRouter:
 		apiKey := AsNonEmptyString(config.OpenRouterAPIKey)
 		base := firstNonEmpty(config.OpenRouterBaseURL, DefaultOpenRouterOpenAIBaseURL)

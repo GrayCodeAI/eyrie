@@ -26,7 +26,7 @@ func TestCompatMatrixCoreProvidersHaveCompat(t *testing.T) {
 func TestCompatMatrixOpenAICompatibleProvidersHaveCompat(t *testing.T) {
 	// Every OpenAI-compatible provider must have a non-nil Compat config after init().
 	expected := []string{
-		"grok", "openrouter", "gemini", "z-ai",
+		"grok", "openrouter", "gemini", "zai_payg", "zai_coding",
 		"canopywave", "ollama", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan",
 	}
 	for _, name := range expected {
@@ -55,7 +55,8 @@ func TestCompatMatrixMaxTokensFieldValues(t *testing.T) {
 		{"grok", "max_tokens", &GrokCompat},
 		{"openrouter", "max_tokens", &OpenRouterCompat},
 		{"gemini", "max_tokens", &GeminiCompat},
-		{"z-ai", "max_tokens", &ZAICompat},
+		{"zai_payg", "max_tokens", &ZAICompat},
+		{"zai_coding", "max_tokens", &ZAICompat},
 		{"canopywave", "max_tokens", &CanopyWaveCompat},
 		{"ollama", "max_tokens", &OllamaCompat},
 		{"opencodego", "max_tokens", &OpenCodeGoCompat},

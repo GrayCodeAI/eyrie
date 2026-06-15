@@ -10,6 +10,7 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
+	"github.com/GrayCodeAI/eyrie/catalog/zai"
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
@@ -220,12 +221,10 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 		openBase := FirstNonEmpty(deployment.BaseURL, "https://api.deepseek.com/v1")
 		anthropicBase := "https://api.deepseek.com/anthropic"
 		return client.NewDeepSeekClient(apiKey, openBase, anthropicBase, &client.DeepSeekCompat), true
-	case "z-ai-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("ZAI_API_KEY"))
-		if apiKey == "" {
-			return nil, false
-		}
-		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultZAIOpenAIBaseURL), &client.ZAICompat), true
+	case "zai_payg-direct":
+		return newZAIDeploymentClient(deployment, "zai_payg", "ZAI_API_KEY", storeSecret)
+	case "zai_coding-direct":
+		return newZAIDeploymentClient(deployment, "zai_coding", "ZAI_CODING_API_KEY", storeSecret)
 	case "ollama-local":
 		baseURL := config.NormalizeOllamaOpenAIBaseURL(FirstNonEmpty(deployment.BaseURL, os.Getenv("OLLAMA_BASE_URL"), config.OllamaDefaultBaseURL))
 		return client.NewOpenAIClient(FirstNonEmpty(deployment.APIKey, storeSecret("OLLAMA_API_KEY")), baseURL, &client.OllamaCompat), true
@@ -282,6 +281,58 @@ func newMiMoDeploymentClient(deployment config.DeploymentConfig, providerID, env
 	return client.NewMiMoClient(apiKey, openBase, anthropicBase, &client.XiaomiCompat, providerID), true
 }
 
+// newZAIDeploymentClient constructs a dual-protocol (OpenAI + Anthropic) Z.AI client
+// for either the general or Coding Plan gateway, resolving the correct bases
+// for the plan + region (international or china) per official docs.
+func newZAIDeploymentClient(deployment config.DeploymentConfig, providerID, envKey string, lookup func(...string) string) (client.Provider, bool) {
+	apiKey := FirstNonEmpty(deployment.APIKey, lookup(envKey))
+	if apiKey == "" {
+		return nil, false
+	}
+
+	plan, _ := zai.PlanForProvider(providerID)
+
+	cfg := config.LoadProviderConfig("")
+	openBase, err := resolveZAIOpenAIBaseForDeployment(plan, providerID, cfg, deployment.BaseURL)
+	if err != nil || openBase == "" {
+		if plan == zai.PlanCoding {
+			openBase = FirstNonEmpty(deployment.BaseURL, config.DefaultZAICodingOpenAIBaseURL, zai.CodingInternationalOpenAIBase)
+		} else {
+			openBase = FirstNonEmpty(deployment.BaseURL, config.DefaultZAIOpenAIBaseURL, zai.GeneralInternationalOpenAIBase)
+		}
+	}
+
+	anthropicBase := resolveZAIAnthropicBaseForDeployment(plan, cfg)
+
+	return client.NewZAIClient(apiKey, openBase, anthropicBase, &client.ZAICompat, providerID), true
+}
+
+func resolveZAIOpenAIBaseForDeployment(plan zai.Plan, providerID string, cfg *config.ProviderConfig, override string) (string, error) {
+	regionStr := ""
+	if cfg != nil {
+		if providerID == "zai_coding" {
+			regionStr = cfg.ZAICodingRegion
+		} else {
+			regionStr = cfg.ZAIRegion
+		}
+	}
+	region, _ := zai.NormalizeRegion(regionStr)
+	return zai.ResolveOpenAIBase(plan, region, override)
+}
+
+func resolveZAIAnthropicBaseForDeployment(plan zai.Plan, cfg *config.ProviderConfig) string {
+	// region from general or coding, prefer coding if set
+	regionStr := ""
+	if cfg != nil {
+		regionStr = cfg.ZAICodingRegion
+		if regionStr == "" {
+			regionStr = cfg.ZAIRegion
+		}
+	}
+	region, _ := zai.NormalizeRegion(regionStr)
+	return zai.ResolveAnthropicBase(region)
+}
+
 // DefaultDeploymentForProvider maps a logical provider name to a deployment ID.
 func DefaultDeploymentForProvider(provider string) string {
 	switch provider {
@@ -305,8 +356,10 @@ func DefaultDeploymentForProvider(provider string) string {
 		return "canopywave"
 	case config.ProviderDeepSeek:
 		return "deepseek-direct"
-	case config.ProviderZAI:
-		return "z-ai-direct"
+	case config.ProviderZAIPayg:
+		return "zai_payg-direct"
+	case config.ProviderZAICoding:
+		return "zai_coding-direct"
 	case config.ProviderOllama:
 		return "ollama-local"
 	case config.ProviderOpenCodeGo:
@@ -346,8 +399,10 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 		return config.DeploymentConfig{APIKey: cfg.CanopyWaveAPIKey, BaseURL: cfg.CanopyWaveBaseURL}
 	case config.ProviderDeepSeek:
 		return config.DeploymentConfig{APIKey: cfg.DeepSeekAPIKey, BaseURL: cfg.DeepSeekBaseURL}
-	case config.ProviderZAI:
+	case config.ProviderZAIPayg:
 		return config.DeploymentConfig{APIKey: cfg.ZAIAPIKey, BaseURL: cfg.ZAIBaseURL}
+	case config.ProviderZAICoding:
+		return config.DeploymentConfig{APIKey: cfg.ZAICodingAPIKey, BaseURL: cfg.ZAICodingBaseURL}
 	case config.ProviderOllama:
 		return config.DeploymentConfig{BaseURL: cfg.OllamaBaseURL}
 	case config.ProviderOpenCodeGo:

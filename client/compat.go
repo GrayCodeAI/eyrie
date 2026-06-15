@@ -100,9 +100,11 @@ func init() {
 		p.Compat = &GeminiCompat
 		OpenAICompatibleProviders["gemini"] = p
 	}
-	if p, ok := OpenAICompatibleProviders["z-ai"]; ok {
-		p.Compat = &ZAICompat
-		OpenAICompatibleProviders["z-ai"] = p
+	for _, id := range []string{"zai_payg", "zai_coding"} {
+		if p, ok := OpenAICompatibleProviders[id]; ok {
+			p.Compat = &ZAICompat
+			OpenAICompatibleProviders[id] = p
+		}
 	}
 	if p, ok := OpenAICompatibleProviders["canopywave"]; ok {
 		p.Compat = &CanopyWaveCompat

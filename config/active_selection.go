@@ -67,7 +67,7 @@ func SetProviderModel(cfg *ProviderConfig, provider, model string) {
 		cfg.OpenAIModel = model
 	case ProviderCanopyWave:
 		cfg.CanopyWaveModel = model
-	case ProviderZAI:
+	case ProviderZAIPayg, ProviderZAICoding:
 		cfg.ZAIModel = model
 	case ProviderOpenRouter:
 		cfg.OpenRouterModel = model
