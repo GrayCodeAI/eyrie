@@ -752,10 +752,10 @@ func FetchCanopyWave(env map[string]string) ([]Entry, error) {
 	// Convert to dollars: 140 cents = $1.40.
 	for i := range entries {
 		if entries[i].InputPricePer1M > 0 {
-			entries[i].InputPricePer1M = entries[i].InputPricePer1M / 100
+			entries[i].InputPricePer1M /= 100
 		}
 		if entries[i].OutputPricePer1M > 0 {
-			entries[i].OutputPricePer1M = entries[i].OutputPricePer1M / 100
+			entries[i].OutputPricePer1M /= 100
 		}
 	}
 	return entries, nil
@@ -775,11 +775,9 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 		// Merge with static metadata from docs (pricing, protocol, context windows).
 		if meta, ok := opencodego.MetadataForModel(entries[i].ID); ok {
 			entries[i] = enrichFromStaticMeta(entries[i], meta)
-		} else {
+		} else if entries[i].Protocol == "" {
 			// Unknown model — derive protocol from name pattern.
-			if entries[i].Protocol == "" {
-				entries[i].Protocol = opencodego.ProtocolForModel(entries[i].ID)
-			}
+			entries[i].Protocol = opencodego.ProtocolForModel(entries[i].ID)
 		}
 	}
 	return entries, nil

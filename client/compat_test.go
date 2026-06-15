@@ -233,34 +233,6 @@ func TestCompatFeatureMatrixAllProviders(t *testing.T) {
 	}
 }
 
-func assertFeatureSet(t *testing.T, provider string, got, want FeatureSet) {
-	t.Helper()
-	if got.Thinking != want.Thinking {
-		t.Errorf("%s Thinking = %v, want %v", provider, got.Thinking, want.Thinking)
-	}
-	if got.ToolUse != want.ToolUse {
-		t.Errorf("%s ToolUse = %v, want %v", provider, got.ToolUse, want.ToolUse)
-	}
-	if got.Images != want.Images {
-		t.Errorf("%s Images = %v, want %v", provider, got.Images, want.Images)
-	}
-	if got.Streaming != want.Streaming {
-		t.Errorf("%s Streaming = %v, want %v", provider, got.Streaming, want.Streaming)
-	}
-	if got.Caching != want.Caching {
-		t.Errorf("%s Caching = %v, want %v", provider, got.Caching, want.Caching)
-	}
-	if got.JSON != want.JSON {
-		t.Errorf("%s JSON = %v, want %v", provider, got.JSON, want.JSON)
-	}
-	if got.Embeddings != want.Embeddings {
-		t.Errorf("%s Embeddings = %v, want %v", provider, got.Embeddings, want.Embeddings)
-	}
-	if got.MaxContext != want.MaxContext {
-		t.Errorf("%s MaxContext = %d, want %d", provider, got.MaxContext, want.MaxContext)
-	}
-}
-
 func TestCompatSupportsAllFeatureAliases(t *testing.T) {
 	pf := NewProviderFeatures()
 
