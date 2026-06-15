@@ -8,8 +8,8 @@ import (
 )
 
 func TestAllProviders_Count(t *testing.T) {
-	if n := len(registry.All()); n != 16 {
-		t.Fatalf("expected 16 providers, got %d", n)
+	if n := len(registry.All()); n != 18 {
+		t.Fatalf("expected 18 providers, got %d", n)
 	}
 }
 
@@ -21,8 +21,8 @@ func TestCredentialRegistry_MatchesAll(t *testing.T) {
 
 func TestLiveFetcherKeys_AllProviders(t *testing.T) {
 	keys := registry.LiveFetcherKeys()
-	if len(keys) != 16 {
-		t.Fatalf("expected 16 live fetcher keys, got %d", len(keys))
+	if len(keys) != 18 {
+		t.Fatalf("expected 18 live fetcher keys, got %d", len(keys))
 	}
 }
 

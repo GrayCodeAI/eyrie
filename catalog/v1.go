@@ -141,6 +141,17 @@ type CapabilitySetV1 struct {
 	ServerTools            map[string]CapabilityState `json:"server_tools,omitempty"`
 	FunctionCalling        CapabilityState            `json:"function_calling,omitempty"`
 	ExplicitThinkingBudget CapabilityState            `json:"explicit_thinking_budget,omitempty"`
+	AdaptiveThinking       CapabilityState            `json:"adaptive_thinking,omitempty"`
+	Effort                 CapabilityState            `json:"effort,omitempty"`
+	StructuredOutput       CapabilityState            `json:"structured_output,omitempty"`
+	CodeExecution          CapabilityState            `json:"code_execution,omitempty"`
+	Citations              CapabilityState            `json:"citations,omitempty"`
+	PDFInput               CapabilityState            `json:"pdf_input,omitempty"`
+	ImageInput             CapabilityState            `json:"image_input,omitempty"`
+	MaxInputTokens         int                        `json:"max_input_tokens,omitempty"`
+	MaxOutputTokens        int                        `json:"max_output_tokens,omitempty"`
+	ThinkingTypes          []string                   `json:"thinking_types,omitempty"`
+	EffortLevels           []string                   `json:"effort_levels,omitempty"`
 }
 
 type PricingV1 struct {
@@ -175,6 +186,32 @@ type CompiledCatalogV1 struct {
 	OfferingsByDeployment     map[string][]ModelOfferingV1
 	TemplatesByCanonicalModel map[string][]ModelOfferingTemplateV1
 	Diagnostics               []CatalogDiagnosticV1
+}
+
+// CapabilitiesForModel returns the capability set for a model on a deployment.
+// If deploymentID is empty, returns capabilities from the first offering found.
+// Returns empty CapabilitySetV1 if the model is not in the catalog.
+func (c *CompiledCatalogV1) CapabilitiesForModel(modelID, deploymentID string) CapabilitySetV1 {
+	if c == nil {
+		return CapabilitySetV1{}
+	}
+	// Try by canonical model ID
+	if offerings, ok := c.OfferingsByCanonicalModel[modelID]; ok {
+		for _, offering := range offerings {
+			if deploymentID == "" || offering.DeploymentID == deploymentID {
+				return offering.Capabilities
+			}
+		}
+	}
+	// Try by native model ID across all deployments
+	for _, offerings := range c.OfferingsByDeployment {
+		for _, offering := range offerings {
+			if offering.NativeModelID == modelID {
+				return offering.Capabilities
+			}
+		}
+	}
+	return CapabilitySetV1{}
 }
 
 type LoadCatalogV1Options struct {
@@ -638,7 +675,7 @@ func defaultDeploymentsV1() map[string]DeploymentV1 {
 		"grok-direct":                   deployment("grok-direct", "Grok", "xai", "openai-chat-completions", "grok", NativeModelIDCatalogKnown),
 		"openrouter":                    deployment("openrouter", "OpenRouter", "openrouter", "openai-chat-completions", "openrouter", NativeModelIDDiscovered),
 		"z-ai-direct":                   deployment("z-ai-direct", "Z.AI", "z-ai", "openai-chat-completions", "z-ai", NativeModelIDCatalogKnown),
-		"canopywave":                    deployment("canopywave", "CanopyWave", "canopywave", "openai-chat-completions", "canopywave", NativeModelIDCatalogKnown),
+		"canopywave":                    deployment("canopywave", "CanopyWave", "canopywave", "openai-chat-completions", "canopywave", NativeModelIDDiscovered),
 		"ollama-local":                  localDeployment(),
 		"opencodego":                    deployment("opencodego", "OpenCode Go", "opencodego", "openai-chat-completions", "opencodego", NativeModelIDDiscovered),
 		"kimi-direct":                   deployment("kimi-direct", "Kimi (Moonshot)", "kimi", "openai-chat-completions", "kimi", NativeModelIDDiscovered),
@@ -784,7 +821,11 @@ func canonicalProviderID(providerID string) string {
 }
 
 func capabilitySetFromLegacy(entry ModelCatalogEntry) CapabilitySetV1 {
-	set := CapabilitySetV1{ServerTools: map[string]CapabilityState{}}
+	set := CapabilitySetV1{
+		ServerTools:     map[string]CapabilityState{},
+		MaxInputTokens:  entry.ContextWindow,
+		MaxOutputTokens: entry.MaxOutput,
+	}
 	for _, tool := range entry.ServerTools {
 		if tool != "" {
 			set.ServerTools[tool] = CapabilitySupported
@@ -793,10 +834,35 @@ func capabilitySetFromLegacy(entry ModelCatalogEntry) CapabilitySetV1 {
 	if len(set.ServerTools) == 0 {
 		set.ServerTools = nil
 	}
-	for _, tool := range entry.ServerTools {
-		switch strings.ToLower(strings.TrimSpace(tool)) {
+	for _, feat := range entry.ServerTools {
+		switch strings.ToLower(strings.TrimSpace(feat)) {
 		case "function-calling", "tools":
 			set.FunctionCalling = CapabilitySupported
+		case "thinking:enabled":
+			set.ExplicitThinkingBudget = CapabilitySupported
+			set.ThinkingTypes = append(set.ThinkingTypes, "enabled")
+		case "thinking:adaptive":
+			set.AdaptiveThinking = CapabilitySupported
+			set.ThinkingTypes = append(set.ThinkingTypes, "adaptive")
+		case "effort":
+			set.Effort = CapabilitySupported
+		case "structured_output":
+			set.StructuredOutput = CapabilitySupported
+		case "code_execution":
+			set.CodeExecution = CapabilitySupported
+		case "citations":
+			set.Citations = CapabilitySupported
+		case "pdf_input":
+			set.PDFInput = CapabilitySupported
+		case "image_input":
+			set.ImageInput = CapabilitySupported
+		}
+	}
+	// Parse effort levels from features (format: "effort:low,medium,high")
+	for _, feat := range entry.ServerTools {
+		if strings.HasPrefix(strings.ToLower(feat), "effort:") {
+			levels := strings.TrimPrefix(strings.ToLower(feat), "effort:")
+			set.EffortLevels = strings.Split(levels, ",")
 		}
 	}
 	return set

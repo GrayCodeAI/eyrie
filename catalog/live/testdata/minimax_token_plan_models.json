@@ -1,0 +1,52 @@
+{
+  "data": [
+    {
+      "id": "MiniMax-M3",
+      "object": "model",
+      "created": 1748000000,
+      "owned_by": "minimax"
+    },
+    {
+      "id": "MiniMax-M2.7",
+      "object": "model",
+      "created": 1747000000,
+      "owned_by": "minimax"
+    },
+    {
+      "id": "MiniMax-M2.7-highspeed",
+      "object": "model",
+      "created": 1747000000,
+      "owned_by": "minimax"
+    },
+    {
+      "id": "MiniMax-M2.5",
+      "object": "model",
+      "created": 1746000000,
+      "owned_by": "minimax"
+    },
+    {
+      "id": "MiniMax-M2.5-highspeed",
+      "object": "model",
+      "created": 1746000000,
+      "owned_by": "minimax"
+    },
+    {
+      "id": "MiniMax-M2.1",
+      "object": "model",
+      "created": 1745000000,
+      "owned_by": "minimax"
+    },
+    {
+      "id": "MiniMax-M2.1-highspeed",
+      "object": "model",
+      "created": 1745000000,
+      "owned_by": "minimax"
+    },
+    {
+      "id": "MiniMax-M2",
+      "object": "model",
+      "created": 1744000000,
+      "owned_by": "minimax"
+    }
+  ]
+}

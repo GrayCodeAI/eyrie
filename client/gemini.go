@@ -144,7 +144,9 @@ type geminiRequest struct {
 	Contents          []geminiContent         `json:"contents"`
 	GenerationConfig  *geminiGenerationConfig `json:"generationConfig,omitempty"`
 	Tools             []geminiTool            `json:"tools,omitempty"`
-	SystemInstruction *geminiContent          `json:"system_instruction,omitempty"`
+	ToolConfig        *geminiToolConfig       `json:"toolConfig,omitempty"`
+	SafetySettings    []geminiSafetySetting   `json:"safetySettings,omitempty"`
+	SystemInstruction *geminiContent          `json:"systemInstruction,omitempty"`
 }
 
 type geminiContent struct {
@@ -165,24 +167,40 @@ type geminiInlineData struct {
 }
 
 type geminiFunctionCall struct {
+	ID   string                 `json:"id,omitempty"`
 	Name string                 `json:"name"`
-	Args map[string]interface{} `json:"args"`
+	Args map[string]interface{} `json:"args,omitempty"`
 }
 
 type geminiFunctionResponse struct {
+	ID       string      `json:"id,omitempty"`
 	Name     string      `json:"name"`
 	Response interface{} `json:"response"`
 }
 
 type geminiGenerationConfig struct {
-	MaxOutputTokens int      `json:"maxOutputTokens,omitempty"`
-	Temperature     *float64 `json:"temperature,omitempty"`
-	TopP            *float64 `json:"topP,omitempty"`
-	StopSequences   []string `json:"stopSequences,omitempty"`
+	MaxOutputTokens  int                    `json:"maxOutputTokens,omitempty"`
+	Temperature      *float64               `json:"temperature,omitempty"`
+	TopP             *float64               `json:"topP,omitempty"`
+	TopK             *int                   `json:"topK,omitempty"`
+	StopSequences    []string               `json:"stopSequences,omitempty"`
+	ResponseMimeType string                 `json:"responseMimeType,omitempty"`
+	ResponseSchema   map[string]interface{} `json:"responseSchema,omitempty"`
+	ThinkingConfig   *geminiThinkingConfig  `json:"thinkingConfig,omitempty"`
+	PresencePenalty  *float64               `json:"presencePenalty,omitempty"`
+	FrequencyPenalty *float64               `json:"frequencyPenalty,omitempty"`
+	Seed             *int                   `json:"seed,omitempty"`
+	ResponseLogprobs *bool                  `json:"responseLogprobs,omitempty"`
+	Logprobs         *int                   `json:"logprobs,omitempty"`
+	CandidateCount   *int                   `json:"candidateCount,omitempty"`
+}
+
+type geminiThinkingConfig struct {
+	ThinkingLevel string `json:"thinkingLevel,omitempty"` // "low", "medium", "high"
 }
 
 type geminiTool struct {
-	FunctionDeclarations []geminiFunctionDecl `json:"functionDeclarations"`
+	FunctionDeclarations []geminiFunctionDecl `json:"functionDeclarations,omitempty"`
 }
 
 type geminiFunctionDecl struct {
@@ -191,9 +209,35 @@ type geminiFunctionDecl struct {
 	Parameters  map[string]interface{} `json:"parameters,omitempty"`
 }
 
+// geminiToolConfig controls function calling behavior.
+type geminiToolConfig struct {
+	FunctionCallingConfig *geminiFunctionCallingConfig `json:"functionCallingConfig,omitempty"`
+}
+
+type geminiFunctionCallingConfig struct {
+	Mode string `json:"mode"` // "AUTO", "ANY", "NONE"
+}
+
+// geminiSafetySetting configures content safety filtering.
+type geminiSafetySetting struct {
+	Category  string `json:"category"`  // e.g., "HARM_CATEGORY_HARASSMENT"
+	Threshold string `json:"threshold"` // e.g., "BLOCK_NONE", "BLOCK_LOW_AND_ABOVE", etc.
+}
+
 func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]byte, error) {
 	contents := make([]geminiContent, 0, len(messages))
 	var systemInstruction *geminiContent
+
+	// Build a lookup of tool call ID → function name from conversation history
+	toolNameByID := map[string]string{}
+	for _, msg := range messages {
+		for _, tc := range msg.ToolUse {
+			if tc.ID != "" && tc.Name != "" {
+				toolNameByID[tc.ID] = tc.Name
+			}
+		}
+	}
+
 	for _, msg := range messages {
 		gc := geminiContent{Parts: make([]geminiPart, 0, 2)}
 		switch msg.Role {
@@ -202,7 +246,6 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 		case "assistant":
 			gc.Role = "model"
 		case "system":
-			// Use Gemini's system_instruction field for system messages.
 			systemInstruction = &geminiContent{Parts: []geminiPart{{Text: msg.Content}}}
 			continue
 		default:
@@ -211,7 +254,7 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 		if msg.Content != "" {
 			gc.Parts = append(gc.Parts, geminiPart{Text: msg.Content})
 		}
-		// Handle ContentParts (multi-modal): takes precedence over Images
+		// Handle ContentParts (multi-modal)
 		if len(msg.ContentParts) > 0 {
 			for _, part := range msg.ContentParts {
 				switch part.Type {
@@ -222,7 +265,7 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 						mimeType, data, isBase64 := parseImageString(part.ImageURL.URL)
 						if !isBase64 {
 							mimeType = "image/png"
-							data = part.ImageURL.URL // fallback
+							data = part.ImageURL.URL
 						}
 						gc.Parts = append(gc.Parts, geminiPart{
 							InlineData: &geminiInlineData{MimeType: mimeType, Data: data},
@@ -244,34 +287,58 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 				})
 			}
 		}
+		// Tool results — use function name from conversation history, not tool_use_id
 		if len(msg.ToolResults) > 0 {
 			gc.Role = "user"
 			for _, tr := range msg.ToolResults {
-				gc.Parts = append(gc.Parts, geminiPart{
-					FunctionResponse: &geminiFunctionResponse{
-						Name:     tr.ToolUseID,
-						Response: map[string]string{"content": tr.Content},
-					},
-				})
+				funcName := toolNameByID[tr.ToolUseID]
+				if funcName == "" {
+					funcName = tr.ToolUseID // fallback for legacy format
+				}
+				fr := geminiFunctionResponse{
+					Name:     funcName,
+					Response: map[string]string{"content": tr.Content},
+				}
+				// Gemini 3+ requires the tool call ID
+				if tr.ToolUseID != "" {
+					fr.ID = tr.ToolUseID
+				}
+				gc.Parts = append(gc.Parts, geminiPart{FunctionResponse: &fr})
 			}
 		}
+		// Tool calls — include ID for Gemini 3+
 		for _, tc := range msg.ToolUse {
-			gc.Parts = append(gc.Parts, geminiPart{
-				FunctionCall: &geminiFunctionCall{Name: tc.Name, Args: tc.Arguments},
-			})
+			fc := geminiFunctionCall{Name: tc.Name, Args: tc.Arguments}
+			if tc.ID != "" {
+				fc.ID = tc.ID
+			}
+			gc.Parts = append(gc.Parts, geminiPart{FunctionCall: &fc})
 		}
 		contents = append(contents, gc)
 	}
 
 	req := geminiRequest{Contents: contents, SystemInstruction: systemInstruction}
 
-	if opts.MaxTokens > 0 || opts.Temperature != nil {
+	// Generation config
+	if opts.MaxTokens > 0 || opts.Temperature != nil || opts.TopP != nil || len(opts.StopSequences) > 0 || opts.TopK != nil {
 		req.GenerationConfig = &geminiGenerationConfig{
 			MaxOutputTokens: opts.MaxTokens,
 			Temperature:     opts.Temperature,
+			TopP:            opts.TopP,
+			TopK:            opts.TopK,
+			StopSequences:   opts.StopSequences,
+		}
+		// Structured output support
+		if opts.ResponseFormat != nil && opts.ResponseFormat.Type == "json_schema" && opts.ResponseFormat.Schema != "" {
+			req.GenerationConfig.ResponseMimeType = "application/json"
+			var schema map[string]interface{}
+			if json.Unmarshal([]byte(opts.ResponseFormat.Schema), &schema) == nil {
+				req.GenerationConfig.ResponseSchema = schema
+			}
 		}
 	}
 
+	// Tools
 	if len(opts.Tools) > 0 {
 		decls := make([]geminiFunctionDecl, len(opts.Tools))
 		for i, t := range opts.Tools {
@@ -280,14 +347,65 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 		req.Tools = []geminiTool{{FunctionDeclarations: decls}}
 	}
 
+	// Tool config — map Anthropic-style tool_choice to Gemini function calling mode
+	if opts.ToolChoice != nil {
+		mode := "AUTO"
+		switch opts.ToolChoice.Type {
+		case "any":
+			mode = "ANY"
+		case "none":
+			mode = "NONE"
+		case "auto":
+			mode = "AUTO"
+		}
+		req.ToolConfig = &geminiToolConfig{
+			FunctionCallingConfig: &geminiFunctionCallingConfig{Mode: mode},
+		}
+	}
+
+	// Safety settings — disable all by default for unrestricted use
+	req.SafetySettings = []geminiSafetySetting{
+		{Category: "HARM_CATEGORY_HARASSMENT", Threshold: "BLOCK_NONE"},
+		{Category: "HARM_CATEGORY_HATE_SPEECH", Threshold: "BLOCK_NONE"},
+		{Category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", Threshold: "BLOCK_NONE"},
+		{Category: "HARM_CATEGORY_DANGEROUS_CONTENT", Threshold: "BLOCK_NONE"},
+		{Category: "HARM_CATEGORY_CIVIC_INTEGRITY", Threshold: "BLOCK_NONE"},
+	}
+
+	// Map additional ChatOptions to generationConfig
+	if req.GenerationConfig == nil && (opts.PresencePenalty != nil || opts.FrequencyPenalty != nil || opts.Seed != nil || opts.N != nil || opts.LogProbs != nil || opts.TopLogProbs != nil) {
+		req.GenerationConfig = &geminiGenerationConfig{}
+	}
+	if req.GenerationConfig != nil {
+		if opts.PresencePenalty != nil {
+			req.GenerationConfig.PresencePenalty = opts.PresencePenalty
+		}
+		if opts.FrequencyPenalty != nil {
+			req.GenerationConfig.FrequencyPenalty = opts.FrequencyPenalty
+		}
+		if opts.Seed != nil {
+			req.GenerationConfig.Seed = opts.Seed
+		}
+		if opts.N != nil {
+			req.GenerationConfig.CandidateCount = opts.N
+		}
+		if opts.LogProbs != nil {
+			req.GenerationConfig.ResponseLogprobs = opts.LogProbs
+		}
+		if opts.TopLogProbs != nil {
+			req.GenerationConfig.Logprobs = opts.TopLogProbs
+		}
+	}
+
 	return json.Marshal(req)
 }
 
 // --- Response parsing ---
 
 type geminiResponse struct {
-	Candidates []geminiCandidate `json:"candidates"`
-	Usage      *geminiUsage      `json:"usageMetadata,omitempty"`
+	Candidates     []geminiCandidate     `json:"candidates"`
+	Usage          *geminiUsage          `json:"usageMetadata,omitempty"`
+	PromptFeedback *geminiPromptFeedback `json:"promptFeedback,omitempty"`
 }
 
 type geminiCandidate struct {
@@ -296,9 +414,17 @@ type geminiCandidate struct {
 }
 
 type geminiUsage struct {
-	PromptTokenCount     int `json:"promptTokenCount"`
-	CandidatesTokenCount int `json:"candidatesTokenCount"`
-	TotalTokenCount      int `json:"totalTokenCount"`
+	PromptTokenCount        int `json:"promptTokenCount"`
+	CandidatesTokenCount    int `json:"candidatesTokenCount"`
+	TotalTokenCount         int `json:"totalTokenCount"`
+	ThoughtsTokenCount      int `json:"thoughtsTokenCount,omitempty"`
+	CachedContentTokenCount int `json:"cachedContentTokenCount,omitempty"`
+	ToolUsePromptTokenCount int `json:"toolUsePromptTokenCount,omitempty"`
+}
+
+type geminiPromptFeedback struct {
+	BlockReason        string `json:"blockReason,omitempty"`
+	BlockReasonMessage string `json:"blockReasonMessage,omitempty"`
 }
 
 func (c *GeminiClient) parseResponse(data []byte) (*EyrieResponse, error) {
@@ -307,6 +433,14 @@ func (c *GeminiClient) parseResponse(data []byte) (*EyrieResponse, error) {
 		return nil, fmt.Errorf("eyrie: gemini response parse failed: %w", err)
 	}
 	if len(gr.Candidates) == 0 {
+		// Check if the prompt was blocked
+		if gr.PromptFeedback != nil && gr.PromptFeedback.BlockReason != "" {
+			msg := gr.PromptFeedback.BlockReason
+			if gr.PromptFeedback.BlockReasonMessage != "" {
+				msg = gr.PromptFeedback.BlockReasonMessage
+			}
+			return nil, fmt.Errorf("eyrie: gemini blocked prompt: %s", msg)
+		}
 		return nil, fmt.Errorf("eyrie: gemini returned no candidates")
 	}
 
@@ -320,10 +454,14 @@ func (c *GeminiClient) parseResponse(data []byte) (*EyrieResponse, error) {
 			resp.Content += part.Text
 		}
 		if part.FunctionCall != nil {
-			resp.ToolCalls = append(resp.ToolCalls, ToolCall{
+			tc := ToolCall{
 				Name:      part.FunctionCall.Name,
 				Arguments: part.FunctionCall.Args,
-			})
+			}
+			if part.FunctionCall.ID != "" {
+				tc.ID = part.FunctionCall.ID
+			}
+			resp.ToolCalls = append(resp.ToolCalls, tc)
 		}
 	}
 
@@ -332,6 +470,8 @@ func (c *GeminiClient) parseResponse(data []byte) (*EyrieResponse, error) {
 			PromptTokens:     gr.Usage.PromptTokenCount,
 			CompletionTokens: gr.Usage.CandidatesTokenCount,
 			TotalTokens:      gr.Usage.TotalTokenCount,
+			ThinkingTokens:   gr.Usage.ThoughtsTokenCount,
+			CacheReadTokens:  gr.Usage.CachedContentTokenCount,
 		}
 	}
 
@@ -412,13 +552,17 @@ func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, even
 			}
 		}
 		if part.FunctionCall != nil {
+			tc := &ToolCall{
+				Name:      part.FunctionCall.Name,
+				Arguments: part.FunctionCall.Args,
+			}
+			if part.FunctionCall.ID != "" {
+				tc.ID = part.FunctionCall.ID
+			}
 			select {
 			case events <- EyrieStreamEvent{
-				Type: "tool_call",
-				ToolCall: &ToolCall{
-					Name:      part.FunctionCall.Name,
-					Arguments: part.FunctionCall.Args,
-				},
+				Type:     "tool_call",
+				ToolCall: tc,
 			}:
 			case <-ctx.Done():
 				return false
@@ -433,6 +577,8 @@ func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, even
 				PromptTokens:     chunk.Usage.PromptTokenCount,
 				CompletionTokens: chunk.Usage.CandidatesTokenCount,
 				TotalTokens:      chunk.Usage.TotalTokenCount,
+				ThinkingTokens:   chunk.Usage.ThoughtsTokenCount,
+				CacheReadTokens:  chunk.Usage.CachedContentTokenCount,
 			},
 		}:
 			return true

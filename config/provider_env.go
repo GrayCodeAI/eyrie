@@ -27,9 +27,10 @@ type ProviderConfig struct {
 	OllamaBaseURL              string                      `json:"ollama_base_url,omitempty"`
 	OpenCodeGoAPIKey           string                      `json:"opencodego_api_key,omitempty"`
 	MoonshotAPIKey             string                      `json:"moonshot_api_key,omitempty"`
-	XiaomiAPIKey               string                      `json:"xiaomi_mimo_api_key,omitempty"`
 	XiaomiMimoPaygAPIKey       string                      `json:"xiaomi_mimo_payg_api_key,omitempty"`
 	XiaomiMimoTokenPlanAPIKey  string                      `json:"xiaomi_mimo_token_plan_api_key,omitempty"`
+	MiniMaxTokenPlanAPIKey     string                      `json:"minimax_token_plan_api_key,omitempty"`
+	MiniMaxPaygAPIKey          string                      `json:"minimax_payg_api_key,omitempty"`
 	AnthropicBaseURL           string                      `json:"anthropic_base_url,omitempty"`
 	CanopyWaveBaseURL          string                      `json:"canopywave_base_url,omitempty"`
 	DeepSeekBaseURL            string                      `json:"deepseek_base_url,omitempty"`
@@ -45,6 +46,9 @@ type ProviderConfig struct {
 	XiaomiMimoPaygBaseURL      string                      `json:"xiaomi_mimo_payg_base_url,omitempty"`
 	XiaomiMimoTokenPlanBaseURL string                      `json:"xiaomi_mimo_token_plan_base_url,omitempty"`
 	XiaomiMimoTokenPlanRegion  string                      `json:"xiaomi_mimo_token_plan_region,omitempty"`
+	MiniMaxTokenPlanBaseURL    string                      `json:"minimax_token_plan_base_url,omitempty"`
+	MiniMaxPaygBaseURL         string                      `json:"minimax_payg_base_url,omitempty"`
+	MiniMaxModel               string                      `json:"minimax_model,omitempty"`
 	AnthropicModel             string                      `json:"anthropic_model,omitempty"`
 	OpenAIModel                string                      `json:"openai_model,omitempty"`
 	CanopyWaveModel            string                      `json:"canopywave_model,omitempty"`
@@ -173,7 +177,7 @@ var providerFields = map[string]providerFieldMap{
 	},
 	ProviderXiaomiMimoPayg: {
 		APIKeys: func(c *ProviderConfig) []string {
-			return []string{firstNonEmpty(c.XiaomiMimoPaygAPIKey, c.XiaomiAPIKey)}
+			return []string{c.XiaomiMimoPaygAPIKey}
 		},
 		Models:  func(c *ProviderConfig) []string { return []string{c.XiaomiModel} },
 		BaseURL: func(c *ProviderConfig) string { return firstNonEmpty(c.XiaomiMimoPaygBaseURL, c.XiaomiBaseURL) },
@@ -438,7 +442,7 @@ func ClearProviderRuntimeEnv() {
 		"OLLAMA_BASE_URL",
 		"OPENCODEGO_API_KEY", "OPENCODEGO_MODEL", "OPENCODEGO_BASE_URL",
 		"MOONSHOT_API_KEY", "MOONSHOT_MODEL", "MOONSHOT_BASE_URL",
-		"XIAOMI_MIMO_API_KEY", "XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
+		"XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
 		"XIAOMI_MIMO_TOKEN_PLAN_REGION", "XIAOMI_MODEL", "XIAOMI_BASE_URL",
 		"XIAOMI_MIMO_PAYG_BASE_URL", "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL",
 	}
@@ -605,7 +609,7 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		collectEnvValue(env, "MOONSHOT_API_KEY", apiKey, overwrite)
 		collectOpenAICompatibleProvider(env, "MOONSHOT", apiKey, m, base, overwrite)
 	case ProviderXiaomiMimoPayg:
-		apiKey := firstNonEmpty(config.XiaomiMimoPaygAPIKey, config.XiaomiAPIKey)
+		apiKey := config.XiaomiMimoPaygAPIKey
 		base, _ := ResolveXiaomiOpenAIBase(ProviderXiaomiMimoPayg, config)
 		if base == "" {
 			base = DefaultXiaomiOpenAIBaseURL

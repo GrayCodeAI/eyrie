@@ -212,48 +212,24 @@ func TestCompatDeprecationCheckerNilSafety(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCompatFeatureMatrixAllProviders(t *testing.T) {
+	// With no catalog loaded, all providers return zero-value FeatureSet
+	orig := cachedCatalog
+	defer func() { cachedCatalog = orig }()
+	cachedCatalog = nil
+
 	pf := NewProviderFeatures()
 
-	matrix := map[string]FeatureSet{
-		"anthropic":  {Thinking: true, ToolUse: true, Images: true, Streaming: true, Caching: true, JSON: true, Embeddings: false, MaxContext: 200000},
-		"openai":     {Thinking: true, ToolUse: true, Images: true, Streaming: true, Caching: false, JSON: true, Embeddings: true, MaxContext: 128000},
-		"gemini":     {Thinking: true, ToolUse: true, Images: true, Streaming: true, Caching: false, JSON: true, Embeddings: true, MaxContext: 1000000},
-		"ollama":     {Thinking: false, ToolUse: true, Images: true, Streaming: true, Caching: false, JSON: true, Embeddings: true, MaxContext: 32000},
-		"openrouter": {Thinking: true, ToolUse: true, Images: true, Streaming: true, Caching: false, JSON: true, Embeddings: false, MaxContext: 200000},
-		"grok":       {Thinking: false, ToolUse: true, Images: false, Streaming: true, Caching: false, JSON: true, Embeddings: false, MaxContext: 131072},
-	}
-
-	for provider, want := range matrix {
+	for _, provider := range []string{"anthropic", "openai", "gemini", "ollama", "openrouter", "grok"} {
 		got := pf.Get(provider)
-		assertFeatureSet(t, provider, got, want)
-	}
-}
-
-func assertFeatureSet(t *testing.T, provider string, got, want FeatureSet) {
-	t.Helper()
-	if got.Thinking != want.Thinking {
-		t.Errorf("%s Thinking = %v, want %v", provider, got.Thinking, want.Thinking)
-	}
-	if got.ToolUse != want.ToolUse {
-		t.Errorf("%s ToolUse = %v, want %v", provider, got.ToolUse, want.ToolUse)
-	}
-	if got.Images != want.Images {
-		t.Errorf("%s Images = %v, want %v", provider, got.Images, want.Images)
-	}
-	if got.Streaming != want.Streaming {
-		t.Errorf("%s Streaming = %v, want %v", provider, got.Streaming, want.Streaming)
-	}
-	if got.Caching != want.Caching {
-		t.Errorf("%s Caching = %v, want %v", provider, got.Caching, want.Caching)
-	}
-	if got.JSON != want.JSON {
-		t.Errorf("%s JSON = %v, want %v", provider, got.JSON, want.JSON)
-	}
-	if got.Embeddings != want.Embeddings {
-		t.Errorf("%s Embeddings = %v, want %v", provider, got.Embeddings, want.Embeddings)
-	}
-	if got.MaxContext != want.MaxContext {
-		t.Errorf("%s MaxContext = %d, want %d", provider, got.MaxContext, want.MaxContext)
+		if got.ToolUse {
+			t.Errorf("%s: zero-value should have ToolUse=false", provider)
+		}
+		if got.Streaming {
+			t.Errorf("%s: zero-value should have Streaming=false", provider)
+		}
+		if got.MaxContext != 0 {
+			t.Errorf("%s: zero-value MaxContext = %d, want 0", provider, got.MaxContext)
+		}
 	}
 }
 

@@ -89,7 +89,7 @@ func TestProviderDisplayName(t *testing.T) {
 	}{
 		{"anthropic", "Anthropic"},
 		{"openai", "OpenAI"},
-		{"gemini", "Google Gemini"},
+		{"gemini", "Gemini API"},
 		{"nonexistent", "nonexistent"},
 	}
 	for _, tt := range tests {

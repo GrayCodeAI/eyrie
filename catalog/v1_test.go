@@ -189,3 +189,75 @@ func (c *CatalogV1) SourceForTest(source string) {
 	}
 	c.Provenance.Source = source
 }
+
+func TestCapabilitySetFromLegacy_AnthropicFeatures(t *testing.T) {
+	entry := ModelCatalogEntry{
+		ID:            "claude-sonnet-4-6",
+		ContextWindow: 1000000,
+		MaxOutput:     128000,
+		ServerTools: []string{
+			"thinking:enabled",
+			"thinking:adaptive",
+			"effort",
+			"effort:low,medium,high,xhigh,max",
+			"structured_output",
+			"code_execution",
+			"citations",
+			"pdf_input",
+			"image_input",
+			"tools",
+		},
+	}
+	set := capabilitySetFromLegacy(entry)
+
+	if set.ExplicitThinkingBudget != CapabilitySupported {
+		t.Errorf("ExplicitThinkingBudget = %q, want supported", set.ExplicitThinkingBudget)
+	}
+	if set.AdaptiveThinking != CapabilitySupported {
+		t.Errorf("AdaptiveThinking = %q, want supported", set.AdaptiveThinking)
+	}
+	if set.Effort != CapabilitySupported {
+		t.Errorf("Effort = %q, want supported", set.Effort)
+	}
+	if set.StructuredOutput != CapabilitySupported {
+		t.Errorf("StructuredOutput = %q, want supported", set.StructuredOutput)
+	}
+	if set.CodeExecution != CapabilitySupported {
+		t.Errorf("CodeExecution = %q, want supported", set.CodeExecution)
+	}
+	if set.Citations != CapabilitySupported {
+		t.Errorf("Citations = %q, want supported", set.Citations)
+	}
+	if set.PDFInput != CapabilitySupported {
+		t.Errorf("PDFInput = %q, want supported", set.PDFInput)
+	}
+	if set.ImageInput != CapabilitySupported {
+		t.Errorf("ImageInput = %q, want supported", set.ImageInput)
+	}
+	if set.FunctionCalling != CapabilitySupported {
+		t.Errorf("FunctionCalling = %q, want supported", set.FunctionCalling)
+	}
+	if set.MaxInputTokens != 1000000 {
+		t.Errorf("MaxInputTokens = %d, want 1000000", set.MaxInputTokens)
+	}
+	if set.MaxOutputTokens != 128000 {
+		t.Errorf("MaxOutputTokens = %d, want 128000", set.MaxOutputTokens)
+	}
+	if len(set.ThinkingTypes) != 2 {
+		t.Errorf("ThinkingTypes len = %d, want 2", len(set.ThinkingTypes))
+	}
+	if len(set.EffortLevels) != 5 {
+		t.Errorf("EffortLevels len = %d, want 5", len(set.EffortLevels))
+	}
+}
+
+func TestCapabilitySetFromLegacy_EmptyFeatures(t *testing.T) {
+	entry := ModelCatalogEntry{ID: "test-model"}
+	set := capabilitySetFromLegacy(entry)
+	if set.ServerTools != nil {
+		t.Errorf("expected nil ServerTools, got %v", set.ServerTools)
+	}
+	if set.ExplicitThinkingBudget != "" {
+		t.Errorf("expected empty ExplicitThinkingBudget, got %q", set.ExplicitThinkingBudget)
+	}
+}

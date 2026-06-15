@@ -562,8 +562,9 @@ func TestVertexChat_Success(t *testing.T) {
 	if bodyMap["model"] != "claude-sonnet-4-6" {
 		t.Errorf("expected model 'claude-sonnet-4-6', got %v", bodyMap["model"])
 	}
-	if bodyMap["stream"] != false {
-		t.Errorf("expected stream=false, got %v", bodyMap["stream"])
+	// stream field is omitted when false (omitempty), which is fine for the API
+	if bodyMap["stream"] != nil && bodyMap["stream"] != false {
+		t.Errorf("expected stream=false or absent, got %v", bodyMap["stream"])
 	}
 	maxTok, ok := bodyMap["max_tokens"].(float64)
 	if !ok || int(maxTok) != 4096 {
@@ -1741,23 +1742,9 @@ func TestBedrockClient_ImplementsProvider(t *testing.T) {
 // =============================================================================
 
 func TestResponseFromAnthropic_TextOnly(t *testing.T) {
-	ar := anthropicResponse{
-		Content: []struct {
-			Type  string          `json:"type"`
-			Text  string          `json:"text,omitempty"`
-			ID    string          `json:"id,omitempty"`
-			Name  string          `json:"name,omitempty"`
-			Input json.RawMessage `json:"input,omitempty"`
-		}{
-			{Type: "text", Text: "Hello!"},
-		},
-		StopReason: "end_turn",
-		Usage: struct {
-			InputTokens              int `json:"input_tokens"`
-			OutputTokens             int `json:"output_tokens"`
-			CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
-			CacheReadInputTokens     int `json:"cache_read_input_tokens"`
-		}{InputTokens: 10, OutputTokens: 5},
+	var ar anthropicResponse
+	if err := json.Unmarshal([]byte(`{"content":[{"type":"text","text":"Hello!"}],"stop_reason":"end_turn","usage":{"input_tokens":10,"output_tokens":5}}`), &ar); err != nil {
+		t.Fatal(err)
 	}
 
 	resp := responseFromAnthropic(ar, "req-123")
@@ -1779,24 +1766,9 @@ func TestResponseFromAnthropic_TextOnly(t *testing.T) {
 }
 
 func TestResponseFromAnthropic_WithToolUse(t *testing.T) {
-	ar := anthropicResponse{
-		Content: []struct {
-			Type  string          `json:"type"`
-			Text  string          `json:"text,omitempty"`
-			ID    string          `json:"id,omitempty"`
-			Name  string          `json:"name,omitempty"`
-			Input json.RawMessage `json:"input,omitempty"`
-		}{
-			{Type: "text", Text: "Let me search."},
-			{Type: "tool_use", ID: "toolu_1", Name: "search", Input: json.RawMessage(`{"q":"test"}`)},
-		},
-		StopReason: "tool_use",
-		Usage: struct {
-			InputTokens              int `json:"input_tokens"`
-			OutputTokens             int `json:"output_tokens"`
-			CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
-			CacheReadInputTokens     int `json:"cache_read_input_tokens"`
-		}{InputTokens: 20, OutputTokens: 15, CacheCreationInputTokens: 100, CacheReadInputTokens: 50},
+	var ar anthropicResponse
+	if err := json.Unmarshal([]byte(`{"content":[{"type":"text","text":"Let me search."},{"type":"tool_use","id":"toolu_1","name":"search","input":{"q":"test"}}],"stop_reason":"tool_use","usage":{"input_tokens":20,"output_tokens":15,"cache_creation_input_tokens":100,"cache_read_input_tokens":50}}`), &ar); err != nil {
+		t.Fatal(err)
 	}
 
 	resp := responseFromAnthropic(ar, "req-456")
@@ -1827,15 +1799,9 @@ func TestResponseFromAnthropic_WithToolUse(t *testing.T) {
 }
 
 func TestResponseFromAnthropic_EmptyContent(t *testing.T) {
-	ar := anthropicResponse{
-		Content:    nil,
-		StopReason: "end_turn",
-		Usage: struct {
-			InputTokens              int `json:"input_tokens"`
-			OutputTokens             int `json:"output_tokens"`
-			CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
-			CacheReadInputTokens     int `json:"cache_read_input_tokens"`
-		}{InputTokens: 1, OutputTokens: 0},
+	var ar anthropicResponse
+	if err := json.Unmarshal([]byte(`{"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":0}}`), &ar); err != nil {
+		t.Fatal(err)
 	}
 
 	resp := responseFromAnthropic(ar, "req-empty")

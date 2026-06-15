@@ -22,6 +22,8 @@ const (
 	ProviderKimi                APIProvider = "kimi"
 	ProviderXiaomiMimoPayg      APIProvider = "xiaomi_mimo_payg"
 	ProviderXiaomiMimoTokenPlan APIProvider = "xiaomi_mimo_token_plan"
+	ProviderMiniMaxTokenPlan    APIProvider = "minimax_token_plan"
+	ProviderMiniMaxPayg         APIProvider = "minimax_payg"
 )
 
 // RuntimeProviderProfile defines how a provider is detected and configured at runtime.
@@ -148,13 +150,27 @@ var (
 		BaseURLEnv:   []string{EnvXiaomiTokenPlanBaseURL, "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: EnvXiaomiTokenPlanAPIKey, Source: "xiaomi_mimo_token_plan"}},
 	}
+	MiniMaxTokenPlanRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultMiniMaxOpenAIBaseURL,
+		DetectionEnv: []string{"MINIMAX_TOKEN_PLAN_API_KEY"},
+		ModelEnv:     []string{"MINIMAX_TOKEN_PLAN_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"MINIMAX_TOKEN_PLAN_BASE_URL", "MINIMAX_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "MINIMAX_TOKEN_PLAN_API_KEY", Source: "minimax_token_plan"}},
+	}
+	MiniMaxPaygRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultMiniMaxOpenAIBaseURL,
+		DetectionEnv: []string{"MINIMAX_PAYG_API_KEY"},
+		ModelEnv:     []string{"MINIMAX_PAYG_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"MINIMAX_PAYG_BASE_URL", "MINIMAX_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "MINIMAX_PAYG_API_KEY", Source: "minimax_payg"}},
+	}
 )
 
 // APIProviderDetectionOrder is the priority order for provider detection.
 var APIProviderDetectionOrder = []APIProvider{
 	ProviderAnthropic, ProviderOpenRouter, ProviderGrok, ProviderGemini,
 	ProviderVertex, ProviderBedrock, ProviderZAI, ProviderCanopyWave, ProviderDeepSeek, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
-	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderOllama,
+	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderMiniMaxTokenPlan, ProviderMiniMaxPayg, ProviderOllama,
 }
 
 // ProviderModelEnvKeys maps each provider to its model env var keys.
@@ -175,6 +191,8 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 	ProviderKimi:                KimiRuntimeProfile.ModelEnv,
 	ProviderXiaomiMimoPayg:      XiaomiPaygRuntimeProfile.ModelEnv,
 	ProviderXiaomiMimoTokenPlan: XiaomiTokenPlanRuntimeProfile.ModelEnv,
+	ProviderMiniMaxTokenPlan:    {"MINIMAX_TOKEN_PLAN_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
+	ProviderMiniMaxPayg:         {"MINIMAX_PAYG_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
 }
 
 const (
@@ -184,7 +202,7 @@ const (
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.
 var OpenAICompatibleRuntimeProfileOrder = []string{
-	"openrouter", "grok", "gemini", "anthropic", "z-ai", "canopywave", "deepseek", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan",
+	"openrouter", "grok", "gemini", "anthropic", "z-ai", "canopywave", "deepseek", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "minimax_token_plan", "minimax_payg",
 }
 
 // OpenAICompatibleRuntimeProfiles maps profile key to its runtime profile.
@@ -201,4 +219,6 @@ var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
 	"kimi":                   KimiRuntimeProfile,
 	"xiaomi_mimo_payg":       XiaomiPaygRuntimeProfile,
 	"xiaomi_mimo_token_plan": XiaomiTokenPlanRuntimeProfile,
+	"minimax_token_plan":     MiniMaxTokenPlanRuntimeProfile,
+	"minimax_payg":           MiniMaxPaygRuntimeProfile,
 }

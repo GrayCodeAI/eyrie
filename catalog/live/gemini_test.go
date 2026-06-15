@@ -35,7 +35,7 @@ func TestFetchGemini_MockHTTPServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(entries) != 2 {
-		t.Fatalf("expected 2 models, got %d", len(entries))
+		t.Fatalf("expected 2 models (filtered generateContent), got %d", len(entries))
 	}
 	byID := map[string]Entry{}
 	for _, e := range entries {

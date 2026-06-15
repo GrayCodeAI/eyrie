@@ -69,9 +69,6 @@ func MigrateLegacyXiaomiProvider(cfg *ProviderConfig) {
 	if strings.TrimSpace(cfg.ActiveProvider) == "xiaomi_mimo" {
 		cfg.ActiveProvider = xiaomi.ProviderPayAsYouGo
 	}
-	if key := strings.TrimSpace(cfg.XiaomiAPIKey); key != "" && strings.TrimSpace(cfg.XiaomiMimoPaygAPIKey) == "" {
-		cfg.XiaomiMimoPaygAPIKey = key
-	}
 	if base := strings.TrimSpace(cfg.XiaomiBaseURL); base != "" && strings.TrimSpace(cfg.XiaomiMimoPaygBaseURL) == "" {
 		cfg.XiaomiMimoPaygBaseURL = base
 	}
