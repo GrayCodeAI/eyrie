@@ -309,10 +309,12 @@ func newZAIDeploymentClient(deployment config.DeploymentConfig, providerID, envK
 
 func resolveZAIOpenAIBaseForDeployment(plan zai.Plan, providerID string, cfg *config.ProviderConfig, override string) (string, error) {
 	regionStr := ""
-	if providerID == "zai_coding" {
-		regionStr = cfg.ZAICodingRegion
-	} else {
-		regionStr = cfg.ZAIRegion
+	if cfg != nil {
+		if providerID == "zai_coding" {
+			regionStr = cfg.ZAICodingRegion
+		} else {
+			regionStr = cfg.ZAIRegion
+		}
 	}
 	region, _ := zai.NormalizeRegion(regionStr)
 	return zai.ResolveOpenAIBase(plan, region, override)
@@ -320,9 +322,12 @@ func resolveZAIOpenAIBaseForDeployment(plan zai.Plan, providerID string, cfg *co
 
 func resolveZAIAnthropicBaseForDeployment(plan zai.Plan, cfg *config.ProviderConfig) string {
 	// region from general or coding, prefer coding if set
-	regionStr := cfg.ZAICodingRegion
-	if regionStr == "" {
-		regionStr = cfg.ZAIRegion
+	regionStr := ""
+	if cfg != nil {
+		regionStr = cfg.ZAICodingRegion
+		if regionStr == "" {
+			regionStr = cfg.ZAIRegion
+		}
 	}
 	region, _ := zai.NormalizeRegion(regionStr)
 	return zai.ResolveAnthropicBase(region)
