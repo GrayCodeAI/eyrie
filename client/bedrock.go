@@ -430,12 +430,16 @@ func (c *BedrockClient) sign(req *http.Request, body []byte, now time.Time) erro
 }
 
 func responseFromAnthropic(ar anthropicResponse, requestID string) *EyrieResponse {
-	var content string
+	var content, thinkingContent string
 	var toolCalls []ToolCall
 	for _, block := range ar.Content {
 		switch block.Type {
 		case "text":
 			content += block.Text
+		case "thinking":
+			thinkingContent += block.Thinking
+		case "redacted_thinking":
+			continue
 		case "tool_use":
 			var args map[string]interface{}
 			_ = json.Unmarshal(block.Input, &args)
@@ -443,13 +447,14 @@ func responseFromAnthropic(ar anthropicResponse, requestID string) *EyrieRespons
 		}
 	}
 	return &EyrieResponse{
-		Content: content, FinishReason: ar.StopReason, ToolCalls: toolCalls, RequestID: requestID,
+		Content: content, Thinking: thinkingContent, FinishReason: ar.StopReason, ToolCalls: toolCalls, RequestID: requestID,
 		Usage: &EyrieUsage{
 			PromptTokens:        ar.Usage.InputTokens,
 			CompletionTokens:    ar.Usage.OutputTokens,
 			TotalTokens:         ar.Usage.InputTokens + ar.Usage.OutputTokens,
 			CacheCreationTokens: ar.Usage.CacheCreationInputTokens,
 			CacheReadTokens:     ar.Usage.CacheReadInputTokens,
+			ThinkingTokens:      ar.Usage.OutputTokensDetails.ThinkingTokens,
 		},
 	}
 }

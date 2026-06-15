@@ -10,7 +10,7 @@ import (
 
 func TestAllProviders_LiveFetchParity(t *testing.T) {
 	specs := registry.All()
-	if len(specs) != 16 {
+	if len(specs) != 18 {
 		t.Fatalf("expected 16 providers, got %d", len(specs))
 	}
 	for _, spec := range specs {
@@ -59,6 +59,10 @@ func TestAllProviders_FirstModelFromCompiledCache(t *testing.T) {
 		case "bedrock":
 			owner = "anthropic"
 			canonical = "anthropic/" + native
+		}
+		// Ensure provider exists in catalog
+		if _, ok := base.Providers[owner]; !ok {
+			base.Providers[owner] = catalog.ProviderV1{ID: owner, Name: owner}
 		}
 		base.Models[canonical] = catalog.ModelV1{
 			ID: canonical, ProviderID: owner, Name: native,

@@ -15,7 +15,7 @@ func TestSpecByProviderID_AcceptsCatalogAliases(t *testing.T) {
 }
 
 func TestDisplayName_CatalogAlias(t *testing.T) {
-	if got := DisplayName("google"); got != "Google Gemini" {
+	if got := DisplayName("google"); got != "Gemini API" {
 		t.Fatalf("DisplayName(google) = %q", got)
 	}
 }

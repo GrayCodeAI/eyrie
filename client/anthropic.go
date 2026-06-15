@@ -11,6 +11,9 @@ import (
 	"strings"
 )
 
+// maxAnthropicRequestSize is the maximum request body size for the Messages API (32 MB).
+const maxAnthropicRequestSize = 32 * 1024 * 1024
+
 // AnthropicClient implements Provider for the Anthropic Messages API.
 type AnthropicClient struct {
 	apiKey             string
@@ -63,21 +66,53 @@ func (c *AnthropicClient) setHeaders(req *http.Request) {
 }
 
 type anthropicRequest struct {
-	Model       string                   `json:"model"`
-	MaxTokens   int                      `json:"max_tokens"`
-	Messages    []map[string]interface{} `json:"messages"`
-	System      string                   `json:"system,omitempty"`
-	Temperature *float64                 `json:"temperature,omitempty"`
-	Stream      bool                     `json:"stream,omitempty"`
-	Tools       []anthropicTool          `json:"tools,omitempty"`
-	Thinking    *anthropicThinking       `json:"thinking,omitempty"`
+	Model         string                   `json:"model"`
+	MaxTokens     int                      `json:"max_tokens"`
+	Messages      []map[string]interface{} `json:"messages"`
+	System        string                   `json:"system,omitempty"`
+	Temperature   *float64                 `json:"temperature,omitempty"`
+	TopP          *float64                 `json:"top_p,omitempty"`
+	TopK          *int                     `json:"top_k,omitempty"`
+	Stream        bool                     `json:"stream,omitempty"`
+	StopSequences []string                 `json:"stop_sequences,omitempty"`
+	Tools         []anthropicTool          `json:"tools,omitempty"`
+	ToolChoice    *anthropicToolChoice     `json:"tool_choice,omitempty"`
+	Thinking      *anthropicThinking       `json:"thinking,omitempty"`
+	Metadata      *anthropicMetadata       `json:"metadata,omitempty"`
+	ServiceTier   string                   `json:"service_tier,omitempty"`
+	OutputConfig  *anthropicOutputConfig   `json:"output_config,omitempty"`
 }
 
-// anthropicThinking enables Anthropic extended thinking. Type is "enabled"
-// and BudgetTokens caps the tokens spent reasoning before the final answer.
+// anthropicThinking enables Anthropic extended thinking.
+// Type is "enabled" (with budget_tokens), "adaptive" (model decides), or "disabled".
 type anthropicThinking struct {
 	Type         string `json:"type"`
-	BudgetTokens int    `json:"budget_tokens"`
+	BudgetTokens int    `json:"budget_tokens,omitempty"`
+	Display      string `json:"display,omitempty"` // "summarized" or "omitted"
+}
+
+// anthropicToolChoice controls how the model uses tools.
+type anthropicToolChoice struct {
+	Type                   string `json:"type"`           // "auto", "any", "tool", "none"
+	Name                   string `json:"name,omitempty"` // required when type="tool"
+	DisableParallelToolUse bool   `json:"disable_parallel_tool_use,omitempty"`
+}
+
+// anthropicMetadata carries request-level metadata.
+type anthropicMetadata struct {
+	UserID string `json:"user_id,omitempty"`
+}
+
+// anthropicOutputConfig controls output format and effort.
+type anthropicOutputConfig struct {
+	Effort string                 `json:"effort,omitempty"` // "low","medium","high","xhigh","max"
+	Format *anthropicOutputFormat `json:"format,omitempty"`
+}
+
+// anthropicOutputFormat specifies structured output format.
+type anthropicOutputFormat struct {
+	Type   string                 `json:"type"` // "json_schema"
+	Schema map[string]interface{} `json:"schema,omitempty"`
 }
 
 // thinkingForBudget returns an enabled thinking config when budget > 0, else nil.
@@ -86,6 +121,70 @@ func thinkingForBudget(budget int) *anthropicThinking {
 		return nil
 	}
 	return &anthropicThinking{Type: "enabled", BudgetTokens: budget}
+}
+
+// thinkingAdaptive returns an adaptive thinking config.
+func thinkingAdaptive() *anthropicThinking {
+	return &anthropicThinking{Type: "adaptive"}
+}
+
+// thinkingDisabled returns a disabled thinking config.
+func thinkingDisabled() *anthropicThinking {
+	return &anthropicThinking{Type: "disabled"}
+}
+
+// resolveThinking builds the thinking config from ChatOptions.
+func resolveThinking(opts ChatOptions) *anthropicThinking {
+	switch opts.ThinkingMode {
+	case "adaptive":
+		return thinkingAdaptive()
+	case "disabled":
+		return thinkingDisabled()
+	case "enabled":
+		thinking := thinkingForBudget(opts.ThinkingBudgetTokens)
+		if thinking != nil && opts.ThinkingDisplay != "" {
+			thinking.Display = opts.ThinkingDisplay
+		}
+		return thinking
+	default:
+		// Legacy behavior: if budget > 0, enable with budget
+		return thinkingForBudget(opts.ThinkingBudgetTokens)
+	}
+}
+
+// resolveToolChoice converts ChatOptions.ToolChoice to wire format.
+func resolveToolChoice(tc *ToolChoiceOption) *anthropicToolChoice {
+	if tc == nil {
+		return nil
+	}
+	return &anthropicToolChoice{
+		Type:                   tc.Type,
+		Name:                   tc.Name,
+		DisableParallelToolUse: tc.DisableParallelToolUse,
+	}
+}
+
+// resolveMetadata builds metadata from ChatOptions.
+func resolveMetadata(opts ChatOptions) *anthropicMetadata {
+	if opts.MetadataUserID == "" {
+		return nil
+	}
+	return &anthropicMetadata{UserID: opts.MetadataUserID}
+}
+
+// resolveOutputConfig builds output config from ChatOptions.
+func resolveOutputConfig(opts ChatOptions) *anthropicOutputConfig {
+	if opts.OutputEffort == "" && opts.OutputSchema == "" {
+		return nil
+	}
+	cfg := &anthropicOutputConfig{Effort: opts.OutputEffort}
+	if opts.OutputSchema != "" {
+		var schema map[string]interface{}
+		if json.Unmarshal([]byte(opts.OutputSchema), &schema) == nil {
+			cfg.Format = &anthropicOutputFormat{Type: "json_schema", Schema: schema}
+		}
+	}
+	return cfg
 }
 
 type anthropicTool struct {
@@ -97,11 +196,14 @@ type anthropicTool struct {
 type anthropicResponse struct {
 	ID      string `json:"id"`
 	Content []struct {
-		Type  string          `json:"type"`
-		Text  string          `json:"text,omitempty"`
-		ID    string          `json:"id,omitempty"`
-		Name  string          `json:"name,omitempty"`
-		Input json.RawMessage `json:"input,omitempty"`
+		Type      string          `json:"type"`
+		Text      string          `json:"text,omitempty"`
+		Thinking  string          `json:"thinking,omitempty"`  // thinking block content
+		Signature string          `json:"signature,omitempty"` // thinking signature for multi-turn
+		Data      string          `json:"data,omitempty"`      // redacted_thinking data
+		ID        string          `json:"id,omitempty"`
+		Name      string          `json:"name,omitempty"`
+		Input     json.RawMessage `json:"input,omitempty"`
 	} `json:"content"`
 	StopReason string `json:"stop_reason"`
 	Usage      struct {
@@ -109,6 +211,9 @@ type anthropicResponse struct {
 		OutputTokens             int `json:"output_tokens"`
 		CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
 		CacheReadInputTokens     int `json:"cache_read_input_tokens"`
+		OutputTokensDetails      struct {
+			ThinkingTokens int `json:"thinking_tokens"`
+		} `json:"output_tokens_details"`
 	} `json:"usage"`
 }
 
@@ -277,6 +382,8 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 		maxTokens = 4096
 	}
 
+	thinking := resolveThinking(opts)
+
 	var body []byte
 	if opts.EnableCaching {
 		allMessages := messages
@@ -284,7 +391,8 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 			allMessages = append([]EyrieMessage{{Role: "system", Content: opts.System}}, allMessages...)
 		}
 		tools := convertToAnthropicTools(opts.Tools)
-		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, false, tools)
+		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, false, tools,
+			thinking, resolveToolChoice(opts.ToolChoice), opts.TopP, opts.TopK, opts.StopSequences)
 		body, _ = json.Marshal(cachedReq)
 	} else {
 		msgs, system := buildAnthropicMessages(messages)
@@ -296,12 +404,27 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 			}
 		}
 		reqBody := anthropicRequest{
-			Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
-			System: system, Temperature: opts.Temperature,
-			Tools:    convertToAnthropicTools(opts.Tools),
-			Thinking: thinkingForBudget(opts.ThinkingBudgetTokens),
+			Model:         opts.Model,
+			MaxTokens:     maxTokens,
+			Messages:      msgs,
+			System:        system,
+			Temperature:   opts.Temperature,
+			TopP:          opts.TopP,
+			TopK:          opts.TopK,
+			StopSequences: opts.StopSequences,
+			Tools:         convertToAnthropicTools(opts.Tools),
+			ToolChoice:    resolveToolChoice(opts.ToolChoice),
+			Thinking:      thinking,
+			Metadata:      resolveMetadata(opts),
+			ServiceTier:   opts.ServiceTier,
+			OutputConfig:  resolveOutputConfig(opts),
 		}
 		body, _ = json.Marshal(reqBody)
+	}
+
+	// Check request size (32 MB limit for Messages API)
+	if len(body) > maxAnthropicRequestSize {
+		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Anthropic limit of %d bytes", len(body), maxAnthropicRequestSize)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/messages", bytes.NewReader(body))
@@ -320,6 +443,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	defer func() { _ = resp.Body.Close() }()
 
 	requestID := resp.Header.Get("Request-Id")
+	orgID := resp.Header.Get("Anthropic-Organization-Id")
 
 	if resp.StatusCode != 200 {
 		return nil, formatAPIError("anthropic", resp.StatusCode, requestID, parseProviderError(resp.Body))
@@ -330,12 +454,17 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 		return nil, fmt.Errorf("eyrie: failed to decode anthropic response: %w", err)
 	}
 
-	var content string
+	var content, thinkingContent string
 	var toolCalls []ToolCall
 	for _, block := range ar.Content {
 		switch block.Type {
 		case "text":
 			content += block.Text
+		case "thinking":
+			thinkingContent += block.Thinking
+		case "redacted_thinking":
+			// Safety-sensitive reasoning — skip silently
+			continue
 		case "tool_use":
 			var args map[string]interface{}
 			_ = json.Unmarshal(block.Input, &args)
@@ -344,14 +473,15 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	}
 
 	eyrieResp := &EyrieResponse{
-		Content: content, FinishReason: ar.StopReason, ToolCalls: toolCalls,
-		RequestID: requestID,
+		Content: content, Thinking: thinkingContent, FinishReason: ar.StopReason, ToolCalls: toolCalls,
+		RequestID: requestID, OrganizationID: orgID,
 		Usage: &EyrieUsage{
 			PromptTokens:        ar.Usage.InputTokens,
 			CompletionTokens:    ar.Usage.OutputTokens,
 			TotalTokens:         ar.Usage.InputTokens + ar.Usage.OutputTokens,
 			CacheCreationTokens: ar.Usage.CacheCreationInputTokens,
 			CacheReadTokens:     ar.Usage.CacheReadInputTokens,
+			ThinkingTokens:      ar.Usage.OutputTokensDetails.ThinkingTokens,
 		},
 	}
 
@@ -373,6 +503,8 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 		maxTokens = 4096
 	}
 
+	thinking := resolveThinking(opts)
+
 	var body []byte
 	if opts.EnableCaching {
 		allMessages := messages
@@ -380,7 +512,8 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 			allMessages = append([]EyrieMessage{{Role: "system", Content: opts.System}}, allMessages...)
 		}
 		tools := convertToAnthropicTools(opts.Tools)
-		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, true, tools)
+		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, true, tools,
+			thinking, resolveToolChoice(opts.ToolChoice), opts.TopP, opts.TopK, opts.StopSequences)
 		body, _ = json.Marshal(cachedReq)
 	} else {
 		msgs, system := buildAnthropicMessages(messages)
@@ -392,12 +525,28 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 			}
 		}
 		reqBody := anthropicRequest{
-			Model: opts.Model, MaxTokens: maxTokens, Messages: msgs,
-			System: system, Temperature: opts.Temperature, Stream: true,
-			Tools:    convertToAnthropicTools(opts.Tools),
-			Thinking: thinkingForBudget(opts.ThinkingBudgetTokens),
+			Model:         opts.Model,
+			MaxTokens:     maxTokens,
+			Messages:      msgs,
+			System:        system,
+			Temperature:   opts.Temperature,
+			TopP:          opts.TopP,
+			TopK:          opts.TopK,
+			StopSequences: opts.StopSequences,
+			Stream:        true,
+			Tools:         convertToAnthropicTools(opts.Tools),
+			ToolChoice:    resolveToolChoice(opts.ToolChoice),
+			Thinking:      thinking,
+			Metadata:      resolveMetadata(opts),
+			ServiceTier:   opts.ServiceTier,
+			OutputConfig:  resolveOutputConfig(opts),
 		}
 		body, _ = json.Marshal(reqBody)
+	}
+
+	// Check request size (32 MB limit for Messages API)
+	if len(body) > maxAnthropicRequestSize {
+		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Anthropic limit of %d bytes", len(body), maxAnthropicRequestSize)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/messages", bytes.NewReader(body))
@@ -480,4 +629,73 @@ func convertToAnthropicTools(tools []EyrieTool) []anthropicTool {
 		out[i] = anthropicTool{Name: t.Name, Description: t.Description, InputSchema: t.Parameters}
 	}
 	return out
+}
+
+// TokenCountResult holds the result of a token count request.
+type TokenCountResult struct {
+	InputTokens int `json:"input_tokens"`
+}
+
+// CountTokens counts the number of tokens in a message without generating a response.
+// Uses the same request format as Chat but hits the /v1/messages/count_tokens endpoint.
+// The request body includes model, messages, system, and tools (but not max_tokens or stream).
+func (c *AnthropicClient) CountTokens(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*TokenCountResult, error) {
+	messages = SanitizeMessages(messages)
+	if opts.Model == "" {
+		return nil, fmt.Errorf("eyrie: model is required for anthropic count_tokens")
+	}
+
+	msgs, system := buildAnthropicMessages(messages)
+	if opts.System != "" {
+		if system != "" {
+			system = opts.System + "\n\n" + system
+		} else {
+			system = opts.System
+		}
+	}
+
+	// Build a minimal request for token counting (no max_tokens, no stream)
+	reqBody := map[string]interface{}{
+		"model":    opts.Model,
+		"messages": msgs,
+	}
+	if system != "" {
+		reqBody["system"] = system
+	}
+	if len(opts.Tools) > 0 {
+		reqBody["tools"] = convertToAnthropicTools(opts.Tools)
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("eyrie: failed to marshal count_tokens request: %w", err)
+	}
+
+	// Check request size (32 MB limit for Messages API)
+	if len(body) > maxAnthropicRequestSize {
+		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Anthropic limit of %d bytes", len(body), maxAnthropicRequestSize)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/messages/count_tokens", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("eyrie: failed to create count_tokens request: %w", err)
+	}
+	c.setHeaders(req)
+	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
+
+	resp, err := c.doRequestWithMimoAuthRetry(ctx, req, body)
+	if err != nil {
+		return nil, fmt.Errorf("eyrie: anthropic count_tokens failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != 200 {
+		return nil, formatAPIError("anthropic", resp.StatusCode, resp.Header.Get("Request-Id"), parseProviderError(resp.Body))
+	}
+
+	var result TokenCountResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("eyrie: failed to decode count_tokens response: %w", err)
+	}
+	return &result, nil
 }

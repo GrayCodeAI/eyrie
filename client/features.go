@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
 // ProviderFeatures tracks which capabilities each provider supports.
@@ -16,82 +18,94 @@ type ProviderFeatures struct {
 	features map[string]FeatureSet
 }
 
-// FeatureSet describes what a provider supports.
+// FeatureSet describes what a provider or model supports.
+// When the catalog is loaded, per-model values from the live API take precedence
+// over the hardcoded defaults.
 type FeatureSet struct {
-	Thinking   bool `json:"thinking"`
-	ToolUse    bool `json:"tool_use"`
-	Images     bool `json:"images"`
-	Streaming  bool `json:"streaming"`
-	Caching    bool `json:"caching"`
-	JSON       bool `json:"json_mode"`
-	Embeddings bool `json:"embeddings"`
-	MaxContext int  `json:"max_context"`
+	Thinking         bool `json:"thinking"`
+	AdaptiveThinking bool `json:"adaptive_thinking"`
+	ToolUse          bool `json:"tool_use"`
+	Images           bool `json:"images"`
+	Streaming        bool `json:"streaming"`
+	Caching          bool `json:"caching"`
+	JSON             bool `json:"json_mode"`
+	Embeddings       bool `json:"embeddings"`
+	MaxContext       int  `json:"max_context"`
+	MaxOutput        int  `json:"max_output"`
+	Effort           bool `json:"effort"`
+	StructuredOutput bool `json:"structured_output"`
+	CodeExecution    bool `json:"code_execution"`
+	Citations        bool `json:"citations"`
+	PDFInput         bool `json:"pdf_input"`
 }
 
-// NewProviderFeatures creates a feature registry with known provider capabilities.
+// NewProviderFeatures creates a feature registry.
+// The catalog is the single source of truth for per-model capabilities.
+// The hardcoded map is empty — all values come from the live API via the catalog.
 func NewProviderFeatures() *ProviderFeatures {
-	pf := &ProviderFeatures{
-		features: map[string]FeatureSet{
-			"anthropic": {
-				Thinking: true, ToolUse: true, Images: true,
-				Streaming: true, Caching: true, JSON: true,
-				Embeddings: false, MaxContext: 200000,
-			},
-			"openai": {
-				Thinking: true, ToolUse: true, Images: true,
-				Streaming: true, Caching: false, JSON: true,
-				Embeddings: true, MaxContext: 128000,
-			},
-			"gemini": {
-				Thinking: true, ToolUse: true, Images: true,
-				Streaming: true, Caching: false, JSON: true,
-				Embeddings: true, MaxContext: 1000000,
-			},
-			"ollama": {
-				Thinking: false, ToolUse: true, Images: true,
-				Streaming: true, Caching: false, JSON: true,
-				Embeddings: true, MaxContext: 32000,
-			},
-			"openrouter": {
-				Thinking: true, ToolUse: true, Images: true,
-				Streaming: true, Caching: false, JSON: true,
-				Embeddings: false, MaxContext: 200000,
-			},
-			"grok": {
-				Thinking: false, ToolUse: true, Images: false,
-				Streaming: true, Caching: false, JSON: true,
-				Embeddings: false, MaxContext: 131072,
-			},
-			// deepseek-v4-flash: chat model — tools yes, no reasoning_content
-			"deepseek-v4-flash": {
-				Thinking: false, ToolUse: true, Images: false,
-				Streaming: true, Caching: false, JSON: true,
-				Embeddings: false, MaxContext: 1000000,
-			},
-			// deepseek-v4-pro: reasoning model — thinking yes, function calling NOT supported per docs
-			"deepseek-v4-pro": {
-				Thinking: true, ToolUse: false, Images: false,
-				Streaming: true, Caching: false, JSON: true,
-				Embeddings: false, MaxContext: 1000000,
-			},
-			// deepseek: provider-level fallback (conservative: tools yes, no thinking)
-			"deepseek": {
-				Thinking: false, ToolUse: true, Images: false,
-				Streaming: true, Caching: false, JSON: true,
-				Embeddings: false, MaxContext: 1000000,
-			},
-		},
-	}
-	return pf
+	return &ProviderFeatures{features: map[string]FeatureSet{}}
 }
 
-// Get returns features for a provider. Read-only after construction — safe for concurrent access.
+// Get returns features for a provider or model.
+// The compiled catalog (populated from the live API) is the single source of truth.
+// Returns zero-value FeatureSet if the catalog is not loaded — caller must ensure
+// the catalog is loaded before querying features.
 func (pf *ProviderFeatures) Get(provider string) FeatureSet {
-	if f, ok := pf.features[strings.ToLower(provider)]; ok {
-		return f
+	if fs := featureSetFromCatalog(provider); fs != nil {
+		return *fs
 	}
-	// Unknown provider: assume basic features
-	return FeatureSet{ToolUse: true, Streaming: true, MaxContext: 32000}
+	return FeatureSet{}
+}
+
+// featureSetFromCatalog looks up per-model capabilities from the compiled catalog.
+// Returns nil if the catalog is not loaded or the model is not found.
+func featureSetFromCatalog(modelOrProvider string) *FeatureSet {
+	if cachedCatalog == nil {
+		return nil
+	}
+	key := strings.ToLower(strings.TrimSpace(modelOrProvider))
+	if key == "" {
+		return nil
+	}
+	// Try as deployment ID (e.g., "anthropic-direct")
+	deploymentID := key + "-direct"
+	if offerings, ok := cachedCatalog.OfferingsByDeployment[deploymentID]; ok && len(offerings) > 0 {
+		fs := featureSetFromCapabilities(offerings[0].Capabilities)
+		fs.Caching = true // Anthropic always supports caching
+		return fs
+	}
+	// Try as canonical model ID (e.g., "anthropic/claude-sonnet-4-6")
+	if offerings, ok := cachedCatalog.OfferingsByCanonicalModel[key]; ok && len(offerings) > 0 {
+		return featureSetFromCapabilities(offerings[0].Capabilities)
+	}
+	// Try as native model ID (e.g., "claude-sonnet-4-6")
+	for _, offerings := range cachedCatalog.OfferingsByDeployment {
+		for _, offering := range offerings {
+			if strings.EqualFold(offering.NativeModelID, key) || strings.EqualFold(offering.CanonicalModelID, key) {
+				return featureSetFromCapabilities(offering.Capabilities)
+			}
+		}
+	}
+	return nil
+}
+
+// featureSetFromCapabilities converts a catalog CapabilitySetV1 to a client FeatureSet.
+func featureSetFromCapabilities(caps catalog.CapabilitySetV1) *FeatureSet {
+	return &FeatureSet{
+		Thinking:         caps.ExplicitThinkingBudget == catalog.CapabilitySupported,
+		AdaptiveThinking: caps.AdaptiveThinking == catalog.CapabilitySupported,
+		ToolUse:          caps.FunctionCalling == catalog.CapabilitySupported,
+		Images:           caps.ImageInput == catalog.CapabilitySupported,
+		Streaming:        true,
+		JSON:             caps.StructuredOutput == catalog.CapabilitySupported,
+		MaxContext:       caps.MaxInputTokens,
+		MaxOutput:        caps.MaxOutputTokens,
+		Effort:           caps.Effort == catalog.CapabilitySupported,
+		StructuredOutput: caps.StructuredOutput == catalog.CapabilitySupported,
+		CodeExecution:    caps.CodeExecution == catalog.CapabilitySupported,
+		Citations:        caps.Citations == catalog.CapabilitySupported,
+		PDFInput:         caps.PDFInput == catalog.CapabilitySupported,
+	}
 }
 
 // Supports checks if a provider supports a specific feature.
@@ -100,6 +114,8 @@ func (pf *ProviderFeatures) Supports(provider, feature string) bool {
 	switch strings.ToLower(feature) {
 	case "thinking":
 		return f.Thinking
+	case "adaptive_thinking":
+		return f.AdaptiveThinking
 	case "tools", "tool_use":
 		return f.ToolUse
 	case "images":
@@ -112,6 +128,16 @@ func (pf *ProviderFeatures) Supports(provider, feature string) bool {
 		return f.JSON
 	case "embeddings":
 		return f.Embeddings
+	case "effort":
+		return f.Effort
+	case "structured_output":
+		return f.StructuredOutput
+	case "code_execution":
+		return f.CodeExecution
+	case "citations":
+		return f.Citations
+	case "pdf_input":
+		return f.PDFInput
 	default:
 		return false
 	}

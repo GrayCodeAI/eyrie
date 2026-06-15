@@ -428,17 +428,17 @@ func TestGetProviderModel_TableDriven(t *testing.T) {
 
 func TestGetProviderAPIKey_TableDriven(t *testing.T) {
 	cfg := &ProviderConfig{
-		AnthropicAPIKey:  "sk-ant-key",
-		OpenAIAPIKey:     "sk-openai-key",
-		GeminiAPIKey:     "gemini-key",
-		GrokAPIKey:       "",
-		XAIAPIKey:        "xai-key",
-		CanopyWaveAPIKey: "cw-key",
-		ZAIAPIKey:        "zai-key",
-		OpenRouterAPIKey: "or-key",
-		OpenCodeGoAPIKey: "ocg-key",
-		MoonshotAPIKey:   "moonshot-key",
-		XiaomiAPIKey:     "xiaomi-key",
+		AnthropicAPIKey:      "sk-ant-key",
+		OpenAIAPIKey:         "sk-openai-key",
+		GeminiAPIKey:         "gemini-key",
+		GrokAPIKey:           "",
+		XAIAPIKey:            "xai-key",
+		CanopyWaveAPIKey:     "cw-key",
+		ZAIAPIKey:            "zai-key",
+		OpenRouterAPIKey:     "or-key",
+		OpenCodeGoAPIKey:     "ocg-key",
+		MoonshotAPIKey:       "moonshot-key",
+		XiaomiMimoPaygAPIKey: "xiaomi-key",
 	}
 
 	tests := []struct {

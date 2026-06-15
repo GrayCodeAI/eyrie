@@ -33,8 +33,8 @@ func TestFetchAnthropic_MockHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 models, got %d", len(entries))
+	if len(entries) != 17 {
+		t.Fatalf("expected 17 models, got %d", len(entries))
 	}
 	byID := map[string]Entry{}
 	for _, e := range entries {
@@ -44,11 +44,11 @@ func TestFetchAnthropic_MockHTTPServer(t *testing.T) {
 	if !ok {
 		t.Fatal("missing claude-sonnet-4-20250514")
 	}
-	if sonnet.DisplayName != "Claude Sonnet 4" {
+	if sonnet.DisplayName != "Claude Sonnet 4 (deprecated)" {
 		t.Fatalf("display name = %q", sonnet.DisplayName)
 	}
-	if sonnet.ContextWindow != 0 || sonnet.MaxOutput != 0 {
-		t.Fatalf("context/max = %d/%d (expected 0/0 — no hardcoded defaults)", sonnet.ContextWindow, sonnet.MaxOutput)
+	if sonnet.ContextWindow != 200000 || sonnet.MaxOutput != 64000 {
+		t.Fatalf("context/max = %d/%d (expected 200000/64000)", sonnet.ContextWindow, sonnet.MaxOutput)
 	}
 	if len(sonnet.RawJSON) == 0 {
 		t.Fatal("expected RawJSON to be preserved")

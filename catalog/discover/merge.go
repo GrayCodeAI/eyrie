@@ -166,6 +166,39 @@ func mergeCapabilities(existing, live catalog.CapabilitySetV1) catalog.Capabilit
 	if live.ExplicitThinkingBudget != "" {
 		existing.ExplicitThinkingBudget = live.ExplicitThinkingBudget
 	}
+	if live.AdaptiveThinking != "" {
+		existing.AdaptiveThinking = live.AdaptiveThinking
+	}
+	if live.Effort != "" {
+		existing.Effort = live.Effort
+	}
+	if live.StructuredOutput != "" {
+		existing.StructuredOutput = live.StructuredOutput
+	}
+	if live.CodeExecution != "" {
+		existing.CodeExecution = live.CodeExecution
+	}
+	if live.Citations != "" {
+		existing.Citations = live.Citations
+	}
+	if live.PDFInput != "" {
+		existing.PDFInput = live.PDFInput
+	}
+	if live.ImageInput != "" {
+		existing.ImageInput = live.ImageInput
+	}
+	if live.MaxInputTokens > 0 {
+		existing.MaxInputTokens = live.MaxInputTokens
+	}
+	if live.MaxOutputTokens > 0 {
+		existing.MaxOutputTokens = live.MaxOutputTokens
+	}
+	if len(live.ThinkingTypes) > 0 {
+		existing.ThinkingTypes = live.ThinkingTypes
+	}
+	if len(live.EffortLevels) > 0 {
+		existing.EffortLevels = live.EffortLevels
+	}
 	return existing
 }
 
