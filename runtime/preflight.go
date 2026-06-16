@@ -159,12 +159,12 @@ func FormatPreflightReport(r PreflightReport) string {
 		b.WriteString("Preflight: setup incomplete\n")
 	}
 	for _, c := range r.Checks {
-		icon := "✓"
+		icon := "+"
 		switch c.Status {
 		case PreflightWarn:
 			icon = "!"
 		case PreflightFail:
-			icon = "✗"
+			icon = "x"
 		}
 		fmt.Fprintf(&b, "  %s %s: %s\n", icon, c.Name, c.Detail)
 	}

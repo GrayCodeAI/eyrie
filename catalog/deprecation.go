@@ -35,7 +35,7 @@ func GetModelDeprecationWarning(modelID, provider string) string {
 		if !strings.Contains(canonical, key) || !ok || date == "" {
 			continue
 		}
-		return fmt.Sprintf("⚠ %s will be retired on %s. Consider switching to a newer model.", entry.ModelName, date)
+		return fmt.Sprintf("[warn] %s will be retired on %s. Consider switching to a newer model.", entry.ModelName, date)
 	}
 	return ""
 }
