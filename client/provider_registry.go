@@ -166,15 +166,14 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 		p = NewBedrockClient(accessKey, apiKey, sessionToken, region)
 	case ProviderTypeVertex:
 		projectID := resolveEnvSecret("VERTEX_PROJECT_ID")
+		if projectID == "" {
+			return nil, fmt.Errorf("eyrie: vertex requires VERTEX_PROJECT_ID")
+		}
 		region := resolveEnvSecret("VERTEX_REGION")
 		if region == "" {
 			region = "us-central1"
 		}
-		baseURL := config.VertexGeminiBaseURL(projectID, region)
-		if baseURL == "" {
-			return nil, fmt.Errorf("eyrie: vertex requires VERTEX_PROJECT_ID and VERTEX_REGION")
-		}
-		p = NewGeminiClient(apiKey, baseURL)
+		p = NewVertexClient(projectID, region, apiKey)
 	default:
 		if config.IsZAIProvider(providerName) {
 			providerCfg := config.LoadProviderConfig("")
