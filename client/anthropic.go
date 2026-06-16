@@ -217,6 +217,50 @@ type anthropicResponse struct {
 	} `json:"usage"`
 }
 
+// parseAnthropicResponse converts a parsed Anthropic Messages API
+// response into an EyrieResponse. Shared by Anthropic, Bedrock, and
+// Vertex clients (all three receive the same wire format).
+//
+// Content blocks are extracted per type:
+//   - "text" → Content (concatenated)
+//   - "thinking" → Thinking (concatenated)
+//   - "redacted_thinking" → skipped silently (safety-sensitive reasoning)
+//   - "tool_use" → appended to ToolCalls with parsed Arguments
+//
+// requestID is required. orgID is the Anthropic-Organization-Id
+// response header (Anthropic-specific; Bedrock and Vertex pass "").
+func parseAnthropicResponse(ar anthropicResponse, requestID, orgID string) *EyrieResponse {
+	var content, thinkingContent string
+	var toolCalls []ToolCall
+	for _, block := range ar.Content {
+		switch block.Type {
+		case "text":
+			content += block.Text
+		case "thinking":
+			thinkingContent += block.Thinking
+		case "redacted_thinking":
+			// Safety-sensitive reasoning — skip silently
+			continue
+		case "tool_use":
+			var args map[string]interface{}
+			_ = json.Unmarshal(block.Input, &args)
+			toolCalls = append(toolCalls, ToolCall{ID: block.ID, Name: block.Name, Arguments: args})
+		}
+	}
+	return &EyrieResponse{
+		Content: content, Thinking: thinkingContent, FinishReason: ar.StopReason, ToolCalls: toolCalls,
+		RequestID: requestID, OrganizationID: orgID,
+		Usage: &EyrieUsage{
+			PromptTokens:        ar.Usage.InputTokens,
+			CompletionTokens:    ar.Usage.OutputTokens,
+			TotalTokens:         ar.Usage.InputTokens + ar.Usage.OutputTokens,
+			CacheCreationTokens: ar.Usage.CacheCreationInputTokens,
+			CacheReadTokens:     ar.Usage.CacheReadInputTokens,
+			ThinkingTokens:      ar.Usage.OutputTokensDetails.ThinkingTokens,
+		},
+	}
+}
+
 func buildAnthropicMessages(messages []EyrieMessage) ([]map[string]interface{}, string) {
 	var system string
 	msgs := make([]map[string]interface{}, 0, len(messages))
@@ -477,36 +521,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 		return nil, fmt.Errorf("eyrie: failed to decode anthropic response: %w", err)
 	}
 
-	var content, thinkingContent string
-	var toolCalls []ToolCall
-	for _, block := range ar.Content {
-		switch block.Type {
-		case "text":
-			content += block.Text
-		case "thinking":
-			thinkingContent += block.Thinking
-		case "redacted_thinking":
-			// Safety-sensitive reasoning — skip silently
-			continue
-		case "tool_use":
-			var args map[string]interface{}
-			_ = json.Unmarshal(block.Input, &args)
-			toolCalls = append(toolCalls, ToolCall{ID: block.ID, Name: block.Name, Arguments: args})
-		}
-	}
-
-	eyrieResp := &EyrieResponse{
-		Content: content, Thinking: thinkingContent, FinishReason: ar.StopReason, ToolCalls: toolCalls,
-		RequestID: requestID, OrganizationID: orgID,
-		Usage: &EyrieUsage{
-			PromptTokens:        ar.Usage.InputTokens,
-			CompletionTokens:    ar.Usage.OutputTokens,
-			TotalTokens:         ar.Usage.InputTokens + ar.Usage.OutputTokens,
-			CacheCreationTokens: ar.Usage.CacheCreationInputTokens,
-			CacheReadTokens:     ar.Usage.CacheReadInputTokens,
-			ThinkingTokens:      ar.Usage.OutputTokensDetails.ThinkingTokens,
-		},
-	}
+	eyrieResp := parseAnthropicResponse(ar, requestID, orgID)
 
 	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
 		return nil, err

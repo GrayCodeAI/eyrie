@@ -82,35 +82,7 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		return nil, fmt.Errorf("eyrie: vertex decode failed: %w", err)
 	}
 
-	var content, thinkingContent string
-	var toolCalls []ToolCall
-	for _, block := range ar.Content {
-		switch block.Type {
-		case "text":
-			content += block.Text
-		case "thinking":
-			thinkingContent += block.Thinking
-		case "redacted_thinking":
-			continue
-		case "tool_use":
-			var args map[string]interface{}
-			_ = json.Unmarshal(block.Input, &args)
-			toolCalls = append(toolCalls, ToolCall{ID: block.ID, Name: block.Name, Arguments: args})
-		}
-	}
-
-	eyrieResp := &EyrieResponse{
-		Content: content, Thinking: thinkingContent, FinishReason: ar.StopReason, ToolCalls: toolCalls,
-		RequestID: requestID,
-		Usage: &EyrieUsage{
-			PromptTokens:        ar.Usage.InputTokens,
-			CompletionTokens:    ar.Usage.OutputTokens,
-			TotalTokens:         ar.Usage.InputTokens + ar.Usage.OutputTokens,
-			CacheCreationTokens: ar.Usage.CacheCreationInputTokens,
-			CacheReadTokens:     ar.Usage.CacheReadInputTokens,
-			ThinkingTokens:      ar.Usage.OutputTokensDetails.ThinkingTokens,
-		},
-	}
+	eyrieResp := parseAnthropicResponse(ar, requestID, "")
 
 	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
 		return nil, err
