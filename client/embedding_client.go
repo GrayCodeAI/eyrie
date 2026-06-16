@@ -72,7 +72,7 @@ func (c *OpenAIClient) CreateEmbedding(ctx context.Context, req EmbeddingRequest
 
 	if resp.StatusCode != 200 {
 		requestID := resp.Header.Get("X-Request-Id")
-		return nil, formatAPIError(c.providerName+" embedding", resp.StatusCode, requestID, parseProviderError(resp.Body))
+		return nil, formatAPIError(c.providerName+" embedding", "embedding", resp.StatusCode, requestID, parseProviderError(resp.Body))
 	}
 
 	var or openaiEmbeddingResponse

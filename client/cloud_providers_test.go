@@ -279,8 +279,8 @@ func TestAzureChat_ErrorResponse(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for 401")
 	}
-	if !strings.Contains(err.Error(), "azure API error") {
-		t.Errorf("expected azure API error, got: %v", err)
+	if !strings.Contains(err.Error(), "azure") || !strings.Contains(err.Error(), "failed") {
+		t.Errorf("expected azure error, got: %v", err)
 	}
 	if !strings.Contains(err.Error(), "azure-err-001") {
 		t.Errorf("expected request ID in error, got: %v", err)
@@ -920,8 +920,8 @@ func TestVertexChat_ErrorResponse(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for 403")
 	}
-	if !strings.Contains(err.Error(), "vertex API error") {
-		t.Errorf("expected vertex API error, got: %v", err)
+	if !strings.Contains(err.Error(), "vertex") || !strings.Contains(err.Error(), "failed") {
+		t.Errorf("expected vertex error, got: %v", err)
 	}
 }
 
@@ -1468,8 +1468,8 @@ func TestBedrockChat_ErrorResponse(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for 403")
 	}
-	if !strings.Contains(err.Error(), "bedrock API error") {
-		t.Errorf("expected bedrock API error, got: %v", err)
+	if !strings.Contains(err.Error(), "bedrock") || !strings.Contains(err.Error(), "failed") {
+		t.Errorf("expected bedrock error, got: %v", err)
 	}
 }
 

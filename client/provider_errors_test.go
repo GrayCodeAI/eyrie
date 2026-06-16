@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -74,10 +75,10 @@ func TestClassifyProviderError(t *testing.T) {
 }
 
 func TestFormatAPIError(t *testing.T) {
-	err := formatAPIError("openai", 401, "req_123",
+	err := formatAPIError("openai", "chat", 401, "req_123",
 		providerErrorDetail{Message: "bad key", Type: "auth_error", Code: "invalid_api_key"})
 	s := err.Error()
-	for _, want := range []string{"openai", "status=401", "request_id=req_123", "invalid API key", "bad key"} {
+	for _, want := range []string{"openai", "chat", "HTTP 401", "request_id=req_123", "invalid API key", "bad key"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("error %q missing %q", s, want)
 		}
@@ -85,12 +86,81 @@ func TestFormatAPIError(t *testing.T) {
 }
 
 func TestFormatAPIError_NoHintFallsBackToDetail(t *testing.T) {
-	err := formatAPIError("vertex", 400, "", providerErrorDetail{Raw: "totally opaque"})
+	err := formatAPIError("vertex", "chat", 400, "", providerErrorDetail{Raw: "totally opaque"})
 	s := err.Error()
 	if !strings.Contains(s, "totally opaque") {
 		t.Errorf("error %q should include raw detail", s)
 	}
-	if !strings.Contains(s, "request_id=") {
-		t.Errorf("error %q should still include request_id field", s)
+	if strings.Contains(s, "request_id=") {
+		t.Errorf("error %q should NOT include request_id when caller passes empty", s)
+	}
+}
+
+// TestFormatAPIError_ReturnsEyrieError: the returned error is a
+// concrete *EyrieError, dispatchable via errors.As. This is the
+// core contract that lets retry/fallback middleware use the
+// structured IsRetriable()/IsAuthError()/IsRateLimited() helpers
+// instead of regex-parsing the message.
+func TestFormatAPIError_ReturnsEyrieError(t *testing.T) {
+	err := formatAPIError("openai", "chat", 429, "req_429",
+		providerErrorDetail{Message: "rate limited"})
+	var eyrieErr *EyrieError
+	if !errors.As(err, &eyrieErr) {
+		t.Fatalf("formatAPIError must return *EyrieError, got %T (%v)", err, err)
+	}
+	if eyrieErr.Provider != "openai" {
+		t.Errorf("Provider = %q, want openai", eyrieErr.Provider)
+	}
+	if eyrieErr.Op != "chat" {
+		t.Errorf("Op = %q, want chat", eyrieErr.Op)
+	}
+	if eyrieErr.StatusCode != 429 {
+		t.Errorf("StatusCode = %d, want 429", eyrieErr.StatusCode)
+	}
+	if eyrieErr.RequestID != "req_429" {
+		t.Errorf("RequestID = %q, want req_429", eyrieErr.RequestID)
+	}
+	if !eyrieErr.IsRateLimited() {
+		t.Errorf("IsRateLimited = false, want true for 429")
+	}
+	if !eyrieErr.IsRetriable() {
+		t.Errorf("IsRetriable = false, want true for 429")
+	}
+	if eyrieErr.IsAuthError() {
+		t.Errorf("IsAuthError = true, want false for 429")
+	}
+}
+
+// TestFormatAPIError_AuthError: 401/403 are flagged as auth errors
+// (not retriable on the same provider).
+func TestFormatAPIError_AuthError(t *testing.T) {
+	for _, status := range []int{401, 403} {
+		err := formatAPIError("openai", "chat", status, "req",
+			providerErrorDetail{Message: "unauthorized", Code: "invalid_api_key"})
+		var eyrieErr *EyrieError
+		if !errors.As(err, &eyrieErr) {
+			t.Fatalf("status %d: not *EyrieError: %T", status, err)
+		}
+		if !eyrieErr.IsAuthError() {
+			t.Errorf("status %d: IsAuthError = false, want true", status)
+		}
+		if eyrieErr.IsRetriable() {
+			t.Errorf("status %d: IsRetriable = true, want false (auth errors don't retry)", status)
+		}
+	}
+}
+
+// TestFormatAPIError_RetriableCodes: 5xx and 429 are retriable.
+func TestFormatAPIError_RetriableCodes(t *testing.T) {
+	for _, status := range []int{408, 429, 500, 502, 503, 504, 529} {
+		err := formatAPIError("openai", "chat", status, "req",
+			providerErrorDetail{Message: "try again"})
+		var eyrieErr *EyrieError
+		if !errors.As(err, &eyrieErr) {
+			t.Fatalf("status %d: not *EyrieError: %T", status, err)
+		}
+		if !eyrieErr.IsRetriable() {
+			t.Errorf("status %d: IsRetriable = false, want true", status)
+		}
 	}
 }

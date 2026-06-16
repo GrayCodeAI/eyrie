@@ -448,7 +448,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	requestID := resp.Header.Get("X-Request-Id")
 
 	if resp.StatusCode != 200 {
-		return nil, formatAPIError(c.providerName, resp.StatusCode, requestID, parseProviderError(resp.Body))
+		return nil, formatAPIError(c.providerName, "chat", resp.StatusCode, requestID, parseProviderError(resp.Body))
 	}
 
 	var or openaiResponse
@@ -503,7 +503,7 @@ func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	if resp.StatusCode != 200 {
 		detail := parseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, formatAPIError(c.providerName, resp.StatusCode, requestID, detail)
+		return nil, formatAPIError(c.providerName, "stream", resp.StatusCode, requestID, detail)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
