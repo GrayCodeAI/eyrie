@@ -367,21 +367,27 @@ func audioFormatToMediaType(format string) string {
 }
 
 // Chat sends a non-streaming message to Anthropic.
-// NOTE: Anthropic does not support a native JSON mode (response_format).
-// Structured output with Anthropic is achieved via the tool-use pattern
-// (defining a tool whose input_schema is your desired output schema).
-// This is not implemented here; opts.ResponseFormat is ignored for Anthropic.
-// Future work: implement tool-use-based structured output for Anthropic.
-func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+// buildAnthropicRequest constructs the request body and http.Request
+// for both Chat and StreamChat. If stream is true, the body sets
+// `stream: true` and the request gets the `Accept: text/event-stream`
+// header. Returns the http.Request (with GetBody set for retry) and
+// the raw body bytes (needed by doRequestWithMimoAuthRetry for the
+// MiMo 401 retry path).
+//
+// This helper removes ~120 lines of duplication between Chat and
+// StreamChat (lines 375-446 and 496-565 in the previous version):
+// every field — System, Temperature, TopP, TopK, StopSequences,
+// EnableCaching, tools, thinking, metadata, serviceTier,
+// outputConfig — was previously re-applied in both methods.
+func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []EyrieMessage, opts ChatOptions, stream bool) (*http.Request, []byte, error) {
 	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
-		return nil, fmt.Errorf("eyrie: model is required for anthropic")
+		return nil, nil, fmt.Errorf("eyrie: model is required for anthropic")
 	}
 	maxTokens := opts.MaxTokens
 	if maxTokens == 0 {
 		maxTokens = 4096
 	}
-
 	thinking := resolveThinking(opts)
 
 	var body []byte
@@ -391,7 +397,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 			allMessages = append([]EyrieMessage{{Role: "system", Content: opts.System}}, allMessages...)
 		}
 		tools := convertToAnthropicTools(opts.Tools)
-		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, false, tools,
+		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, stream, tools,
 			thinking, resolveToolChoice(opts.ToolChoice), opts.TopP, opts.TopK, opts.StopSequences)
 		body, _ = json.Marshal(cachedReq)
 	} else {
@@ -412,6 +418,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 			TopP:          opts.TopP,
 			TopK:          opts.TopK,
 			StopSequences: opts.StopSequences,
+			Stream:        stream,
 			Tools:         convertToAnthropicTools(opts.Tools),
 			ToolChoice:    resolveToolChoice(opts.ToolChoice),
 			Thinking:      thinking,
@@ -424,16 +431,32 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 
 	// Check request size (32 MB limit for Messages API)
 	if len(body) > maxAnthropicRequestSize {
-		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Anthropic limit of %d bytes", len(body), maxAnthropicRequestSize)
+		return nil, nil, fmt.Errorf("eyrie: request size %d bytes exceeds Anthropic limit of %d bytes", len(body), maxAnthropicRequestSize)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/messages", bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("eyrie: failed to create request: %w", err)
+		return nil, nil, fmt.Errorf("eyrie: failed to create request: %w", err)
 	}
 	c.setHeaders(req)
+	if stream {
+		req.Header.Set("Accept", "text/event-stream")
+	}
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
+	return req, body, nil
+}
+
+// NOTE: Anthropic does not support a native JSON mode (response_format).
+// Structured output with Anthropic is achieved via the tool-use pattern
+// (defining a tool whose input_schema is your desired output schema).
+// This is not implemented here; opts.ResponseFormat is ignored for Anthropic.
+// Future work: implement tool-use-based structured output for Anthropic.
+func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+	req, body, err := c.buildAnthropicRequest(ctx, messages, opts, false)
+	if err != nil {
+		return nil, err
+	}
 	c.logger.Debug("anthropic chat", "model", opts.Model, "caching", opts.EnableCaching)
 
 	resp, err := c.doRequestWithMimoAuthRetry(ctx, req, body)
@@ -494,68 +517,10 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 
 // StreamChat sends a streaming message to Anthropic.
 func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
-	messages = SanitizeMessages(messages)
-	if opts.Model == "" {
-		return nil, fmt.Errorf("eyrie: model is required for anthropic")
-	}
-	maxTokens := opts.MaxTokens
-	if maxTokens == 0 {
-		maxTokens = 4096
-	}
-
-	thinking := resolveThinking(opts)
-
-	var body []byte
-	if opts.EnableCaching {
-		allMessages := messages
-		if opts.System != "" {
-			allMessages = append([]EyrieMessage{{Role: "system", Content: opts.System}}, allMessages...)
-		}
-		tools := convertToAnthropicTools(opts.Tools)
-		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, true, tools,
-			thinking, resolveToolChoice(opts.ToolChoice), opts.TopP, opts.TopK, opts.StopSequences)
-		body, _ = json.Marshal(cachedReq)
-	} else {
-		msgs, system := buildAnthropicMessages(messages)
-		if opts.System != "" {
-			if system != "" {
-				system = opts.System + "\n\n" + system
-			} else {
-				system = opts.System
-			}
-		}
-		reqBody := anthropicRequest{
-			Model:         opts.Model,
-			MaxTokens:     maxTokens,
-			Messages:      msgs,
-			System:        system,
-			Temperature:   opts.Temperature,
-			TopP:          opts.TopP,
-			TopK:          opts.TopK,
-			StopSequences: opts.StopSequences,
-			Stream:        true,
-			Tools:         convertToAnthropicTools(opts.Tools),
-			ToolChoice:    resolveToolChoice(opts.ToolChoice),
-			Thinking:      thinking,
-			Metadata:      resolveMetadata(opts),
-			ServiceTier:   opts.ServiceTier,
-			OutputConfig:  resolveOutputConfig(opts),
-		}
-		body, _ = json.Marshal(reqBody)
-	}
-
-	// Check request size (32 MB limit for Messages API)
-	if len(body) > maxAnthropicRequestSize {
-		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Anthropic limit of %d bytes", len(body), maxAnthropicRequestSize)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/messages", bytes.NewReader(body))
+	req, body, err := c.buildAnthropicRequest(ctx, messages, opts, true)
 	if err != nil {
-		return nil, fmt.Errorf("eyrie: failed to create request: %w", err)
+		return nil, err
 	}
-	c.setHeaders(req)
-	req.Header.Set("Accept", "text/event-stream")
-	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
 	resp, err := c.doRequestWithMimoAuthRetry(ctx, req, body)
 	if err != nil {
