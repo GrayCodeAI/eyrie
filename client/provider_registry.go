@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
@@ -104,8 +105,15 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 	c.mu.RUnlock()
 
 	// Register fallback provider BEFORE acquiring c.mu to avoid lock ordering issues.
-	if needsRegistration {
+	// Gated on dynamicProviderEnvVar to prevent silent exfiltration of OPENAI_API_KEY
+	// to an attacker-controlled OPENAI_API_BASE.
+	if needsRegistration && dynamicProviderEnabled() {
 		if fallbackURL := openaiBaseFallbackURL(); fallbackURL != "" {
+			slog.Warn("auto-registering OpenAI-compatible provider from OPENAI_API_BASE",
+				"provider", providerName,
+				"base_url", fallbackURL,
+				"opt_in_env", dynamicProviderEnvVar,
+			)
 			_ = RegisterDynamicProvider(providerName, fallbackURL, "OPENAI_API_KEY")
 		}
 	}
