@@ -194,10 +194,10 @@ func (r Report) Markdown() string {
 	out += fmt.Sprintf("- tool_call_f1: %.2f\n\n", r.F1Score)
 	out += "| case | result | latency | detail |\n|---|---|---|---|\n"
 	for _, c := range r.Results {
-		status := "✓"
+		status := "+"
 		detail := ""
 		if !c.Passed {
-			status = "✗"
+			status = "x"
 			detail = strings.Join(c.Failures, "; ")
 		}
 		out += fmt.Sprintf("| %s | %s | %s | %s |\n", c.ID, status, c.Latency.Round(time.Millisecond), detail)
