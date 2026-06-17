@@ -174,10 +174,8 @@ func TestParseAnthropicResponse_ToolUse_BadJSON(t *testing.T) {
 		t.Errorf("ToolCalls[0].Name = %q, want search", resp.ToolCalls[0].Name)
 	}
 	// Arguments may be nil (json.Unmarshal fails on string input) or
-	// an empty map — either is acceptable.
-	if resp.ToolCalls[0].Arguments == nil {
-		// expected
-	}
+	// an empty map — either is acceptable; nothing to assert here.
+	_ = resp.ToolCalls[0].Arguments
 }
 
 // TestParseAnthropicResponse_TotalTokens: TotalTokens is the

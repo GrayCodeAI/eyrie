@@ -586,7 +586,6 @@ func processGeminiStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 				// original streamLoop emitted these together in a
 				// single event when the chunk carried both.
 				if chunk.Usage != nil || candidate.FinishReason != "" {
-					doneSent = true
 					evt := EyrieStreamEvent{Type: "done"}
 					if chunk.Usage != nil {
 						evt.Usage = &EyrieUsage{
