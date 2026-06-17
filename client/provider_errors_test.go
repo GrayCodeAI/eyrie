@@ -11,7 +11,10 @@ import (
 func body(s string) io.ReadCloser { return io.NopCloser(strings.NewReader(s)) }
 
 func TestParseProviderError(t *testing.T) {
-	d := parseProviderError(body(`{"error":{"message":"Incorrect API key provided","type":"invalid_request_error","code":"invalid_api_key"}}`))
+	d, readErr := parseProviderError(body(`{"error":{"message":"Incorrect API key provided","type":"invalid_request_error","code":"invalid_api_key"}}`))
+	if readErr != nil {
+		t.Errorf("readErr = %v, want nil", readErr)
+	}
 	if d.Message != "Incorrect API key provided" {
 		t.Errorf("Message = %q", d.Message)
 	}
@@ -25,14 +28,20 @@ func TestParseProviderError(t *testing.T) {
 
 func TestParseProviderError_NumericCode(t *testing.T) {
 	// Some providers send a bare numeric code.
-	d := parseProviderError(body(`{"error":{"message":"nope","code":404}}`))
+	d, readErr := parseProviderError(body(`{"error":{"message":"nope","code":404}}`))
+	if readErr != nil {
+		t.Errorf("readErr = %v, want nil", readErr)
+	}
 	if d.Code != "404" {
 		t.Errorf("Code = %q, want 404", d.Code)
 	}
 }
 
 func TestParseProviderError_Unstructured(t *testing.T) {
-	d := parseProviderError(body(`upstream proxy: 502 bad gateway`))
+	d, readErr := parseProviderError(body(`upstream proxy: 502 bad gateway`))
+	if readErr != nil {
+		t.Errorf("readErr = %v, want nil", readErr)
+	}
 	if d.Message != "" {
 		t.Errorf("Message should be empty for unstructured body, got %q", d.Message)
 	}
@@ -76,7 +85,7 @@ func TestClassifyProviderError(t *testing.T) {
 
 func TestFormatAPIError(t *testing.T) {
 	err := formatAPIError("openai", "chat", 401, "req_123",
-		providerErrorDetail{Message: "bad key", Type: "auth_error", Code: "invalid_api_key"})
+		providerErrorDetail{Message: "bad key", Type: "auth_error", Code: "invalid_api_key"}, nil)
 	s := err.Error()
 	for _, want := range []string{"openai", "chat", "HTTP 401", "request_id=req_123", "invalid API key", "bad key"} {
 		if !strings.Contains(s, want) {
@@ -86,7 +95,7 @@ func TestFormatAPIError(t *testing.T) {
 }
 
 func TestFormatAPIError_NoHintFallsBackToDetail(t *testing.T) {
-	err := formatAPIError("vertex", "chat", 400, "", providerErrorDetail{Raw: "totally opaque"})
+	err := formatAPIError("vertex", "chat", 400, "", providerErrorDetail{Raw: "totally opaque"}, nil)
 	s := err.Error()
 	if !strings.Contains(s, "totally opaque") {
 		t.Errorf("error %q should include raw detail", s)
@@ -103,7 +112,7 @@ func TestFormatAPIError_NoHintFallsBackToDetail(t *testing.T) {
 // instead of regex-parsing the message.
 func TestFormatAPIError_ReturnsEyrieError(t *testing.T) {
 	err := formatAPIError("openai", "chat", 429, "req_429",
-		providerErrorDetail{Message: "rate limited"})
+		providerErrorDetail{Message: "rate limited"}, nil)
 	var eyrieErr *EyrieError
 	if !errors.As(err, &eyrieErr) {
 		t.Fatalf("formatAPIError must return *EyrieError, got %T (%v)", err, err)
@@ -136,7 +145,7 @@ func TestFormatAPIError_ReturnsEyrieError(t *testing.T) {
 func TestFormatAPIError_AuthError(t *testing.T) {
 	for _, status := range []int{401, 403} {
 		err := formatAPIError("openai", "chat", status, "req",
-			providerErrorDetail{Message: "unauthorized", Code: "invalid_api_key"})
+			providerErrorDetail{Message: "unauthorized", Code: "invalid_api_key"}, nil)
 		var eyrieErr *EyrieError
 		if !errors.As(err, &eyrieErr) {
 			t.Fatalf("status %d: not *EyrieError: %T", status, err)
@@ -154,7 +163,7 @@ func TestFormatAPIError_AuthError(t *testing.T) {
 func TestFormatAPIError_RetriableCodes(t *testing.T) {
 	for _, status := range []int{408, 429, 500, 502, 503, 504, 529} {
 		err := formatAPIError("openai", "chat", status, "req",
-			providerErrorDetail{Message: "try again"})
+			providerErrorDetail{Message: "try again"}, nil)
 		var eyrieErr *EyrieError
 		if !errors.As(err, &eyrieErr) {
 			t.Fatalf("status %d: not *EyrieError: %T", status, err)
@@ -162,5 +171,27 @@ func TestFormatAPIError_RetriableCodes(t *testing.T) {
 		if !eyrieErr.IsRetriable() {
 			t.Errorf("status %d: IsRetriable = false, want true", status)
 		}
+	}
+}
+
+// TestFormatAPIError_InnerErrorUnwrap: a non-nil inner error passed
+// in (e.g. a body read error from parseProviderError) is wired into
+// EyrieError.Err, so errors.Is / errors.Unwrap traverse it. This
+// fixes the contract gap where Unwrap() always returned nil even
+// when the provider body failed to read.
+func TestFormatAPIError_InnerErrorUnwrap(t *testing.T) {
+	inner := io.ErrUnexpectedEOF
+	err := formatAPIError("openai", "chat", 500, "req_inner",
+		providerErrorDetail{Message: "bad gateway"}, inner)
+
+	var eyrieErr *EyrieError
+	if !errors.As(err, &eyrieErr) {
+		t.Fatalf("formatAPIError must return *EyrieError, got %T (%v)", err, err)
+	}
+	if !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Errorf("errors.Is(err, io.ErrUnexpectedEOF) = false, want true (Err field must be wired)")
+	}
+	if !strings.Contains(err.Error(), "unexpected EOF") {
+		t.Errorf("error %q should include inner error message", err.Error())
 	}
 }

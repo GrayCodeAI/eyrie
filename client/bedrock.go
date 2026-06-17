@@ -70,15 +70,16 @@ func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts 
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return nil, formatAPIError("bedrock", "chat", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), parseProviderError(resp.Body))
+		detail, readErr := parseProviderError(resp.Body)
+		return nil, formatAPIError("bedrock", "chat", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
 	}
 
 	var ar anthropicResponse
 	if err := json.NewDecoder(resp.Body).Decode(&ar); err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock decode failed: %w", err)
 	}
-		return parseAnthropicResponse(ar, resp.Header.Get("X-Amzn-Requestid"), ""), nil
-	}
+	return parseAnthropicResponse(ar, resp.Header.Get("X-Amzn-Requestid"), ""), nil
+}
 
 func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
 	if opts.Model == "" {
@@ -117,7 +118,8 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 	}
 	if resp.StatusCode != http.StatusOK {
 		defer func() { _ = resp.Body.Close() }()
-		return nil, formatAPIError("bedrock stream", "stream", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), parseProviderError(resp.Body))
+		detail, readErr := parseProviderError(resp.Body)
+		return nil, formatAPIError("bedrock stream", "stream", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)

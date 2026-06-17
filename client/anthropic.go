@@ -513,7 +513,8 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	orgID := resp.Header.Get("Anthropic-Organization-Id")
 
 	if resp.StatusCode != 200 {
-		return nil, formatAPIError("anthropic", "chat", resp.StatusCode, requestID, parseProviderError(resp.Body))
+		detail, readErr := parseProviderError(resp.Body)
+		return nil, formatAPIError("anthropic", "chat", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	var ar anthropicResponse
@@ -545,9 +546,9 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 	requestID := resp.Header.Get("Request-Id")
 
 	if resp.StatusCode != 200 {
-		detail := parseProviderError(resp.Body)
+		detail, readErr := parseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, formatAPIError("anthropic", "stream", resp.StatusCode, requestID, detail)
+		return nil, formatAPIError("anthropic", "stream", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
@@ -670,7 +671,8 @@ func (c *AnthropicClient) CountTokens(ctx context.Context, messages []EyrieMessa
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
-		return nil, formatAPIError("anthropic", "count_tokens", resp.StatusCode, resp.Header.Get("Request-Id"), parseProviderError(resp.Body))
+		detail, readErr := parseProviderError(resp.Body)
+		return nil, formatAPIError("anthropic", "count_tokens", resp.StatusCode, resp.Header.Get("Request-Id"), detail, readErr)
 	}
 
 	var result TokenCountResult

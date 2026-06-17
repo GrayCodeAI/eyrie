@@ -74,7 +74,8 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	requestID := resp.Header.Get("X-Goog-Request-Id")
 
 	if resp.StatusCode != 200 {
-		return nil, formatAPIError("vertex", "chat", resp.StatusCode, requestID, parseProviderError(resp.Body))
+		detail, readErr := parseProviderError(resp.Body)
+		return nil, formatAPIError("vertex", "chat", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	var ar anthropicResponse
@@ -121,9 +122,9 @@ func (c *VertexClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	}
 
 	if resp.StatusCode != 200 {
-		detail := parseProviderError(resp.Body)
+		detail, readErr := parseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, formatAPIError("vertex", "stream", resp.StatusCode, resp.Header.Get("X-Goog-Request-Id"), detail)
+		return nil, formatAPIError("vertex", "stream", resp.StatusCode, resp.Header.Get("X-Goog-Request-Id"), detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
