@@ -18,13 +18,15 @@ type providerErrorDetail struct {
 	Raw     string // raw body (truncated) when nothing structured was found
 }
 
-// parseProviderError reads and classifies an error response body. It never
-// returns nil; on a read/parse failure it falls back to the raw bytes.
-func parseProviderError(body io.ReadCloser) providerErrorDetail {
+// parseProviderError reads and classifies an error response body. It
+// never returns a zero detail: on a read failure the detail is filled
+// with a placeholder message and the read error is returned alongside
+// so callers can attach it to the structured *EyrieError.
+func parseProviderError(body io.ReadCloser) (providerErrorDetail, error) {
 	defer func() { _ = body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(body, 8192))
 	if err != nil {
-		return providerErrorDetail{Message: "failed to read error body"}
+		return providerErrorDetail{Message: "failed to read error body"}, err
 	}
 
 	// Most OpenAI-compatible and Anthropic errors nest the detail under "error".
@@ -50,7 +52,7 @@ func parseProviderError(body io.ReadCloser) providerErrorDetail {
 		}
 		d.Code = rawToString(nested.Error.Code)
 	}
-	return d
+	return d, nil
 }
 
 // rawToString renders a JSON code field that may be a quoted string or a bare
@@ -118,11 +120,23 @@ func classifyProviderError(statusCode int, d providerErrorDetail) string {
 	return ""
 }
 
-// formatAPIError builds the single, consistent error string used across every
-// provider request path (chat, stream, embeddings). It always includes the
-// provider name, HTTP status, the upstream correlation id (for support
-// tickets), a classified actionable hint when one applies, and the raw detail.
-func formatAPIError(provider string, statusCode int, requestID string, d providerErrorDetail) error {
+// formatAPIError builds the *EyrieError used across every provider
+// request path (chat, stream, embeddings). It always includes the
+// provider name, the operation (e.g. "chat", "stream"), the HTTP
+// status, the upstream correlation id (for support tickets), a
+// classified actionable hint when one applies, and the raw detail.
+//
+// Returning *EyrieError (rather than a plain fmt.Errorf) lets
+// downstream code use errors.As to dispatch on the structured type
+// — retry middleware checks IsRetriable(), fallback chains check
+// IsRetriable()/IsAuthError(), observability code can pull the
+// provider/status/request-id without re-parsing the message.
+//
+// inner is the read error from parseProviderError (when the body
+// could not be read). It is attached via EyrieError.Err so
+// errors.Is(err, io.EOF) and similar checks succeed; pass nil when
+// the body was read cleanly.
+func formatAPIError(provider, op string, statusCode int, requestID string, d providerErrorDetail, inner error) error {
 	detail := d.Message
 	if detail == "" {
 		detail = d.Raw
@@ -132,9 +146,17 @@ func formatAPIError(provider string, statusCode int, requestID string, d provide
 	}
 
 	hint := classifyProviderError(statusCode, d)
-	prefix := fmt.Sprintf("eyrie: %s API error (status=%d, request_id=%s)", provider, statusCode, requestID)
+	msg := detail
 	if hint != "" {
-		return fmt.Errorf("%s: %s — %s", prefix, hint, detail)
+		msg = fmt.Sprintf("%s — %s", hint, detail)
 	}
-	return fmt.Errorf("%s: %s", prefix, detail)
+
+	return &EyrieError{
+		Provider:   provider,
+		Op:         op,
+		StatusCode: statusCode,
+		RequestID:  requestID,
+		Message:    msg,
+		Err:        inner,
+	}
 }

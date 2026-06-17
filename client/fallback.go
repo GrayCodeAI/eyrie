@@ -223,6 +223,10 @@ var nonRetriableStatusCodes = map[int]bool{
 // succeed even if the current provider failed with an unexpected error type.
 // In contrast, retry middleware (which uses IsTransient) should be conservative
 // to avoid wasting requests on errors that won't resolve with a retry.
+//
+// *EyrieError (returned by formatAPIError and friends) is preferred over
+// the string-based heuristic: it carries the structured status code so the
+// classification is exact rather than regex-parsed.
 func isRetriableError(err error) bool {
 	if err == nil {
 		return false
@@ -233,7 +237,12 @@ func isRetriableError(err error) bool {
 	if errors.Is(err, context.Canceled) {
 		return false
 	}
-	// If IsTransient returns true, the error is known-retriable — try next provider.
+	// Structured path: trust *EyrieError's IsRetriable.
+	var eyrieErr *EyrieError
+	if errors.As(err, &eyrieErr) {
+		return eyrieErr.IsRetriable()
+	}
+	// Heuristic path for legacy errors that predate the EyrieError migration.
 	if types.IsTransient(err) {
 		return true
 	}

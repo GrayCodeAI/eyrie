@@ -361,8 +361,8 @@ func TestOpenAIChat_Error401(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for 401")
 	}
-	if !strings.Contains(err.Error(), "API error") {
-		t.Errorf("expected API error, got: %v", err)
+	if !strings.Contains(err.Error(), "openai") || !strings.Contains(err.Error(), "failed") {
+		t.Errorf("expected openai error, got: %v", err)
 	}
 	if !strings.Contains(err.Error(), "Incorrect API key") {
 		t.Errorf("expected error message about API key, got: %v", err)

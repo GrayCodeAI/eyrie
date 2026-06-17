@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -13,6 +14,25 @@ var dynamicMu sync.RWMutex
 
 // registryFrozen prevents new provider registrations after first use.
 var registryFrozen atomic.Bool
+
+// dynamicProviderEnvVar is the opt-in env var that allows eyrie to
+// auto-register an OpenAI-compatible provider from OPENAI_API_BASE /
+// OPENAI_BASE_URL when an unknown provider name is requested.
+//
+// The default is "deny" — a poisoned OPENAI_API_BASE in a leaked .envrc
+// or shared shell history would otherwise cause eyrie to silently route
+// requests (with the user's OPENAI_API_KEY header) to an attacker-
+// controlled server. Set this to "1", "true", or "yes" to restore the
+// previous auto-register behavior.
+const dynamicProviderEnvVar = "EYRIE_ALLOW_DYNAMIC_PROVIDERS"
+
+// dynamicProviderEnabled reports whether callers may auto-register an
+// OpenAI-compatible provider from OPENAI_API_BASE / OPENAI_BASE_URL when
+// an unknown provider name is requested. See dynamicProviderEnvVar.
+func dynamicProviderEnabled() bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv(dynamicProviderEnvVar)))
+	return v == "1" || v == "true" || v == "yes"
+}
 
 // FreezeRegistry prevents further provider registrations.
 // Called automatically after first provider lookup.
