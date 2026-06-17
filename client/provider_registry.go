@@ -64,6 +64,8 @@ var OpenAICompatibleProviders = map[string]ProviderRegistryConfig{
 	"kimi":                   {Name: "kimi", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultKimiOpenAIBaseURL, EnvKey: "MOONSHOT_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"xiaomi_mimo_payg":       {Name: "xiaomi_mimo_payg", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultXiaomiOpenAIBaseURL, EnvKey: config.EnvXiaomiPaygAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 	"xiaomi_mimo_token_plan": {Name: "xiaomi_mimo_token_plan", Type: ProviderTypeOpenAICompatible, BaseURL: "", EnvKey: config.EnvXiaomiTokenPlanAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"minimax_token_plan":     {Name: "minimax_token_plan", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.minimax.io/v1", EnvKey: "MINIMAX_TOKEN_PLAN_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+	"minimax_payg":           {Name: "minimax_payg", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.minimax.io/v1", EnvKey: "MINIMAX_PAYG_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
 }
 
 // GetProviders lists all available providers.
@@ -238,6 +240,12 @@ func DetectProvider() string {
 		},
 		"xiaomi_mimo_token_plan": func() bool {
 			return credentials.HasSecret(ctx, config.EnvXiaomiTokenPlanAPIKey)
+		},
+		"minimax_token_plan": func() bool {
+			return credentials.HasSecret(ctx, "MINIMAX_TOKEN_PLAN_API_KEY")
+		},
+		"minimax_payg": func() bool {
+			return credentials.HasSecret(ctx, "MINIMAX_PAYG_API_KEY")
 		},
 		"ollama": func() bool { return resolveEnvSecret("OLLAMA_BASE_URL") != "" },
 		"azure": func() bool {
