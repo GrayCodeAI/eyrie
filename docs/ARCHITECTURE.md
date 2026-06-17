@@ -104,6 +104,8 @@ Auto-detects active provider from env vars in priority order:
 | 7 | `ZAI_API_KEY` | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/bot.svg" width="16" height="16" alt="bot" /> ZAI |
 | 8 | — | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/server.svg" width="16" height="16" alt="server" /> Ollama (localhost socket) |
 
+*Top 8 by priority; 7 more (`azure`, `bedrock`, `vertex`, `deepseek`, `opencodego`, `kimi`, `xiaomi_mimo_payg`, `xiaomi_mimo_token_plan`, `minimax_token_plan`, `minimax_payg`) — see [`CREDENTIAL-SETUP-FLOW.md`](./guides/CREDENTIAL-SETUP-FLOW.md).*
+
 ---
 
 ## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/radio.svg" width="16" height="16" alt="radio" /> Streaming

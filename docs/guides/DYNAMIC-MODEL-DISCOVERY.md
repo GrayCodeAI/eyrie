@@ -37,14 +37,14 @@ User → Hawk /config
 
 | Area | Problem |
 |------|---------|
-| **Live fetch** | All 12 setup gateways have fetchers; some older gateways still have thin test coverage (z-ai, opencodego, kimi). MiMo split: `xiaomi_mimo_payg`, `xiaomi_mimo_token_plan` (`catalog/live/xiaomi_test.go`, `catalog/xiaomi/`). Anthropic, Gemini, Ollama RawJSON gaps remain |
+| **Live fetch** | All 15 setup gateways have fetchers; some older gateways still have thin test coverage (z-ai, opencodego, kimi). MiMo split: `xiaomi_mimo_payg`, `xiaomi_mimo_token_plan` (`catalog/live/xiaomi_test.go`, `catalog/xiaomi/`). Anthropic, Gemini, Ollama RawJSON gaps remain |
 | **Ollama** | No longer bypasses `ListModels`; RetryConfig moved to ProviderSpec. Remaining: hardcoded `== "ollama"` in validation |
 | **Registry drift** | ✅ Fixed — `CredentialProviderRegistry` and `liveDiscoverableDeployments` removed; `DefaultDeploymentEnvFallbacks` consolidated (Item 1) |
 | **Layering** | Hawk still has ~112 files with direct eyrie imports (Phase A facade done, B-D remain) |
 | **Legacy API** | `FetchModelCatalog` / `providers.go` slices coexist with catalog v1 |
 | **Merge policy** | ✅ Live replace — prefer-live providers fully replace models; offerings merge pricing/metadata |
 | **Display names** | `BuildSetupUI` has partial hardcoded provider labels |
-| **Docs** | ✅ `CREDENTIAL-SETUP-FLOW.md` lists all 12 gateways (incl. MiMo payg + token plan) with live-only picker |
+| **Docs** | ✅ `CREDENTIAL-SETUP-FLOW.md` lists all 15 gateways (incl. MiMo payg + token plan, DeepSeek, MiniMax token plan + payg) with live-only picker |
 
 ---
 
@@ -280,6 +280,7 @@ Provider-specific friendly text lives in eyrie, not hawk cmd.
 | **Anthropic** | `ANTHROPIC_API_KEY` | `GET /v1/models` | `/v1/models` fetcher | Rate limits on list |
 | **OpenAI** | `OPENAI_API_KEY` | `GET /v1/models` | `/v1/models` | Org-scoped model lists differ |
 | **Gemini** | `GEMINI_API_KEY` | `GET /v1beta/models` | Gemini models API | Key in query param |
+| **DeepSeek** | `DEEPSEEK_API_KEY` | `GET /models` | OpenAI-compat `/models` | `https://api.deepseek.com/v1` |
 | **OpenRouter** | `OPENROUTER_API_KEY` | `GET /models` | Already live | Largest dynamic catalog |
 | **Grok/xAI** | `XAI_API_KEY` | `GET /v1/models` | `/v1/models` | OpenAI-compatible |
 | **Z.AI** | `ZAI_API_KEY` | `GET /models` | OpenAI-compat `/models` | Base URL env fallbacks |
@@ -288,6 +289,8 @@ Provider-specific friendly text lives in eyrie, not hawk cmd.
 | **Kimi (Moonshot)** | `MOONSHOT_API_KEY` | `GET /models` | OpenAI-compat `/models` | Provider id `kimi` |
 | **Xiaomi (MiMo) Pay-as-you-go** | `XIAOMI_MIMO_PAYG_API_KEY` | `GET /v1/models` (`api-key`; Bearer on 401) | OpenAI: `api.xiaomimimo.com/v1` · Anthropic: `api.xiaomimimo.com/anthropic` | `xiaomi_mimo_payg`; chat via `MiMoClient` |
 | **Xiaomi (MiMo) Token Plan** | `XIAOMI_MIMO_TOKEN_PLAN_API_KEY` | `GET /v1/models` (region host) | OpenAI + Anthropic per region (`token-plan-{cn,sgp,ams}.xiaomimimo.com`) | `xiaomi_mimo_token_plan` + `xiaomi_mimo_token_plan_region` in provider.json |
+| **MiniMax (minimax) Token Plan** | `MINIMAX_TOKEN_PLAN_API_KEY` | `GET /v1/models` | OpenAI-compat `/v1/models` | `https://api.minimax.io/v1` |
+| **MiniMax (minimax) Pay-as-you-go** | `MINIMAX_PAYG_API_KEY` | `GET /v1/models` | OpenAI-compat `/v1/models` | `https://api.minimax.io/v1` |
 | **Ollama** | `OLLAMA_BASE_URL` | `GET /api/tags` | `/api/tags` | Zero models = error; no remote fallback in picker |
 
 ### Model discovery (all setup providers)
@@ -326,7 +329,7 @@ DiscoverCatalog(ctx, opts)
 
 ## 8. Merge policy
 
-**Implemented:** `discover.MergeCatalogV1WithPolicy` replaces deployment offerings from live fetch, then **fully replaces** model rows for prefer-live providers (all 12 setup gateways). Offerings merge pricing, capabilities, and `live_metadata` from the live catalog.
+**Implemented:** `discover.MergeCatalogV1WithPolicy` replaces deployment offerings from live fetch, then **fully replaces** model rows for prefer-live providers (all 15 setup gateways). Offerings merge pricing, capabilities, and `live_metadata` from the live catalog.
 
 Remote catalog JSON still supplies deployments, protocols, and bootstrap metadata — not picker model IDs for setup gateways.
 
