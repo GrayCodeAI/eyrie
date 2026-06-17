@@ -4,13 +4,14 @@
 
 See also: [DYNAMIC-MODEL-DISCOVERY.md](./DYNAMIC-MODEL-DISCOVERY.md)
 
-## Supported providers (12 — from `catalog/registry`)
+## Supported providers (15 — from `catalog/registry`)
 
 | Provider | ID | Credential | Picker models |
 |----------|-----|------------|---------------|
 | Anthropic | `anthropic` | `ANTHROPIC_API_KEY` | live `/v1/models` only |
 | OpenAI | `openai` | `OPENAI_API_KEY` | live `/v1/models` only |
 | Google Gemini | `gemini` | `GEMINI_API_KEY` | live models API only |
+| DeepSeek | `deepseek` | `DEEPSEEK_API_KEY` | live `/models` only |
 | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` | live `/models` only |
 | xAI (Grok) | `grok` | `XAI_API_KEY` | live `/v1/models` only |
 | Z.AI | `z-ai` | `ZAI_API_KEY` | live `/models` only |
@@ -19,6 +20,8 @@ See also: [DYNAMIC-MODEL-DISCOVERY.md](./DYNAMIC-MODEL-DISCOVERY.md)
 | Kimi (Moonshot) | `kimi` | `MOONSHOT_API_KEY` | live `/models` only |
 | Xiaomi (MiMo) Pay-as-you-go | `xiaomi_mimo_payg` | `XIAOMI_MIMO_PAYG_API_KEY` | `https://api.xiaomimimo.com/v1` (`sk-` keys) |
 | Xiaomi (MiMo) Token Plan | `xiaomi_mimo_token_plan` | `XIAOMI_MIMO_TOKEN_PLAN_API_KEY` | region: `cn` / `sgp` / `ams` (`tp-` keys) |
+| MiniMax (minimax) Token Plan | `minimax_token_plan` | `MINIMAX_TOKEN_PLAN_API_KEY` | `https://api.minimax.io/v1` |
+| MiniMax (minimax) Pay-as-you-go | `minimax_payg` | `MINIMAX_PAYG_API_KEY` | `https://api.minimax.io/v1` |
 | Ollama (local) | `ollama` | `OLLAMA_BASE_URL` | live `/api/tags` only |
 
 Single source: `eyrie/catalog/registry/providers.go`
