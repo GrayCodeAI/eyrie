@@ -1,7 +1,7 @@
 # Plan: Fix Critical + High-Impact Review Findings — eyrie
 
 > Branch: `fix/critical-and-high-review-2026-06`
-> PR: https://github.com/GrayCodeAI/eyrie/pull/38
+> PR: <https://github.com/GrayCodeAI/eyrie/pull/38>
 > Status: **✅ COMPLETE — all 8 items committed, 8 PRs merged into the branch.**
 > Constraint: **no new go.mod / go.sum dependencies** for any item in this plan.
 
@@ -72,7 +72,7 @@ PRs can be merged individually; the branch is just a namespace.
 ## PR 1 — Pin Go version (C1)
 
 **What**: `go.mod:3` says `go 1.26.4` — does not exist. Pin to the latest
-stable Go (verify via https://go.dev/dl/ on the day this lands). Also bump
+stable Go (verify via <https://go.dev/dl/> on the day this lands). Also bump
 `GOTOOLCHAIN` policy if needed.
 
 **Files**:

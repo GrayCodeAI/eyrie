@@ -109,7 +109,8 @@ func (c *EyrieClient) getOrCreateProvider(providerName string) (Provider, error)
 	// to an attacker-controlled OPENAI_API_BASE.
 	if needsRegistration && dynamicProviderEnabled() {
 		if fallbackURL := openaiBaseFallbackURL(); fallbackURL != "" {
-			slog.Warn("auto-registering OpenAI-compatible provider from OPENAI_API_BASE",
+			slog.Warn(
+				"auto-registering OpenAI-compatible provider from OPENAI_API_BASE",
 				"provider", providerName,
 				"base_url", fallbackURL,
 				"opt_in_env", dynamicProviderEnvVar,

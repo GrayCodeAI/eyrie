@@ -114,7 +114,8 @@ func TestAnthropic_ChatVsStream_SameBody(t *testing.T) {
 // a clear error from the helper.
 func TestAnthropic_BuildRequest_ModelRequired(t *testing.T) {
 	c := NewAnthropicClient("test-key", "http://localhost:0")
-	_, _, err := c.buildAnthropicRequest(context.Background(),
+	_, _, err := c.buildAnthropicRequest(
+		context.Background(),
 		[]EyrieMessage{{Role: "user", Content: "hi"}},
 		ChatOptions{}, // no Model
 		false,
@@ -155,7 +156,8 @@ func TestAnthropic_BuildRequest_StreamSetsAccept(t *testing.T) {
 // reader over the same body (needed for the MiMo 401 retry path).
 func TestAnthropic_BuildRequest_GetBody(t *testing.T) {
 	c := NewAnthropicClient("test-key", "http://localhost:0")
-	req, body, err := c.buildAnthropicRequest(context.Background(),
+	req, body, err := c.buildAnthropicRequest(
+		context.Background(),
 		[]EyrieMessage{{Role: "user", Content: "hi"}},
 		ChatOptions{Model: "claude-test"},
 		false,
