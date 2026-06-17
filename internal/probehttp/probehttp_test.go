@@ -75,8 +75,6 @@ func TestDoGet_RespectsContextDeadline(t *testing.T) {
 	}
 }
 
-
-
 func TestJoinURL(t *testing.T) {
 	tests := []struct {
 		base, path, want string
