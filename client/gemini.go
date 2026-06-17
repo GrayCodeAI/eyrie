@@ -8,8 +8,24 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 )
+
+// geminiSharedParserEnvVar is the opt-out flag for the new
+// SSE-parsing path on Gemini. Default is the new path (shared parser
+// from stream.go). Set to "0" / "false" / "no" to revert to the
+// old bespoke streamLoop. The old path will be removed after one
+// release once the new path is validated in production.
+const geminiSharedParserEnvVar = "EYRIE_GEMINI_SHARED_PARSER"
+
+// geminiSharedParserEnabled reports whether the Gemini client should
+// use the shared parseSSEStream + processGeminiStream path (the new
+// behavior). Default: enabled.
+func geminiSharedParserEnabled() bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv(geminiSharedParserEnvVar)))
+	return v != "0" && v != "false" && v != "no"
+}
 
 // GeminiClient implements Provider for the Google Gemini API.
 type GeminiClient struct {
@@ -114,9 +130,14 @@ func (c *GeminiClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
+	if geminiSharedParserEnabled() {
+		sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
+		events := processGeminiStream(streamCtx, sseEvents, c.logger)
+		return NewStreamResult(events, cancel), nil
+	}
+	// Fallback (opt-out via EYRIE_GEMINI_SHARED_PARSER=0): old bespoke parser.
 	events := make(chan EyrieStreamEvent, 64)
 	go c.streamLoop(streamCtx, resp.Body, events)
-
 	return NewStreamResult(events, cancel), nil
 }
 
@@ -492,6 +513,100 @@ func mapGeminiFinishReason(reason string) string {
 }
 
 // --- Streaming ---
+
+// processGeminiStream converts Gemini SSE events (parsed by the shared
+// parseSSEStream) into EyrieStreamEvents. Handles text, tool calls
+// (functionCall), and the final usage+done event.
+//
+// Behavior matches the original streamLoop's processStreamChunk:
+//   - Each candidate's text parts are emitted as "content" events.
+//   - Each candidate's functionCall parts are emitted as "tool_call" events.
+//   - When a chunk carries usage metadata AND a finish reason, a single
+//     "done" event is emitted with the usage attached (preserving the
+//     original Gemini "done with usage" contract).
+//   - A bare finish reason without usage emits a "done" event with
+//     StopReason but no Usage.
+//   - If the SSE channel closes without a finish reason, a bare "done"
+//     is emitted (matches the original "if !doneSent" fallback).
+func processGeminiStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
+	ch := make(chan EyrieStreamEvent, streamChannelBuffer)
+	go func() {
+		defer close(ch)
+		doneSent := false
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case evt, ok := <-sseEvents:
+				if !ok {
+					if !doneSent {
+						emit(ctx, ch, EyrieStreamEvent{Type: "done"})
+					}
+					return
+				}
+				// Propagate SSE-level errors (raised by parseSSEStream on
+				// scanner failure or non-cancel context expiry).
+				if evt.Event == "error" {
+					emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: evt.Data})
+					return
+				}
+				data := strings.TrimSpace(evt.Data)
+				if data == "" {
+					continue
+				}
+				var chunk geminiResponse
+				if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+					logger.Debug("failed to parse gemini event", "error", err)
+					continue
+				}
+				if len(chunk.Candidates) == 0 {
+					continue
+				}
+				candidate := chunk.Candidates[0]
+				for _, part := range candidate.Content.Parts {
+					if part.Text != "" {
+						emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: part.Text})
+					}
+					if part.FunctionCall != nil {
+						tc := &ToolCall{
+							Name:      part.FunctionCall.Name,
+							Arguments: part.FunctionCall.Args,
+						}
+						if part.FunctionCall.ID != "" {
+							tc.ID = part.FunctionCall.ID
+						}
+						emit(ctx, ch, EyrieStreamEvent{
+							Type:     "tool_call",
+							ToolCall: tc,
+						})
+					}
+				}
+				// Final-chunk emission: a "done" event with Usage
+				// (when present) and StopReason (when present). The
+				// original streamLoop emitted these together in a
+				// single event when the chunk carried both.
+				if chunk.Usage != nil || candidate.FinishReason != "" {
+					evt := EyrieStreamEvent{Type: "done"}
+					if chunk.Usage != nil {
+						evt.Usage = &EyrieUsage{
+							PromptTokens:     chunk.Usage.PromptTokenCount,
+							CompletionTokens: chunk.Usage.CandidatesTokenCount,
+							TotalTokens:      chunk.Usage.TotalTokenCount,
+							ThinkingTokens:   chunk.Usage.ThoughtsTokenCount,
+							CacheReadTokens:  chunk.Usage.CachedContentTokenCount,
+						}
+					}
+					if candidate.FinishReason != "" {
+						evt.StopReason = mapGeminiFinishReason(candidate.FinishReason)
+					}
+					emit(ctx, ch, evt)
+					return
+				}
+			}
+		}
+	}()
+	return ch
+}
 
 func (c *GeminiClient) streamLoop(ctx context.Context, body io.ReadCloser, events chan<- EyrieStreamEvent) {
 	defer close(events)

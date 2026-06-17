@@ -404,21 +404,38 @@ func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, s
 	return buildRequestBase(messages, opts, stream, c.compat)
 }
 
-// Chat sends a non-streaming request.
-func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+// buildOpenAIRequest constructs the http.Request (and returns the body
+// bytes for the doRequestWithMimoAuthRetry path) for both Chat and
+// StreamChat. The body itself is built by buildRequest/buildRequestBase
+// above; this helper is just the request-construction dedup. If
+// stream is true, the request gets the `Accept: text/event-stream`
+// header.
+func (c *OpenAIClient) buildOpenAIRequest(ctx context.Context, messages []EyrieMessage, opts ChatOptions, stream bool) (*http.Request, []byte, error) {
 	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
-		return nil, fmt.Errorf("eyrie: model is required for %s", c.providerName)
+		return nil, nil, fmt.Errorf("eyrie: model is required for %s", c.providerName)
 	}
 
-	reqBody := c.buildRequest(messages, opts, false)
+	reqBody := c.buildRequest(messages, opts, stream)
 	body, _ := json.Marshal(reqBody)
 	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("eyrie: failed to create request: %w", err)
+		return nil, nil, fmt.Errorf("eyrie: failed to create request: %w", err)
 	}
 	c.setHeaders(req)
+	if stream {
+		req.Header.Set("Accept", "text/event-stream")
+	}
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
+	return req, body, nil
+}
+
+// Chat sends a non-streaming request.
+func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+	req, body, err := c.buildOpenAIRequest(ctx, messages, opts, false)
+	if err != nil {
+		return nil, err
+	}
 
 	c.logger.Debug("openai chat", "provider", c.providerName, "model", opts.Model, "base_url", c.baseURL)
 
@@ -431,7 +448,8 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	requestID := resp.Header.Get("X-Request-Id")
 
 	if resp.StatusCode != 200 {
-		return nil, formatAPIError(c.providerName, resp.StatusCode, requestID, parseProviderError(resp.Body))
+		detail, readErr := parseProviderError(resp.Body)
+		return nil, formatAPIError(c.providerName, "chat", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	var or openaiResponse
@@ -471,20 +489,10 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 
 // StreamChat sends a streaming request.
 func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
-	messages = SanitizeMessages(messages)
-	if opts.Model == "" {
-		return nil, fmt.Errorf("eyrie: model is required for %s", c.providerName)
-	}
-
-	reqBody := c.buildRequest(messages, opts, true)
-	body, _ := json.Marshal(reqBody)
-	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/chat/completions", bytes.NewReader(body))
+	req, body, err := c.buildOpenAIRequest(ctx, messages, opts, true)
 	if err != nil {
-		return nil, fmt.Errorf("eyrie: failed to create request: %w", err)
+		return nil, err
 	}
-	c.setHeaders(req)
-	req.Header.Set("Accept", "text/event-stream")
-	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
 	resp, err := c.doRequestWithMimoAuthRetry(ctx, req, body)
 	if err != nil {
@@ -494,9 +502,9 @@ func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	requestID := resp.Header.Get("X-Request-Id")
 
 	if resp.StatusCode != 200 {
-		detail := parseProviderError(resp.Body)
+		detail, readErr := parseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, formatAPIError(c.providerName, resp.StatusCode, requestID, detail)
+		return nil, formatAPIError(c.providerName, "stream", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)

@@ -70,14 +70,15 @@ func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts 
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return nil, formatAPIError("bedrock", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), parseProviderError(resp.Body))
+		detail, readErr := parseProviderError(resp.Body)
+		return nil, formatAPIError("bedrock", "chat", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
 	}
 
 	var ar anthropicResponse
 	if err := json.NewDecoder(resp.Body).Decode(&ar); err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock decode failed: %w", err)
 	}
-	return responseFromAnthropic(ar, resp.Header.Get("X-Amzn-Requestid")), nil
+	return parseAnthropicResponse(ar, resp.Header.Get("X-Amzn-Requestid"), ""), nil
 }
 
 func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
@@ -117,7 +118,8 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 	}
 	if resp.StatusCode != http.StatusOK {
 		defer func() { _ = resp.Body.Close() }()
-		return nil, formatAPIError("bedrock stream", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), parseProviderError(resp.Body))
+		detail, readErr := parseProviderError(resp.Body)
+		return nil, formatAPIError("bedrock stream", "stream", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
@@ -427,36 +429,6 @@ func (c *BedrockClient) sign(req *http.Request, body []byte, now time.Time) erro
 	signature := hex.EncodeToString(hmacSHA256(signingKey, stringToSign))
 	req.Header.Set("Authorization", fmt.Sprintf("AWS4-HMAC-SHA256 Credential=%s/%s, SignedHeaders=%s, Signature=%s", c.accessKeyID, scope, signedHeaders, signature))
 	return nil
-}
-
-func responseFromAnthropic(ar anthropicResponse, requestID string) *EyrieResponse {
-	var content, thinkingContent string
-	var toolCalls []ToolCall
-	for _, block := range ar.Content {
-		switch block.Type {
-		case "text":
-			content += block.Text
-		case "thinking":
-			thinkingContent += block.Thinking
-		case "redacted_thinking":
-			continue
-		case "tool_use":
-			var args map[string]interface{}
-			_ = json.Unmarshal(block.Input, &args)
-			toolCalls = append(toolCalls, ToolCall{ID: block.ID, Name: block.Name, Arguments: args})
-		}
-	}
-	return &EyrieResponse{
-		Content: content, Thinking: thinkingContent, FinishReason: ar.StopReason, ToolCalls: toolCalls, RequestID: requestID,
-		Usage: &EyrieUsage{
-			PromptTokens:        ar.Usage.InputTokens,
-			CompletionTokens:    ar.Usage.OutputTokens,
-			TotalTokens:         ar.Usage.InputTokens + ar.Usage.OutputTokens,
-			CacheCreationTokens: ar.Usage.CacheCreationInputTokens,
-			CacheReadTokens:     ar.Usage.CacheReadInputTokens,
-			ThinkingTokens:      ar.Usage.OutputTokensDetails.ThinkingTokens,
-		},
-	}
 }
 
 func canonicalAWSHeaders(headers http.Header) (string, string) {

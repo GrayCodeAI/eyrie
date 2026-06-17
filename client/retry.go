@@ -94,6 +94,14 @@ func parseRetryDelay(errMsg string) time.Duration {
 }
 
 // doWithRetry executes an HTTP request with retry logic.
+//
+// Note: doWithRetry operates at the transport layer, before
+// formatAPIError constructs *EyrieError. Structured-error awareness
+// lives in the fallback chain (fallback.go:240-244) where
+// *EyrieError.IsRetriable() / IsAuthError() drive provider
+// rotation. doWithRetry only needs the raw transport status code
+// and the underlying network error to decide whether to retry the
+// same request.
 func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request, rc RetryConfig, logger *slog.Logger) (*http.Response, error) {
 	var lastErr error
 	var lastResp *http.Response

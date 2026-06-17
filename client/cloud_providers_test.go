@@ -279,8 +279,8 @@ func TestAzureChat_ErrorResponse(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for 401")
 	}
-	if !strings.Contains(err.Error(), "azure API error") {
-		t.Errorf("expected azure API error, got: %v", err)
+	if !strings.Contains(err.Error(), "azure") || !strings.Contains(err.Error(), "failed") {
+		t.Errorf("expected azure error, got: %v", err)
 	}
 	if !strings.Contains(err.Error(), "azure-err-001") {
 		t.Errorf("expected request ID in error, got: %v", err)
@@ -920,8 +920,8 @@ func TestVertexChat_ErrorResponse(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for 403")
 	}
-	if !strings.Contains(err.Error(), "vertex API error") {
-		t.Errorf("expected vertex API error, got: %v", err)
+	if !strings.Contains(err.Error(), "vertex") || !strings.Contains(err.Error(), "failed") {
+		t.Errorf("expected vertex error, got: %v", err)
 	}
 }
 
@@ -1468,8 +1468,8 @@ func TestBedrockChat_ErrorResponse(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for 403")
 	}
-	if !strings.Contains(err.Error(), "bedrock API error") {
-		t.Errorf("expected bedrock API error, got: %v", err)
+	if !strings.Contains(err.Error(), "bedrock") || !strings.Contains(err.Error(), "failed") {
+		t.Errorf("expected bedrock error, got: %v", err)
 	}
 }
 
@@ -1738,16 +1738,16 @@ func TestBedrockClient_ImplementsProvider(t *testing.T) {
 }
 
 // =============================================================================
-// responseFromAnthropic helper tests
+// parseAnthropicResponse helper tests
 // =============================================================================
 
-func TestResponseFromAnthropic_TextOnly(t *testing.T) {
+func TestParseAnthropicResponse_TextOnly(t *testing.T) {
 	var ar anthropicResponse
 	if err := json.Unmarshal([]byte(`{"content":[{"type":"text","text":"Hello!"}],"stop_reason":"end_turn","usage":{"input_tokens":10,"output_tokens":5}}`), &ar); err != nil {
 		t.Fatal(err)
 	}
 
-	resp := responseFromAnthropic(ar, "req-123")
+	resp := parseAnthropicResponse(ar, "req-123", "org-456")
 	if resp.Content != "Hello!" {
 		t.Errorf("expected 'Hello!', got %q", resp.Content)
 	}
@@ -1757,6 +1757,9 @@ func TestResponseFromAnthropic_TextOnly(t *testing.T) {
 	if resp.RequestID != "req-123" {
 		t.Errorf("expected 'req-123', got %q", resp.RequestID)
 	}
+	if resp.OrganizationID != "org-456" {
+		t.Errorf("expected 'org-456', got %q", resp.OrganizationID)
+	}
 	if resp.Usage.TotalTokens != 15 {
 		t.Errorf("expected 15 total tokens, got %d", resp.Usage.TotalTokens)
 	}
@@ -1765,13 +1768,13 @@ func TestResponseFromAnthropic_TextOnly(t *testing.T) {
 	}
 }
 
-func TestResponseFromAnthropic_WithToolUse(t *testing.T) {
+func TestParseAnthropicResponse_WithToolUse(t *testing.T) {
 	var ar anthropicResponse
 	if err := json.Unmarshal([]byte(`{"content":[{"type":"text","text":"Let me search."},{"type":"tool_use","id":"toolu_1","name":"search","input":{"q":"test"}}],"stop_reason":"tool_use","usage":{"input_tokens":20,"output_tokens":15,"cache_creation_input_tokens":100,"cache_read_input_tokens":50}}`), &ar); err != nil {
 		t.Fatal(err)
 	}
 
-	resp := responseFromAnthropic(ar, "req-456")
+	resp := parseAnthropicResponse(ar, "req-456", "")
 	if resp.Content != "Let me search." {
 		t.Errorf("expected text content, got %q", resp.Content)
 	}
@@ -1798,13 +1801,13 @@ func TestResponseFromAnthropic_WithToolUse(t *testing.T) {
 	}
 }
 
-func TestResponseFromAnthropic_EmptyContent(t *testing.T) {
+func TestParseAnthropicResponse_EmptyContent(t *testing.T) {
 	var ar anthropicResponse
 	if err := json.Unmarshal([]byte(`{"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":0}}`), &ar); err != nil {
 		t.Fatal(err)
 	}
 
-	resp := responseFromAnthropic(ar, "req-empty")
+	resp := parseAnthropicResponse(ar, "req-empty", "")
 	if resp.Content != "" {
 		t.Errorf("expected empty content, got %q", resp.Content)
 	}
