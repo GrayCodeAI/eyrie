@@ -417,7 +417,10 @@ func (c *OpenAIClient) buildOpenAIRequest(ctx context.Context, messages []EyrieM
 	}
 
 	reqBody := c.buildRequest(messages, opts, stream)
-	body, _ := json.Marshal(reqBody)
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, nil, fmt.Errorf("eyrie: marshal openai request: %w", err)
+	}
 	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		return nil, nil, fmt.Errorf("eyrie: failed to create request: %w", err)
@@ -443,7 +446,11 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: %s request failed: %w", c.providerName, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("openai: close response body", "error", err)
+		}
+	}()
 
 	requestID := resp.Header.Get("X-Request-Id")
 
@@ -465,7 +472,9 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		result.FinishReason = ch.FinishReason
 		for _, tc := range ch.Message.ToolCalls {
 			var args map[string]interface{}
-			_ = json.Unmarshal([]byte(tc.Function.Arguments), &args)
+			if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
+				c.logger.Warn("openai: failed to parse tool call arguments", "error", err, "tool_name", tc.Function.Name)
+			}
 			result.ToolCalls = append(result.ToolCalls, ToolCall{ID: tc.ID, Name: tc.Function.Name, Arguments: args})
 		}
 	}

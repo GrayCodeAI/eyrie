@@ -276,9 +276,6 @@ func (a *AdaptiveRateLimitProvider) StreamChat(ctx context.Context, messages []E
 		return nil, err
 	}
 
-	// Record one request immediately; tokens will be recorded from the usage event
-	a.recordRequest()
-
 	// Wrap the events channel to intercept usage events for token tracking
 	wrappedCh := make(chan EyrieStreamEvent, cap(result.Events))
 	go func() {
@@ -455,12 +452,6 @@ func (a *AdaptiveRateLimitProvider) recordUsage(tokens int) {
 		a.tpmWindow = append(a.tpmWindow, tpmEntry{timestamp: now, tokens: tokens})
 		a.totalTokens += int64(tokens)
 	}
-}
-
-// recordRequest records a single request (used by StreamChat).
-func (a *AdaptiveRateLimitProvider) recordRequest() {
-	// Already recorded in checkAndWait for Chat; for StreamChat,
-	// the request was recorded in checkAndWait too.
 }
 
 // recordTokens records token usage (used by stream events).

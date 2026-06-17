@@ -432,19 +432,16 @@ func TestCircuitBreakerBasicFlow(t *testing.T) {
 		t.Error("open circuit breaker should reject")
 	}
 
-	// After cooldown, transitions to half-open.
+	// After cooldown, the circuit allows probes through.
 	time.Sleep(60 * time.Millisecond)
 	if !cb.Allow() {
-		t.Error("half-open circuit breaker should allow")
+		t.Error("circuit should allow after cooldown")
 	}
-	if cb.State() != CircuitHalfOpen {
-		t.Error("should be half-open after cooldown")
-	}
-
-	// Success closes the circuit.
+	// Allow() is a pure predicate and no longer transitions state.
+	// A successful probe resets to Closed.
 	cb.Success()
 	if cb.State() != CircuitClosed {
-		t.Error("should be closed after success")
+		t.Error("should be closed after successful probe")
 	}
 }
 

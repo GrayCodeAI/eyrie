@@ -23,12 +23,6 @@ type ModelConfig map[string]ModelName
 // ModelKey identifies a specific model version config.
 type ModelKey string
 
-// GetProviderModelCandidates returns tier candidates from the live catalog.
-// All model discovery is dynamic — returns nil (use live catalog).
-func GetProviderModelCandidates(provider string, tier ModelTier) []ModelName {
-	return nil
-}
-
 func catalogModelIDs(catalog *ModelCatalog, provider string) []string {
 	if catalog == nil {
 		return nil
@@ -43,15 +37,9 @@ func catalogModelIDs(catalog *ModelCatalog, provider string) []string {
 
 // GetPreferredProviderModel returns the preferred model for a provider/tier from the catalog.
 // Returns "" if catalog is nil or has no models for this provider.
-func GetPreferredProviderModel(provider string, tier ModelTier, catalog *ModelCatalog) ModelName {
-	if catalog == nil {
-		return ""
-	}
-	ids := catalogModelIDs(catalog, provider)
-	if len(ids) > 0 {
-		return ids[0]
-	}
-	return ""
+// The tier parameter is currently unused; all models are returned equally.
+func GetPreferredProviderModel(provider string, _ ModelTier, catalog *ModelCatalog) ModelName {
+	return GetProviderDefaultModel(provider, catalog)
 }
 
 // GetProviderDefaultModel returns the first model from the catalog for a provider.

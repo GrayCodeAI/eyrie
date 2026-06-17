@@ -35,18 +35,6 @@ func TestGetModelMarketingName(t *testing.T) {
 	}
 }
 
-func TestGetProviderModelCandidates_AllProvidersNil(t *testing.T) {
-	// All providers return nil candidates (fully dynamic)
-	allProviders := []string{
-		"anthropic", "openai", "gemini", "grok", "bedrock", "kimi",
-	}
-	for _, provider := range allProviders {
-		if got := GetProviderModelCandidates(provider, TierSonnet); got != nil {
-			t.Fatalf("%s tier candidates should be nil, got %v", provider, got)
-		}
-	}
-}
-
 func TestGetProviderDefaultModel_AllProvidersEmptyWithoutCatalog(t *testing.T) {
 	// All providers return empty without a catalog (fully dynamic)
 	allProviders := []string{

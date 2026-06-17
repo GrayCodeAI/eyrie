@@ -17,7 +17,7 @@ import (
 // (keychain locked, permission denied, transport failure) are logged at warn.
 func LookupSecret(ctx context.Context, envKey string) string {
 	if ctx == nil {
-		ctx = context.Background()
+		ctx = context.TODO()
 	}
 	envKey = strings.TrimSpace(envKey)
 	if envKey == "" {
@@ -63,7 +63,7 @@ func legacyKeychainAccountFor(account string) string {
 // here produced dozens of WARN lines on first run with no credentials stored.
 func HasSecret(ctx context.Context, envKey string) bool {
 	if ctx == nil {
-		ctx = context.Background()
+		ctx = context.TODO()
 	}
 	envKey = strings.TrimSpace(envKey)
 	if envKey == "" {

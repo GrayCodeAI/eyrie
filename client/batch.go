@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -116,7 +117,11 @@ func (bc *BatchClient) Submit(ctx context.Context, requests []BatchRequest) (str
 		}
 		break
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("batch: close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		errBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
@@ -146,7 +151,11 @@ func (bc *BatchClient) Poll(ctx context.Context, batchID string) (*BatchResult, 
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: batch poll failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("batch: close response body", "error", err)
+		}
+	}()
 
 	var result BatchResult
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {

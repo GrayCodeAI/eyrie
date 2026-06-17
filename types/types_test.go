@@ -299,12 +299,12 @@ func TestClassifyError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ClassifyError("test-provider", tt.status, tt.message)
+			err := ClassifyError(tt.status, tt.message)
 
 			var te *TransientError
 			isTransient := errors.As(err, &te)
 			if isTransient != tt.wantTransient {
-				t.Errorf("ClassifyError(test-provider, %d, %q): isTransient = %v, want %v",
+				t.Errorf("ClassifyError(%d, %q): isTransient = %v, want %v",
 					tt.status, tt.message, isTransient, tt.wantTransient)
 			}
 

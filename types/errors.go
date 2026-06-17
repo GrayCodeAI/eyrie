@@ -93,14 +93,12 @@ func IsTransient(err error) bool {
 	msg := strings.ToLower(err.Error())
 
 	// Extract HTTP status code if present and check explicit lists.
-	nonRetriableCodes := map[int]bool{400: true, 401: true, 403: true, 404: true, 422: true}
-	retriableCodes := map[int]bool{408: true, 429: true, 500: true, 502: true, 503: true, 504: true, 529: true}
 	if matches := httpStatusRe.FindStringSubmatch(err.Error()); len(matches) >= 2 {
 		if code, err := strconv.Atoi(matches[1]); err == nil {
-			if nonRetriableCodes[code] {
+			if nonRetriableStatusCodes[code] {
 				return false
 			}
-			if retriableCodes[code] {
+			if retriableStatusCodes[code] {
 				return true
 			}
 		}
@@ -141,12 +139,17 @@ func ExtractHTTPStatus(err error) (int, bool) {
 	return code, true
 }
 
+// retriableStatusCodes are HTTP status codes that warrant a retry.
+var retriableStatusCodes = map[int]bool{408: true, 429: true, 500: true, 502: true, 503: true, 504: true, 529: true}
+
+// nonRetriableStatusCodes are HTTP status codes that should never be retried.
+var nonRetriableStatusCodes = map[int]bool{400: true, 401: true, 403: true, 404: true, 422: true}
+
 // ClassifyError creates a structured error from a status code and message.
 // It returns the most specific error type for the given error condition.
 // For retriable status codes (408, 429, 500, 502, 503, 504, 529), returns a TransientError.
-func ClassifyError(provider string, statusCode int, message string) error {
-	retriableCodes := map[int]bool{408: true, 429: true, 500: true, 502: true, 503: true, 504: true, 529: true}
-	if retriableCodes[statusCode] {
+func ClassifyError(statusCode int, message string) error {
+	if retriableStatusCodes[statusCode] {
 		return &TransientError{StatusCode: statusCode, Message: message}
 	}
 	return &APIError{

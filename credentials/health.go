@@ -8,7 +8,7 @@ import (
 // StorageStatus reports whether the credential store can be read (and optionally written).
 func StorageStatus(ctx context.Context) (ok bool, detail string) {
 	if ctx == nil {
-		ctx = context.Background()
+		ctx = context.TODO()
 	}
 	store := DefaultStore()
 	if store == nil {
@@ -24,7 +24,7 @@ func StorageStatus(ctx context.Context) (ok bool, detail string) {
 // KeychainWriteAvailable reports whether secrets can be persisted to the OS keychain.
 func KeychainWriteAvailable(ctx context.Context) (ok bool, detail string) {
 	if ctx == nil {
-		ctx = context.Background()
+		ctx = context.TODO()
 	}
 	cs, okStore := DefaultStore().(*CombinedStore)
 	if !okStore || cs.Keychain == nil {
