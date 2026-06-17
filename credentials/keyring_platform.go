@@ -44,12 +44,17 @@ func keyringDoWithTimeout(ctx context.Context, fn func() error, timeout time.Dur
 	go func() {
 		ch <- fn()
 	}()
+	// time.NewTimer + Stop avoids the leak that time.After causes:
+	// time.After allocates a timer that lives in the runtime until the
+	// timeout elapses, even when we return early via ch / ctx.Done.
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 	select {
 	case err := <-ch:
 		return err
 	case <-ctx.Done():
 		return ctx.Err()
-	case <-time.After(timeout):
+	case <-timer.C:
 		return context.DeadlineExceeded
 	}
 }
