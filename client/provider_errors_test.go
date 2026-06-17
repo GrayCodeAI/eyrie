@@ -94,7 +94,7 @@ func TestFormatAPIError(t *testing.T) {
 	}
 }
 
-func TestFormatAPIError_NoHintFallsBackToDetail(t *testing.T) {
+func TestFormatAPIError_OmitsRequestIDWhenEmpty(t *testing.T) {
 	err := formatAPIError("vertex", "chat", 400, "", providerErrorDetail{Raw: "totally opaque"}, nil)
 	s := err.Error()
 	if !strings.Contains(s, "totally opaque") {
