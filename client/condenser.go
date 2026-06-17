@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 )
 
@@ -77,7 +78,8 @@ func WithCondenserMaxTokens(n int) CondenserOption {
 // provider. The provider must not be nil.
 func NewLLMSummarizingCondenser(provider Provider, opts ...CondenserOption) *LLMSummarizingCondenser {
 	if provider == nil {
-		panic("eyrie: NewLLMSummarizingCondenser provider must not be nil")
+		slog.Error("NewLLMSummarizingCondenser provider must not be nil; returning nil")
+		return nil
 	}
 	c := &LLMSummarizingCondenser{
 		provider: provider,
@@ -186,7 +188,8 @@ var _ Provider = (*CondensingProvider)(nil)
 // condenser using the given options. The inner provider must not be nil.
 func NewCondensingProvider(inner Provider, condenser ConversationCondenser, opts CondenseOptions) *CondensingProvider {
 	if inner == nil {
-		panic("eyrie: NewCondensingProvider inner provider must not be nil")
+		slog.Error("NewCondensingProvider inner provider must not be nil; returning nil")
+		return nil
 	}
 	return &CondensingProvider{inner: inner, condenser: condenser, opts: opts}
 }

@@ -108,6 +108,10 @@ type anthropicStreamEvent struct {
 // processAnthropicStream converts Anthropic SSE events to EyrieStreamEvents.
 // Handles text, tool_use (with input_json_delta), and thinking blocks.
 func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
+	return processAnthropicStreamWithOpts(ctx, sseEvents, logger, time.Now())
+}
+
+func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger, start time.Time) <-chan EyrieStreamEvent {
 	ch := make(chan EyrieStreamEvent, streamChannelBuffer)
 	go func() {
 		defer close(ch)
@@ -120,6 +124,10 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 		var currentTool *toolAccum
 		blockTypes := make(map[int]string)
 		var stopReason string
+
+		// TTFT: wall-clock milliseconds to the first content or tool-call delta.
+		var ttftMs int
+		var ttftEmitted bool
 
 		for {
 			select {
@@ -174,11 +182,23 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 							if strings.Contains(blockTypes[ae.Index], "thinking") {
 								emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: ae.Delta.Text})
 							} else {
+								// TTFT: record and emit on the first content token.
+								if !ttftEmitted {
+									ttftEmitted = true
+									ttftMs = int(time.Since(start) / time.Millisecond)
+									emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
+								}
 								emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: ae.Delta.Text})
 							}
 						}
 					case "input_json_delta":
 						if currentTool != nil && ae.Delta.PartialJSON != "" {
+							// TTFT: first tool-call argument fragment.
+							if !ttftEmitted {
+								ttftEmitted = true
+								ttftMs = int(time.Since(start) / time.Millisecond)
+								emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
+							}
 							currentTool.jsonBuf.WriteString(ae.Delta.PartialJSON)
 						}
 					case "thinking_delta":
@@ -208,7 +228,7 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 					}
 
 				case "message_stop":
-					emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason})
+					emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason, TTFTms: ttftMs})
 					return
 
 				case "message_delta":
@@ -221,8 +241,10 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 							OutputTokens int `json:"output_tokens"`
 						} `json:"usage"`
 					}
-					_ = json.Unmarshal([]byte(data), &md)
-					if md.Delta != nil && md.Delta.StopReason != "" {
+					if err := json.Unmarshal([]byte(data), &md); err != nil {
+					logger.Warn("stream: failed to parse anthropic content_block_stop metadata", "error", err)
+				}
+				if md.Delta != nil && md.Delta.StopReason != "" {
 						stopReason = md.Delta.StopReason
 					}
 					if md.Usage != nil && md.Usage.OutputTokens > 0 {
@@ -244,7 +266,9 @@ func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logg
 							} `json:"usage"`
 						} `json:"message"`
 					}
-					_ = json.Unmarshal([]byte(data), &ms)
+					if err := json.Unmarshal([]byte(data), &ms); err != nil {
+					logger.Warn("stream: failed to parse anthropic message_start", "error", err)
+				}
 					if ms.Message.Usage.InputTokens > 0 {
 						emit(ctx, ch, EyrieStreamEvent{
 							Type: "usage",

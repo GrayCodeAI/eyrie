@@ -1,5 +1,7 @@
 package client
 
+import "sync"
+
 // RepeatDetector detects streaming repetition using a suffix automaton.
 // GetRepeatness returns the ratio of unique substrings to total possible
 // substrings; when it falls below the threshold after enough tokens have
@@ -11,6 +13,8 @@ package client
 // A perfectly non-repetitive string scores 1.0; a fully repeated one scores
 // near 0.0.
 type RepeatDetector struct {
+	mu sync.Mutex
+
 	// MinLength is the minimum accumulated rune count before detection fires.
 	// Default 100.
 	MinLength int
@@ -30,6 +34,8 @@ func DefaultRepeatDetector() *RepeatDetector {
 // Feed appends a chunk of text. It does not return a detection signal;
 // call IsRepeating or GetRepeatness after feeding to query state.
 func (d *RepeatDetector) Feed(chunk string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	for _, r := range chunk {
 		d.sa.extend(r)
 		d.total++
@@ -39,18 +45,24 @@ func (d *RepeatDetector) Feed(chunk string) {
 // GetRepeatness returns the unique-substring ratio in [0, 1].
 // A score near 1.0 means highly varied text; near 0.0 means heavy repetition.
 func (d *RepeatDetector) GetRepeatness() float64 {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	return d.sa.repeatness()
 }
 
 // IsRepeating returns true when at least MinLength runes have been accumulated
 // and GetRepeatness is below Threshold.
 func (d *RepeatDetector) IsRepeating() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	return d.total > d.minLength() && d.sa.repeatness() < d.threshold()
 }
 
 // Add feeds a content delta. Returns true when repetition is detected and the
 // stream should be aborted.
 func (d *RepeatDetector) Add(delta string) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	for _, r := range delta {
 		d.sa.extend(r)
 		d.total++

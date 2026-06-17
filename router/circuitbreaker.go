@@ -49,11 +49,7 @@ func (cb *CircuitBreaker) Allow() bool {
 	case CircuitClosed:
 		return true
 	case CircuitOpen:
-		if time.Since(cb.lastFailureTime) >= cb.cooldown {
-			cb.state = CircuitHalfOpen
-			return true
-		}
-		return false
+		return time.Since(cb.lastFailureTime) >= cb.cooldown
 	case CircuitHalfOpen:
 		return true
 	default:
@@ -71,12 +67,18 @@ func (cb *CircuitBreaker) Success() {
 }
 
 // Failure records a failed call. If the threshold is reached, the circuit opens.
+// In HalfOpen state a single failure immediately re-opens the circuit so the
+// next probe only occurs after another full cooldown.
 func (cb *CircuitBreaker) Failure() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
 
 	cb.failureCount++
 	cb.lastFailureTime = time.Now()
+	if cb.state == CircuitHalfOpen {
+		cb.state = CircuitOpen
+		return
+	}
 	if cb.failureCount >= cb.threshold {
 		cb.state = CircuitOpen
 	}

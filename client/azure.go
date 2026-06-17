@@ -51,7 +51,10 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 	}
 
 	reqBody := c.buildRequest(messages, opts, false)
-	body, _ := json.Marshal(reqBody)
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("eyrie: azure marshal request failed: %w", err)
+	}
 	url := fmt.Sprintf("%s/openai/deployments/%s/chat/completions?api-version=%s", c.endpoint, opts.Model, c.apiVersion)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	if err != nil {
@@ -66,7 +69,7 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: azure request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { if err := resp.Body.Close(); err != nil { slog.Warn("azure: close response body", "error", err) } }()
 
 	requestID := resp.Header.Get("X-Request-Id")
 	if resp.StatusCode != 200 {
@@ -110,7 +113,10 @@ func (c *AzureClient) StreamChat(ctx context.Context, messages []EyrieMessage, o
 	}
 
 	reqBody := c.buildRequest(messages, opts, true)
-	body, _ := json.Marshal(reqBody)
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("eyrie: azure stream marshal request failed: %w", err)
+	}
 	url := fmt.Sprintf("%s/openai/deployments/%s/chat/completions?api-version=%s", c.endpoint, opts.Model, c.apiVersion)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	if err != nil {

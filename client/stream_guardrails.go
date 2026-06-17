@@ -1,6 +1,7 @@
 package client
 
 import (
+	"log/slog"
 	"strings"
 	"sync"
 )
@@ -49,7 +50,8 @@ type StreamGuardrails struct {
 // rules and configuration. guardrails must not be nil.
 func NewStreamGuardrails(guardrails *Guardrails, config StreamGuardrailConfig) *StreamGuardrails {
 	if guardrails == nil {
-		panic("eyrie: NewStreamGuardrails guardrails must not be nil")
+		slog.Error("NewStreamGuardrails guardrails must not be nil; returning nil")
+		return nil
 	}
 	return &StreamGuardrails{
 		config:     config,

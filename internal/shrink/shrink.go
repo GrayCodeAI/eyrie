@@ -99,6 +99,13 @@ var shrinkDrops = []string{
 	"you", // pronoun in second-person
 }
 
+func init() {
+	// Sort dictionary once at startup (longest first) for greedy matching.
+	sort.SliceStable(shrinkDictionary, func(i, j int) bool {
+		return len(shrinkDictionary[i].from) > len(shrinkDictionary[j].from)
+	})
+}
+
 // ShrinkDescription returns the shrunk version of desc. Returns
 // (desc, false) if desc contains safety keywords (caller should
 // keep the original verbatim).
@@ -114,10 +121,7 @@ func ShrinkDescription(desc string) (string, bool) {
 		}
 	}
 	out := desc
-	// Dictionary pass (longest first)
-	sort.SliceStable(shrinkDictionary, func(i, j int) bool {
-		return len(shrinkDictionary[i].from) > len(shrinkDictionary[j].from)
-	})
+	// Dictionary pass (already sorted longest-first at init time)
 	for _, r := range shrinkDictionary {
 		out = replaceCI(out, r.from, r.to)
 	}
@@ -186,9 +190,6 @@ func replaceCI(s, from, to string) string {
 		return s
 	}
 	flen := len(from)
-	if flen == 0 {
-		return s
-	}
 	var out []byte
 	pos := 0
 	for pos < len(s) {

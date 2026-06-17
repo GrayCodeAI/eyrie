@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 )
@@ -33,7 +34,8 @@ func WithBlockedPatterns(patterns []string) ModerationOption {
 		for _, p := range patterns {
 			re, err := regexp.Compile(p)
 			if err != nil {
-				panic(fmt.Sprintf("eyrie: WithBlockedPatterns: invalid regex %q: %v", p, err))
+				slog.Error("WithBlockedPatterns: invalid regex, skipping", "pattern", p, "error", err)
+				continue
 			}
 			mp.blockedRegexps = append(mp.blockedRegexps, re)
 		}
@@ -62,7 +64,8 @@ func WithCustomChecker(fn func(string) error) ModerationOption {
 // moderation option should be provided or the wrapper is a no-op.
 func NewModerationProvider(inner Provider, opts ...ModerationOption) *ModerationProvider {
 	if inner == nil {
-		panic("eyrie: NewModerationProvider inner provider must not be nil")
+		slog.Error("NewModerationProvider inner provider must not be nil; returning nil")
+		return nil
 	}
 	mp := &ModerationProvider{inner: inner}
 	for _, opt := range opts {

@@ -69,7 +69,7 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: vertex request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { if err := resp.Body.Close(); err != nil { slog.Warn("vertex: close response body", "error", err) } }()
 
 	requestID := resp.Header.Get("X-Goog-Request-Id")
 

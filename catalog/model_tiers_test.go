@@ -71,8 +71,7 @@ func TestGetPreferredProviderModel_EmptyCatalog(t *testing.T) {
 	}
 }
 
-func TestAllProvidersAreLiveOnly(t *testing.T) {
-	// All providers should now return nil candidates (fully dynamic)
+func TestAllProvidersReturnDefaultEmptyWithoutCatalog(t *testing.T) {
 	allProviders := []string{
 		"anthropic", "openai", "gemini", "grok", "opencodego",
 		"canopywave", "z_ai", "openrouter", "ollama",
@@ -80,9 +79,6 @@ func TestAllProvidersAreLiveOnly(t *testing.T) {
 		"xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "deepseek",
 	}
 	for _, provider := range allProviders {
-		if got := GetProviderModelCandidates(provider, TierSonnet); got != nil {
-			t.Fatalf("%s candidates should be nil (fully dynamic), got %v", provider, got)
-		}
 		if got := GetProviderDefaultModel(provider, nil); got != "" {
 			t.Fatalf("%s default should be empty without catalog, got %q", provider, got)
 		}
@@ -90,30 +86,10 @@ func TestAllProvidersAreLiveOnly(t *testing.T) {
 }
 
 func TestUnknownProviderReturnsEmpty(t *testing.T) {
-	candidates := GetProviderModelCandidates("nonexistent_provider", TierSonnet)
-	if candidates != nil {
-		t.Errorf("expected nil candidates for unknown provider, got %v", candidates)
-	}
-
 	cat := testDefaultModelCatalog()
 	model := GetPreferredProviderModel("nonexistent_provider", TierSonnet, &cat)
 	if model != "" {
 		t.Errorf("expected empty model for unknown provider, got %q", model)
-	}
-}
-
-func TestGetProviderModelCandidates_AlwaysNil(t *testing.T) {
-	// All providers should return nil candidates (use live catalog)
-	providers := []string{"anthropic", "openai", "gemini", "grok", "bedrock"}
-	tiers := []ModelTier{TierOpus, TierSonnet, TierHaiku}
-
-	for _, provider := range providers {
-		for _, tier := range tiers {
-			candidates := GetProviderModelCandidates(provider, tier)
-			if candidates != nil {
-				t.Errorf("expected nil candidates for provider %q tier %q, got %v", provider, tier, candidates)
-			}
-		}
 	}
 }
 
