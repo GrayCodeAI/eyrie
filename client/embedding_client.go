@@ -69,7 +69,11 @@ func (c *OpenAIClient) CreateEmbedding(ctx context.Context, req EmbeddingRequest
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: %s embedding request failed: %w", c.providerName, err)
 	}
-	defer func() { if err := resp.Body.Close(); err != nil { slog.Warn("embedding: close response body", "error", err) } }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("embedding: close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		requestID := resp.Header.Get("X-Request-Id")

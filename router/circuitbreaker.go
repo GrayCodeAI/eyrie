@@ -49,7 +49,11 @@ func (cb *CircuitBreaker) Allow() bool {
 	case CircuitClosed:
 		return true
 	case CircuitOpen:
-		return time.Since(cb.lastFailureTime) >= cb.cooldown
+		if time.Since(cb.lastFailureTime) >= cb.cooldown {
+			cb.state = CircuitHalfOpen
+			return true
+		}
+		return false
 	case CircuitHalfOpen:
 		return true
 	default:

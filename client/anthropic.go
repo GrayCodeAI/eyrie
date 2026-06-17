@@ -517,7 +517,11 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: anthropic request failed: %w", err)
 	}
-	defer func() { if err := resp.Body.Close(); err != nil { slog.Warn("anthropic: close response body", "error", err) } }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("anthropic: close response body", "error", err)
+		}
+	}()
 
 	requestID := resp.Header.Get("Request-Id")
 	orgID := resp.Header.Get("Anthropic-Organization-Id")
@@ -678,7 +682,11 @@ func (c *AnthropicClient) CountTokens(ctx context.Context, messages []EyrieMessa
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: anthropic count_tokens failed: %w", err)
 	}
-	defer func() { if err := resp.Body.Close(); err != nil { slog.Warn("anthropic: close response body", "error", err) } }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("anthropic: close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		detail, readErr := parseProviderError(resp.Body)

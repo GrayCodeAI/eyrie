@@ -242,9 +242,9 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 						} `json:"usage"`
 					}
 					if err := json.Unmarshal([]byte(data), &md); err != nil {
-					logger.Warn("stream: failed to parse anthropic content_block_stop metadata", "error", err)
-				}
-				if md.Delta != nil && md.Delta.StopReason != "" {
+						logger.Warn("stream: failed to parse anthropic content_block_stop metadata", "error", err)
+					}
+					if md.Delta != nil && md.Delta.StopReason != "" {
 						stopReason = md.Delta.StopReason
 					}
 					if md.Usage != nil && md.Usage.OutputTokens > 0 {
@@ -267,8 +267,8 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 						} `json:"message"`
 					}
 					if err := json.Unmarshal([]byte(data), &ms); err != nil {
-					logger.Warn("stream: failed to parse anthropic message_start", "error", err)
-				}
+						logger.Warn("stream: failed to parse anthropic message_start", "error", err)
+					}
 					if ms.Message.Usage.InputTokens > 0 {
 						emit(ctx, ch, EyrieStreamEvent{
 							Type: "usage",

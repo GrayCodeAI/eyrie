@@ -88,7 +88,11 @@ func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: gemini request failed: %w", err)
 	}
-	defer func() { if err := resp.Body.Close(); err != nil { slog.Warn("gemini: close response body", "error", err) } }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("gemini: close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -152,7 +156,11 @@ func (c *GeminiClient) Ping(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("eyrie: gemini ping failed: %w", err)
 	}
-	defer func() { if err := resp.Body.Close(); err != nil { slog.Warn("gemini: close response body", "error", err) } }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("gemini: close response body", "error", err)
+		}
+	}()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("eyrie: gemini ping returned %d", resp.StatusCode)
 	}

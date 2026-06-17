@@ -446,7 +446,11 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: %s request failed: %w", c.providerName, err)
 	}
-	defer func() { if err := resp.Body.Close(); err != nil { slog.Warn("openai: close response body", "error", err) } }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("openai: close response body", "error", err)
+		}
+	}()
 
 	requestID := resp.Header.Get("X-Request-Id")
 
