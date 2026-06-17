@@ -8,11 +8,28 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
+// staticProviderNames is a snapshot of every provider in the static runtime
+// maps, captured at init() time. Tests that mutate the maps at runtime (e.g.
+// TestDynamicProvider_OptIn_Registers calling RegisterDynamicProvider) would
+// otherwise corrupt a naive len()-based drift check, so we always compare
+// against this snapshot.
+var staticProviderNames map[string]bool
+
+func init() {
+	staticProviderNames = make(map[string]bool, len(CoreProviders)+len(OpenAICompatibleProviders))
+	for k := range CoreProviders {
+		staticProviderNames[k] = true
+	}
+	for k := range OpenAICompatibleProviders {
+		staticProviderNames[k] = true
+	}
+}
+
 // TestProviderRegistry_NoDriftFromCatalog guards against future drift between
-// the runtime provider maps (CoreProviders, OpenAICompatibleProviders) and the
-// authoritative spec list in catalog/registry. If a new ProviderSpec is added
-// to catalog/registry/providers.go without a corresponding runtime entry, or
-// vice versa, the test fails and the PR is blocked.
+// the static runtime provider maps (CoreProviders, OpenAICompatibleProviders)
+// and the authoritative spec list in catalog/registry. If a new ProviderSpec
+// is added to catalog/registry/providers.go without a corresponding static
+// runtime entry, or vice versa, the test fails and the PR is blocked.
 //
 // This regression test was introduced for H11 (provider-registry drift):
 // minimax_token_plan and minimax_payg were present in catalog/registry but
@@ -20,38 +37,40 @@ import (
 // to mis-route callers to NewOpenAIClient with BaseURL="" (4xx).
 func TestProviderRegistry_NoDriftFromCatalog(t *testing.T) {
 	specs := registry.All()
-	specCount := len(specs)
-	runtimeCount := len(CoreProviders) + len(OpenAICompatibleProviders)
-	if runtimeCount != specCount {
-		var missing []string
-		seen := map[string]bool{}
-		for k := range CoreProviders {
-			seen[k] = true
+	specNames := make(map[string]bool, len(specs))
+	for _, s := range specs {
+		specNames[s.ProviderID] = true
+	}
+
+	// Every spec must be present in the static runtime snapshot.
+	var missingInRuntime []string
+	for _, s := range specs {
+		if !staticProviderNames[s.ProviderID] {
+			missingInRuntime = append(missingInRuntime, s.ProviderID)
 		}
-		for k := range OpenAICompatibleProviders {
-			seen[k] = true
-		}
-		for _, s := range specs {
-			if !seen[s.ProviderID] {
-				missing = append(missing, s.ProviderID)
-			}
-		}
-		sort.Strings(missing)
+	}
+	if len(missingInRuntime) > 0 {
+		sort.Strings(missingInRuntime)
 		t.Fatalf(
-			"provider-registry drift: runtime maps have %d entries (CoreProviders=%d, OpenAICompatibleProviders=%d) "+
-				"but catalog/registry has %d. Missing from runtime maps: %v",
-			runtimeCount, len(CoreProviders), len(OpenAICompatibleProviders), specCount, missing,
+			"provider-registry drift: %d spec(s) in catalog/registry/providers.go "+
+				"are missing from the static runtime maps: %v",
+			len(missingInRuntime), missingInRuntime,
 		)
 	}
 
-	// Every spec ProviderID must appear in one of the runtime maps.
-	for _, s := range specs {
-		if _, ok := CoreProviders[s.ProviderID]; ok {
-			continue
+	// Every static runtime entry must be present in catalog/registry.
+	var staleInRuntime []string
+	for name := range staticProviderNames {
+		if !specNames[name] {
+			staleInRuntime = append(staleInRuntime, name)
 		}
-		if _, ok := OpenAICompatibleProviders[s.ProviderID]; ok {
-			continue
-		}
-		t.Fatalf("provider %q is registered in catalog/registry but missing from both CoreProviders and OpenAICompatibleProviders", s.ProviderID)
+	}
+	if len(staleInRuntime) > 0 {
+		sort.Strings(staleInRuntime)
+		t.Fatalf(
+			"provider-registry drift: %d provider(s) in client/provider_registry.go "+
+				"(static) are missing from catalog/registry/providers.go: %v",
+			len(staleInRuntime), staleInRuntime,
+		)
 	}
 }
