@@ -32,13 +32,13 @@ func ExampleIsTransient() {
 
 func ExampleClassifyError() {
 	// Retriable status codes get TransientError
-	err := types.ClassifyError("anthropic", 429, "rate limited")
+	err := types.ClassifyError(429, "rate limited")
 	if te, ok := err.(*types.TransientError); ok {
 		fmt.Printf("Transient: HTTP %d\n", te.StatusCode)
 	}
 
 	// Non-retriable codes get APIError
-	err = types.ClassifyError("anthropic", 400, "bad request")
+	err = types.ClassifyError(400, "bad request")
 	if apiErr, ok := err.(*types.APIError); ok {
 		fmt.Printf("API Error: HTTP %d\n", apiErr.Status)
 	}

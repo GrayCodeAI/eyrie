@@ -202,10 +202,8 @@ func TestModerationProvider_Name(t *testing.T) {
 }
 
 func TestModerationProvider_NilInner(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic for nil inner provider")
-		}
-	}()
-	NewModerationProvider(nil)
+	mp := NewModerationProvider(nil)
+	if mp != nil {
+		t.Fatal("expected nil from NewModerationProvider with nil inner")
+	}
 }

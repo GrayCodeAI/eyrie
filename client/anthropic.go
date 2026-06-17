@@ -243,7 +243,9 @@ func parseAnthropicResponse(ar anthropicResponse, requestID, orgID string) *Eyri
 			continue
 		case "tool_use":
 			var args map[string]interface{}
-			_ = json.Unmarshal(block.Input, &args)
+			if err := json.Unmarshal(block.Input, &args); err != nil {
+				slog.Warn("anthropic: failed to parse tool_use input", "error", err, "tool_name", block.Name)
+			}
 			toolCalls = append(toolCalls, ToolCall{ID: block.ID, Name: block.Name, Arguments: args})
 		}
 	}
@@ -443,7 +445,11 @@ func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []
 		tools := convertToAnthropicTools(opts.Tools)
 		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, stream, tools,
 			thinking, resolveToolChoice(opts.ToolChoice), opts.TopP, opts.TopK, opts.StopSequences)
-		body, _ = json.Marshal(cachedReq)
+		var err error
+		body, err = json.Marshal(cachedReq)
+		if err != nil {
+			return nil, nil, fmt.Errorf("eyrie: marshal anthropic cached request: %w", err)
+		}
 	} else {
 		msgs, system := buildAnthropicMessages(messages)
 		if opts.System != "" {
@@ -470,7 +476,11 @@ func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []
 			ServiceTier:   opts.ServiceTier,
 			OutputConfig:  resolveOutputConfig(opts),
 		}
-		body, _ = json.Marshal(reqBody)
+		var err error
+		body, err = json.Marshal(reqBody)
+		if err != nil {
+			return nil, nil, fmt.Errorf("eyrie: marshal anthropic request: %w", err)
+		}
 	}
 
 	// Check request size (32 MB limit for Messages API)
@@ -507,7 +517,11 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: anthropic request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("anthropic: close response body", "error", err)
+		}
+	}()
 
 	requestID := resp.Header.Get("Request-Id")
 	orgID := resp.Header.Get("Anthropic-Organization-Id")
@@ -668,7 +682,11 @@ func (c *AnthropicClient) CountTokens(ctx context.Context, messages []EyrieMessa
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: anthropic count_tokens failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("anthropic: close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		detail, readErr := parseProviderError(resp.Body)

@@ -137,13 +137,18 @@ func (c *Coalescer) Coalesce(ctx context.Context, key CoalesceKey, fn func() (*E
 	c.inflight[keyStr] = inflight
 	c.mu.Unlock()
 
-	// Execute the request (this goroutine is responsible for it)
-	result, err := fn()
-
-	// Store result and broadcast to all waiters
-	inflight.result = result
-	inflight.err = err
-	close(inflight.done)
+	// Execute the request (this goroutine is responsible for it).
+	// Use a closure so the defer can broadcast to waiters even on panic.
+	var result *EyrieResponse
+	var fnErr error
+	func() {
+		defer func() {
+			inflight.err = fnErr
+			close(inflight.done)
+		}()
+		result, fnErr = fn()
+		inflight.result = result
+	}()
 
 	// Schedule cleanup after TTL
 	go func() {
@@ -154,8 +159,8 @@ func (c *Coalescer) Coalesce(ctx context.Context, key CoalesceKey, fn func() (*E
 	}()
 
 	// Return the result directly (we already have it)
-	if err != nil {
-		return nil, err
+	if fnErr != nil {
+		return nil, fnErr
 	}
 	return result, nil
 }

@@ -4,10 +4,6 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog/live"
 )
 
-func liveEntriesToCatalog(in []live.Entry) []ModelCatalogEntry {
-	return LiveEntriesToCatalog(in)
-}
-
 // LiveEntriesToCatalog converts live fetch rows to catalog entries.
 func LiveEntriesToCatalog(in []live.Entry) []ModelCatalogEntry {
 	if len(in) == 0 {
@@ -37,5 +33,5 @@ func FetchOllamaModels(env map[string]string) ([]ModelCatalogEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	return liveEntriesToCatalog(entries), nil
+	return LiveEntriesToCatalog(entries), nil
 }

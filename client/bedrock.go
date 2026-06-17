@@ -68,7 +68,11 @@ func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts 
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("bedrock: close response body", "error", err)
+		}
+	}()
 	if resp.StatusCode != http.StatusOK {
 		detail, readErr := parseProviderError(resp.Body)
 		return nil, formatAPIError("bedrock", "chat", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
@@ -117,7 +121,11 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 		return nil, fmt.Errorf("eyrie: bedrock stream request failed: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		defer func() { _ = resp.Body.Close() }()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				slog.Warn("bedrock: close error response body", "error", err)
+			}
+		}()
 		detail, readErr := parseProviderError(resp.Body)
 		return nil, formatAPIError("bedrock stream", "stream", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
 	}
@@ -128,7 +136,11 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 	go func() {
 		defer close(ch)
 		defer cancel()
-		defer func() { _ = resp.Body.Close() }()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				slog.Warn("bedrock: close stream response body", "error", err)
+			}
+		}()
 
 		var contentBuf strings.Builder
 		var usage *EyrieUsage

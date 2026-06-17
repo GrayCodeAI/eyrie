@@ -35,10 +35,10 @@ var _ Provider = (*FallbackProvider)(nil)
 
 // NewFallbackProvider creates a FallbackProvider that tries providers in order.
 // At least one provider must be supplied.
-// NewFallbackProvider creates a fallback provider chain. Panics if no providers are given (programmer error).
 func NewFallbackProvider(providers ...Provider) *FallbackProvider {
 	if len(providers) == 0 {
-		panic("eyrie: FallbackProvider requires at least one provider")
+		slog.Error("FallbackProvider requires at least one provider; returning nil")
+		return nil
 	}
 	stats := make(map[string]*atomic.Int64, len(providers))
 	for _, p := range providers {

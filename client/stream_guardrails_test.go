@@ -29,14 +29,11 @@ func TestStreamGuardrailsNew(t *testing.T) {
 		}
 	})
 
-	t.Run("nil guardrails panics", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("NewStreamGuardrails with nil guardrails should panic")
-			}
-		}()
-
-		_ = NewStreamGuardrails(nil, StreamGuardrailConfig{})
+	t.Run("nil guardrails returns nil", func(t *testing.T) {
+		sg := NewStreamGuardrails(nil, StreamGuardrailConfig{})
+		if sg != nil {
+			t.Error("NewStreamGuardrails with nil guardrails should return nil")
+		}
 	})
 }
 

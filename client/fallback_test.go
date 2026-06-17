@@ -276,12 +276,10 @@ func TestIsRetriableErrorVsIsTransientDivergence(t *testing.T) {
 }
 
 func TestFallbackProviderPanicOnEmpty(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic with no providers")
-		}
-	}()
-	NewFallbackProvider()
+	fp := NewFallbackProvider()
+	if fp != nil {
+		t.Error("expected nil from NewFallbackProvider with no providers")
+	}
 }
 
 func TestFallbackProviderNonRetriableDoesNotFallback(t *testing.T) {

@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"sort"
 	"strings"
@@ -433,7 +434,8 @@ var _ Provider = (*GuardrailProvider)(nil)
 // (in which case the wrapper is a no-op).
 func NewGuardrailProvider(inner Provider, g *Guardrails) *GuardrailProvider {
 	if inner == nil {
-		panic("eyrie: NewGuardrailProvider inner provider must not be nil")
+		slog.Error("NewGuardrailProvider inner provider must not be nil; returning nil")
+		return nil
 	}
 	return &GuardrailProvider{
 		inner:      inner,

@@ -688,12 +688,10 @@ func TestGuardrailProvider_Name(t *testing.T) {
 }
 
 func TestGuardrailProvider_NilInnerPanics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic for nil inner provider")
-		}
-	}()
-	NewGuardrailProvider(nil, nil)
+	gp := NewGuardrailProvider(nil, nil)
+	if gp != nil {
+		t.Fatal("expected nil from NewGuardrailProvider with nil inner")
+	}
 }
 
 func TestGuardrailProvider_Ping(t *testing.T) {
