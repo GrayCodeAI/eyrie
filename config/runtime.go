@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/credentials"
 )
@@ -43,8 +44,13 @@ func envValue(key string) string {
 	if key == "" {
 		return ""
 	}
+	// Bound the keyring lookup to prevent indefinite stalls when the OS
+	// keychain is unresponsive. The keyring itself has a 30s timeout,
+	// but envValue is called many times during provider construction.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	// Always check the credential store first for ALL keys.
-	if v := credentials.LookupSecret(context.Background(), key); v != "" {
+	if v := credentials.LookupSecret(ctx, key); v != "" {
 		return v
 	}
 	// Fall back to process environment only when the credential store has

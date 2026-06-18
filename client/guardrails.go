@@ -63,6 +63,8 @@ type GuardrailViolation struct {
 	Rule           GuardrailRule `json:"rule"`
 	MatchedText    string        `json:"matched_text"`
 	RedactedResult string        `json:"redacted_result,omitempty"`
+	matchStart     int           // byte offset of the match in the original response
+	matchEnd       int           // byte offset one past the last matched byte
 }
 
 // GuardrailError is returned when a guardrail blocks a response.
@@ -91,6 +93,10 @@ func NewGuardrails(rules ...GuardrailRule) *Guardrails {
 }
 
 // AddRule registers a guardrail rule. It panics if the pattern is invalid.
+// This follows the regexp.MustCompile convention for programmatic rules
+// where an invalid pattern indicates a programmer error. For rules that
+// may originate from untrusted sources (config files, user input), use
+// AddRuleSafe instead.
 func (g *Guardrails) AddRule(r GuardrailRule) {
 	if r.Pattern != "" {
 		compiled, err := regexp.Compile(r.Pattern)
@@ -102,6 +108,37 @@ func (g *Guardrails) AddRule(r GuardrailRule) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.rules = append(g.rules, r)
+}
+
+// AddRuleSafe registers a guardrail rule and returns an error if the pattern
+// is invalid, instead of panicking. Use this when rules may come from
+// untrusted sources (config files, user input).
+func (g *Guardrails) AddRuleSafe(r GuardrailRule) error {
+	if r.Pattern != "" {
+		compiled, err := regexp.Compile(r.Pattern)
+		if err != nil {
+			return fmt.Errorf("eyrie: guardrails: invalid regex %q in rule %q: %w", r.Pattern, r.Name, err)
+		}
+		r.compiled = compiled
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.rules = append(g.rules, r)
+	return nil
+}
+
+// NewGuardrailsSafe creates a Guardrails instance and returns an error if any
+// rule has an invalid pattern. Use this when rules may come from untrusted
+// sources; use NewGuardrails for programmatic rules where invalid patterns
+// indicate a programmer error (matching regexp.MustCompile convention).
+func NewGuardrailsSafe(rules ...GuardrailRule) (*Guardrails, error) {
+	g := &Guardrails{}
+	for _, r := range rules {
+		if err := g.AddRuleSafe(r); err != nil {
+			return nil, err
+		}
+	}
+	return g, nil
 }
 
 // Rules returns a snapshot of the currently registered rules.
@@ -134,17 +171,19 @@ func (g *Guardrails) Check(ctx context.Context, response string) ([]GuardrailVio
 		if rule.compiled == nil {
 			continue
 		}
-		matches := rule.compiled.FindAllString(response, -1)
+		matches := rule.compiled.FindAllStringIndex(response, -1)
 		if len(matches) == 0 {
 			continue
 		}
 		for _, match := range matches {
 			v := GuardrailViolation{
 				Rule:        rule,
-				MatchedText: match,
+				MatchedText: response[match[0]:match[1]],
+				matchStart:  match[0],
+				matchEnd:    match[1],
 			}
 			if rule.Action == GuardrailRedact {
-				v.RedactedResult = strings.Repeat("*", len(match))
+				v.RedactedResult = strings.Repeat("*", len(v.MatchedText))
 			}
 			violations = append(violations, v)
 			if rule.Action == GuardrailBlock {
@@ -165,7 +204,9 @@ func (g *Guardrails) Check(ctx context.Context, response string) ([]GuardrailVio
 
 // ApplyRedactions takes the response text and violations, replacing redacted
 // matches with their redaction markers. Non-redact violations are left intact.
-// Matches are applied positionally to handle overlapping patterns correctly.
+// Match positions are used directly from the violations (captured during Check)
+// so the correct instance of each match is redacted even when the matched text
+// appears multiple times in the response.
 func ApplyRedactions(response string, violations []GuardrailViolation) string {
 	type replacement struct {
 		start int
@@ -177,11 +218,17 @@ func ApplyRedactions(response string, violations []GuardrailViolation) string {
 		if v.Rule.Action != GuardrailRedact {
 			continue
 		}
-		idx := strings.Index(response, v.MatchedText)
-		if idx < 0 {
+		if v.matchEnd == 0 && v.matchStart == 0 && v.MatchedText != "" {
+			// Fallback: violation came from outside Check (e.g. constructed
+			// manually). Search for the first occurrence.
+			idx := strings.Index(response, v.MatchedText)
+			if idx < 0 {
+				continue
+			}
+			reps = append(reps, replacement{start: idx, end: idx + len(v.MatchedText), text: v.RedactedResult})
 			continue
 		}
-		reps = append(reps, replacement{start: idx, end: idx + len(v.MatchedText), text: v.RedactedResult})
+		reps = append(reps, replacement{start: v.matchStart, end: v.matchEnd, text: v.RedactedResult})
 	}
 	if len(reps) == 0 {
 		return response

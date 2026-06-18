@@ -80,7 +80,16 @@ func (k *keyringStore) Get(ctx context.Context, account string) (string, error) 
 		return "", err
 	}
 	if r.err != nil {
-		return "", ErrNotFound
+		// Only map "not found" errors to ErrNotFound; pass through real
+		// backend errors (locked keychain, permission denied, D-Bus
+		// failure, etc.) so callers can distinguish "no secret stored"
+		// from "lookup failed". Without this, LookupSecret would log a
+		// real backend failure at Debug level ("no secret stored")
+		// instead of Warn level ("secret lookup failed").
+		if isNotFound(r.err) {
+			return "", ErrNotFound
+		}
+		return "", r.err
 	}
 	if strings.TrimSpace(r.val) == "" {
 		return "", ErrNotFound

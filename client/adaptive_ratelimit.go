@@ -387,10 +387,12 @@ func (a *AdaptiveRateLimitProvider) checkAndWait(ctx context.Context) error {
 			if delay > 0 && delay <= a.config.MaxDelay {
 				a.throttleCount++
 				a.mu.Unlock()
+				timer := time.NewTimer(delay)
 				select {
 				case <-ctx.Done():
+					timer.Stop()
 					return ctx.Err()
-				case <-time.After(delay):
+				case <-timer.C:
 				}
 				a.mu.Lock()
 				now = time.Now()
@@ -421,10 +423,12 @@ func (a *AdaptiveRateLimitProvider) checkAndWait(ctx context.Context) error {
 			if delay > 0 && delay <= a.config.MaxDelay {
 				a.throttleCount++
 				a.mu.Unlock()
+				timer := time.NewTimer(delay)
 				select {
 				case <-ctx.Done():
+					timer.Stop()
 					return ctx.Err()
-				case <-time.After(delay):
+				case <-timer.C:
 				}
 				a.mu.Lock()
 				now = time.Now()

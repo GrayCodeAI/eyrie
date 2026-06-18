@@ -82,10 +82,12 @@ func (b *tokenBucket) wait(ctx context.Context) error {
 				if since < b.minInterval {
 					wait := b.minInterval - since
 					b.mu.Unlock()
+					timer := time.NewTimer(wait)
 					select {
 					case <-ctx.Done():
+						timer.Stop()
 						return fmt.Errorf("eyrie: rate limiter: %w", ctx.Err())
-					case <-time.After(wait):
+					case <-timer.C:
 					}
 					b.mu.Lock()
 				}
@@ -100,10 +102,12 @@ func (b *tokenBucket) wait(ctx context.Context) error {
 		waitDur := time.Duration(needed / b.refillRate)
 		b.mu.Unlock()
 
+		timer := time.NewTimer(waitDur)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return fmt.Errorf("eyrie: rate limiter: %w", ctx.Err())
-		case <-time.After(waitDur):
+		case <-timer.C:
 		}
 	}
 }
