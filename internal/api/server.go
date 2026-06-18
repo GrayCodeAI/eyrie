@@ -2,11 +2,8 @@ package api
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +11,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/conversation"
 	eyrie "github.com/GrayCodeAI/eyrie/internal/health"
+	"github.com/GrayCodeAI/eyrie/internal/httputil"
 	"github.com/GrayCodeAI/eyrie/storage"
 )
 
@@ -62,7 +60,7 @@ func NewServer(cfg Config) *Server {
 		bgCancel:      cancel,
 	}
 	s.routes()
-	s.handler = securityHeaders(TracingMiddleware(s.mux))
+	s.handler = httputil.SecurityHeaders(TracingMiddleware(s.mux))
 	return s
 }
 
@@ -71,7 +69,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ListenAndServe(addr string) error {
-	if err := validateAuthConfig(addr, s.apiKey); err != nil {
+	if err := httputil.ValidateAuthConfig(addr, s.apiKey); err != nil {
 		return err
 	}
 	s.httpSrv = &http.Server{
@@ -96,45 +94,6 @@ func (s *Server) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	return s.httpSrv.Shutdown(ctx)
-}
-
-// validateAuthConfig refuses to start the server with no API key on a
-// non-loopback bind. The auth middleware silently allows every request when
-// the API key is empty, so a misconfigured server would be wide open. The
-// only safe no-key mode is loopback bind.
-func validateAuthConfig(addr, apiKey string) error {
-	if apiKey != "" {
-		return nil
-	}
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return fmt.Errorf("api: invalid bind address %q: %w", addr, err)
-	}
-	if !isLoopbackHost(host) {
-		return fmt.Errorf("api: apiKey is empty and bind address %q is not loopback; refusing to start. Set Config.APIKey or bind to 127.0.0.1", addr)
-	}
-	return nil
-}
-
-// isLoopbackHost reports whether host is a loopback address.
-func isLoopbackHost(host string) bool {
-	if host == "" || host == "localhost" {
-		return host == "localhost" // "" is unsafe; "localhost" is loopback
-	}
-	if ip := net.ParseIP(host); ip != nil {
-		return ip.IsLoopback()
-	}
-	return false
-}
-
-// securityHeaders sets standard HTTP security headers on every response.
-func securityHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Cache-Control", "no-store")
-		next.ServeHTTP(w, r)
-	})
 }
 
 func (s *Server) routes() {
@@ -168,8 +127,8 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if s.apiKey != "" {
-			if !constantTimeEqual(token, s.apiKey) {
-				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+			if !httputil.ConstantTimeEqual(token, s.apiKey) {
+				httputil.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 				return
 			}
 		}
@@ -184,31 +143,6 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 
 		next(w, r)
 	}
-}
-
-func constantTimeEqual(a, b string) bool {
-	// Pad the shorter value so comparison time does not leak token length.
-	if len(a) < len(b) {
-		a += strings.Repeat("\x00", len(b)-len(a))
-	} else if len(b) < len(a) {
-		b += strings.Repeat("\x00", len(a)-len(b))
-	}
-	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
-}
-
-func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) bool {
-	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(dst); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
-		return false
-	}
-	if err := dec.Decode(&struct{}{}); err != io.EOF {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "request body must contain a single JSON object"})
-		return false
-	}
-	return true
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -409,8 +343,14 @@ func (s *Server) collectAndRespond(w http.ResponseWriter, events <-chan conversa
 	})
 }
 
+// writeJSON and decodeJSONBody delegate to internal/httputil for the
+// canonical implementation. They remain as package-local wrappers so
+// existing call sites in rerank.go, analytics.go, and openai_proxy.go
+// don't need to be updated individually.
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+	httputil.WriteJSON(w, status, v)
+}
+
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) bool {
+	return httputil.DecodeJSONBody(w, r, dst)
 }

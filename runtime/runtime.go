@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/client"
@@ -213,12 +214,16 @@ func (r *Runtime) CredentialTargets() []CredentialTarget {
 				continue
 			}
 			seen[env] = true
+			// Bound the keyring lookup so a stuck keychain doesn't
+			// block the entire CredentialTargets enumeration.
+			probeCtx, probeCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			out = append(out, CredentialTarget{
 				ProviderID:   depID,
 				DeploymentID: id,
 				EnvVar:       env,
-				Set:          credentials.HasSecret(context.Background(), env),
+				Set:          credentials.HasSecret(probeCtx, env),
 			})
+			probeCancel()
 		}
 	}
 	return out
