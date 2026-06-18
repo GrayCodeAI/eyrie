@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
@@ -280,5 +281,13 @@ func ResolveProviderModelEnvOverride(provider string) string {
 }
 
 func resolveEnvSecret(envKey string) string {
-	return credentials.LookupSecret(context.Background(), envKey)
+	// Bound the lookup to prevent indefinite stalls when the OS keyring
+	// is unresponsive (e.g., locked keychain on macOS, D-Bus failure on
+	// Linux). The keyring itself has a 30s timeout, but resolveEnvSecret
+	// is called multiple times in sequence during provider construction
+	// (up to 6 calls for AWS Bedrock), so a per-call cap keeps the total
+	// stall bounded.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return credentials.LookupSecret(ctx, envKey)
 }

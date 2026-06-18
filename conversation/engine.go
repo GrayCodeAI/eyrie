@@ -202,6 +202,9 @@ func (e *Engine) DeleteNode(ctx context.Context, id string) error {
 const defaultGroupBudgetMultiplier = 4
 
 func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, messages []client.EyrieMessage, opts PromptOpts) (<-chan Event, error) {
+	if e.provider == nil {
+		return nil, fmt.Errorf("conversation: engine has no provider")
+	}
 	_, span := tracer.Start(
 		ctx, "conversation.streamAndSave",
 		trace.WithAttributes(
@@ -247,6 +250,18 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 			currentSR       = sr
 			currentStream   = sr.Events
 		)
+
+		// Ensure the last StreamResult is always closed on exit. The
+		// closure captures currentSR by reference, so it closes whatever
+		// stream is active when the goroutine returns — including the
+		// initial stream on early exits and the final continuation stream
+		// on normal completion. Previous streams are closed explicitly
+		// during the continuation loop (currentSR.Close() before reassign).
+		defer func() {
+			if currentSR != nil {
+				currentSR.Close()
+			}
+		}()
 
 		for {
 			var fullTextBuilder strings.Builder

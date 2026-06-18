@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -29,6 +30,7 @@ type Server struct {
 	mux           *http.ServeMux
 	handler       http.Handler // traced handler wrapping mux
 	bgCtx         context.Context
+	bgCancel      context.CancelFunc // cancelled on Shutdown to release bgCtx
 	httpSrv       *http.Server
 }
 
@@ -48,7 +50,6 @@ type Config struct {
 
 func NewServer(cfg Config) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
-	_ = cancel // cancelled on server shutdown if needed
 	s := &Server{
 		engine:        conversation.New(cfg.Store, cfg.Provider),
 		store:         cfg.Store,
@@ -58,6 +59,7 @@ func NewServer(cfg Config) *Server {
 		virtualKeyFor: cfg.VirtualKeyResolver,
 		mux:           http.NewServeMux(),
 		bgCtx:         ctx,
+		bgCancel:      cancel,
 	}
 	s.routes()
 	s.handler = TracingMiddleware(s.mux)
@@ -69,6 +71,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ListenAndServe(addr string) error {
+	if err := validateAuthConfig(addr, s.apiKey); err != nil {
+		return err
+	}
 	s.httpSrv = &http.Server{
 		Addr:              addr,
 		Handler:           s.handler,
@@ -82,12 +87,44 @@ func (s *Server) ListenAndServe(addr string) error {
 
 // Shutdown gracefully shuts down the HTTP server without interrupting active connections.
 func (s *Server) Shutdown() error {
+	if s.bgCancel != nil {
+		s.bgCancel()
+	}
 	if s.httpSrv == nil {
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	return s.httpSrv.Shutdown(ctx)
+}
+
+// validateAuthConfig refuses to start the server with no API key on a
+// non-loopback bind. The auth middleware silently allows every request when
+// the API key is empty, so a misconfigured server would be wide open. The
+// only safe no-key mode is loopback bind.
+func validateAuthConfig(addr, apiKey string) error {
+	if apiKey != "" {
+		return nil
+	}
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return fmt.Errorf("api: invalid bind address %q: %w", addr, err)
+	}
+	if !isLoopbackHost(host) {
+		return fmt.Errorf("api: apiKey is empty and bind address %q is not loopback; refusing to start. Set Config.APIKey or bind to 127.0.0.1", addr)
+	}
+	return nil
+}
+
+// isLoopbackHost reports whether host is a loopback address.
+func isLoopbackHost(host string) bool {
+	if host == "" || host == "localhost" {
+		return host == "localhost" // "" is unsafe; "localhost" is loopback
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsLoopback()
+	}
+	return false
 }
 
 func (s *Server) routes() {

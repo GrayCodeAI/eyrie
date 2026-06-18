@@ -101,12 +101,20 @@ type openAIChatChunk struct {
 	Choices []openAIChunkChoice `json:"choices"`
 }
 
+// maxOpenAIBodyBytes is the body limit for the OpenAI-compatible proxy
+// endpoint. Larger than the native 1 MiB limit because OpenAI chat
+// completions carry full multi-turn conversations with tool definitions.
+const maxOpenAIBodyBytes = 10 << 20 // 10 MiB
+
 // handleOpenAIChatCompletions implements POST /v1/chat/completions.
 func (s *Server) handleOpenAIChatCompletions(w http.ResponseWriter, r *http.Request) {
 	// OpenAI clients send many fields eyrie does not consume (seed, logprobs,
 	// stream_options, ...). Decode leniently rather than with the strict
 	// unknown-field rejection used by decodeJSONBody.
-	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+	// Use a larger body limit than the native /prompt endpoint (1 MiB) because
+	// OpenAI chat completions carry full multi-turn conversations with large
+	// system prompts and tool definitions.
+	r.Body = http.MaxBytesReader(w, r.Body, maxOpenAIBodyBytes)
 	var req openAIChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
@@ -229,6 +237,12 @@ func (s *Server) streamOpenAIResponse(w http.ResponseWriter, ctx context.Context
 
 	_, finish := s.openAIUsageForNode(ctx, nodeID)
 	if errMsg != "" {
+		// Surface the error as an SSE data event so the client knows the
+		// generation failed, rather than silently replacing the finish
+		// reason with "stop". OpenAI clients expect a JSON error object.
+		errPayload, _ := json.Marshal(map[string]string{"error": errMsg})
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", errPayload)
+		flusher.Flush()
 		finish = "stop"
 	}
 	finishReason := finish
