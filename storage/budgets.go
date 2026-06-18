@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -41,7 +42,8 @@ type BudgetStore struct {
 }
 
 // OpenBudgetStore opens (or creates) a SQLite database at path and ensures the
-// budget schema exists.
+// budget schema exists. The database file is set to 0o600 because the
+// virtual_key_secrets table stores provider API keys.
 func OpenBudgetStore(path string) (*BudgetStore, error) {
 	db, err := sql.Open("sqlite", path+"?_pragma=journal_mode(wal)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(on)")
 	if err != nil {
@@ -53,6 +55,10 @@ func OpenBudgetStore(path string) (*BudgetStore, error) {
 		_ = db.Close()
 		return nil, err
 	}
+	// Restrict file permissions: the database stores plaintext provider API
+	// keys in virtual_key_secrets. The file is created by the SQLite driver
+	// with the process umask, which may be 0o644 on some systems.
+	_ = os.Chmod(path, 0o600)
 	return s, nil
 }
 

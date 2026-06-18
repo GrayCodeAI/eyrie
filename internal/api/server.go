@@ -2,10 +2,8 @@ package api
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -13,6 +11,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/conversation"
 	eyrie "github.com/GrayCodeAI/eyrie/internal/health"
+	"github.com/GrayCodeAI/eyrie/internal/httputil"
 	"github.com/GrayCodeAI/eyrie/storage"
 )
 
@@ -29,6 +28,7 @@ type Server struct {
 	mux           *http.ServeMux
 	handler       http.Handler // traced handler wrapping mux
 	bgCtx         context.Context
+	bgCancel      context.CancelFunc // cancelled on Shutdown to release bgCtx
 	httpSrv       *http.Server
 }
 
@@ -48,7 +48,6 @@ type Config struct {
 
 func NewServer(cfg Config) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
-	_ = cancel // cancelled on server shutdown if needed
 	s := &Server{
 		engine:        conversation.New(cfg.Store, cfg.Provider),
 		store:         cfg.Store,
@@ -58,9 +57,10 @@ func NewServer(cfg Config) *Server {
 		virtualKeyFor: cfg.VirtualKeyResolver,
 		mux:           http.NewServeMux(),
 		bgCtx:         ctx,
+		bgCancel:      cancel,
 	}
 	s.routes()
-	s.handler = TracingMiddleware(s.mux)
+	s.handler = httputil.SecurityHeaders(TracingMiddleware(s.mux))
 	return s
 }
 
@@ -69,6 +69,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ListenAndServe(addr string) error {
+	if err := httputil.ValidateAuthConfig(addr, s.apiKey); err != nil {
+		return err
+	}
 	s.httpSrv = &http.Server{
 		Addr:              addr,
 		Handler:           s.handler,
@@ -82,6 +85,9 @@ func (s *Server) ListenAndServe(addr string) error {
 
 // Shutdown gracefully shuts down the HTTP server without interrupting active connections.
 func (s *Server) Shutdown() error {
+	if s.bgCancel != nil {
+		s.bgCancel()
+	}
 	if s.httpSrv == nil {
 		return nil
 	}
@@ -121,8 +127,8 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if s.apiKey != "" {
-			if !constantTimeEqual(token, s.apiKey) {
-				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+			if !httputil.ConstantTimeEqual(token, s.apiKey) {
+				httputil.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 				return
 			}
 		}
@@ -137,31 +143,6 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 
 		next(w, r)
 	}
-}
-
-func constantTimeEqual(a, b string) bool {
-	// Pad the shorter value so comparison time does not leak token length.
-	if len(a) < len(b) {
-		a += strings.Repeat("\x00", len(b)-len(a))
-	} else if len(b) < len(a) {
-		b += strings.Repeat("\x00", len(a)-len(b))
-	}
-	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
-}
-
-func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) bool {
-	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(dst); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
-		return false
-	}
-	if err := dec.Decode(&struct{}{}); err != io.EOF {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "request body must contain a single JSON object"})
-		return false
-	}
-	return true
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -362,8 +343,14 @@ func (s *Server) collectAndRespond(w http.ResponseWriter, events <-chan conversa
 	})
 }
 
+// writeJSON and decodeJSONBody delegate to internal/httputil for the
+// canonical implementation. They remain as package-local wrappers so
+// existing call sites in rerank.go, analytics.go, and openai_proxy.go
+// don't need to be updated individually.
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+	httputil.WriteJSON(w, status, v)
+}
+
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) bool {
+	return httputil.DecodeJSONBody(w, r, dst)
 }
