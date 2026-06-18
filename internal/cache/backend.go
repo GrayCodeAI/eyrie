@@ -100,6 +100,11 @@ func (m *MemoryBackend) Delete(_ context.Context, key string) error {
 // (i.e. a missing key). It is handled internally and never surfaced from Get.
 var ErrRedisNil = errors.New("eyrie: redis nil reply")
 
+// maxRespBulkLen caps the size of a single RESP bulk-string reply to prevent
+// memory-exhaustion from a malicious or buggy Redis server. 64 MB is well
+// beyond any legitimate cache value.
+const maxRespBulkLen = 64 * 1024 * 1024
+
 // RedisBackend is a minimal, dependency-free CacheBackend backed by Redis.
 //
 // It implements only the subset of commands the cache needs:
@@ -283,6 +288,9 @@ func readReply(r *bufio.Reader) ([]byte, error) {
 		}
 		if n < 0 {
 			return nil, ErrRedisNil
+		}
+		if n > maxRespBulkLen {
+			return nil, fmt.Errorf("eyrie: redis bulk string length %d exceeds max %d", n, maxRespBulkLen)
 		}
 		buf := make([]byte, n+2) // include trailing CRLF
 		if _, err := readFull(r, buf); err != nil {

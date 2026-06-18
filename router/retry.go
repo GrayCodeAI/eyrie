@@ -59,4 +59,7 @@ func BackoffDelay(attempt int, cfg RetryConfig) time.Duration {
 	return types.BackoffDelay(attempt, cfg.BaseDelay, cfg.MaxDelay)
 }
 
-var afterFunc = time.After
+// newTimer is a variable so tests can inject a fake timer. Uses
+// time.NewTimer (not time.After) to avoid leaking the timer in the
+// runtime when ctx is cancelled before the delay elapses.
+var newTimer = time.NewTimer

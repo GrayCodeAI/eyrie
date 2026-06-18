@@ -1,16 +1,20 @@
 package api
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/GrayCodeAI/eyrie/internal/httputil"
+)
 
 func TestConstantTimeEqual(t *testing.T) {
 	key := "super-secret-api-key"
-	if !constantTimeEqual(key, key) {
+	if !httputil.ConstantTimeEqual(key, key) {
 		t.Fatal("expected equal tokens to match")
 	}
-	if constantTimeEqual(key, key+"x") {
+	if httputil.ConstantTimeEqual(key, key+"x") {
 		t.Fatal("expected different-length tokens to not match")
 	}
-	if constantTimeEqual("short", "much-longer-token") {
+	if httputil.ConstantTimeEqual("short", "much-longer-token") {
 		t.Fatal("expected mismatched tokens to not match")
 	}
 }

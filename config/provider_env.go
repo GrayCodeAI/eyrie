@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -286,13 +287,21 @@ func ValidateAPIKey(apiKey, providerName string) string {
 	return ""
 }
 
-// ValidateBaseURL validates a base URL.
+// ValidateBaseURL validates a base URL. Returns an error message if the URL
+// is syntactically invalid (unparseable or missing a scheme), or empty if valid.
 func ValidateBaseURL(baseURL string) string {
 	if baseURL == "" {
 		return ""
 	}
-	if _, err := os.Stat(baseURL); err == nil {
-		return "Invalid base URL: " + baseURL
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return "Invalid base URL: " + baseURL + " (" + err.Error() + ")"
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return "Invalid base URL: " + baseURL + " (must be http or https)"
+	}
+	if u.Host == "" {
+		return "Invalid base URL: " + baseURL + " (missing host)"
 	}
 	return ""
 }
@@ -360,7 +369,7 @@ func SaveProviderConfig(config *ProviderConfig, path string) error {
 	if path == "" {
 		path = GetProviderConfigPath()
 	}
-	_ = os.MkdirAll(filepath.Dir(path), 0o755)
+	_ = os.MkdirAll(filepath.Dir(path), 0o700)
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err

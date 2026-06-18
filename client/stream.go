@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"sort"
 	"strings"
 	"time"
 )
@@ -428,9 +429,21 @@ func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent,
 				return
 			}
 			toolsEmitted = true
-			for _, t := range tools {
-				var args map[string]interface{}
-				_ = json.Unmarshal([]byte(t.argsBuf.String()), &args)
+			// Sort by index so tool calls are emitted in the order the
+			// model produced them, not in random map-iteration order.
+			indices := make([]int, 0, len(tools))
+			for idx := range tools {
+				indices = append(indices, idx)
+			}
+			sort.Ints(indices)
+			for _, idx := range indices {
+				t := tools[idx]
+				args := map[string]interface{}{}
+				if err := json.Unmarshal([]byte(t.argsBuf.String()), &args); err != nil {
+					// On parse failure, pass the raw string as _raw so
+					// the caller sees something rather than a nil map.
+					args = map[string]interface{}{"_raw": t.argsBuf.String()}
+				}
 				emit(ctx, ch, EyrieStreamEvent{
 					Type:     "tool_call",
 					ToolCall: &ToolCall{ID: t.id, Name: t.name, Arguments: args},

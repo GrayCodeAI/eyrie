@@ -119,10 +119,16 @@ func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request
 				"attempt", attempt, "max", rc.MaxRetries,
 				"delay", delay, "url", req.URL.String(),
 			)
+			// Use time.NewTimer + Stop instead of time.After to avoid leaking
+			// the timer in the runtime when ctx is cancelled before the delay
+			// elapses. time.After allocates a timer that lives until it fires,
+			// even if the caller has already moved on.
+			timer := time.NewTimer(delay)
 			select {
 			case <-ctx.Done():
+				timer.Stop()
 				return nil, ctx.Err()
-			case <-time.After(delay):
+			case <-timer.C:
 			}
 		}
 

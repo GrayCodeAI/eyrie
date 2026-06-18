@@ -164,6 +164,42 @@ func TestGuardrails_InvalidPatternPanics(t *testing.T) {
 	})
 }
 
+func TestGuardrails_InvalidPatternSafeReturnsError(t *testing.T) {
+	_, err := NewGuardrailsSafe(GuardrailRule{
+		Type:    GuardrailCustom,
+		Name:    "bad_regex",
+		Pattern: `[invalid`,
+		Action:  GuardrailBlock,
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid regex in NewGuardrailsSafe")
+	}
+}
+
+func TestGuardrails_AddRuleSafe(t *testing.T) {
+	g := NewGuardrails()
+	if err := g.AddRuleSafe(GuardrailRule{
+		Type:    GuardrailCustom,
+		Name:    "dynamic_rule",
+		Pattern: `dynamic_pattern`,
+		Action:  GuardrailWarn,
+	}); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if len(g.Rules()) != 1 {
+		t.Fatalf("expected 1 rule after AddRuleSafe, got %d", len(g.Rules()))
+	}
+
+	if err := g.AddRuleSafe(GuardrailRule{
+		Type:    GuardrailCustom,
+		Name:    "bad_regex",
+		Pattern: `[invalid`,
+		Action:  GuardrailBlock,
+	}); err == nil {
+		t.Fatal("expected error for invalid regex in AddRuleSafe")
+	}
+}
+
 func TestGuardrails_AddRule(t *testing.T) {
 	g := NewGuardrails()
 	g.AddRule(GuardrailRule{
