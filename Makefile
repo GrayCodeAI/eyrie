@@ -116,9 +116,9 @@ help: ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: hooks sync-clone
-hooks: ## Install git hooks (lefthook + tracked .githooks prepare-commit-msg).
+hooks: ## Install git hooks via lefthook (format, lint, conventional commits, co-author strip).
 	@command -v lefthook >/dev/null 2>&1 || (echo "install: go install github.com/evilmartians/lefthook@latest" && exit 1)
-	git config core.hooksPath .githooks
+	git config --unset core.hooksPath 2>/dev/null || true
 	lefthook install
 
 sync-clone: ## Hard-reset eyrie to origin/main (post history rewrite).

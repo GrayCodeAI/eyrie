@@ -25,7 +25,5 @@ dist/
 .DS_Store
 coverage.out
 
-# Lefthook-generated wrappers (tracked .githooks/prepare-commit-msg is canonical)
-.githooks/commit-msg
-.githooks/pre-push
-.githooks/pre-commit.old
+# Lefthook-generated wrappers (logic lives in lefthook.yml)
+.githooks/
