@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/client"
@@ -120,11 +119,7 @@ func (s *Server) routes() {
 
 func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("Authorization")
-		token = strings.TrimPrefix(token, "Bearer ")
-		if token == "" {
-			token = r.Header.Get("X-API-Key")
-		}
+		token := httputil.ExtractBearerToken(r)
 
 		if s.apiKey != "" {
 			if !httputil.ConstantTimeEqual(token, s.apiKey) {

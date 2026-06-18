@@ -104,9 +104,12 @@ func ValidateAuthConfig(addr, apiKey string) error {
 
 // ExtractBearerToken extracts a bearer/API-key token from request headers.
 // It checks "Authorization: Bearer ..." first, then "X-API-Key".
+// The Bearer scheme is matched case-insensitively per RFC 7235.
 func ExtractBearerToken(r *http.Request) string {
 	token := r.Header.Get("Authorization")
-	token = strings.TrimPrefix(token, "Bearer ")
+	if len(token) > 7 && strings.EqualFold(token[:7], "Bearer ") {
+		return token[7:]
+	}
 	if token == "" {
 		token = r.Header.Get("X-API-Key")
 	}

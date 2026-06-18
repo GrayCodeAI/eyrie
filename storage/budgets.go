@@ -58,7 +58,13 @@ func OpenBudgetStore(path string) (*BudgetStore, error) {
 	// Restrict file permissions: the database stores plaintext provider API
 	// keys in virtual_key_secrets. The file is created by the SQLite driver
 	// with the process umask, which may be 0o644 on some systems.
+	// In WAL mode SQLite also creates <path>-wal and <path>-shm sidecar
+	// files; the WAL holds uncheckpointed pages (including plaintext keys)
+	// so it must be tightened too. Errors are ignored for sidecars that
+	// don't exist yet.
 	_ = os.Chmod(path, 0o600)
+	_ = os.Chmod(path+"-wal", 0o600)
+	_ = os.Chmod(path+"-shm", 0o600)
 	return s, nil
 }
 
