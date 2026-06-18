@@ -211,10 +211,12 @@ func (r *Router) chatWithRetry(ctx context.Context, p client.Provider, messages 
 			if cfg.OnRetry != nil {
 				cfg.OnRetry(RetryEvent{Err: err, Attempt: attempt + 1, MaxRetries: cfg.MaxRetries, Delay: delay})
 			}
+			timer := newTimer(delay)
 			select {
 			case <-ctx.Done():
+				timer.Stop()
 				return nil, ctx.Err()
-			case <-afterFunc(delay):
+			case <-timer.C:
 			}
 		}
 	}
