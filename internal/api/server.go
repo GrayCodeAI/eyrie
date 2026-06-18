@@ -62,7 +62,7 @@ func NewServer(cfg Config) *Server {
 		bgCancel:      cancel,
 	}
 	s.routes()
-	s.handler = TracingMiddleware(s.mux)
+	s.handler = securityHeaders(TracingMiddleware(s.mux))
 	return s
 }
 
@@ -125,6 +125,16 @@ func isLoopbackHost(host string) bool {
 		return ip.IsLoopback()
 	}
 	return false
+}
+
+// securityHeaders sets standard HTTP security headers on every response.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Cache-Control", "no-store")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) routes() {
