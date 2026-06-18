@@ -115,6 +115,12 @@ clean: ## Remove build artefacts.
 help: ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: hooks
-hooks:
+.PHONY: hooks sync-clone
+hooks: ## Install git hooks (lefthook + tracked .githooks prepare-commit-msg).
+	@command -v lefthook >/dev/null 2>&1 || (echo "install: go install github.com/evilmartians/lefthook@latest" && exit 1)
 	git config core.hooksPath .githooks
+	lefthook install
+
+sync-clone: ## Hard-reset eyrie to origin/main (post history rewrite).
+	@chmod +x scripts/sync-clone.sh scripts/commit-clean.sh
+	@./scripts/sync-clone.sh

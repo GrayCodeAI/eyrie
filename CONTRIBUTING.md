@@ -74,10 +74,26 @@ refactor!: rename ClientV1 to Client (BREAKING CHANGE)
 ```
 
 **Co-authors:** do not add `Co-authored-by:` trailers. Commits should list
-only the human author. Optional local hook:
+only the human author. Install hooks with:
 
 ```bash
-git config core.hooksPath .githooks
+make hooks
+```
+
+This enables lefthook (format/lint/conventional commits) and the tracked
+`.githooks/prepare-commit-msg` strip hook.
+
+**Cursor / IDE commits:** some editors inject `Co-authored-by: Cursor` via their
+own git hooks. Use:
+
+```bash
+./scripts/commit-clean.sh -m "fix(scope): your message"
+```
+
+**After a history rewrite:** reset stale local SHAs with:
+
+```bash
+./scripts/sync-clone.sh
 ```
 
 ## Pull request checklist
