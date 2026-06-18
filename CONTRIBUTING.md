@@ -80,8 +80,7 @@ only the human author. Install hooks with:
 make hooks
 ```
 
-This enables lefthook (format/lint/conventional commits) and the tracked
-`.githooks/prepare-commit-msg` strip hook.
+This enables lefthook (format/lint/conventional commits/co-author strip).
 
 **Cursor / IDE commits:** some editors inject `Co-authored-by: Cursor` via their
 own git hooks. Use:
