@@ -3,8 +3,6 @@ package credential
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -12,6 +10,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
+	"github.com/GrayCodeAI/eyrie/internal/probehttp"
 )
 
 const credentialProbeTimeout = 8 * time.Second
@@ -131,57 +130,41 @@ func probeOpenAIModels(ctx context.Context, baseURL, secret string) error {
 	if baseURL == "" {
 		return fmt.Errorf("credential probe: missing base URL")
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/models", nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+secret)
-	return doProbeRequest(req)
-}
-
-func probeAnthropic(ctx context.Context, secret string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.anthropic.com/v1/models", nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("x-api-key", secret)
-	req.Header.Set("anthropic-version", "2023-06-01")
-	return doProbeRequest(req)
-}
-
-func probeGemini(ctx context.Context, secret string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://generativelanguage.googleapis.com/v1beta/models", nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("x-goog-api-key", secret)
-	return doProbeRequest(req)
-}
-
-func doProbeRequest(req *http.Request) error {
-	resp, err := http.DefaultClient.Do(req)
+	status, _, err := probehttp.DoGet(ctx, baseURL+"/models", map[string]string{
+		"Authorization": "Bearer " + secret,
+	})
 	if err != nil {
 		return fmt.Errorf("credential probe: network error: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		_, _ = io.Copy(io.Discard, resp.Body)
+	if status >= 200 && status < 300 {
 		return nil
 	}
-	_, _ = io.ReadAll(io.LimitReader(resp.Body, 512))
-	return probeHTTPError(resp.StatusCode)
+	return probehttp.ProbeError(status)
 }
 
-func probeHTTPError(status int) error {
-	switch status {
-	case http.StatusUnauthorized, http.StatusForbidden:
-		return fmt.Errorf("credential probe failed: invalid API key (HTTP %d)", status)
-	case http.StatusTooManyRequests:
-		return fmt.Errorf("credential probe failed: rate limited — try again shortly")
-	default:
-		if status >= 500 {
-			return fmt.Errorf("credential probe failed: provider unavailable (HTTP %d)", status)
-		}
-		return fmt.Errorf("credential probe failed: HTTP %d", status)
+func probeAnthropic(ctx context.Context, secret string) error {
+	status, _, err := probehttp.DoGet(ctx, "https://api.anthropic.com/v1/models", map[string]string{
+		"x-api-key":         secret,
+		"anthropic-version": "2023-06-01",
+	})
+	if err != nil {
+		return fmt.Errorf("credential probe: network error: %w", err)
 	}
+	if status >= 200 && status < 300 {
+		return nil
+	}
+	return probehttp.ProbeError(status)
+}
+
+func probeGemini(ctx context.Context, secret string) error {
+	status, _, err := probehttp.DoGet(ctx, "https://generativelanguage.googleapis.com/v1beta/models", map[string]string{
+		"x-goog-api-key": secret,
+	})
+	if err != nil {
+		return fmt.Errorf("credential probe: network error: %w", err)
+	}
+	if status >= 200 && status < 300 {
+		return nil
+	}
+	return probehttp.ProbeError(status)
 }
