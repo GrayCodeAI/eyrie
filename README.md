@@ -231,7 +231,6 @@ config.SaveProviderConfig(cfg, "")               // save changes
 
 ```
 eyrie/
-├── cmd/eyrie/              # CLI binary
 ├── client/                 # Provider client & streaming interface
 ├── config/                 # Provider configuration & routing
 │   └── credential/         # Credential file management
