@@ -2,6 +2,8 @@ package storage
 
 import "context"
 
+// Store captures the persistence operations used by the DAG wrapper and API
+// layers so tests can swap implementations without changing call sites.
 type Store interface {
 	CreateNode(ctx context.Context, node *Node) error
 	GetNode(ctx context.Context, id string) (*Node, error)

@@ -45,13 +45,41 @@ type RetryRecord struct {
 }
 
 // NewCodeAgentRetry creates a retry system with code-agent-specific strategies.
-func NewCodeAgentRetry() *CodeAgentRetry {
+// Default strategies do not pin fallback model IDs; configure fallbacks
+// explicitly via WithFallback (or override a whole strategy via WithStrategy)
+// so the catalog remains the single source of truth for model names.
+func NewCodeAgentRetry(opts ...Option) *CodeAgentRetry {
 	cr := &CodeAgentRetry{
 		strategies: make(map[string]*RetryStrategy),
 		history:    make([]RetryRecord, 0, 1000),
 	}
 	cr.registerDefaults()
+	for _, opt := range opts {
+		opt(cr)
+	}
 	return cr
+}
+
+// Option configures a CodeAgentRetry.
+type Option func(*CodeAgentRetry)
+
+// WithFallback configures a fallback model+provider for a given error type
+// (e.g. "context_length", "budget_exceeded"). Model and provider names should
+// be resolved from the catalog by the caller — no defaults are baked in.
+func WithFallback(errorType, model, provider string) Option {
+	return func(cr *CodeAgentRetry) {
+		if s, ok := cr.strategies[errorType]; ok {
+			s.FallbackModel = model
+			s.FallbackProvider = provider
+		}
+	}
+}
+
+// WithStrategy overrides the retry strategy for a given error type.
+func WithStrategy(errorType string, strategy RetryStrategy) Option {
+	return func(cr *CodeAgentRetry) {
+		cr.strategies[errorType] = &strategy
+	}
 }
 
 // registerDefaults sets up default retry strategies for common code agent failures.
@@ -65,13 +93,13 @@ func (cr *CodeAgentRetry) registerDefaults() {
 		Backoff:    2.0,
 	}
 
-	// Context length exceeded - switch to model with larger context
+	// Context length exceeded - switch to model with larger context.
+	// Fallback model is intentionally unset; configure it via WithFallback
+	// using a catalog-resolved model name so it never drifts from the catalog.
 	cr.strategies["context_length"] = &RetryStrategy{
-		Name:             "Context Length",
-		MaxRetries:       2,
-		BaseDelay:        1 * time.Second,
-		FallbackModel:    "claude-3-5-sonnet", // larger context
-		FallbackProvider: "anthropic",
+		Name:       "Context Length",
+		MaxRetries: 2,
+		BaseDelay:  1 * time.Second,
 	}
 
 	// Tool execution failure - retry with different approach
@@ -82,12 +110,12 @@ func (cr *CodeAgentRetry) registerDefaults() {
 		Backoff:    1.5,
 	}
 
-	// Token budget exceeded - switch to cheaper model
+	// Token budget exceeded - switch to cheaper model.
+	// Fallback model is intentionally unset; configure it via WithFallback
+	// using a catalog-resolved model name so it never drifts from the catalog.
 	cr.strategies["budget_exceeded"] = &RetryStrategy{
-		Name:             "Budget Exceeded",
-		MaxRetries:       1,
-		FallbackModel:    "gpt-4o-mini", // cheaper
-		FallbackProvider: "openai",
+		Name:       "Budget Exceeded",
+		MaxRetries: 1,
 	}
 
 	// Server error - retry with backoff

@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+// testStore opens an isolated on-disk SQLite store for tests that need the
+// real schema and pragmas rather than an in-memory stub.
 func testStore(t *testing.T) *SQLiteStore {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "test.db")

@@ -15,12 +15,40 @@ type SQLiteStore struct {
 	db *sql.DB
 }
 
-func Open(path string) (*SQLiteStore, error) {
+// Option configures a SQLiteStore at Open time.
+type Option func(*openConfig)
+
+type openConfig struct {
+	maxOpenConns int
+}
+
+// WithMaxOpenConns overrides the database connection pool size. The default
+// (1) serializes all access, which is safe for single-agent use; raise it for
+// concurrent (e.g. HTTP server) workloads. SQLite still serializes writes via
+// the busy_timeout pragma, so concurrent access remains bounded by WAL readers
+// plus a single writer.
+func WithMaxOpenConns(n int) Option {
+	return func(c *openConfig) {
+		if n > 0 {
+			c.maxOpenConns = n
+		}
+	}
+}
+
+// Open opens the SQLite conversation DAG store at path. The store is opened in
+// WAL mode with foreign keys enabled. Without options the connection pool is
+// limited to a single connection (serialized access); pass WithMaxOpenConns to
+// raise the pool size for concurrent workloads.
+func Open(path string, opts ...Option) (*SQLiteStore, error) {
+	cfg := openConfig{maxOpenConns: 1}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
 	db, err := sql.Open("sqlite", path+"?_pragma=journal_mode(wal)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(on)")
 	if err != nil {
 		return nil, fmt.Errorf("storage: open %s: %w", path, err)
 	}
-	db.SetMaxOpenConns(1)
+	db.SetMaxOpenConns(cfg.maxOpenConns)
 	s := &SQLiteStore{db: db}
 	if err := s.migrate(); err != nil {
 		_ = db.Close()

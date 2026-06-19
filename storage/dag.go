@@ -36,7 +36,8 @@ func NewDAG(dbPath string, sessionID string) (*DAG, error) {
 	return &DAG{store: store, sessionID: sessionID}, nil
 }
 
-// NewDAGFromStore creates a DAG using an existing store.
+// NewDAGFromStore creates a DAG using an existing store, which is useful in
+// tests and callers that manage store lifetime outside the DAG wrapper.
 func NewDAGFromStore(store Store, sessionID string) *DAG {
 	return &DAG{store: store, sessionID: sessionID}
 }
