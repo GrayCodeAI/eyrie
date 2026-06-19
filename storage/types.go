@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// NodeType identifies the role of a persisted conversation node.
 type NodeType string
 
 const (
@@ -15,6 +16,7 @@ const (
 	NodeTypeToolResult NodeType = "tool_result"
 )
 
+// Node is a single persisted entry in the conversation DAG.
 type Node struct {
 	ID                  string          `json:"id"`
 	ParentID            string          `json:"parent_id,omitempty"`
@@ -39,6 +41,7 @@ type Node struct {
 	Metadata            json.RawMessage `json:"metadata,omitempty"`
 }
 
+// Alias maps a stable name to a node ID.
 type Alias struct {
 	Alias  string `json:"alias"`
 	NodeID string `json:"node_id"`
