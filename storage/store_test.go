@@ -73,6 +73,36 @@ func TestOpenReusesExisting(t *testing.T) {
 	}
 }
 
+func TestOpenWithMaxOpenConns(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "pool.db")
+	s, err := Open(path, WithMaxOpenConns(4))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	stats := s.db.Stats()
+	if stats.MaxOpenConnections != 4 {
+		t.Fatalf("MaxOpenConnections = %d, want 4", stats.MaxOpenConnections)
+	}
+}
+
+func TestOpenWithInvalidMaxOpenConnsKeepsDefault(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "default-pool.db")
+	s, err := Open(path, WithMaxOpenConns(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	stats := s.db.Stats()
+	if stats.MaxOpenConnections != 1 {
+		t.Fatalf("MaxOpenConnections = %d, want default 1", stats.MaxOpenConnections)
+	}
+}
+
 func TestClose(t *testing.T) {
 	s := testStore(t)
 	if err := s.Close(); err != nil {
