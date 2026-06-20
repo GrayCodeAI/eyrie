@@ -99,7 +99,7 @@ func DefaultCategories() map[ModelCategory]CategoryConfig {
 }
 
 // GetCategoryRegistry returns the global category registry.
-// It loads overrides from ~/.hawk/categories.json if present.
+// It loads overrides from Hawk user config if present.
 func GetCategoryRegistry() *CategoryRegistry {
 	registryOnce.Do(func() {
 		globalRegistry = &CategoryRegistry{
@@ -117,11 +117,15 @@ func ResetCategoryRegistry() {
 }
 
 func (r *CategoryRegistry) loadOverrides() {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return
+	configDir := os.Getenv("HAWK_CONFIG_DIR")
+	if configDir == "" {
+		dir, err := os.UserConfigDir()
+		if err != nil || dir == "" {
+			return
+		}
+		configDir = filepath.Join(dir, "hawk")
 	}
-	path := filepath.Join(home, ".hawk", "categories.json")
+	path := filepath.Join(configDir, "categories.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return // file not found is fine
