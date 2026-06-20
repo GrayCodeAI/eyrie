@@ -11,7 +11,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
-// ProviderConfig mirrors ~/.hawk/provider.json.
+// ProviderConfig mirrors the Hawk provider.json file.
 type ProviderConfig struct {
 	ConfigVersion              int                         `json:"config_version,omitempty"`
 	Version                    string                      `json:"_version,omitempty"`
@@ -314,8 +314,10 @@ func GetProviderConfigDir() string {
 	if d := os.Getenv("HAWK_CONFIG_DIR"); d != "" {
 		return d
 	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".hawk")
+	if d, err := os.UserConfigDir(); err == nil && d != "" {
+		return filepath.Join(d, "hawk")
+	}
+	panic("hawk provider config: user config directory unavailable")
 }
 
 // GetProviderConfigPath returns the full path to provider.json.
