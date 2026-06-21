@@ -4,11 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-violations="$(
-  rg -n 'github\.com/GrayCodeAI/hawk/(internal/|shared/types)' \
-    --glob '*.go' \
-    . || true
-)"
+if command -v rg >/dev/null 2>&1; then
+  violations="$(rg -n 'github\.com/GrayCodeAI/hawk/(internal/|shared/types)' --glob '*.go' . || true)"
+else
+  violations="$(grep -rn --include='*.go' -E 'github\.com/GrayCodeAI/hawk/(internal/|shared/types)' . || true)"
+fi
 
 if [[ -n "${violations}" ]]; then
   echo "forbidden Hawk imports found:"
