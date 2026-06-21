@@ -103,7 +103,37 @@ func (bp *BudgetProvider) StreamChat(ctx context.Context, messages []EyrieMessag
 	if err := bp.store.CheckBudget(ctx, vk, est.TotalCostUSD); err != nil {
 		return nil, err
 	}
-	return bp.inner.StreamChat(ctx, messages, opts)
+
+	result, err := bp.inner.StreamChat(ctx, messages, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Wrap the events channel to record actual spend from the final usage
+	// event. Without this, streamed calls under a virtual key never debit the
+	// budget (unlike the non-streaming Chat path), so streaming-heavy clients
+	// would underreport spend. Mirrors UsageLimitProvider.StreamChat.
+	wrappedCh := make(chan EyrieStreamEvent, cap(result.Events))
+	go func() {
+		defer close(wrappedCh)
+		for evt := range result.Events {
+			if evt.Type == "usage" && evt.Usage != nil {
+				cost := ActualCostUSD(opts.Model, evt.Usage)
+				_ = bp.store.RecordUsage(ctx, vk, cost, evt.Usage.PromptTokens, evt.Usage.CompletionTokens)
+			}
+			select {
+			case wrappedCh <- evt:
+			case <-ctx.Done():
+				result.Close()
+				return
+			}
+		}
+	}()
+
+	return &StreamResult{
+		Events:    wrappedCh,
+		RequestID: result.RequestID,
+	}, nil
 }
 
 func (bp *BudgetProvider) recordUsage(ctx context.Context, vk, model string, resp *EyrieResponse) {

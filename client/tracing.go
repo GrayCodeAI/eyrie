@@ -93,12 +93,14 @@ func (tp *TracingProvider) StreamChat(ctx context.Context, messages []EyrieMessa
 	wrappedEvents := make(chan EyrieStreamEvent, cap(origEvents))
 	go func() {
 		defer span.End()
+		defer close(wrappedEvents)
 		for evt := range origEvents {
 			switch evt.Type {
 			case "error":
 				span.SetStatus(codes.Error, evt.Error)
 				span.SetAttributes(attribute.Bool("error", true))
-			case "done":
+			case "usage":
+				// Token usage is delivered on the "usage" event, not "done".
 				if evt.Usage != nil {
 					span.SetAttributes(
 						attribute.Int("usage.prompt_tokens", evt.Usage.PromptTokens),
@@ -106,11 +108,19 @@ func (tp *TracingProvider) StreamChat(ctx context.Context, messages []EyrieMessa
 						attribute.Int("usage.total_tokens", evt.Usage.TotalTokens),
 					)
 				}
+			case "done":
 				span.SetStatus(codes.Ok, "")
 			}
-			wrappedEvents <- evt
+			// Respect cancellation on the send: if the consumer abandons the
+			// stream, this goroutine must not block forever forwarding events
+			// (which would leak the goroutine and keep the span open).
+			select {
+			case wrappedEvents <- evt:
+			case <-ctx.Done():
+				sr.Close()
+				return
+			}
 		}
-		close(wrappedEvents)
 	}()
 
 	return &StreamResult{

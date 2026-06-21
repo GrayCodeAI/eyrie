@@ -52,7 +52,7 @@ func enrichOpenAIWithOpenRouter(entries []Entry) {
 	var payload struct {
 		Data []openRouterModelEntry `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return
 	}
 	// Build lookup map: "gpt-4o" → openRouterModelEntry
@@ -136,7 +136,7 @@ func enrichFromOpenRouter(entries []Entry, prefix string) {
 	var payload struct {
 		Data []openRouterModelEntry `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return
 	}
 	// Build lookup map by stripping prefix
@@ -239,7 +239,7 @@ func FetchAzure(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		Value []json.RawMessage `json:"value"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
@@ -304,7 +304,7 @@ func FetchBedrock(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		ModelSummaries []json.RawMessage `json:"modelSummaries"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
@@ -377,7 +377,7 @@ func FetchVertex(env map[string]string) ([]Entry, error) {
 		PublisherModels []json.RawMessage `json:"publisherModels"`
 		Models          []json.RawMessage `json:"models"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	rawModels := payload.PublisherModels

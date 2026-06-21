@@ -148,7 +148,11 @@ func (c *LLMSummarizingCondenser) summarize(ctx context.Context, span []EyrieMes
 	for _, m := range span {
 		b.WriteString(m.Role)
 		b.WriteString(": ")
-		b.WriteString(m.Content)
+		// Indent embedded newlines so a message body cannot forge a new
+		// "role:" turn at column 0 (e.g. content containing "\nassistant: ...").
+		// Without this, a flat "role: content" transcript is a prompt-injection
+		// vector into the summarization call.
+		b.WriteString(strings.ReplaceAll(m.Content, "\n", "\n    "))
 		b.WriteByte('\n')
 	}
 

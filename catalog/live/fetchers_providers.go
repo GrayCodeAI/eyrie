@@ -233,7 +233,7 @@ func FetchOpenRouter(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		Data []json.RawMessage `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
@@ -353,7 +353,7 @@ func FetchAnthropic(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		Data []json.RawMessage `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
@@ -474,7 +474,7 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		Models []json.RawMessage `json:"models"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
@@ -542,7 +542,7 @@ func FetchOllama(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		Models []json.RawMessage `json:"models"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry

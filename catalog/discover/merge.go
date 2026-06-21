@@ -87,9 +87,9 @@ func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *
 			}
 			continue
 		}
-		if dst.Models[id].ID == "" {
-			dst.Models[id] = m
-		}
+		// Key is absent here (the ok branch above continues), so the model is
+		// always new — assign unconditionally.
+		dst.Models[id] = m
 	}
 	seen := map[string]int{}
 	for i, o := range dst.Offerings {
