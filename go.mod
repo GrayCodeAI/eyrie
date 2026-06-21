@@ -3,7 +3,6 @@ module github.com/GrayCodeAI/eyrie
 go 1.26.4
 
 require (
-	github.com/GrayCodeAI/tok v0.1.0
 	github.com/google/uuid v1.6.0
 	github.com/zalando/go-keyring v0.2.8
 	go.opentelemetry.io/otel v1.44.0

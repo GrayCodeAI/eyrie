@@ -3,8 +3,6 @@ package client
 import (
 	"math"
 	"testing"
-
-	"github.com/GrayCodeAI/tok"
 )
 
 func TestCostEstimateForKnownModels(t *testing.T) {
@@ -73,7 +71,7 @@ func TestCostEstimateUnknownModelReturnsNonZero(t *testing.T) {
 	expectedInPrice := 1.0 / 1_000_000
 	expectedOutPrice := 3.0 / 1_000_000
 
-	inputTokens := tok.EstimateTokens("test message here")
+	inputTokens := estimateTextTokens("test message here")
 	expectedInput := float64(inputTokens) * expectedInPrice
 	expectedOutput := float64(1000) * expectedOutPrice
 
