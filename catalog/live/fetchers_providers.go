@@ -82,6 +82,7 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 	if err != nil {
 		return nil, err
 	}
+	protocolEntries := make([]struct{ ID, Protocol string }, 0, len(entries))
 	for i := range entries {
 		entries[i].ID = opencodego.NativeModelID(entries[i].ID)
 		// Merge with static metadata from docs (pricing, protocol, context windows).
@@ -91,7 +92,9 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 			// Unknown model — derive protocol from name pattern.
 			entries[i].Protocol = opencodego.ProtocolForModel(entries[i].ID)
 		}
+		protocolEntries = append(protocolEntries, struct{ ID, Protocol string }{ID: entries[i].ID, Protocol: entries[i].Protocol})
 	}
+	opencodego.UpdateProtocolMap(protocolEntries)
 	return entries, nil
 }
 
