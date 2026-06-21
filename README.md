@@ -42,7 +42,7 @@ eyrie is a Hawk support engine. Keep the dependency edge one-way:
 
 - depend on `hawk-core-contracts` when a stable cross-repo contract is needed
 - do not import `hawk/internal/*`
-- do not add new imports of `hawk/shared/types`; that path is compatibility-only
+- do not import removed legacy path `hawk/shared/types`; use `hawk-core-contracts/types`
 
 ## Quick Start
 

@@ -14,7 +14,7 @@ if [[ -n "${violations}" ]]; then
   echo "forbidden Hawk imports found:"
   echo "${violations}"
   echo
-  echo "support repos must use hawk-core-contracts or local contracts, not hawk/internal or hawk/shared/types"
+  echo "support repos must use hawk-core-contracts or local contracts, not hawk/internal or removed hawk/shared/types"
   exit 1
 fi
 
