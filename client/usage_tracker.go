@@ -347,13 +347,6 @@ func (u *UsageTracker) dailyCostLocked() float64 {
 	return total
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func formatNumber(n int) string {
 	s := strconv.Itoa(n)
 	if len(s) <= 3 {
