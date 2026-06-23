@@ -130,10 +130,7 @@ func (bp *BudgetProvider) StreamChat(ctx context.Context, messages []EyrieMessag
 		}
 	}()
 
-	return &StreamResult{
-		Events:    wrappedCh,
-		RequestID: result.RequestID,
-	}, nil
+	return NewStreamResult(wrappedCh, result.Close), nil
 }
 
 func (bp *BudgetProvider) recordUsage(ctx context.Context, vk, model string, resp *EyrieResponse) {

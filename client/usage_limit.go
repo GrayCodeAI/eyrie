@@ -101,10 +101,7 @@ func (u *UsageLimitProvider) StreamChat(ctx context.Context, messages []EyrieMes
 		}
 	}()
 
-	return &StreamResult{
-		Events:    wrappedCh,
-		RequestID: result.RequestID,
-	}, nil
+	return NewStreamResult(wrappedCh, result.Close), nil
 }
 
 // recordUsage extracts token count from an EyrieResponse and records it.
