@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/GrayCodeAI/tok"
 )
 
 // UsageLimitProvider wraps any Provider and enforces token/cost budgets
-// via a tok.UsageTracker. It calls CanProceed() before each Chat/StreamChat
+// via a UsageTracker. It calls CanProceed() before each Chat/StreamChat
 // request and Record() after successful responses.
 //
 // If the budget is exhausted, calls return a non-nil error immediately
@@ -19,7 +17,7 @@ import (
 // UsageTracker is internally synchronised).
 type UsageLimitProvider struct {
 	inner   Provider
-	tracker *tok.UsageTracker
+	tracker *UsageTracker
 }
 
 // Compile-time check that UsageLimitProvider implements Provider.
@@ -27,7 +25,7 @@ var _ Provider = (*UsageLimitProvider)(nil)
 
 // NewUsageLimitProvider wraps inner with budget enforcement via tracker.
 // Both arguments must be non-nil; an error is returned otherwise.
-func NewUsageLimitProvider(inner Provider, tracker *tok.UsageTracker) (*UsageLimitProvider, error) {
+func NewUsageLimitProvider(inner Provider, tracker *UsageTracker) (*UsageLimitProvider, error) {
 	if inner == nil {
 		return nil, errors.New("eyrie: NewUsageLimitProvider inner provider must not be nil")
 	}
@@ -43,7 +41,7 @@ func (u *UsageLimitProvider) Name() string {
 }
 
 // Tracker returns the underlying UsageTracker for inspection or configuration.
-func (u *UsageLimitProvider) Tracker() *tok.UsageTracker {
+func (u *UsageLimitProvider) Tracker() *UsageTracker {
 	return u.tracker
 }
 
@@ -103,10 +101,7 @@ func (u *UsageLimitProvider) StreamChat(ctx context.Context, messages []EyrieMes
 		}
 	}()
 
-	return &StreamResult{
-		Events:    wrappedCh,
-		RequestID: result.RequestID,
-	}, nil
+	return NewStreamResult(wrappedCh, result.Close), nil
 }
 
 // recordUsage extracts token count from an EyrieResponse and records it.

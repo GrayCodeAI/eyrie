@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -14,6 +15,18 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 )
+
+// maxLiveResponseBytes caps how much of an external provider's HTTP response
+// the live catalog fetchers will read, so a malicious or buggy provider cannot
+// exhaust memory by returning an unbounded body.
+const maxLiveResponseBytes = 10 * 1024 * 1024 // 10 MiB
+
+// decodeJSONLimited decodes JSON from r into v, reading at most
+// maxLiveResponseBytes. Use this instead of json.NewDecoder(resp.Body) for
+// responses from untrusted/remote endpoints.
+func decodeJSONLimited(r io.Reader, v any) error {
+	return json.NewDecoder(io.LimitReader(r, maxLiveResponseBytes)).Decode(v)
+}
 
 // Provider FetchFunc implementations live in fetchers_cloud.go and
 // fetchers_providers.go; this file holds the registry, shared parsing/pricing
@@ -166,7 +179,7 @@ func fetchOpenAICompatModels(ctx context.Context, baseURL, apiKey, authHeader st
 	var payload struct {
 		Data []json.RawMessage `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry

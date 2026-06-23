@@ -46,7 +46,7 @@ make ci                          # Full CI suite
 
 - Provider interface is the boundary — keep it stable
 - Streaming tests need careful goroutine management
-- `go.work` here replaces only `github.com/GrayCodeAI/tok => ../tok`; hawk's own `go.work` adds an `external/eyrie` replace so hawk can develop against a local eyrie checkout. Do not add other `replace` directives here without coordinating with hawk's workspace.
+- `go.work` here should stay minimal; hawk's own `go.work` adds an `external/eyrie` replace so hawk can develop against a local eyrie checkout. Do not add extra local `replace` directives here without coordinating with hawk's workspace.
 
 ## Naming Conventions
 

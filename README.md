@@ -36,6 +36,14 @@ When your app calls a model, eyrie figures out which provider to use, how to tal
 
 **Your app never talks to an LLM API directly. eyrie does.**
 
+## Ecosystem Boundaries
+
+eyrie is a Hawk support engine. Keep the dependency edge one-way:
+
+- depend on `hawk-core-contracts` when a stable cross-repo contract is needed
+- do not import `hawk/internal/*`
+- do not import removed legacy path `hawk/shared/types`; use `hawk-core-contracts/types`
+
 ## Quick Start
 
 ```bash

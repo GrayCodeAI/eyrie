@@ -15,8 +15,7 @@ import (
 // When no provider-backed reranker is configured (the default), eyrie falls
 // back to a zero-dependency lexical scorer (cosine similarity over
 // term-frequency vectors) so the endpoint is always functional. A
-// provider-backed path (e.g. Cohere rerank) can be wired in later via the
-// Reranker interface below; see the TODO on Server.reranker.
+// provider-backed path (e.g. Cohere rerank) can be injected via Config.Reranker.
 
 // rerankRequest is the request body for POST /rerank. It mirrors the common
 // Cohere/LiteLLM rerank shape.
@@ -40,14 +39,10 @@ type rerankResponse struct {
 	Results []rerankResult `json:"results"`
 }
 
-// Reranker is the provider-backed reranking interface. A real implementation
-// (e.g. backed by Cohere's /rerank API or a cross-encoder model) can be
-// injected so /rerank uses model-quality scores instead of the local lexical
-// fallback.
-//
-// TODO(provider-rerank): wire a concrete Reranker into Server (via Config) and
-// prefer it in handleRerank when non-nil. Until then s.reranker stays nil and
-// the lexical fallback is used.
+// Reranker is the provider-backed reranking interface. A concrete
+// implementation (e.g. backed by Cohere's /rerank API or a cross-encoder model)
+// can be injected so /rerank uses model-quality scores instead of the local
+// lexical fallback.
 type Reranker interface {
 	// Rerank returns relevance scores in [0,1] for each document, in the same
 	// order as the input documents.
@@ -76,6 +71,10 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 		scores, err = s.reranker.Rerank(r.Context(), req.Model, req.Query, req.Documents)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		if len(scores) != len(req.Documents) {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "reranker returned invalid score count"})
 			return
 		}
 	} else {
