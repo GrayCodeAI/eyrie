@@ -82,6 +82,7 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 	if err != nil {
 		return nil, err
 	}
+	protocolEntries := make([]struct{ ID, Protocol string }, 0, len(entries))
 	for i := range entries {
 		entries[i].ID = opencodego.NativeModelID(entries[i].ID)
 		// Merge with static metadata from docs (pricing, protocol, context windows).
@@ -91,7 +92,9 @@ func FetchOpenCodeGo(env map[string]string) ([]Entry, error) {
 			// Unknown model — derive protocol from name pattern.
 			entries[i].Protocol = opencodego.ProtocolForModel(entries[i].ID)
 		}
+		protocolEntries = append(protocolEntries, struct{ ID, Protocol string }{ID: entries[i].ID, Protocol: entries[i].Protocol})
 	}
+	opencodego.UpdateProtocolMap(protocolEntries)
 	return entries, nil
 }
 
@@ -230,7 +233,7 @@ func FetchOpenRouter(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		Data []json.RawMessage `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
@@ -350,7 +353,7 @@ func FetchAnthropic(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		Data []json.RawMessage `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
@@ -471,7 +474,7 @@ func FetchGemini(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		Models []json.RawMessage `json:"models"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry
@@ -539,7 +542,7 @@ func FetchOllama(env map[string]string) ([]Entry, error) {
 	var payload struct {
 		Models []json.RawMessage `json:"models"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
 		return nil, err
 	}
 	var entries []Entry

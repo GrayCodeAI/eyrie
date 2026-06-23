@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-
-	"github.com/GrayCodeAI/tok"
 )
 
 // CostEstimator estimates the cost of an API call BEFORE sending it.
@@ -65,14 +63,14 @@ func (ce *CostEstimator) IsExpensive(est CostEstimate, threshold float64) bool {
 func (ce *CostEstimator) countInputTokens(messages []EyrieMessage) int {
 	total := 0
 	for _, m := range messages {
-		total += tok.EstimateTokens(m.Content)
+		total += estimateTextTokens(m.Content)
 		for _, tr := range m.ToolResults {
-			total += tok.EstimateTokens(tr.Content)
+			total += estimateTextTokens(tr.Content)
 		}
 		for _, tc := range m.ToolUse {
 			total += 50 // tool call overhead
 			for _, v := range tc.Arguments {
-				total += tok.EstimateTokens(fmt.Sprintf("%v", v))
+				total += estimateTextTokens(fmt.Sprintf("%v", v))
 			}
 		}
 	}
@@ -100,7 +98,7 @@ func NewStreamingTokenCounter(model string, inputTokens int) *StreamingTokenCoun
 // AddOutput records streamed output tokens.
 func (stc *StreamingTokenCounter) AddOutput(text string) {
 	stc.mu.Lock()
-	stc.outputTokens += tok.EstimateTokens(text)
+	stc.outputTokens += estimateTextTokens(text)
 	stc.mu.Unlock()
 }
 
@@ -157,7 +155,7 @@ func NewPromptOptimizer(maxInputTokens int) *PromptOptimizer {
 func (po *PromptOptimizer) Optimize(messages []EyrieMessage) []EyrieMessage {
 	totalTokens := 0
 	for _, m := range messages {
-		totalTokens += tok.EstimateTokens(m.Content) + 10 // +10 for overhead
+		totalTokens += estimateTextTokens(m.Content) + 10 // +10 for overhead
 	}
 
 	if totalTokens <= po.maxInputTokens {
@@ -196,8 +194,7 @@ func compressMessages(messages []EyrieMessage) string {
 	}
 	raw := strings.Join(parts, "\n")
 
-	// Use tok compression pipeline for intelligent summarization
-	compressed, _ := tok.Compress(raw, tok.Minimal)
+	compressed := compressForSummary(raw)
 	if len(compressed) > 0 && len(compressed) < len(raw) {
 		return compressed
 	}

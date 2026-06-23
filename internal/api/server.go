@@ -36,6 +36,7 @@ type Config struct {
 	Analytics     storage.AnalyticsStore // optional: enables /api/usage, /api/costs
 	Provider      client.Provider
 	HealthChecker *eyrie.HealthChecker // optional: enables /api/health/providers
+	Reranker      Reranker             // optional: provider-backed /rerank; nil => lexical fallback
 	APIKey        string
 	Port          int
 	// VirtualKeyResolver optionally maps an inbound bearer/API-key token to a
@@ -52,6 +53,7 @@ func NewServer(cfg Config) *Server {
 		store:         cfg.Store,
 		analytics:     cfg.Analytics,
 		healthChecker: cfg.HealthChecker,
+		reranker:      cfg.Reranker,
 		apiKey:        cfg.APIKey,
 		virtualKeyFor: cfg.VirtualKeyResolver,
 		mux:           http.NewServeMux(),

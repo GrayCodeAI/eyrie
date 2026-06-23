@@ -1,5 +1,3 @@
 go 1.26.4
 
 use .
-
-replace github.com/GrayCodeAI/tok => ../tok

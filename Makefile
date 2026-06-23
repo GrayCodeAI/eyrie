@@ -31,8 +31,11 @@ GOVULNCHECK  := $(GOBIN_DIR)/govulncheck
 # ---------------------------------------------------------------------------
 # Phony declarations (alphabetical).
 # ---------------------------------------------------------------------------
-.PHONY: all bench build ci clean cover fmt help lint lint-fix \
+.PHONY: all bench boundaries build ci clean cover fmt help lint lint-fix \
         security test test-10x test-race tidy version vet
+
+boundaries: ## Enforce support-repo import boundaries.
+	bash ./scripts/check-ecosystem-boundaries.sh
 
 # ---------------------------------------------------------------------------
 # Default target.
@@ -97,7 +100,7 @@ tidy: ## Tidy go.mod / go.sum.
 # ---------------------------------------------------------------------------
 # Composite gate used by CI and pre-push.
 # ---------------------------------------------------------------------------
-ci: tidy fmt vet lint test-race security ## Run everything CI runs.
+ci: tidy fmt vet lint boundaries test-race security ## Run everything CI runs.
 	@echo "All CI checks passed."
 
 # ---------------------------------------------------------------------------
