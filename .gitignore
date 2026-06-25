@@ -25,5 +25,9 @@ dist/
 .DS_Store
 coverage.out
 
+# Go workspace (local dev only — each developer creates their own)
+go.work
+go.work.sum
+
 # Lefthook-generated wrappers (logic lives in lefthook.yml)
 .githooks/
