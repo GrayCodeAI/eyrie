@@ -40,9 +40,10 @@ When your app calls a model, eyrie figures out which provider to use, how to tal
 
 eyrie is a Hawk support engine. Keep the dependency edge one-way:
 
-- depend on `hawk-core-contracts` when a stable cross-repo contract is needed
+- eyrie uses local-only types (provider/transport types are eyrie-scoped, not shared contracts)
 - do not import `hawk/internal/*`
-- do not import removed legacy path `hawk/shared/types`; use `hawk-core-contracts/types`
+- do not import removed legacy path `hawk/shared/types`
+- do not import other engines (`yaad`, `tok`, `trace`, `sight`, `inspect`) — engines are peers, not dependencies
 
 ## Quick Start
 
