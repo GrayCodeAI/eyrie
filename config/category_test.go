@@ -18,7 +18,6 @@ func TestDefaultCategories_AllPresent(t *testing.T) {
 }
 
 func TestCategoryRegistry_Resolve(t *testing.T) {
-	t.Parallel()
 	ResetCategoryRegistry()
 	defer ResetCategoryRegistry()
 
@@ -34,7 +33,6 @@ func TestCategoryRegistry_Resolve(t *testing.T) {
 }
 
 func TestCategoryRegistry_ResolveFallback(t *testing.T) {
-	t.Parallel()
 	ResetCategoryRegistry()
 	defer ResetCategoryRegistry()
 
@@ -49,7 +47,6 @@ func TestCategoryRegistry_ResolveFallback(t *testing.T) {
 }
 
 func TestCategoryRegistry_Override(t *testing.T) {
-	t.Parallel()
 	ResetCategoryRegistry()
 	defer ResetCategoryRegistry()
 
@@ -66,7 +63,6 @@ func TestCategoryRegistry_Override(t *testing.T) {
 }
 
 func TestCategoryRegistry_ResolveWithDefaults(t *testing.T) {
-	t.Parallel()
 	ResetCategoryRegistry()
 	defer ResetCategoryRegistry()
 
@@ -89,7 +85,6 @@ func TestCategoryRegistry_ResolveWithDefaults(t *testing.T) {
 }
 
 func TestCategoryRegistry_AllCategories(t *testing.T) {
-	t.Parallel()
 	ResetCategoryRegistry()
 	defer ResetCategoryRegistry()
 
@@ -101,7 +96,6 @@ func TestCategoryRegistry_AllCategories(t *testing.T) {
 }
 
 func TestResolveCategory_Convenience(t *testing.T) {
-	t.Parallel()
 	ResetCategoryRegistry()
 	defer ResetCategoryRegistry()
 
