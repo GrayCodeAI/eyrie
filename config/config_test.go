@@ -10,7 +10,6 @@ import (
 )
 
 func TestResolveProviderRequest(t *testing.T) {
-	t.Parallel()
 	// Clear provider env vars to test default resolution
 	os.Unsetenv("OPENAI_BASE_URL")
 	os.Unsetenv("OPENAI_API_BASE")
@@ -56,7 +55,6 @@ func TestIsLocalProviderURL(t *testing.T) {
 }
 
 func TestIsOpenAICompatibleRuntimeEnabled(t *testing.T) {
-	t.Parallel()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })

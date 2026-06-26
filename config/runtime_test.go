@@ -119,7 +119,6 @@ func TestProviderModelEnvKeys_AllProvidersPresent(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
-	t.Parallel()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
@@ -141,7 +140,6 @@ func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
-	t.Parallel()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
@@ -160,7 +158,6 @@ func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
-	t.Parallel()
 	clearKeys := []string{
 		"OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
 		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "DEEPSEEK_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
@@ -180,7 +177,6 @@ func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_NoKeys(t *testing.T) {
-	t.Parallel()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
