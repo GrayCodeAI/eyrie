@@ -9,6 +9,7 @@ import (
 // --- OpenAI reasoning_effort wiring ---
 
 func TestBuildRequestBase_ReasoningEffort(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		compat *OpenAICompatConfig
@@ -68,6 +69,7 @@ func TestBuildRequestBase_ReasoningEffort(t *testing.T) {
 func boolPtr(b bool) *bool { return &b }
 
 func TestBuildRequestBase_GLMThinking(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		compat   *OpenAICompatConfig
@@ -135,6 +137,7 @@ func TestBuildRequestBase_GLMThinking(t *testing.T) {
 // --- Anthropic thinking budget wiring ---
 
 func TestThinkingForBudget(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		budget    int
@@ -173,6 +176,7 @@ func TestThinkingForBudget(t *testing.T) {
 // DeepSeek returns HTTP 400 if reasoning_content appears in a multi-turn
 // conversation, so StripReasoningFromInput=true is the correct behaviour.
 func TestBuildRequestBase_DeepSeekStripsReasoningContent(t *testing.T) {
+	t.Parallel()
 	compat := &DeepSeekCompat
 
 	messages := []EyrieMessage{
@@ -218,6 +222,7 @@ func TestBuildRequestBase_DeepSeekStripsReasoningContent(t *testing.T) {
 }
 
 func TestAnthropicRequest_ThinkingSerialization(t *testing.T) {
+	t.Parallel()
 	t.Run("budget set emits thinking object", func(t *testing.T) {
 		req := anthropicRequest{
 			Model: "claude-3", MaxTokens: 1024,

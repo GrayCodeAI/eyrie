@@ -10,6 +10,7 @@ import (
 )
 
 func TestOpenAIChatCompletionsNonStream(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -56,6 +57,7 @@ func TestOpenAIChatCompletionsNonStream(t *testing.T) {
 }
 
 func TestOpenAIChatCompletionsStream(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -125,6 +127,7 @@ func TestOpenAIChatCompletionsStream(t *testing.T) {
 }
 
 func TestOpenAIChatCompletionsRequiresMessages(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -139,6 +142,7 @@ func TestOpenAIChatCompletionsRequiresMessages(t *testing.T) {
 }
 
 func TestSplitOpenAIMessages(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		messages   []openAIChatMessage
@@ -185,6 +189,7 @@ func TestSplitOpenAIMessages(t *testing.T) {
 }
 
 func TestOpenAIFinishReason(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		in, want string
 	}{

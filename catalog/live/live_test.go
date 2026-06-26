@@ -10,6 +10,7 @@ import (
 )
 
 func TestFetchOpenRouter_Mock(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)
@@ -48,6 +49,7 @@ func TestFetchOpenRouter_Mock(t *testing.T) {
 }
 
 func TestFetchCanopyWave_ParsesProviderFields(t *testing.T) {
+	t.Parallel()
 	raw := json.RawMessage(`{
 		"id": "vendor/sample",
 		"display_name": "Sample Model",
@@ -85,6 +87,7 @@ func TestFetchCanopyWave_ParsesProviderFields(t *testing.T) {
 }
 
 func TestFetchCanopyWave_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	body, err := os.ReadFile("testdata/canopywave_models.json")
 	if err != nil {
 		t.Fatal(err)
@@ -130,6 +133,7 @@ func TestFetchCanopyWave_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchOllama_EmptyModels(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"models": []any{}})
 	}))

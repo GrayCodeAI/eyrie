@@ -7,6 +7,7 @@ import (
 )
 
 func TestResolveAnthropicBase_MatchesOfficialPaths(t *testing.T) {
+	t.Parallel()
 	// Payg + token plan bases; AnthropicClient posts to baseURL + "/v1/messages".
 	payg, err := ResolveAnthropicBase(BillingPayAsYouGo, "")
 	if err != nil || payg != PayAsYouGoAnthropicBase {
@@ -26,6 +27,7 @@ func TestResolveAnthropicBase_MatchesOfficialPaths(t *testing.T) {
 }
 
 func TestResolveOpenAIBase(t *testing.T) {
+	t.Parallel()
 	base, err := ResolveOpenAIBase(BillingPayAsYouGo, "", "")
 	if err != nil || base != PayAsYouGoOpenAIBase {
 		t.Fatalf("payg = %q err=%v", base, err)
@@ -42,6 +44,7 @@ func TestResolveOpenAIBase(t *testing.T) {
 }
 
 func TestResolveOpenAIBasePreferRegion_IgnoresStaleOverride(t *testing.T) {
+	t.Parallel()
 	staleCN := TokenPlanCNOpenAIBase
 	got, err := ResolveOpenAIBasePreferRegion(BillingTokenPlan, RegionSGP, staleCN)
 	if err != nil || got != TokenPlanSGPOpenAIBase {
@@ -54,6 +57,7 @@ func TestResolveOpenAIBasePreferRegion_IgnoresStaleOverride(t *testing.T) {
 }
 
 func TestAppendKeyMismatchHint(t *testing.T) {
+	t.Parallel()
 	base := fmt.Errorf("credential probe failed: invalid API key (HTTP 401)")
 	out := AppendKeyMismatchHint(base, ProviderPayAsYouGo, "tp-test")
 	if out == nil || !strings.Contains(out.Error(), "Token Plan") {
@@ -65,6 +69,7 @@ func TestAppendKeyMismatchHint(t *testing.T) {
 }
 
 func TestKeyMismatchHint(t *testing.T) {
+	t.Parallel()
 	if h := KeyMismatchHint(BillingPayAsYouGo, "tp-abc"); h == "" {
 		t.Fatal("expected tp hint on payg")
 	}

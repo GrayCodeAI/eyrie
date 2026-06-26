@@ -10,6 +10,7 @@ import (
 )
 
 func TestDefaultEmbeddingParamsCohere(t *testing.T) {
+	t.Parallel()
 	tests := []string{"cohere-embed-v3", "embed-v2", "embed-english-v3.0"}
 	for _, model := range tests {
 		p := DefaultEmbeddingParams(model)
@@ -23,6 +24,7 @@ func TestDefaultEmbeddingParamsCohere(t *testing.T) {
 }
 
 func TestDefaultEmbeddingParamsVoyage(t *testing.T) {
+	t.Parallel()
 	tests := []string{"voyage-2", "voyage-large-2", "voyage-code-2"}
 	for _, model := range tests {
 		p := DefaultEmbeddingParams(model)
@@ -36,6 +38,7 @@ func TestDefaultEmbeddingParamsVoyage(t *testing.T) {
 }
 
 func TestDefaultEmbeddingParamsNomic(t *testing.T) {
+	t.Parallel()
 	p := DefaultEmbeddingParams("nomic-embed-text-v1")
 	if len(p.Indexing) != 0 {
 		t.Errorf("Nomic Indexing should be empty, got %v", p.Indexing)
@@ -46,6 +49,7 @@ func TestDefaultEmbeddingParamsNomic(t *testing.T) {
 }
 
 func TestDefaultEmbeddingParamsGemini(t *testing.T) {
+	t.Parallel()
 	tests := []string{"gemini-embedding-001", "text-embedding-004"}
 	for _, model := range tests {
 		p := DefaultEmbeddingParams(model)
@@ -59,6 +63,7 @@ func TestDefaultEmbeddingParamsGemini(t *testing.T) {
 }
 
 func TestDefaultEmbeddingParamsUnknown(t *testing.T) {
+	t.Parallel()
 	p := DefaultEmbeddingParams("some-unknown-model")
 	if len(p.Indexing) != 0 || len(p.Query) != 0 {
 		t.Errorf("unknown model should return empty params, got Indexing=%v Query=%v", p.Indexing, p.Query)
@@ -66,6 +71,7 @@ func TestDefaultEmbeddingParamsUnknown(t *testing.T) {
 }
 
 func TestDefaultEmbeddingParamsCaseInsensitive(t *testing.T) {
+	t.Parallel()
 	p := DefaultEmbeddingParams("COHERE-EMBED-V3")
 	if p.Indexing["input_type"] != "search_document" {
 		t.Errorf("case-insensitive lookup failed: Indexing[input_type] = %q", p.Indexing["input_type"])
@@ -73,6 +79,7 @@ func TestDefaultEmbeddingParamsCaseInsensitive(t *testing.T) {
 }
 
 func TestCreateEmbeddingSuccess(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/embeddings" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -134,6 +141,7 @@ func TestCreateEmbeddingSuccess(t *testing.T) {
 }
 
 func TestCreateEmbeddingMissingModel(t *testing.T) {
+	t.Parallel()
 	c := newTestOpenAIClient("http://unused", nil)
 	_, err := c.CreateEmbedding(context.Background(), EmbeddingRequest{
 		Input: []string{"hello"},
@@ -144,6 +152,7 @@ func TestCreateEmbeddingMissingModel(t *testing.T) {
 }
 
 func TestCreateEmbeddingServerError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("internal error"))
@@ -161,6 +170,7 @@ func TestCreateEmbeddingServerError(t *testing.T) {
 }
 
 func TestCreateEmbeddingWithParams(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}
 		json.NewDecoder(r.Body).Decode(&body)
@@ -194,6 +204,7 @@ func TestCreateEmbeddingWithParams(t *testing.T) {
 }
 
 func TestCreateEmbeddingNoUsage(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(openaiEmbeddingResponse{
 			Object: "list",
@@ -220,6 +231,7 @@ func TestCreateEmbeddingNoUsage(t *testing.T) {
 }
 
 func TestCreateEmbeddingFloat32Precision(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(openaiEmbeddingResponse{
 			Object: "list",
@@ -247,6 +259,7 @@ func TestCreateEmbeddingFloat32Precision(t *testing.T) {
 }
 
 func TestEmbeddingRequestStruct(t *testing.T) {
+	t.Parallel()
 	req := EmbeddingRequest{
 		Model:  "test",
 		Input:  []string{"a", "b"},
@@ -264,6 +277,7 @@ func TestEmbeddingRequestStruct(t *testing.T) {
 }
 
 func TestEmbeddingResponseStruct(t *testing.T) {
+	t.Parallel()
 	resp := &EmbeddingResponse{
 		Embeddings: [][]float32{{0.1, 0.2}},
 		Model:      "test",
@@ -281,6 +295,7 @@ func TestEmbeddingResponseStruct(t *testing.T) {
 }
 
 func TestEmbeddingParamsStruct(t *testing.T) {
+	t.Parallel()
 	p := EmbeddingParams{
 		Indexing: map[string]string{"task": "document"},
 		Query:    map[string]string{"task": "query"},

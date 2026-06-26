@@ -9,6 +9,7 @@ import (
 )
 
 func TestLocalCredentialInference_Ollama(t *testing.T) {
+	t.Parallel()
 	inf, err := LocalCredentialInference("ollama")
 	if err != nil {
 		t.Fatal(err)
@@ -19,6 +20,7 @@ func TestLocalCredentialInference_Ollama(t *testing.T) {
 }
 
 func TestCommitLocalCredential_Ollama(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/tags" {
 			http.NotFound(w, r)
@@ -40,6 +42,7 @@ func TestCommitLocalCredential_Ollama(t *testing.T) {
 }
 
 func TestCommitLocalCredential_InvalidURL(t *testing.T) {
+	t.Parallel()
 	inf, err := LocalCredentialInference("ollama")
 	if err != nil {
 		t.Fatal(err)

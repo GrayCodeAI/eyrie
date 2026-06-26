@@ -43,6 +43,7 @@ func TestHasAnyConfiguredDeployment_RejectsPlaceholder(t *testing.T) {
 }
 
 func TestValidateCredentialSecret(t *testing.T) {
+	t.Parallel()
 	if err := ValidateCredentialSecret("OPENAI_API_KEY", "short"); err == nil {
 		t.Fatal("expected error for short key")
 	}

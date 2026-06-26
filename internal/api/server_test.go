@@ -49,6 +49,7 @@ func drainBody(t *testing.T, resp *http.Response) {
 }
 
 func TestHealth(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 	resp, err := http.Get(ts.URL + "/health")
@@ -62,6 +63,7 @@ func TestHealth(t *testing.T) {
 }
 
 func TestPromptAndList(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -104,6 +106,7 @@ func TestPromptAndList(t *testing.T) {
 }
 
 func TestGetNodeAndTree(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -139,6 +142,7 @@ func TestGetNodeAndTree(t *testing.T) {
 }
 
 func TestDeleteNode(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -169,6 +173,7 @@ func TestDeleteNode(t *testing.T) {
 }
 
 func TestAuthRequired(t *testing.T) {
+	t.Parallel()
 	store, _ := storage.Open(filepath.Join(t.TempDir(), "test.db"))
 	t.Cleanup(func() { _ = store.Close() })
 	srv := NewServer(Config{Store: store, Provider: &mockProv{}, APIKey: "secret"})
@@ -201,6 +206,7 @@ func TestAuthRequired(t *testing.T) {
 }
 
 func TestAuthAcceptsXAPIKey(t *testing.T) {
+	t.Parallel()
 	store, _ := storage.Open(filepath.Join(t.TempDir(), "test.db"))
 	t.Cleanup(func() { _ = store.Close() })
 	srv := NewServer(Config{Store: store, Provider: &mockProv{}, APIKey: "secret"})
@@ -224,6 +230,7 @@ func TestAuthAcceptsXAPIKey(t *testing.T) {
 }
 
 func TestPromptRejectsOversizedBody(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -239,6 +246,7 @@ func TestPromptRejectsOversizedBody(t *testing.T) {
 }
 
 func TestPromptRejectsUnknownFields(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 

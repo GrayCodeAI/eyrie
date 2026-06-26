@@ -12,6 +12,7 @@ import (
 )
 
 func TestNewClient_DefaultConfig(t *testing.T) {
+	t.Parallel()
 	c := NewClient("http://localhost:8080", "test-api-key")
 	if c == nil {
 		t.Fatal("expected non-nil client")
@@ -28,6 +29,7 @@ func TestNewClient_DefaultConfig(t *testing.T) {
 }
 
 func TestClient_APIKey(t *testing.T) {
+	t.Parallel()
 	var authHeader string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader = r.Header.Get("Authorization")
@@ -43,6 +45,7 @@ func TestClient_APIKey(t *testing.T) {
 }
 
 func TestClient_EmptyAPIKey_NoAuthHeader(t *testing.T) {
+	t.Parallel()
 	var authHeader string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader = r.Header.Get("Authorization")
@@ -58,6 +61,7 @@ func TestClient_EmptyAPIKey_NoAuthHeader(t *testing.T) {
 }
 
 func TestClient_Prompt(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -92,6 +96,7 @@ func TestClient_Prompt(t *testing.T) {
 }
 
 func TestClient_PromptWithTools(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req PromptRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -120,6 +125,7 @@ func TestClient_PromptWithTools(t *testing.T) {
 }
 
 func TestClient_PromptFrom(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -144,6 +150,7 @@ func TestClient_PromptFrom(t *testing.T) {
 }
 
 func TestClient_StreamPrompt(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(http.StatusOK)
@@ -184,6 +191,7 @@ func TestClient_StreamPrompt(t *testing.T) {
 }
 
 func TestClient_ListConversations(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -214,6 +222,7 @@ func TestClient_ListConversations(t *testing.T) {
 }
 
 func TestClient_GetNode(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -238,6 +247,7 @@ func TestClient_GetNode(t *testing.T) {
 }
 
 func TestClient_GetTree(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/nodes/root-1/tree" {
 			t.Errorf("expected /nodes/root-1/tree, got %s", r.URL.Path)
@@ -262,6 +272,7 @@ func TestClient_GetTree(t *testing.T) {
 }
 
 func TestClient_DeleteNode(t *testing.T) {
+	t.Parallel()
 	var method, path string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method = r.Method
@@ -284,6 +295,7 @@ func TestClient_DeleteNode(t *testing.T) {
 }
 
 func TestClient_CreateAlias(t *testing.T) {
+	t.Parallel()
 	var method, path string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method = r.Method
@@ -311,6 +323,7 @@ func TestClient_CreateAlias(t *testing.T) {
 }
 
 func TestClient_DeleteAlias(t *testing.T) {
+	t.Parallel()
 	var method, path string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method = r.Method
@@ -333,6 +346,7 @@ func TestClient_DeleteAlias(t *testing.T) {
 }
 
 func TestClient_ErrorResponse(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(`{"error": "bad request"}`))
@@ -357,6 +371,7 @@ func TestClient_ErrorResponse(t *testing.T) {
 }
 
 func TestClient_StreamPromptReturnsErrorOnNonStream(t *testing.T) {
+	t.Parallel()
 	c := NewClient("http://localhost:9999", "key")
 	_, err := c.Prompt(context.Background(), PromptRequest{Message: "test", Stream: true})
 	if err == nil {
@@ -365,6 +380,7 @@ func TestClient_StreamPromptReturnsErrorOnNonStream(t *testing.T) {
 }
 
 func TestClient_PromptWithAllOptions(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req PromptRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -401,6 +417,7 @@ func TestClient_PromptWithAllOptions(t *testing.T) {
 }
 
 func TestClient_PromptFromWithStreamError(t *testing.T) {
+	t.Parallel()
 	c := NewClient("http://localhost:9999", "key")
 	_, err := c.PromptFrom(context.Background(), "node-1", PromptRequest{Message: "test", Stream: true})
 	if err == nil {
@@ -409,6 +426,7 @@ func TestClient_PromptFromWithStreamError(t *testing.T) {
 }
 
 func TestAPIError_String(t *testing.T) {
+	t.Parallel()
 	e := &APIError{
 		StatusCode: 500,
 		Path:       "/prompt",
@@ -431,6 +449,7 @@ func TestAPIError_String(t *testing.T) {
 }
 
 func TestClient_ServerError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("something broke"))
@@ -452,6 +471,7 @@ func TestClient_ServerError(t *testing.T) {
 }
 
 func TestClient_NodeFields(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		node, _ := json.Marshal(Node{
 			ID:        "node-1",
@@ -495,6 +515,7 @@ func TestClient_NodeFields(t *testing.T) {
 }
 
 func TestClient_ConcurrentRequests(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp, _ := json.Marshal(PromptResponse{Content: "ok", NodeID: "n1"})
 		w.WriteHeader(http.StatusOK)
@@ -518,6 +539,7 @@ func TestClient_ConcurrentRequests(t *testing.T) {
 }
 
 func TestClient_HealthEndpoint(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/health" {
 			t.Errorf("expected /health, got %s", r.URL.Path)
@@ -537,6 +559,7 @@ func TestClient_HealthEndpoint(t *testing.T) {
 }
 
 func TestClient_PromptFromWithAllOptions(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/nodes/parent-1/prompt" {
 			t.Errorf("expected /nodes/parent-1/prompt, got %s", r.URL.Path)
@@ -572,6 +595,7 @@ func TestClient_PromptFromWithAllOptions(t *testing.T) {
 }
 
 func TestClient_DeleteNodeServerError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		_, _ = w.Write([]byte("forbidden"))
@@ -593,6 +617,7 @@ func TestClient_DeleteNodeServerError(t *testing.T) {
 }
 
 func TestClient_EmptyNodeList(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("[]"))
@@ -610,6 +635,7 @@ func TestClient_EmptyNodeList(t *testing.T) {
 }
 
 func TestClient_ToolDefSerialization(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req PromptRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

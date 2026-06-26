@@ -10,6 +10,7 @@ import (
 )
 
 func TestResolveProviderRequest(t *testing.T) {
+	t.Parallel()
 	// Clear provider env vars to test default resolution
 	os.Unsetenv("OPENAI_BASE_URL")
 	os.Unsetenv("OPENAI_API_BASE")
@@ -26,6 +27,7 @@ func TestResolveProviderRequest(t *testing.T) {
 }
 
 func TestResolveProviderRequestWithReasoning(t *testing.T) {
+	t.Parallel()
 	r := ResolveProviderRequest("gpt-4o?reasoning=high", "", "")
 	if r.ResolvedModel != "gpt-4o" {
 		t.Errorf("expected gpt-4o, got %s", r.ResolvedModel)
@@ -36,6 +38,7 @@ func TestResolveProviderRequestWithReasoning(t *testing.T) {
 }
 
 func TestIsLocalProviderURL(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		url  string
 		want bool
@@ -53,6 +56,7 @@ func TestIsLocalProviderURL(t *testing.T) {
 }
 
 func TestIsOpenAICompatibleRuntimeEnabled(t *testing.T) {
+	t.Parallel()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
@@ -69,6 +73,7 @@ func TestIsOpenAICompatibleRuntimeEnabled(t *testing.T) {
 }
 
 func TestNormalizeOllamaOpenAIBaseURL(t *testing.T) {
+	t.Parallel()
 	tests := []struct{ input, want string }{
 		{"http://localhost:11434", "http://localhost:11434/v1"},
 		{"http://localhost:11434/v1", "http://localhost:11434/v1"},
@@ -83,6 +88,7 @@ func TestNormalizeOllamaOpenAIBaseURL(t *testing.T) {
 }
 
 func TestProviderDetectionOrder(t *testing.T) {
+	t.Parallel()
 	if len(APIProviderDetectionOrder) != 19 {
 		t.Errorf("expected 19 providers in detection order, got %d", len(APIProviderDetectionOrder))
 	}
@@ -92,6 +98,7 @@ func TestProviderDetectionOrder(t *testing.T) {
 }
 
 func TestValidateAPIKey(t *testing.T) {
+	t.Parallel()
 	if msg := ValidateAPIKey("", "test"); msg == "" {
 		t.Error("expected error for empty key")
 	}

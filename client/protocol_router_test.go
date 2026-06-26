@@ -8,6 +8,7 @@ import (
 )
 
 func TestStreamResultFromChat(t *testing.T) {
+	t.Parallel()
 	result := streamResultFromChat(&EyrieResponse{
 		Content:      "Hi there!",
 		FinishReason: "stop",
@@ -24,6 +25,7 @@ func TestStreamResultFromChat(t *testing.T) {
 }
 
 func TestNewStreamWithReasoningFallback_ChatFirst(t *testing.T) {
+	t.Parallel()
 	primaryEvents := make(chan EyrieStreamEvent, 4)
 	primaryEvents <- EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
 	primaryEvents <- EyrieStreamEvent{Type: "done", StopReason: "end_turn"}
@@ -64,6 +66,7 @@ func TestNewStreamWithReasoningFallback_ChatFirst(t *testing.T) {
 }
 
 func TestNewStreamWithReasoningFallback_StreamWhenChatEmpty(t *testing.T) {
+	t.Parallel()
 	primaryEvents := make(chan EyrieStreamEvent, 4)
 	primaryEvents <- EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
 	primaryEvents <- EyrieStreamEvent{Type: "done", StopReason: "end_turn"}
@@ -103,6 +106,7 @@ func TestNewStreamWithReasoningFallback_StreamWhenChatEmpty(t *testing.T) {
 }
 
 func TestAnthropicBaseFromOpenAIV1(t *testing.T) {
+	t.Parallel()
 	if got := AnthropicBaseFromOpenAIV1("https://example.com/zen/go/v1"); got != "https://example.com/zen/go" {
 		t.Fatalf("got %q", got)
 	}
@@ -112,6 +116,7 @@ func TestAnthropicBaseFromOpenAIV1(t *testing.T) {
 }
 
 func TestProtocolRouter_ChatFallbackOnError(t *testing.T) {
+	t.Parallel()
 	openAI := NewOpenAIClient("key", "https://example/openai", nil)
 	anthropic := NewAnthropicClient("key", "https://example")
 	openAI.httpClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
@@ -140,6 +145,7 @@ func TestProtocolRouter_ChatFallbackOnError(t *testing.T) {
 }
 
 func TestProtocolRouter_NoFallbackWhenNil(t *testing.T) {
+	t.Parallel()
 	openAI := NewOpenAIClient("key", "https://example/openai", nil)
 	openAI.httpClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return jsonResponse(http.StatusBadGateway, map[string]string{"error": "down"}), nil

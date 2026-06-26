@@ -6,6 +6,7 @@ import (
 )
 
 func TestCacheAnalyticsRecordHitIncrementsCounters(t *testing.T) {
+	t.Parallel()
 	ca := NewCacheAnalytics()
 
 	ca.RecordCall(CallMetrics{
@@ -30,6 +31,7 @@ func TestCacheAnalyticsRecordHitIncrementsCounters(t *testing.T) {
 }
 
 func TestCacheAnalyticsRecordMissIncrementsCounters(t *testing.T) {
+	t.Parallel()
 	ca := NewCacheAnalytics()
 
 	ca.RecordCall(CallMetrics{
@@ -51,6 +53,7 @@ func TestCacheAnalyticsRecordMissIncrementsCounters(t *testing.T) {
 }
 
 func TestCacheAnalyticsHitRateCalculation(t *testing.T) {
+	t.Parallel()
 	ca := NewCacheAnalytics()
 
 	// 3 hits, 1 miss => 75% hit rate
@@ -81,6 +84,7 @@ func TestCacheAnalyticsHitRateCalculation(t *testing.T) {
 }
 
 func TestCacheAnalyticsResetClears(t *testing.T) {
+	t.Parallel()
 	// The CacheAnalytics type doesn't have a Reset method,
 	// but creating a new instance effectively resets state.
 	ca := NewCacheAnalytics()
@@ -117,6 +121,7 @@ func TestCacheAnalyticsResetClears(t *testing.T) {
 }
 
 func TestCacheAnalyticsCostSaved(t *testing.T) {
+	t.Parallel()
 	ca := NewCacheAnalytics()
 	ca.RecordCall(CallMetrics{
 		Model:           "claude-sonnet-4-6",
@@ -136,6 +141,7 @@ func TestCacheAnalyticsCostSaved(t *testing.T) {
 }
 
 func TestCacheAnalyticsFormatSummaryEmpty(t *testing.T) {
+	t.Parallel()
 	ca := NewCacheAnalytics()
 	s := ca.FormatSummary()
 	if s != "" {

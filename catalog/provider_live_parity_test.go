@@ -9,6 +9,7 @@ import (
 )
 
 func TestAllProviders_LiveFetchParity(t *testing.T) {
+	t.Parallel()
 	specs := registry.All()
 	if len(specs) != 19 {
 		t.Fatalf("expected 19 providers, got %d", len(specs))
@@ -33,6 +34,7 @@ func TestAllProviders_LiveFetchParity(t *testing.T) {
 }
 
 func TestAllProviders_AllReturnEmptyWithoutCatalog(t *testing.T) {
+	t.Parallel()
 	empty := &catalog.ModelCatalog{}
 	// All providers are fully dynamic — should return empty without catalog
 	for _, spec := range registry.All() {
@@ -44,6 +46,7 @@ func TestAllProviders_AllReturnEmptyWithoutCatalog(t *testing.T) {
 }
 
 func TestAllProviders_FirstModelFromCompiledCache(t *testing.T) {
+	t.Parallel()
 	base := catalog.TestSeedCatalogV1()
 	for _, spec := range registry.All() {
 		native := "live-" + spec.ProviderID + "-model"

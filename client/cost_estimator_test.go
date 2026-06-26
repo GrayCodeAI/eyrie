@@ -6,6 +6,7 @@ import (
 )
 
 func TestCostEstimateForKnownModels(t *testing.T) {
+	t.Parallel()
 	ce := NewCostEstimator()
 	messages := []EyrieMessage{
 		{Role: "user", Content: "Hello, how are you doing today?"},
@@ -44,6 +45,7 @@ func TestCostEstimateForKnownModels(t *testing.T) {
 }
 
 func TestCostEstimateWithCacheTokens(t *testing.T) {
+	t.Parallel()
 	ce := NewCostEstimator()
 	messages := []EyrieMessage{
 		{Role: "user", Content: "Hello, this is a test message for caching."},
@@ -59,6 +61,7 @@ func TestCostEstimateWithCacheTokens(t *testing.T) {
 }
 
 func TestCostEstimateUnknownModelReturnsNonZero(t *testing.T) {
+	t.Parallel()
 	// The code uses default pricing for unknown models ($1/MTok in, $3/MTok out)
 	// so it doesn't return zero. Let's verify it uses the default tier.
 	ce := NewCostEstimator()
@@ -84,6 +87,7 @@ func TestCostEstimateUnknownModelReturnsNonZero(t *testing.T) {
 }
 
 func TestCostStreamingTokenCounterWithCache(t *testing.T) {
+	t.Parallel()
 	stc := NewStreamingTokenCounter("claude-sonnet-4-6", 1000)
 	stc.AddCached(800)
 	stc.AddOutput("Hello world, this is output text")
@@ -104,6 +108,7 @@ func TestCostStreamingTokenCounterWithCache(t *testing.T) {
 }
 
 func TestCostIsExpensive(t *testing.T) {
+	t.Parallel()
 	ce := NewCostEstimator()
 	messages := []EyrieMessage{
 		{Role: "user", Content: "test"},

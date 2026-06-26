@@ -12,6 +12,7 @@ import (
 // --- Individual option tests ---
 
 func TestWithAPIKeyAnthropic(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("initial-key", "", WithAPIKey("new-key"))
 	if c.apiKey != "new-key" {
 		t.Errorf("expected apiKey 'new-key', got %q", c.apiKey)
@@ -19,6 +20,7 @@ func TestWithAPIKeyAnthropic(t *testing.T) {
 }
 
 func TestWithAPIKeyOpenAI(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("initial-key", "", nil, WithAPIKey("new-key"))
 	if c.apiKey != "new-key" {
 		t.Errorf("expected apiKey 'new-key', got %q", c.apiKey)
@@ -26,6 +28,7 @@ func TestWithAPIKeyOpenAI(t *testing.T) {
 }
 
 func TestWithBaseURLAnthropic(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("key", "", WithBaseURL("https://custom.example.com"))
 	if c.baseURL != "https://custom.example.com" {
 		t.Errorf("expected baseURL 'https://custom.example.com', got %q", c.baseURL)
@@ -33,6 +36,7 @@ func TestWithBaseURLAnthropic(t *testing.T) {
 }
 
 func TestWithBaseURLOpenAI(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("key", "", nil, WithBaseURL("https://custom.example.com/v1"))
 	if c.baseURL != "https://custom.example.com/v1" {
 		t.Errorf("expected baseURL 'https://custom.example.com/v1', got %q", c.baseURL)
@@ -40,6 +44,7 @@ func TestWithBaseURLOpenAI(t *testing.T) {
 }
 
 func TestWithModelAnthropic(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("key", "", WithModel("claude-sonnet-4-6"))
 	if c.defaultModel != "claude-sonnet-4-6" {
 		t.Errorf("expected defaultModel 'claude-sonnet-4-6', got %q", c.defaultModel)
@@ -47,6 +52,7 @@ func TestWithModelAnthropic(t *testing.T) {
 }
 
 func TestWithModelOpenAI(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("key", "", nil, WithModel("gpt-4o"))
 	if c.defaultModel != "gpt-4o" {
 		t.Errorf("expected defaultModel 'gpt-4o', got %q", c.defaultModel)
@@ -54,6 +60,7 @@ func TestWithModelOpenAI(t *testing.T) {
 }
 
 func TestWithMaxTokensAnthropic(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("key", "", WithMaxTokens(4096))
 	if c.defaultMaxTokens != 4096 {
 		t.Errorf("expected defaultMaxTokens 4096, got %d", c.defaultMaxTokens)
@@ -61,6 +68,7 @@ func TestWithMaxTokensAnthropic(t *testing.T) {
 }
 
 func TestWithMaxTokensOpenAI(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("key", "", nil, WithMaxTokens(2048))
 	if c.defaultMaxTokens != 2048 {
 		t.Errorf("expected defaultMaxTokens 2048, got %d", c.defaultMaxTokens)
@@ -68,6 +76,7 @@ func TestWithMaxTokensOpenAI(t *testing.T) {
 }
 
 func TestWithTemperatureAnthropic(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("key", "", WithTemperature(0.7))
 	if c.defaultTemperature == nil {
 		t.Fatal("expected defaultTemperature to be set, got nil")
@@ -78,6 +87,7 @@ func TestWithTemperatureAnthropic(t *testing.T) {
 }
 
 func TestWithTemperatureOpenAI(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("key", "", nil, WithTemperature(0.3))
 	if c.defaultTemperature == nil {
 		t.Fatal("expected defaultTemperature to be set, got nil")
@@ -88,6 +98,7 @@ func TestWithTemperatureOpenAI(t *testing.T) {
 }
 
 func TestWithRetryAnthropic(t *testing.T) {
+	t.Parallel()
 	rc := RetryConfig{
 		RetryConfig: types.RetryConfig{MaxRetries: 5, BaseDelay: time.Second, MaxDelay: time.Minute},
 		RetryOn:     []int{429, 500},
@@ -108,6 +119,7 @@ func TestWithRetryAnthropic(t *testing.T) {
 }
 
 func TestWithRetryOpenAI(t *testing.T) {
+	t.Parallel()
 	rc := RetryConfig{
 		RetryConfig: types.RetryConfig{MaxRetries: 2, BaseDelay: 200 * time.Millisecond, MaxDelay: 10 * time.Second},
 		RetryOn:     []int{503},
@@ -125,6 +137,7 @@ func TestWithRetryOpenAI(t *testing.T) {
 }
 
 func TestWithTimeoutOpenAI(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("key", "", nil, WithTimeout(15*time.Second))
 	if c.httpClient.Timeout != 15*time.Second {
 		t.Errorf("expected timeout 15s, got %v", c.httpClient.Timeout)
@@ -132,6 +145,7 @@ func TestWithTimeoutOpenAI(t *testing.T) {
 }
 
 func TestWithHTTPClientAnthropic(t *testing.T) {
+	t.Parallel()
 	hc := &http.Client{Timeout: 45 * time.Second}
 	c := NewAnthropicClient("key", "", WithHTTPClient(hc))
 	if c.httpClient != hc {
@@ -143,6 +157,7 @@ func TestWithHTTPClientAnthropic(t *testing.T) {
 }
 
 func TestWithLoggerOpenAI(t *testing.T) {
+	t.Parallel()
 	logger := slog.Default()
 	c := NewOpenAIClient("key", "", nil, WithLogger(logger))
 	if c.logger != logger {
@@ -153,6 +168,7 @@ func TestWithLoggerOpenAI(t *testing.T) {
 // --- Option application order tests ---
 
 func TestOptionApplicationOrderAnthropic(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient(
 		"key", "",
 		WithAPIKey("first"),
@@ -169,6 +185,7 @@ func TestOptionApplicationOrderAnthropic(t *testing.T) {
 }
 
 func TestOptionApplicationOrderOpenAI(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient(
 		"key", "", nil,
 		WithAPIKey("first"),
@@ -185,6 +202,7 @@ func TestOptionApplicationOrderOpenAI(t *testing.T) {
 }
 
 func TestOptionOrderModelMaxTokensTemperature(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient(
 		"key", "",
 		WithModel("first-model"),
@@ -208,6 +226,7 @@ func TestOptionOrderModelMaxTokensTemperature(t *testing.T) {
 // --- Default values tests ---
 
 func TestAnthropicDefaultValues(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("key", "")
 	if c.apiKey != "key" {
 		t.Errorf("expected apiKey 'key', got %q", c.apiKey)
@@ -239,6 +258,7 @@ func TestAnthropicDefaultValues(t *testing.T) {
 }
 
 func TestOpenAIDefaultValues(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("key", "", nil)
 	if c.apiKey != "key" {
 		t.Errorf("expected apiKey 'key', got %q", c.apiKey)
@@ -272,6 +292,7 @@ func TestOpenAIDefaultValues(t *testing.T) {
 // --- Provider-specific option tests ---
 
 func TestOptionsAppliedToAnthropicOnly(t *testing.T) {
+	t.Parallel()
 	opt := ClientOption{
 		applyFn: func(c *AnthropicClient) { c.apiKey = "anthropic-only" },
 	}
@@ -282,6 +303,7 @@ func TestOptionsAppliedToAnthropicOnly(t *testing.T) {
 }
 
 func TestOptionsAppliedToOpenAIOnly(t *testing.T) {
+	t.Parallel()
 	opt := ClientOption{
 		applyOpenAIFn: func(c *OpenAIClient) { c.apiKey = "openai-only" },
 	}
@@ -292,6 +314,7 @@ func TestOptionsAppliedToOpenAIOnly(t *testing.T) {
 }
 
 func TestProviderSpecificNilFnNoPanic(t *testing.T) {
+	t.Parallel()
 	// An option with only applyFn should not panic when applied to OpenAI client.
 	opt := ClientOption{
 		applyFn: func(c *AnthropicClient) { c.apiKey = "anthropic" },
@@ -314,6 +337,7 @@ func TestProviderSpecificNilFnNoPanic(t *testing.T) {
 // --- Combined option tests ---
 
 func TestMultipleOptionsAnthropic(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient(
 		"", "",
 		WithAPIKey("my-key"),
@@ -340,6 +364,7 @@ func TestMultipleOptionsAnthropic(t *testing.T) {
 }
 
 func TestMultipleOptionsOpenAI(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient(
 		"", "", nil,
 		WithAPIKey("my-key"),
@@ -366,6 +391,7 @@ func TestMultipleOptionsOpenAI(t *testing.T) {
 }
 
 func TestOptionOverridesConstructorDefaults(t *testing.T) {
+	t.Parallel()
 	// WithBaseURL should override the constructor's default URL.
 	c := NewAnthropicClient("key", "", WithBaseURL("https://override.example.com"))
 	if c.baseURL != "https://override.example.com" {
@@ -379,6 +405,7 @@ func TestOptionOverridesConstructorDefaults(t *testing.T) {
 }
 
 func TestExistingOptions(t *testing.T) {
+	t.Parallel()
 	// WithTimeout
 	c := NewAnthropicClient("key", "", WithTimeout(5*time.Second))
 	if c.httpClient.Timeout != 5*time.Second {
@@ -401,6 +428,7 @@ func TestExistingOptions(t *testing.T) {
 }
 
 func TestNoOptionsUsesDefaults(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("key", "")
 	if c.apiKey != "key" {
 		t.Errorf("apiKey: expected 'key', got %q", c.apiKey)

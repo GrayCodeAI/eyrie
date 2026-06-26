@@ -6,6 +6,7 @@ import (
 )
 
 func TestContinuation_StopsWhenNotMaxTokens(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "complete answer"
 
@@ -31,6 +32,7 @@ func TestContinuation_StopsWhenNotMaxTokens(t *testing.T) {
 }
 
 func TestContinuation_ContinuesOnMaxTokens(t *testing.T) {
+	t.Parallel()
 	// Use a mock that returns max_tokens for the first call, then end_turn for the second
 	mock := &sequentialMock{
 		responses: []mockResponse{
@@ -67,6 +69,7 @@ func TestContinuation_ContinuesOnMaxTokens(t *testing.T) {
 }
 
 func TestContinuation_RespectsMaxRetries(t *testing.T) {
+	t.Parallel()
 	// All responses return max_tokens — should stop after MaxContinuations
 	mock := &sequentialMock{
 		responses: []mockResponse{
@@ -99,6 +102,7 @@ func TestContinuation_RespectsMaxRetries(t *testing.T) {
 }
 
 func TestContinuation_RespectsMaxTotalTokens(t *testing.T) {
+	t.Parallel()
 	mock := &sequentialMock{
 		responses: []mockResponse{
 			{content: "big chunk", finishReason: "max_tokens", usage: &EyrieUsage{CompletionTokens: 5000}},
@@ -125,6 +129,7 @@ func TestContinuation_RespectsMaxTotalTokens(t *testing.T) {
 }
 
 func TestContinuation_StopsOnToolCalls(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeToolUse)
 
 	ctx := context.Background()
@@ -149,6 +154,7 @@ func TestContinuation_StopsOnToolCalls(t *testing.T) {
 }
 
 func TestContinuation_StreamNoContinuationNeeded(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "complete"
 
@@ -186,6 +192,7 @@ func TestContinuation_StreamNoContinuationNeeded(t *testing.T) {
 }
 
 func TestContinuation_StreamContinuesOnMaxTokens(t *testing.T) {
+	t.Parallel()
 	// Use the sequential mock which responds max_tokens then end_turn
 	mock := &sequentialMock{
 		responses: []mockResponse{

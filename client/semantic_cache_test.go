@@ -7,6 +7,7 @@ import (
 )
 
 func TestCachedProviderCacheHit(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "cached response"
 
@@ -41,6 +42,7 @@ func TestCachedProviderCacheHit(t *testing.T) {
 }
 
 func TestCachedProviderDifferentInputsMiss(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeEcho)
 
 	cp := NewCachedProvider(inner, DefaultCacheConfig())
@@ -69,6 +71,7 @@ func TestCachedProviderDifferentInputsMiss(t *testing.T) {
 }
 
 func TestCachedProviderHighTempSkipsCache(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "varied"
 
@@ -93,6 +96,7 @@ func TestCachedProviderHighTempSkipsCache(t *testing.T) {
 }
 
 func TestCachedProviderLowTempUsesCacheEntry(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "deterministic"
 
@@ -116,6 +120,7 @@ func TestCachedProviderLowTempUsesCacheEntry(t *testing.T) {
 }
 
 func TestCachedProviderTTLExpiration(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "ephemeral"
 
@@ -152,6 +157,7 @@ func TestCachedProviderTTLExpiration(t *testing.T) {
 }
 
 func TestCachedProviderLRUEviction(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeEcho)
 
 	cfg := CacheConfig{
@@ -209,6 +215,7 @@ func TestCachedProviderLRUEviction(t *testing.T) {
 }
 
 func TestCachedProviderDisabled(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "uncached"
 
@@ -230,6 +237,7 @@ func TestCachedProviderDisabled(t *testing.T) {
 }
 
 func TestCachedProviderSetEnabled(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "ok"
 
@@ -257,6 +265,7 @@ func TestCachedProviderSetEnabled(t *testing.T) {
 }
 
 func TestCachedProviderClearCache(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "ok"
 
@@ -279,6 +288,7 @@ func TestCachedProviderClearCache(t *testing.T) {
 }
 
 func TestCachedProviderStreamNotCached(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "streamed"
 
@@ -300,6 +310,7 @@ func TestCachedProviderStreamNotCached(t *testing.T) {
 }
 
 func TestCachedProviderName(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	cp := NewCachedProvider(inner, DefaultCacheConfig())
 	if cp.Name() != "mock" {
@@ -308,6 +319,7 @@ func TestCachedProviderName(t *testing.T) {
 }
 
 func TestCachedProviderPing(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	cp := NewCachedProvider(inner, DefaultCacheConfig())
 	if err := cp.Ping(context.Background()); err != nil {
@@ -316,6 +328,7 @@ func TestCachedProviderPing(t *testing.T) {
 }
 
 func TestCachedProviderDifferentModels(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "ok"
 
@@ -333,6 +346,7 @@ func TestCachedProviderDifferentModels(t *testing.T) {
 }
 
 func TestCachedProviderResponseIsolation(t *testing.T) {
+	t.Parallel()
 	inner := NewMockProvider(MockModeFixed)
 	inner.Response = "original"
 
@@ -351,6 +365,7 @@ func TestCachedProviderResponseIsolation(t *testing.T) {
 }
 
 func TestBuildCacheKeyDeterministic(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "hello"},
 		{Role: "assistant", Content: "hi"},

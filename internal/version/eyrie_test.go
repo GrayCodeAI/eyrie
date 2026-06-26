@@ -9,12 +9,14 @@ import (
 )
 
 func TestVersionNotEmpty(t *testing.T) {
+	t.Parallel()
 	if Version == "" {
 		t.Fatal("Version should not be empty; check that the VERSION file is embedded")
 	}
 }
 
 func TestVersionMatchesSemver(t *testing.T) {
+	t.Parallel()
 	// Expect a semver-like pattern: major.minor.patch with optional pre-release/build metadata
 	re := regexp.MustCompile(`^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$`)
 	if !re.MatchString(Version) {
@@ -23,12 +25,14 @@ func TestVersionMatchesSemver(t *testing.T) {
 }
 
 func TestVersionIsTrimmed(t *testing.T) {
+	t.Parallel()
 	if strings.TrimSpace(Version) != Version {
 		t.Errorf("Version contains leading/trailing whitespace: %q", Version)
 	}
 }
 
 func TestVersionFromEmbedFile(t *testing.T) {
+	t.Parallel()
 	// The versionFile variable is the raw embedded content; Version should be the trimmed form
 	raw := strings.TrimSpace(versionFile)
 	if raw != Version {
@@ -37,12 +41,14 @@ func TestVersionFromEmbedFile(t *testing.T) {
 }
 
 func TestVersionFileNotEmpty(t *testing.T) {
+	t.Parallel()
 	if strings.TrimSpace(versionFile) == "" {
 		t.Fatal("Embedded versionFile is empty; the VERSION file may be missing")
 	}
 }
 
 func TestVersionPropagatedToClient(t *testing.T) {
+	// Not parallel: reads client.Version which is modified by other tests.
 	// The init() in this package calls client.SetVersion(Version).
 	// After package init, client.Version should match.
 	if client.Version != Version {
@@ -51,6 +57,7 @@ func TestVersionPropagatedToClient(t *testing.T) {
 }
 
 func TestClientSetVersionDirectly(t *testing.T) {
+	// Not parallel: mutates client.Version global.
 	original := client.Version
 	defer client.SetVersion(original)
 
@@ -61,6 +68,7 @@ func TestClientSetVersionDirectly(t *testing.T) {
 }
 
 func TestClientSetVersionEmpty(t *testing.T) {
+	// Not parallel: mutates client.Version global.
 	original := client.Version
 	defer client.SetVersion(original)
 
@@ -71,6 +79,7 @@ func TestClientSetVersionEmpty(t *testing.T) {
 }
 
 func TestVersionStartsWithV0(t *testing.T) {
+	t.Parallel()
 	// The initial version is 0.1.0; verify it starts with 0.
 	if !strings.HasPrefix(Version, "0.") {
 		t.Errorf("expected Version to start with '0.', got %q", Version)

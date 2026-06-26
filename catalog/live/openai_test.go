@@ -9,6 +9,7 @@ import (
 )
 
 func TestFetchOpenAI_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	body, err := os.ReadFile("testdata/openai_models.json")
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +51,7 @@ func TestFetchOpenAI_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchOpenAI_NoKey(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchOpenAI(map[string]string{})
 	if err != nil {
 		t.Fatal(err)
@@ -60,6 +62,7 @@ func TestFetchOpenAI_NoKey(t *testing.T) {
 }
 
 func TestFetchOpenAI_Unauthorized(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})

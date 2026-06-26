@@ -7,6 +7,7 @@ import (
 )
 
 func TestMemoryBudgetStore_EnforcesLimit(t *testing.T) {
+	t.Parallel()
 	s := NewMemoryBudgetStore()
 	s.SetBudget("team-a", 1.00)
 
@@ -27,6 +28,7 @@ func TestMemoryBudgetStore_EnforcesLimit(t *testing.T) {
 }
 
 func TestMemoryBudgetStore_UnknownKey(t *testing.T) {
+	t.Parallel()
 	s := NewMemoryBudgetStore()
 	if err := s.CheckBudget(context.Background(), "nope", 0.01); !errors.Is(err, ErrUnknownVirtualKey) {
 		t.Errorf("expected ErrUnknownVirtualKey, got %v", err)
@@ -34,6 +36,7 @@ func TestMemoryBudgetStore_UnknownKey(t *testing.T) {
 }
 
 func TestMemoryBudgetStore_UnlimitedWhenZero(t *testing.T) {
+	t.Parallel()
 	s := NewMemoryBudgetStore()
 	s.SetBudget("free", 0) // unlimited
 	if err := s.CheckBudget(context.Background(), "free", 1000); err != nil {
@@ -42,6 +45,7 @@ func TestMemoryBudgetStore_UnlimitedWhenZero(t *testing.T) {
 }
 
 func TestBudgetProvider_BlocksOverBudget(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "ok"
 	store := NewMemoryBudgetStore()
@@ -60,6 +64,7 @@ func TestBudgetProvider_BlocksOverBudget(t *testing.T) {
 }
 
 func TestBudgetProvider_AllowsAndRecords(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "ok"
 	store := NewMemoryBudgetStore()
@@ -83,6 +88,7 @@ func TestBudgetProvider_AllowsAndRecords(t *testing.T) {
 }
 
 func TestBudgetProvider_NoKeyPassesThrough(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "ok"
 	bp := NewBudgetProvider(mock, NewMemoryBudgetStore())
@@ -96,6 +102,7 @@ func TestBudgetProvider_NoKeyPassesThrough(t *testing.T) {
 }
 
 func TestActualCostUSD(t *testing.T) {
+	t.Parallel()
 	usage := &EyrieUsage{PromptTokens: 1000, CompletionTokens: 1000}
 	cost := ActualCostUSD("gpt-4o", usage)
 	// 1000*2.5/1e6 + 1000*10/1e6 = 0.0025 + 0.01 = 0.0125

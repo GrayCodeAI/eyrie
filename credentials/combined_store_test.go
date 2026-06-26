@@ -9,6 +9,7 @@ import (
 // --- CombinedStore edge-case tests (nil keychain, empty secrets) ---
 
 func TestCombinedStore_NilKeychain(t *testing.T) {
+	t.Parallel()
 	cs := &CombinedStore{Keychain: nil}
 	ctx := context.Background()
 
@@ -34,6 +35,7 @@ func TestCombinedStore_NilKeychain(t *testing.T) {
 }
 
 func TestCombinedStore_EmptySecretIsNoop(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	cs := &CombinedStore{Keychain: ms}
 	ctx := context.Background()
@@ -61,6 +63,7 @@ func TestCombinedStore_EmptySecretIsNoop(t *testing.T) {
 }
 
 func TestCombinedStore_FullCycle(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	cs := &CombinedStore{Keychain: ms}
 	ctx := context.Background()
@@ -103,6 +106,7 @@ func TestCombinedStore_FullCycle(t *testing.T) {
 // --- DefaultStore / SetDefaultStore tests ---
 
 func TestSetDefaultStore_Override(t *testing.T) {
+	// Not parallel: mutates global DefaultStore.
 	_ = DefaultStore() // ensure initialized
 	t.Cleanup(func() { SetDefaultStore(nil) })
 
@@ -125,6 +129,7 @@ func TestSetDefaultStore_Override(t *testing.T) {
 // --- discoveryEnvKeys tests ---
 
 func TestDiscoveryEnvKeys_ReturnsNonEmpty(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	keys := discoveryEnvKeys(ctx)
 
@@ -152,6 +157,7 @@ func TestDiscoveryEnvKeys_ReturnsNonEmpty(t *testing.T) {
 }
 
 func TestDiscoveryEnvKeys_NilContext(t *testing.T) {
+	t.Parallel()
 	keys := discoveryEnvKeys(context.Background())
 	if len(keys) == 0 {
 		t.Fatal("discoveryEnvKeys should return fallback keys")
@@ -161,6 +167,7 @@ func TestDiscoveryEnvKeys_NilContext(t *testing.T) {
 // --- APIKeysMap tests ---
 
 func TestAPIKeysMap_NilStoreUsesDefault(t *testing.T) {
+	// Not parallel: mutates global DefaultStore.
 	ms := &MapStore{}
 	SetDefaultStore(ms)
 	t.Cleanup(func() { SetDefaultStore(nil) })
@@ -175,6 +182,7 @@ func TestAPIKeysMap_NilStoreUsesDefault(t *testing.T) {
 }
 
 func TestAPIKeysMap_WithStore(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	ctx := context.Background()
 	_ = ms.Set(ctx, AccountForEnv("OPENAI_API_KEY"), "sk-oai")

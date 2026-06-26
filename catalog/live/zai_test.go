@@ -8,6 +8,7 @@ import (
 )
 
 func TestFetchZAI_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)
@@ -56,6 +57,7 @@ func TestFetchZAI_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchZAI_NoKey(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchZAI(map[string]string{})
 	if err != nil {
 		t.Fatal(err)
@@ -66,6 +68,7 @@ func TestFetchZAI_NoKey(t *testing.T) {
 }
 
 func TestFetchZAI_Unauthorized(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
@@ -82,6 +85,7 @@ func TestFetchZAI_Unauthorized(t *testing.T) {
 }
 
 func TestFetchZAICoding_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)

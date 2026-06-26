@@ -57,6 +57,7 @@ func testCompiledCatalog(t *testing.T) *catalog.CompiledCatalogV1 {
 }
 
 func TestDeploymentRouterRewritesCanonicalModelToNativeModel(t *testing.T) {
+	t.Parallel()
 	p := &deploymentMockProvider{name: "anthropic"}
 	r, err := NewDeploymentRouter(DeploymentRouterOptions{
 		Catalog: testCompiledCatalog(t),
@@ -83,6 +84,7 @@ func TestDeploymentRouterRewritesCanonicalModelToNativeModel(t *testing.T) {
 }
 
 func TestDeploymentRouterFallsBackAcrossStages(t *testing.T) {
+	t.Parallel()
 	primary := &deploymentMockProvider{name: "direct", err: fmt.Errorf("HTTP 503 unavailable")}
 	vertex := &deploymentMockProvider{name: "vertex"}
 	bedrock := &deploymentMockProvider{name: "bedrock"}
@@ -115,6 +117,7 @@ func TestDeploymentRouterFallsBackAcrossStages(t *testing.T) {
 }
 
 func TestShouldTryNextDeploymentCredits(t *testing.T) {
+	t.Parallel()
 	err := fmt.Errorf("requires more credits, or fewer max_tokens; can only afford 5705")
 	if !ShouldTryNextDeployment(err) {
 		t.Fatal("expected credit error to allow next deployment")
@@ -125,6 +128,7 @@ func TestShouldTryNextDeploymentCredits(t *testing.T) {
 }
 
 func TestDeploymentRouterFallsBackOnInsufficientCredits(t *testing.T) {
+	t.Parallel()
 	c := catalog.TestSeedCatalogV1()
 	c.Providers["moonshotai"] = catalog.ProviderV1{ID: "moonshotai", Name: "Moonshot AI"}
 	c.Models["moonshotai/kimi-k2.6"] = catalog.ModelV1{
@@ -183,6 +187,7 @@ func TestDeploymentRouterFallsBackOnInsufficientCredits(t *testing.T) {
 }
 
 func TestDeploymentRouterNonTransientDoesNotFallback(t *testing.T) {
+	t.Parallel()
 	primary := &deploymentMockProvider{name: "direct", err: fmt.Errorf("HTTP 401 unauthorized")}
 	fallback := &deploymentMockProvider{name: "vertex"}
 	r, err := NewDeploymentRouter(DeploymentRouterOptions{
@@ -209,6 +214,7 @@ func TestDeploymentRouterNonTransientDoesNotFallback(t *testing.T) {
 }
 
 func TestDeploymentRouterMaterializesAzureModelMapping(t *testing.T) {
+	t.Parallel()
 	azure := &deploymentMockProvider{name: "azure"}
 	r, err := NewDeploymentRouter(DeploymentRouterOptions{
 		Catalog: testCompiledCatalog(t),
@@ -237,6 +243,7 @@ func TestDeploymentRouterMaterializesAzureModelMapping(t *testing.T) {
 }
 
 func TestDeploymentRouterModelMappingOverridesCatalogOffering(t *testing.T) {
+	t.Parallel()
 	bedrock := &deploymentMockProvider{name: "bedrock"}
 	r, err := NewDeploymentRouter(DeploymentRouterOptions{
 		Catalog: testCompiledCatalog(t),
@@ -265,6 +272,7 @@ func TestDeploymentRouterModelMappingOverridesCatalogOffering(t *testing.T) {
 }
 
 func TestDeploymentRouterStreamFallbackBeforeOutput(t *testing.T) {
+	t.Parallel()
 	primary := &deploymentMockProvider{name: "direct", streamErr: fmt.Errorf("HTTP 503")}
 	fallback := &deploymentMockProvider{name: "vertex"}
 	r, err := NewDeploymentRouter(DeploymentRouterOptions{
@@ -300,6 +308,7 @@ func TestDeploymentRouterStreamFallbackBeforeOutput(t *testing.T) {
 }
 
 func TestDeploymentRouterNativeMimoUsesConfiguredXiaomiDeployment(t *testing.T) {
+	t.Parallel()
 	mimo := &deploymentMockProvider{name: "xiaomi"}
 	compiled := &catalog.CompiledCatalogV1{
 		Catalog: &catalog.CatalogV1{

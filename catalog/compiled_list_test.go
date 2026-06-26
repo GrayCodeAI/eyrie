@@ -3,6 +3,7 @@ package catalog
 import "testing"
 
 func TestModelEntriesForProvider_OpenRouterUsesOfferings(t *testing.T) {
+	t.Parallel()
 	raw := []byte(`{"id":"anthropic/claude-sonnet-4-6","architecture":{"modality":"text"}}`)
 	compiled := &CompiledCatalogV1{
 		ModelsByID: map[string]ModelV1{
@@ -27,6 +28,7 @@ func TestModelEntriesForProvider_OpenRouterUsesOfferings(t *testing.T) {
 }
 
 func TestModelEntriesForProvider_CanopyWaveUsesDeploymentOfferings(t *testing.T) {
+	t.Parallel()
 	raw := []byte(`{"id":"moonshotai/kimi-k2.6","name":"Kimi K2.6","owned_by":"moonshotai"}`)
 	compiled := &CompiledCatalogV1{
 		ModelsByID: map[string]ModelV1{
@@ -51,6 +53,7 @@ func TestModelEntriesForProvider_CanopyWaveUsesDeploymentOfferings(t *testing.T)
 }
 
 func TestModelEntriesForProvider_GeminiUsesDirectDeploymentOfferings(t *testing.T) {
+	t.Parallel()
 	compiled := &CompiledCatalogV1{
 		ModelsByID: map[string]ModelV1{
 			"gemini-flash": {ID: "gemini-flash", Name: "Flash", ProviderID: "google"},
@@ -71,6 +74,7 @@ func TestModelEntriesForProvider_GeminiUsesDirectDeploymentOfferings(t *testing.
 }
 
 func TestCanonicalModelForProviderNative_PrefersDeploymentOverGlobalAlias(t *testing.T) {
+	t.Parallel()
 	compiled := &CompiledCatalogV1{
 		Catalog: &CatalogV1{
 			Aliases: map[string]string{
@@ -96,6 +100,7 @@ func TestCanonicalModelForProviderNative_PrefersDeploymentOverGlobalAlias(t *tes
 }
 
 func TestModelEntriesForProvider_AnthropicUsesDirectDeploymentOfferings(t *testing.T) {
+	t.Parallel()
 	compiled := &CompiledCatalogV1{
 		ModelsByID: map[string]ModelV1{
 			"anthropic/claude-sonnet-4-6": {ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet", ProviderID: "anthropic"},

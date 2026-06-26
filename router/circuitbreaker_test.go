@@ -6,6 +6,7 @@ import (
 )
 
 func TestCircuitBreaker_OpenToHalfOpen(t *testing.T) {
+	t.Parallel()
 	cb := NewCircuitBreaker(1, 10*time.Millisecond)
 	cb.Failure()
 	if cb.State() != CircuitOpen {
@@ -28,6 +29,7 @@ func TestCircuitBreaker_OpenToHalfOpen(t *testing.T) {
 }
 
 func TestCircuitBreaker_HalfOpenSuccessCloses(t *testing.T) {
+	t.Parallel()
 	cb := NewCircuitBreaker(1, 10*time.Millisecond)
 	cb.Failure()
 	time.Sleep(15 * time.Millisecond)
@@ -40,6 +42,7 @@ func TestCircuitBreaker_HalfOpenSuccessCloses(t *testing.T) {
 }
 
 func TestCircuitBreaker_HalfOpenFailureReopensImmediately(t *testing.T) {
+	t.Parallel()
 	cb := NewCircuitBreaker(1, 10*time.Millisecond)
 	cb.Failure()
 	time.Sleep(15 * time.Millisecond)
@@ -56,10 +59,12 @@ func TestCircuitBreaker_HalfOpenFailureReopensImmediately(t *testing.T) {
 }
 
 func TestCircuitBreaker_ProbeFailThenProbeSucceed(t *testing.T) {
+	t.Parallel()
 	t.Skip("flaky: timing-dependent; use TestCircuitBreaker_ProbeFailThenProbeSucceed_Manual instead")
 }
 
 func TestCircuitBreaker_ProbeFailThenProbeSucceed_Manual(t *testing.T) {
+	t.Parallel()
 	cb := NewCircuitBreaker(1, 1*time.Millisecond)
 	cb.Failure()
 	cb.lastFailureTime = time.Now().Add(-10 * time.Millisecond)

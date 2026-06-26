@@ -3,6 +3,7 @@ package registry
 import "testing"
 
 func TestSpecByProviderID_AcceptsCatalogAliases(t *testing.T) {
+	t.Parallel()
 	if _, ok := SpecByProviderID("google"); !ok {
 		t.Fatal("expected google to resolve to gemini spec")
 	}
@@ -15,6 +16,7 @@ func TestSpecByProviderID_AcceptsCatalogAliases(t *testing.T) {
 }
 
 func TestDisplayName_CatalogAlias(t *testing.T) {
+	t.Parallel()
 	if got := DisplayName("google"); got != "Gemini API" {
 		t.Fatalf("DisplayName(google) = %q", got)
 	}

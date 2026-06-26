@@ -12,6 +12,7 @@ import (
 // --- ValidateKeyFormat ---
 
 func TestValidateKeyFormat(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		secret  string
@@ -32,6 +33,7 @@ func TestValidateKeyFormat(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ValidateKeyFormat(tt.secret)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("ValidateKeyFormat(%q) error = %v, wantErr %v", tt.secret, err, tt.wantErr)
@@ -105,6 +107,7 @@ func TestSetCredential_TrimsWhitespace(t *testing.T) {
 // --- ListCredentialProviders ---
 
 func TestListCredentialProviders_NotEmpty(t *testing.T) {
+	t.Parallel()
 	providers := ListCredentialProviders()
 	if len(providers) == 0 {
 		t.Fatal("expected non-empty list of credential providers")
@@ -117,6 +120,7 @@ func TestListCredentialProviders_NotEmpty(t *testing.T) {
 }
 
 func TestListCredentialProviders_ContainsKnownProviders(t *testing.T) {
+	t.Parallel()
 	providers := ListCredentialProviders()
 	ids := make(map[string]bool, len(providers))
 	for _, p := range providers {
@@ -132,6 +136,7 @@ func TestListCredentialProviders_ContainsKnownProviders(t *testing.T) {
 // --- ResolveCredential ---
 
 func TestResolveCredential(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		secret        string
@@ -168,6 +173,7 @@ func TestResolveCredential(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := ResolveCredential(context.Background(), tt.secret)
 			if result.FormatOK != tt.wantFormatOK {
 				t.Fatalf("FormatOK = %v, want %v", result.FormatOK, tt.wantFormatOK)
@@ -185,6 +191,7 @@ func TestResolveCredential(t *testing.T) {
 }
 
 func TestInferCredentialsFromAPIKey(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		secret string
@@ -195,6 +202,7 @@ func TestInferCredentialsFromAPIKey(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			inferences := InferCredentialsFromAPIKey(context.Background(), tt.secret)
 			if len(inferences) != 0 {
 				t.Fatalf("expected no prefix inference, got %d", len(inferences))
@@ -204,6 +212,7 @@ func TestInferCredentialsFromAPIKey(t *testing.T) {
 }
 
 func TestInferenceForProvider_OpenAI(t *testing.T) {
+	t.Parallel()
 	inf, err := InferenceForProvider("openai")
 	if err != nil {
 		t.Fatal(err)
@@ -216,6 +225,7 @@ func TestInferenceForProvider_OpenAI(t *testing.T) {
 // --- LocalCredentialInference ---
 
 func TestLocalCredentialInference(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		providerID string
@@ -228,6 +238,7 @@ func TestLocalCredentialInference(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			inf, err := LocalCredentialInference(tt.providerID)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("LocalCredentialInference(%q) error = %v, wantErr %v", tt.providerID, err, tt.wantErr)
@@ -250,6 +261,7 @@ func TestLocalCredentialInference(t *testing.T) {
 // --- ProbeCredential ---
 
 func TestProbeCredential_EmptyArgs(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		envKey string
@@ -261,6 +273,7 @@ func TestProbeCredential_EmptyArgs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ProbeCredential(context.Background(), tt.envKey, tt.secret)
 			// ProbeCredential may or may not error on empty args depending on implementation;
 			// at minimum it should not panic.
@@ -270,6 +283,7 @@ func TestProbeCredential_EmptyArgs(t *testing.T) {
 }
 
 func TestProbeCredential_UnknownEnvKey(t *testing.T) {
+	t.Parallel()
 	// An env key not in the registry should return nil (no-op probe).
 	err := ProbeCredential(context.Background(), "COMPLETELY_UNKNOWN_ENV_KEY", "some-value-12345")
 	if err != nil {
@@ -280,6 +294,7 @@ func TestProbeCredential_UnknownEnvKey(t *testing.T) {
 // --- CommitCredential ---
 
 func TestCommitCredential(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		inference CredentialInference
@@ -307,6 +322,7 @@ func TestCommitCredential(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := CommitCredential(context.Background(), tt.inference, tt.secret)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("CommitCredential() error = %v, wantErr %v", err, tt.wantErr)
@@ -316,6 +332,7 @@ func TestCommitCredential(t *testing.T) {
 }
 
 func TestCommitCredential_NilInference(t *testing.T) {
+	t.Parallel()
 	// Zero-value inference with valid secret should fail because EnvVar is empty.
 	err := CommitCredential(context.Background(), CredentialInference{}, "sk-ant-test-key-12345")
 	if err == nil {
@@ -402,6 +419,7 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 // --- Credential types re-exported ---
 
 func TestCredentialTypes_Reexported(t *testing.T) {
+	t.Parallel()
 	// Verify the re-exported types are usable.
 	var inf CredentialInference
 	inf.ProviderID = "test"
@@ -425,6 +443,7 @@ func TestCredentialTypes_Reexported(t *testing.T) {
 // --- ResolveCredential format error ---
 
 func TestResolveCredential_FormatErrorMessage(t *testing.T) {
+	t.Parallel()
 	result := ResolveCredential(context.Background(), "")
 	if result.FormatOK {
 		t.Fatal("expected FormatOK=false")

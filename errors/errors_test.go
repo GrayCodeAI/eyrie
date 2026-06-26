@@ -3,6 +3,7 @@ package errors
 import "testing"
 
 func TestStartsWithApiErrorPrefix(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input string
 		want  bool
@@ -20,6 +21,7 @@ func TestStartsWithApiErrorPrefix(t *testing.T) {
 }
 
 func TestParsePromptTooLongTokenCounts(t *testing.T) {
+	t.Parallel()
 	actual, limit := ParsePromptTooLongTokenCounts("prompt is too long: 137500 tokens > 135000 maximum")
 	if actual == nil || *actual != 137500 {
 		t.Errorf("expected actual=137500, got %v", actual)
@@ -35,6 +37,7 @@ func TestParsePromptTooLongTokenCounts(t *testing.T) {
 }
 
 func TestIsMediaSizeError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input string
 		want  bool
@@ -53,6 +56,7 @@ func TestIsMediaSizeError(t *testing.T) {
 }
 
 func TestErrorMessageGetters(t *testing.T) {
+	t.Parallel()
 	if msg := GetPdfTooLargeErrorMessage(); msg == "" {
 		t.Error("expected non-empty message")
 	}

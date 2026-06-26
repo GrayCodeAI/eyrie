@@ -6,6 +6,7 @@ import (
 )
 
 func TestNativeModelID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		in, want string
 	}{
@@ -22,6 +23,7 @@ func TestNativeModelID(t *testing.T) {
 }
 
 func TestProtocolForModel(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		model string
 		want  string
@@ -46,6 +48,7 @@ func TestProtocolForModel(t *testing.T) {
 }
 
 func TestUsesMessagesAPI_HeuristicFallback(t *testing.T) {
+	t.Parallel()
 	// Reset map so we test the heuristic fallback.
 	ResetProtocolMap()
 	tests := []struct {
@@ -72,6 +75,7 @@ func TestUsesMessagesAPI_HeuristicFallback(t *testing.T) {
 }
 
 func TestUsesMessagesAPI_DynamicMapOverrides(t *testing.T) {
+	t.Parallel()
 	ResetProtocolMap()
 	// Simulate live fetch returning protocol data.
 	UpdateProtocolMap([]struct{ ID, Protocol string }{
@@ -101,6 +105,7 @@ func TestUsesMessagesAPI_DynamicMapOverrides(t *testing.T) {
 }
 
 func TestProtocolMapSnapshot(t *testing.T) {
+	t.Parallel()
 	ResetProtocolMap()
 	UpdateProtocolMap([]struct{ ID, Protocol string }{
 		{"kimi-k2.6", "openai"},
@@ -117,6 +122,7 @@ func TestProtocolMapSnapshot(t *testing.T) {
 }
 
 func TestUsageTracker_RecordAndSpend(t *testing.T) {
+	t.Parallel()
 	tracker := NewUsageTracker(DefaultUsageLimits())
 	now := time.Now()
 
@@ -137,6 +143,7 @@ func TestUsageTracker_RecordAndSpend(t *testing.T) {
 }
 
 func TestUsageTracker_WouldExceedLimit(t *testing.T) {
+	t.Parallel()
 	tracker := NewUsageTracker(UsageLimits{
 		FiveHourLimit: 12.0,
 		WeeklyLimit:   30.0,
@@ -159,6 +166,7 @@ func TestUsageTracker_WouldExceedLimit(t *testing.T) {
 }
 
 func TestEstimateCost(t *testing.T) {
+	t.Parallel()
 	// $1.40/1M input, $4.40/1M output (GLM-5.1 pricing)
 	cost := EstimateCost("glm-5.1", 1000, 500, 1.40, 4.40)
 	// (1000 * 1.40 + 500 * 4.40) / 1_000_000 = (1400 + 2200) / 1_000_000 = 0.0036
@@ -168,6 +176,7 @@ func TestEstimateCost(t *testing.T) {
 }
 
 func TestFormatStatus(t *testing.T) {
+	t.Parallel()
 	s := UsageStatus{
 		FiveHourSpend: 5.50, FiveHourLimit: 12.0,
 		WeeklySpend: 15.25, WeeklyLimit: 30.0,
@@ -181,6 +190,7 @@ func TestFormatStatus(t *testing.T) {
 }
 
 func TestEstimateCostTiered_NoThreshold(t *testing.T) {
+	t.Parallel()
 	// No tiering — should match simple EstimateCost.
 	base := PricingTier{InputPer1M: 0.50, OutputPer1M: 1.50}
 	cost := EstimateCostTiered(1000, 500, base, PricingTier{}, 0)
@@ -191,6 +201,7 @@ func TestEstimateCostTiered_NoThreshold(t *testing.T) {
 }
 
 func TestEstimateCostTiered_WithinThreshold(t *testing.T) {
+	t.Parallel()
 	// Qwen3.7 Plus: $0.40/1M input, $1.60/1M output below 256K
 	//               $1.20/1M input, $4.80/1M output above 256K
 	base := PricingTier{InputPer1M: 0.40, OutputPer1M: 1.60}
@@ -206,6 +217,7 @@ func TestEstimateCostTiered_WithinThreshold(t *testing.T) {
 }
 
 func TestEstimateCostTiered_AboveThreshold(t *testing.T) {
+	t.Parallel()
 	base := PricingTier{InputPer1M: 0.40, OutputPer1M: 1.60}
 	tiered := PricingTier{InputPer1M: 1.20, OutputPer1M: 4.80}
 	threshold := 256000

@@ -39,6 +39,7 @@ func (f *fakeProvider) StreamChat(_ context.Context, _ []client.EyrieMessage, _ 
 }
 
 func TestRun_AllPass(t *testing.T) {
+	t.Parallel()
 	cases := CanonicalCases()
 	resp := map[string]*client.EyrieResponse{
 		"Reply with a short greeting.":                            {Content: "Hello!"},
@@ -57,6 +58,7 @@ func TestRun_AllPass(t *testing.T) {
 }
 
 func TestRun_DetectsFailures(t *testing.T) {
+	t.Parallel()
 	cases := CanonicalCases()
 	resp := map[string]*client.EyrieResponse{
 		"Reply with a short greeting.":               {Content: ""},     // empty → fail
@@ -78,6 +80,7 @@ func TestRun_DetectsFailures(t *testing.T) {
 }
 
 func TestRun_ToolMissingRequiredArg(t *testing.T) {
+	t.Parallel()
 	cases := []Case{{
 		ID:       "tool",
 		Messages: []client.EyrieMessage{{Role: "user", Content: "go"}},
@@ -97,6 +100,7 @@ func TestRun_ToolMissingRequiredArg(t *testing.T) {
 }
 
 func TestRun_ProviderError(t *testing.T) {
+	t.Parallel()
 	cases := []Case{{
 		ID:       "boom",
 		Messages: []client.EyrieMessage{{Role: "user", Content: "x"}},
@@ -113,6 +117,7 @@ func TestRun_ProviderError(t *testing.T) {
 }
 
 func TestDiffBaseline(t *testing.T) {
+	t.Parallel()
 	baseline := Report{Results: []CaseResult{
 		{ID: "a", Passed: true},
 		{ID: "b", Passed: true},
@@ -130,6 +135,7 @@ func TestDiffBaseline(t *testing.T) {
 }
 
 func TestReport_Markdown(t *testing.T) {
+	t.Parallel()
 	rep := Report{
 		Provider: "fake",
 		Total:    1,

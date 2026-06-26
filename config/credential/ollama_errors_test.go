@@ -9,6 +9,7 @@ import (
 )
 
 func TestFormatOllamaConnectError_ConnectionRefused(t *testing.T) {
+	t.Parallel()
 	err := FormatOllamaConnectError(context.DeadlineExceeded)
 	if err == nil {
 		t.Fatal("expected error")
@@ -19,6 +20,7 @@ func TestFormatOllamaConnectError_ConnectionRefused(t *testing.T) {
 }
 
 func TestCommitLocalCredential_OllamaNoModels(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"models": []any{}})
 	}))

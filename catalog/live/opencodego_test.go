@@ -10,6 +10,7 @@ import (
 )
 
 func TestFetchOpenCodeGo_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)
@@ -48,6 +49,7 @@ func TestFetchOpenCodeGo_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchOpenCodeGoUpdatesProtocolMap(t *testing.T) {
+	t.Parallel()
 	opencodego.ResetProtocolMap()
 	defer opencodego.ResetProtocolMap()
 
@@ -86,6 +88,7 @@ func TestFetchOpenCodeGoUpdatesProtocolMap(t *testing.T) {
 }
 
 func TestFetchOpenCodeGo_NoKey(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchOpenCodeGo(map[string]string{})
 	if err != nil {
 		t.Fatal(err)

@@ -8,6 +8,7 @@ import (
 )
 
 func TestRecorderName(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "hello"
 
@@ -26,6 +27,7 @@ func TestRecorderName(t *testing.T) {
 }
 
 func TestRecorderRecordMode(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "recorded response"
 
@@ -81,6 +83,7 @@ func TestRecorderRecordMode(t *testing.T) {
 }
 
 func TestRecorderReplayMode(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "original response"
 
@@ -129,6 +132,7 @@ func TestRecorderReplayMode(t *testing.T) {
 }
 
 func TestRecorderAutoMode_RecordsWhenNoFile(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "auto recorded"
 
@@ -166,6 +170,7 @@ func TestRecorderAutoMode_RecordsWhenNoFile(t *testing.T) {
 }
 
 func TestRecorderAutoMode_ReplaysWhenFileExists(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "first"
 
@@ -214,6 +219,7 @@ func TestRecorderAutoMode_ReplaysWhenFileExists(t *testing.T) {
 }
 
 func TestRecorderHashBasedLookup(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 
 	dir := t.TempDir()
@@ -271,6 +277,7 @@ func TestRecorderHashBasedLookup(t *testing.T) {
 }
 
 func TestRecorderStreamRecord(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "streamed content"
 
@@ -321,6 +328,7 @@ func TestRecorderStreamRecord(t *testing.T) {
 }
 
 func TestRecorderStreamReplay(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "replay this stream"
 
@@ -384,6 +392,7 @@ func TestRecorderStreamReplay(t *testing.T) {
 }
 
 func TestRecorderReplayModeFailsIfNoFile(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	_, err := NewRecorderProvider(mock, "/nonexistent/path/cassette.json", RecordModeReplay)
 	if err == nil {
@@ -392,6 +401,7 @@ func TestRecorderReplayModeFailsIfNoFile(t *testing.T) {
 }
 
 func TestRecorderRedactor(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "secret: my-api-key-12345"
 

@@ -12,6 +12,7 @@ import (
 )
 
 func TestCatalogV1FromLegacyCompiles(t *testing.T) {
+	t.Parallel()
 	c := testLegacyCatalogV1()
 	compiled, err := CompileCatalogV1(&c)
 	if err != nil {
@@ -33,6 +34,7 @@ func TestCatalogV1FromLegacyCompiles(t *testing.T) {
 }
 
 func TestCatalogV1FromLegacyZAIDirectModels(t *testing.T) {
+	t.Parallel()
 	legacy := testLegacyModelCatalog()
 	legacy.Providers["zai_payg"] = []ModelCatalogEntry{{ID: "glm-5.1", DisplayName: "GLM-5.1"}}
 	c := CatalogV1FromLegacy(legacy)
@@ -46,6 +48,7 @@ func TestCatalogV1FromLegacyZAIDirectModels(t *testing.T) {
 }
 
 func TestCatalogV1FromLegacyCanopyWaveNamespacedModels(t *testing.T) {
+	t.Parallel()
 	legacy := testLegacyModelCatalog()
 	legacy.Providers["canopywave"] = append(
 		legacy.Providers["canopywave"],
@@ -62,6 +65,7 @@ func TestCatalogV1FromLegacyCanopyWaveNamespacedModels(t *testing.T) {
 }
 
 func TestValidateCatalogV1RejectsBadReferences(t *testing.T) {
+	t.Parallel()
 	c := testLegacyCatalogV1()
 	c.Offerings = append(c.Offerings, ModelOfferingV1{
 		ID:               "missing:model",
@@ -76,6 +80,7 @@ func TestValidateCatalogV1RejectsBadReferences(t *testing.T) {
 }
 
 func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	cachePath := filepath.Join(dir, "catalog.json")
 	c := testLegacyCatalogV1()
@@ -105,6 +110,7 @@ func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
 }
 
 func TestLoadCatalogV1RefreshRemoteOverridesValidCache(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	cachePath := filepath.Join(dir, "catalog.json")
 	cached := testLegacyCatalogV1()
@@ -142,6 +148,7 @@ func TestLoadCatalogV1RefreshRemoteOverridesValidCache(t *testing.T) {
 }
 
 func TestLoadCatalogV1RejectsInvalidRemote(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	cachePath := filepath.Join(dir, "missing.json")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -162,6 +169,7 @@ func TestLoadCatalogV1RejectsInvalidRemote(t *testing.T) {
 }
 
 func TestFetchRemoteCatalogV1StrictValidation(t *testing.T) {
+	t.Parallel()
 	c := testLegacyCatalogV1()
 	c.GeneratedAt = time.Now().UTC()
 	c.StaleAfter = c.GeneratedAt.Add(time.Hour)
@@ -191,6 +199,7 @@ func (c *CatalogV1) SourceForTest(source string) {
 }
 
 func TestCapabilitySetFromLegacy_AnthropicFeatures(t *testing.T) {
+	t.Parallel()
 	entry := ModelCatalogEntry{
 		ID:            "claude-sonnet-4-6",
 		ContextWindow: 1000000,
@@ -252,6 +261,7 @@ func TestCapabilitySetFromLegacy_AnthropicFeatures(t *testing.T) {
 }
 
 func TestCapabilitySetFromLegacy_EmptyFeatures(t *testing.T) {
+	t.Parallel()
 	entry := ModelCatalogEntry{ID: "test-model"}
 	set := capabilitySetFromLegacy(entry)
 	if set.ServerTools != nil {

@@ -6,6 +6,7 @@ import (
 )
 
 func TestFilterRelationships_DropsEmpty(t *testing.T) {
+	t.Parallel()
 	in := []Relationship{
 		{Subject: "eyrie", Predicate: "part_of", Object: "hawk-eco"},
 		{Subject: "", Predicate: "x", Object: "y"},   // empty subject
@@ -19,6 +20,7 @@ func TestFilterRelationships_DropsEmpty(t *testing.T) {
 }
 
 func TestFilterRelationships_PredicateAllowlist(t *testing.T) {
+	t.Parallel()
 	in := []Relationship{
 		{Subject: "a", Predicate: "depends_on", Object: "b"},
 		{Subject: "a", Predicate: "Depends_On", Object: "c"},  // case-insensitive match
@@ -31,6 +33,7 @@ func TestFilterRelationships_PredicateAllowlist(t *testing.T) {
 }
 
 func TestExtractRelationships_EmptyText(t *testing.T) {
+	t.Parallel()
 	c := &EyrieClient{}
 	_, err := c.ExtractRelationships(context.Background(), "   ", ExtractOptions{})
 	if err == nil {
@@ -39,6 +42,7 @@ func TestExtractRelationships_EmptyText(t *testing.T) {
 }
 
 func TestRelationshipSchema_Shape(t *testing.T) {
+	t.Parallel()
 	s := relationshipSchema()
 	props, ok := s["properties"].(map[string]interface{})
 	if !ok {

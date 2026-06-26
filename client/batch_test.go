@@ -10,6 +10,7 @@ import (
 )
 
 func TestBatchSubmitSendsCorrectFormat(t *testing.T) {
+	t.Parallel()
 	var receivedBody map[string]interface{}
 	var receivedHeaders http.Header
 
@@ -72,6 +73,7 @@ func TestBatchSubmitSendsCorrectFormat(t *testing.T) {
 }
 
 func TestBatchPollReturnsBatchStatus(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("Poll method = %s, want GET", r.Method)
@@ -98,6 +100,7 @@ func TestBatchPollReturnsBatchStatus(t *testing.T) {
 }
 
 func TestBatchSubmitHandlesErrors(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(422)
 		_, _ = w.Write([]byte(`{"error": "invalid request"}`))
@@ -123,6 +126,7 @@ func TestBatchSubmitHandlesErrors(t *testing.T) {
 }
 
 func TestBatchSubmitEmptyRequests(t *testing.T) {
+	t.Parallel()
 	bc := NewBatchClient("test-key", "http://localhost")
 	_, err := bc.Submit(context.Background(), nil)
 	if err == nil {

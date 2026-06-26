@@ -9,6 +9,7 @@ import (
 )
 
 func TestSessionIdAndAgentId(t *testing.T) {
+	t.Parallel()
 	sid := AsSessionId("session-123")
 	if string(sid) != "session-123" {
 		t.Error("AsSessionId failed")
@@ -20,6 +21,7 @@ func TestSessionIdAndAgentId(t *testing.T) {
 }
 
 func TestToAgentId(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input string
 		valid bool
@@ -42,6 +44,7 @@ func TestToAgentId(t *testing.T) {
 }
 
 func TestIsTextBlock(t *testing.T) {
+	t.Parallel()
 	tb := TextBlock{Type: "text", Text: "hello"}
 	if b, ok := IsTextBlock(tb); !ok || b.Text != "hello" {
 		t.Error("IsTextBlock failed for valid TextBlock")
@@ -52,6 +55,7 @@ func TestIsTextBlock(t *testing.T) {
 }
 
 func TestIsToolUseBlock(t *testing.T) {
+	t.Parallel()
 	tub := ToolUseBlock{Type: "tool_use", ID: "1", Name: "test", Input: nil}
 	if b, ok := IsToolUseBlock(tub); !ok || b.Name != "test" {
 		t.Error("IsToolUseBlock failed")
@@ -59,6 +63,7 @@ func TestIsToolUseBlock(t *testing.T) {
 }
 
 func TestCreateMessages(t *testing.T) {
+	t.Parallel()
 	um := CreateUserMessage("hello")
 	if um.Role != "user" || um.Content != "hello" {
 		t.Error("CreateUserMessage failed")
@@ -74,6 +79,7 @@ func TestCreateMessages(t *testing.T) {
 }
 
 func TestEmptyUsage(t *testing.T) {
+	t.Parallel()
 	u := EmptyUsage()
 	if u.InputTokens != 0 || u.OutputTokens != 0 {
 		t.Error("EmptyUsage should have zero tokens")
@@ -84,6 +90,7 @@ func TestEmptyUsage(t *testing.T) {
 }
 
 func TestAPIError(t *testing.T) {
+	t.Parallel()
 	err := NewAPIError(429, nil, nil, "rate limited")
 	if err.Error() != "rate limited" {
 		t.Errorf("expected 'rate limited', got %q", err.Error())
@@ -99,6 +106,7 @@ func TestAPIError(t *testing.T) {
 }
 
 func TestIsConnectorTextBlock(t *testing.T) {
+	t.Parallel()
 	valid := map[string]interface{}{"type": "connector_text", "text": "hello"}
 	if !IsConnectorTextBlock(valid) {
 		t.Error("expected true for valid connector text block")
@@ -112,6 +120,7 @@ func TestIsConnectorTextBlock(t *testing.T) {
 // --- Retry logic tests ---
 
 func TestIsTransient(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		err       error
@@ -192,6 +201,7 @@ func TestIsTransient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := IsTransient(tt.err)
 			if got != tt.transient {
 				t.Errorf("IsTransient(%v) = %v, want %v", tt.err, got, tt.transient)
@@ -201,6 +211,7 @@ func TestIsTransient(t *testing.T) {
 }
 
 func TestExtractHTTPStatus(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		err   error
@@ -224,6 +235,7 @@ func TestExtractHTTPStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			code, found := ExtractHTTPStatus(tt.err)
 			if found != tt.found {
 				t.Errorf("ExtractHTTPStatus(%v) found = %v, want %v", tt.err, found, tt.found)
@@ -236,6 +248,7 @@ func TestExtractHTTPStatus(t *testing.T) {
 }
 
 func TestTransientErrorType(t *testing.T) {
+	t.Parallel()
 	te := &TransientError{StatusCode: 503, Message: "service down"}
 	msg := te.Error()
 
@@ -273,6 +286,7 @@ func TestTransientErrorType(t *testing.T) {
 }
 
 func TestClassifyError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		status        int
@@ -299,6 +313,7 @@ func TestClassifyError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ClassifyError(tt.status, tt.message)
 
 			var te *TransientError
@@ -337,6 +352,7 @@ func TestClassifyError(t *testing.T) {
 // IsTransient returns false for unknown errors; isRetriableError returns true.
 // This test ensures the conservative policy is preserved.
 func TestIsTransientVsIsRetriableDivergence(t *testing.T) {
+	t.Parallel()
 	// These errors are unknown to IsTransient — they don't match any known
 	// pattern. IsTransient should say "not retriable" (conservative).
 	unknownErrors := []error{

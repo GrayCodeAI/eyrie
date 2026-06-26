@@ -7,6 +7,7 @@ import (
 )
 
 func TestResolveRoutingModelOverride(t *testing.T) {
+	t.Parallel()
 	c := catalog.DefaultCatalogV1()
 	compiled, err := catalog.CompileCatalogV1(&c)
 	if err != nil {
@@ -35,6 +36,7 @@ func TestResolveRoutingModelOverride(t *testing.T) {
 }
 
 func TestResolveRoutingProviderFallback(t *testing.T) {
+	t.Parallel()
 	c := catalog.DefaultCatalogV1()
 	compiled, err := catalog.CompileCatalogV1(&c)
 	if err != nil {

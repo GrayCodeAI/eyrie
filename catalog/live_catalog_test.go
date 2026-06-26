@@ -7,6 +7,7 @@ import (
 )
 
 func TestIsLiveOnlyProvider(t *testing.T) {
+	t.Parallel()
 	// All providers are now fully dynamic
 	allProviders := []string{
 		"anthropic", "openai", "gemini", "grok", "canopywave", "z_ai", "openrouter", "ollama", "opencodego",
@@ -20,6 +21,7 @@ func TestIsLiveOnlyProvider(t *testing.T) {
 }
 
 func TestFirstModelForProvider(t *testing.T) {
+	t.Parallel()
 	c := catalog.TestSeedCatalogV1()
 	c.Models["zai_payg/glm-5.1"] = catalog.ModelV1{ID: "zai_payg/glm-5.1", ProviderID: "zai_payg", Name: "GLM-5.1"}
 	compiled, err := catalog.CompileCatalogV1(&c)
@@ -32,6 +34,7 @@ func TestFirstModelForProvider(t *testing.T) {
 }
 
 func TestGetProviderDefaultModel_AllProvidersEmptyWithoutCatalog(t *testing.T) {
+	t.Parallel()
 	// All providers return empty without a catalog (fully dynamic)
 	allProviders := []string{
 		"anthropic", "openai", "gemini", "grok", "bedrock", "kimi",

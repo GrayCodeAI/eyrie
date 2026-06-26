@@ -5,6 +5,7 @@ import (
 )
 
 func TestSanitizeMessagesEmpty(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{}
 	result := SanitizeMessages(msgs)
 	if len(result) != 0 {
@@ -13,6 +14,7 @@ func TestSanitizeMessagesEmpty(t *testing.T) {
 }
 
 func TestSanitizeMessagesNil(t *testing.T) {
+	t.Parallel()
 	result := SanitizeMessages(nil)
 	if len(result) != 0 {
 		t.Errorf("SanitizeMessages(nil) returned %d messages, want 0", len(result))
@@ -20,6 +22,7 @@ func TestSanitizeMessagesNil(t *testing.T) {
 }
 
 func TestSanitizeMessagesNoOrphans(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "assistant", ToolUse: []ToolCall{{ID: "tc-1", Name: "search", Arguments: map[string]interface{}{"q": "test"}}}},
 		{Role: "user", ToolResults: []ToolResult{{ToolUseID: "tc-1", Content: "result"}}},
@@ -31,6 +34,7 @@ func TestSanitizeMessagesNoOrphans(t *testing.T) {
 }
 
 func TestSanitizeMessagesOrphanedToolUse(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "Do something"},
 		{Role: "assistant", ToolUse: []ToolCall{
@@ -63,6 +67,7 @@ func TestSanitizeMessagesOrphanedToolUse(t *testing.T) {
 }
 
 func TestSanitizeMessagesMultipleOrphans(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "assistant", ToolUse: []ToolCall{
 			{ID: "tc-a", Name: "tool_a", Arguments: map[string]interface{}{}},
@@ -84,6 +89,7 @@ func TestSanitizeMessagesMultipleOrphans(t *testing.T) {
 }
 
 func TestSanitizeMessagesMixedOrphanAndMatched(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "assistant", ToolUse: []ToolCall{
 			{ID: "matched", Name: "tool1", Arguments: map[string]interface{}{}},
@@ -109,6 +115,7 @@ func TestSanitizeMessagesMixedOrphanAndMatched(t *testing.T) {
 }
 
 func TestSanitizeMessagesPreservesOrder(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "first"},
 		{Role: "assistant", Content: "second"},
@@ -126,6 +133,7 @@ func TestSanitizeMessagesPreservesOrder(t *testing.T) {
 }
 
 func TestSanitizeMessagesNoToolUse(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "Hello"},
 		{Role: "assistant", Content: "Hi there"},
@@ -137,6 +145,7 @@ func TestSanitizeMessagesNoToolUse(t *testing.T) {
 }
 
 func TestSanitizeMessagesEmptyToolUse(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "assistant", ToolUse: []ToolCall{}},
 	}
@@ -147,6 +156,7 @@ func TestSanitizeMessagesEmptyToolUse(t *testing.T) {
 }
 
 func TestSanitizeMessagesOrphanWithEmptyID(t *testing.T) {
+	t.Parallel()
 	// Tool call with empty ID should not be injected (tc.ID != "" guard)
 	msgs := []EyrieMessage{
 		{Role: "assistant", ToolUse: []ToolCall{
@@ -160,6 +170,7 @@ func TestSanitizeMessagesOrphanWithEmptyID(t *testing.T) {
 }
 
 func TestSanitizeMessagesDeduplicatesInjections(t *testing.T) {
+	t.Parallel()
 	// If the same ID appears in two assistant messages, only inject once
 	msgs := []EyrieMessage{
 		{Role: "assistant", ToolUse: []ToolCall{{ID: "dup-1", Name: "t1", Arguments: map[string]interface{}{}}}},

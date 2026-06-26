@@ -13,6 +13,7 @@ func approxEqual(a, b, eps float64) bool {
 }
 
 func TestToolCallF1(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		results       []CaseResult
@@ -81,6 +82,7 @@ func TestToolCallF1(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			p, r, f := ToolCallF1(tt.results, nil)
 			const eps = 1e-9
 			if !approxEqual(p, tt.wantPrecision, eps) {
@@ -99,6 +101,7 @@ func TestToolCallF1(t *testing.T) {
 // TestRun_F1ScorePopulated verifies that Run populates Report.F1Score via
 // the harness end-to-end, using a scripted provider.
 func TestRun_F1ScorePopulated(t *testing.T) {
+	t.Parallel()
 	cases := []Case{
 		{
 			ID:       "tool-case",

@@ -8,6 +8,7 @@ import (
 )
 
 func TestModerationProvider_AllowsSafe(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(
 		mock,
@@ -29,6 +30,7 @@ func TestModerationProvider_AllowsSafe(t *testing.T) {
 }
 
 func TestModerationProvider_BlocksPattern(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(
 		mock,
@@ -49,6 +51,7 @@ func TestModerationProvider_BlocksPattern(t *testing.T) {
 }
 
 func TestModerationProvider_TokenLimit(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(
 		mock,
@@ -70,6 +73,7 @@ func TestModerationProvider_TokenLimit(t *testing.T) {
 }
 
 func TestModerationProvider_TokenLimitAllowsUnderLimit(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(
 		mock,
@@ -87,6 +91,7 @@ func TestModerationProvider_TokenLimitAllowsUnderLimit(t *testing.T) {
 }
 
 func TestModerationProvider_CustomChecker(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(
 		mock,
@@ -112,6 +117,7 @@ func TestModerationProvider_CustomChecker(t *testing.T) {
 }
 
 func TestModerationProvider_CustomCheckerAllows(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(
 		mock,
@@ -128,6 +134,7 @@ func TestModerationProvider_CustomCheckerAllows(t *testing.T) {
 }
 
 func TestModerationProvider_StreamChat(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(
 		mock,
@@ -158,6 +165,7 @@ func TestModerationProvider_StreamChat(t *testing.T) {
 }
 
 func TestModerationProvider_StreamChatBlocked(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(
 		mock,
@@ -175,6 +183,7 @@ func TestModerationProvider_StreamChatBlocked(t *testing.T) {
 }
 
 func TestModerationProvider_ContentParts(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(
 		mock,
@@ -194,6 +203,7 @@ func TestModerationProvider_ContentParts(t *testing.T) {
 }
 
 func TestModerationProvider_Name(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	mp := NewModerationProvider(mock)
 	if mp.Name() != "mock/moderation" {
@@ -202,6 +212,7 @@ func TestModerationProvider_Name(t *testing.T) {
 }
 
 func TestModerationProvider_NilInner(t *testing.T) {
+	t.Parallel()
 	mp := NewModerationProvider(nil)
 	if mp != nil {
 		t.Fatal("expected nil from NewModerationProvider with nil inner")

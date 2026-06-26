@@ -9,6 +9,7 @@ import (
 )
 
 func TestDefaultModelProviderFilter_FromProviderConfig(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		cfg    *config.ProviderConfig
@@ -32,6 +33,7 @@ func TestDefaultModelProviderFilter_FromProviderConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			p := config.DefaultProviderFromConfig(tt.cfg)
 			if catalog.CanonicalProviderID(p) != tt.expect {
 				t.Fatalf("expected %q, got %q", tt.expect, p)
@@ -41,6 +43,7 @@ func TestDefaultModelProviderFilter_FromProviderConfig(t *testing.T) {
 }
 
 func TestDefaultModelProviderFilter_LoadDoesNotPanic(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	_ = DefaultModelProviderFilter(ctx)
 }

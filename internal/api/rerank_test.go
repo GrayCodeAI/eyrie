@@ -45,6 +45,7 @@ func testServerWithReranker(t *testing.T, r Reranker) *httptest.Server {
 }
 
 func TestRerankLexicalFallback(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -82,6 +83,7 @@ func TestRerankLexicalFallback(t *testing.T) {
 }
 
 func TestRerankUsesConfiguredReranker(t *testing.T) {
+	t.Parallel()
 	reranker := &mockReranker{scores: []float64{0.1, 0.9, 0.4}}
 	ts := testServerWithReranker(t, reranker)
 	defer ts.Close()
@@ -116,6 +118,7 @@ func TestRerankUsesConfiguredReranker(t *testing.T) {
 }
 
 func TestRerankConfiguredRerankerError(t *testing.T) {
+	t.Parallel()
 	ts := testServerWithReranker(t, &mockReranker{err: errors.New("rerank failed")})
 	defer ts.Close()
 
@@ -131,6 +134,7 @@ func TestRerankConfiguredRerankerError(t *testing.T) {
 }
 
 func TestRerankConfiguredRerankerScoreLengthMismatch(t *testing.T) {
+	t.Parallel()
 	ts := testServerWithReranker(t, &mockReranker{scores: []float64{0.2}})
 	defer ts.Close()
 
@@ -146,6 +150,7 @@ func TestRerankConfiguredRerankerScoreLengthMismatch(t *testing.T) {
 }
 
 func TestRerankTopN(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -168,6 +173,7 @@ func TestRerankTopN(t *testing.T) {
 }
 
 func TestRerankValidation(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -193,6 +199,7 @@ func TestRerankValidation(t *testing.T) {
 }
 
 func TestReady(t *testing.T) {
+	t.Parallel()
 	ts := testServer(t)
 	defer ts.Close()
 
@@ -207,6 +214,7 @@ func TestReady(t *testing.T) {
 }
 
 func TestReadyNotReady(t *testing.T) {
+	t.Parallel()
 	// A server without a store/engine must report not-ready (503), while
 	// /health (liveness) keeps reporting ok.
 	s := &Server{mux: http.NewServeMux()}

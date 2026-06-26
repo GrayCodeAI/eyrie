@@ -11,6 +11,7 @@ import (
 )
 
 func TestUserCatalog_GatewayCountsMatchDeploymentOfferings(t *testing.T) {
+	t.Parallel()
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Skip(err) // TODO: https://github.com/GrayCodeAI/eyrie/issues/31

@@ -56,6 +56,7 @@ func captureAnthropicRequest(chatBody, streamBody *[]byte, streamAccept *string)
 // paths are inconsistent (e.g., a tool_use field only present in
 // streaming, or a max_tokens default that's different).
 func TestAnthropic_ChatVsStream_SameBody(t *testing.T) {
+	t.Parallel()
 	var chatBody, streamBody []byte
 	var streamAccept string
 	srv := httptest.NewServer(captureAnthropicRequest(&chatBody, &streamBody, &streamAccept))
@@ -113,6 +114,7 @@ func TestAnthropic_ChatVsStream_SameBody(t *testing.T) {
 // TestAnthropic_BuildRequest_ModelRequired: an empty Model returns
 // a clear error from the helper.
 func TestAnthropic_BuildRequest_ModelRequired(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("test-key", "http://localhost:0")
 	_, _, err := c.buildAnthropicRequest(
 		context.Background(),
@@ -131,6 +133,7 @@ func TestAnthropic_BuildRequest_ModelRequired(t *testing.T) {
 // TestAnthropic_BuildRequest_StreamSetsAccept: when stream is true,
 // the helper sets the Accept header. When false, it does not.
 func TestAnthropic_BuildRequest_StreamSetsAccept(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("test-key", "http://localhost:0")
 	messages := []EyrieMessage{{Role: "user", Content: "hi"}}
 	opts := ChatOptions{Model: "claude-test"}
@@ -155,6 +158,7 @@ func TestAnthropic_BuildRequest_StreamSetsAccept(t *testing.T) {
 // TestAnthropic_BuildRequest_GetBody: GetBody must return a fresh
 // reader over the same body (needed for the MiMo 401 retry path).
 func TestAnthropic_BuildRequest_GetBody(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("test-key", "http://localhost:0")
 	req, body, err := c.buildAnthropicRequest(
 		context.Background(),
@@ -184,6 +188,7 @@ func TestAnthropic_BuildRequest_GetBody(t *testing.T) {
 // are merged (System prefix + messages). Verify this for both
 // Chat and Stream paths.
 func TestAnthropic_BuildRequest_SystemPromptMerging(t *testing.T) {
+	t.Parallel()
 	var chatBody, streamBody []byte
 	var streamAccept string
 	srv := httptest.NewServer(captureAnthropicRequest(&chatBody, &streamBody, &streamAccept))
@@ -235,6 +240,7 @@ func TestAnthropic_BuildRequest_SystemPromptMerging(t *testing.T) {
 // TestAnthropic_BuildRequest_SizeLimit: bodies over 32 MB are
 // rejected with a clear error.
 func TestAnthropic_BuildRequest_SizeLimit(t *testing.T) {
+	t.Parallel()
 	c := NewAnthropicClient("test-key", "http://localhost:0")
 	// Build a single huge message that pushes the body over 32 MB.
 	big := strings.Repeat("x", 33*1024*1024) // 33 MB
@@ -271,6 +277,7 @@ func captureOpenAIRequest(chatBody, streamBody *[]byte, streamAccept *string) ht
 // TestOpenAI_ChatVsStream_SameBody: same byte-equality assertion for
 // the OpenAI Chat Completions path.
 func TestOpenAI_ChatVsStream_SameBody(t *testing.T) {
+	t.Parallel()
 	var chatBody, streamBody []byte
 	var streamAccept string
 	srv := httptest.NewServer(captureOpenAIRequest(&chatBody, &streamBody, &streamAccept))
@@ -309,6 +316,7 @@ func TestOpenAI_ChatVsStream_SameBody(t *testing.T) {
 // TestOpenAI_BuildRequest_StreamSetsAccept: OpenAI StreamChat sets
 // the Accept: text/event-stream header; Chat does not.
 func TestOpenAI_BuildRequest_StreamSetsAccept(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("test-key", "http://localhost:0", &OpenAICompatConfig{})
 	messages := []EyrieMessage{{Role: "user", Content: "hi"}}
 	opts := ChatOptions{Model: "gpt-test"}

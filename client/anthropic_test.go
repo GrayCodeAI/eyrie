@@ -10,6 +10,7 @@ import (
 // --- buildAnthropicMessages tests ---
 
 func TestAnthropicBuildMessages_TextOnly(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "system", Content: "You are helpful."},
 		{Role: "user", Content: "Hello"},
@@ -38,6 +39,7 @@ func TestAnthropicBuildMessages_TextOnly(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_ToolUse(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "assistant", Content: "Let me check.", ToolUse: []ToolCall{
 			{ID: "call_1", Name: "get_weather", Arguments: map[string]interface{}{"city": "NYC"}},
@@ -69,6 +71,7 @@ func TestAnthropicBuildMessages_ToolUse(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_ToolUseNoText(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "assistant", ToolUse: []ToolCall{
 			{ID: "call_2", Name: "read_file", Arguments: map[string]interface{}{"path": "/tmp/x"}},
@@ -86,6 +89,7 @@ func TestAnthropicBuildMessages_ToolUseNoText(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_ToolResult(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", ToolResults: []ToolResult{{
 			ToolUseID: "call_1",
@@ -117,6 +121,7 @@ func TestAnthropicBuildMessages_ToolResult(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_ToolResultError(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", ToolResults: []ToolResult{{
 			ToolUseID: "call_err",
@@ -132,6 +137,7 @@ func TestAnthropicBuildMessages_ToolResultError(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_ImageBase64(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "What is this?", Images: []string{
 			"data:image/png;base64,iVBORw0KGgoAAAANS",
@@ -170,6 +176,7 @@ func TestAnthropicBuildMessages_ImageBase64(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_ImageURL(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "Describe this", Images: []string{
 			"https://example.com/image.jpg",
@@ -190,6 +197,7 @@ func TestAnthropicBuildMessages_ImageURL(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_ImageNoText(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", Images: []string{"https://example.com/pic.png"}},
 	}
@@ -205,6 +213,7 @@ func TestAnthropicBuildMessages_ImageNoText(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_MultipleImages(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "Compare these", Images: []string{
 			"data:image/jpeg;base64,/9j/4AAQ",
@@ -233,6 +242,7 @@ func TestAnthropicBuildMessages_MultipleImages(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_NoSystem(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}
@@ -246,6 +256,7 @@ func TestAnthropicBuildMessages_NoSystem(t *testing.T) {
 }
 
 func TestAnthropicBuildMessages_EmptyInput(t *testing.T) {
+	t.Parallel()
 	result, system := buildAnthropicMessages(nil)
 	if system != "" {
 		t.Errorf("expected empty system, got %q", system)
@@ -258,6 +269,7 @@ func TestAnthropicBuildMessages_EmptyInput(t *testing.T) {
 // --- convertToAnthropicTools tests ---
 
 func TestAnthropicConvertTools(t *testing.T) {
+	t.Parallel()
 	tools := []EyrieTool{
 		{
 			Name:        "get_weather",
@@ -304,6 +316,7 @@ func TestAnthropicConvertTools(t *testing.T) {
 }
 
 func TestAnthropicConvertTools_Empty(t *testing.T) {
+	t.Parallel()
 	result := convertToAnthropicTools(nil)
 	if result != nil {
 		t.Errorf("expected nil for empty tools, got %v", result)

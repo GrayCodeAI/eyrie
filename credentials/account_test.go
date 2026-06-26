@@ -5,6 +5,7 @@ import (
 )
 
 func TestAccountForEnv(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input string
@@ -22,6 +23,7 @@ func TestAccountForEnv(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := AccountForEnv(tt.input)
 			if got != tt.want {
 				t.Errorf("AccountForEnv(%q) = %q, want %q", tt.input, got, tt.want)
@@ -31,6 +33,7 @@ func TestAccountForEnv(t *testing.T) {
 }
 
 func TestEnvForAccount(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		account string
@@ -54,6 +57,7 @@ func TestEnvForAccount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := EnvForAccount(tt.account)
 			if got != tt.want {
 				t.Errorf("EnvForAccount(%q) = %q, want %q", tt.account, got, tt.want)
@@ -63,6 +67,7 @@ func TestEnvForAccount(t *testing.T) {
 }
 
 func TestAccountForEnv_EnvForAccount_RoundTrip(t *testing.T) {
+	t.Parallel()
 	// For known keys, EnvForAccount(AccountForEnv(key)) should return the canonical form.
 	canonical := []string{
 		"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY",
@@ -71,6 +76,7 @@ func TestAccountForEnv_EnvForAccount_RoundTrip(t *testing.T) {
 	}
 	for _, envKey := range canonical {
 		t.Run(envKey, func(t *testing.T) {
+			t.Parallel()
 			account := AccountForEnv(envKey)
 			got := EnvForAccount(account)
 			if got != envKey {

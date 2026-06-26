@@ -3,6 +3,7 @@ package client
 import "testing"
 
 func TestParseHermesToolCalls(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		text      string
@@ -87,6 +88,7 @@ func TestParseHermesToolCalls(t *testing.T) {
 // Ensure the Moonshot/kimi format still routes correctly and is not shadowed by
 // the new Hermes fallback.
 func TestParseInlineToolCalls_MoonshotStillWorks(t *testing.T) {
+	t.Parallel()
 	text := `answer <|tool_calls_section_begin|><|tool_call_begin|>functions.do_thing:0<|tool_call_argument_begin|>{"a":1}<|tool_call_end|><|tool_calls_section_end|>`
 	clean, calls := ParseInlineToolCalls(text)
 	if clean != "answer" {
@@ -100,6 +102,7 @@ func TestParseInlineToolCalls_MoonshotStillWorks(t *testing.T) {
 // --- Tier 3: bare brace-match JSON fallback tests ---
 
 func TestParseBraceMatch_RawJSONNoFences(t *testing.T) {
+	t.Parallel()
 	text := `{"name":"search","arguments":{"q":"golang"}}`
 	clean, calls := ParseInlineToolCalls(text)
 	if len(calls) != 1 {
@@ -118,6 +121,7 @@ func TestParseBraceMatch_RawJSONNoFences(t *testing.T) {
 }
 
 func TestParseBraceMatch_JSONWithTextPrefix(t *testing.T) {
+	t.Parallel()
 	text := `Sure, let me call that. {"name":"list_files","arguments":{"dir":"/tmp"}}`
 	clean, calls := ParseInlineToolCalls(text)
 	if len(calls) != 1 {
@@ -132,6 +136,7 @@ func TestParseBraceMatch_JSONWithTextPrefix(t *testing.T) {
 }
 
 func TestParseBraceMatch_MalformedJSONReturnedVerbatim(t *testing.T) {
+	t.Parallel()
 	text := `{"name": "x", "arguments": INVALID}`
 	clean, calls := ParseInlineToolCalls(text)
 	if len(calls) != 0 {
@@ -143,6 +148,7 @@ func TestParseBraceMatch_MalformedJSONReturnedVerbatim(t *testing.T) {
 }
 
 func TestParseBraceMatch_MissingNameReturnedVerbatim(t *testing.T) {
+	t.Parallel()
 	text := `{"arguments":{"a":1}}`
 	clean, calls := ParseInlineToolCalls(text)
 	if len(calls) != 0 {
@@ -154,6 +160,7 @@ func TestParseBraceMatch_MissingNameReturnedVerbatim(t *testing.T) {
 }
 
 func TestParseBraceMatch_NotShadowingHermesTags(t *testing.T) {
+	t.Parallel()
 	// When Hermes tags are present, the brace-match tier must NOT run.
 	text := `<tool_call>{"name":"ping","arguments":{}}</tool_call>`
 	clean, calls := ParseInlineToolCalls(text)
@@ -164,6 +171,7 @@ func TestParseBraceMatch_NotShadowingHermesTags(t *testing.T) {
 }
 
 func TestParseBraceMatch_NoJSONInText(t *testing.T) {
+	t.Parallel()
 	text := "just plain text with no JSON at all"
 	clean, calls := ParseInlineToolCalls(text)
 	if len(calls) != 0 {

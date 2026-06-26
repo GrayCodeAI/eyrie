@@ -8,6 +8,7 @@ import (
 )
 
 func TestValidateKeyFormat(t *testing.T) {
+	t.Parallel()
 	if err := ValidateKeyFormat(""); err == nil {
 		t.Fatal("expected error for empty")
 	}
@@ -20,6 +21,7 @@ func TestValidateKeyFormat(t *testing.T) {
 }
 
 func TestValidateKeyFormat_NoPrefixRequired(t *testing.T) {
+	t.Parallel()
 	// Gateway is chosen in UI; secrets need not match vendor prefix patterns.
 	keys := []string{
 		"0123456789abcdef",                    // no sk- prefix
@@ -38,6 +40,7 @@ func TestValidateKeyFormat_NoPrefixRequired(t *testing.T) {
 }
 
 func TestResolveCredential_ListsAllProviders(t *testing.T) {
+	t.Parallel()
 	res := ResolveCredential(context.Background(), "sk-ant-api03-test-key-1234567890")
 	if !res.FormatOK {
 		t.Fatalf("format should be ok: %s", res.FormatError)
@@ -62,6 +65,7 @@ func TestResolveCredential_ListsAllProviders(t *testing.T) {
 }
 
 func TestResolveCredential_InvalidFormat(t *testing.T) {
+	t.Parallel()
 	res := ResolveCredential(context.Background(), "short")
 	if res.FormatOK {
 		t.Fatal("expected format error")
@@ -69,6 +73,7 @@ func TestResolveCredential_InvalidFormat(t *testing.T) {
 }
 
 func TestListCredentialProviders_Count(t *testing.T) {
+	t.Parallel()
 	if n := len(ListCredentialProviders()); n != len(registry.All()) {
 		t.Fatalf("expected %d providers, got %d", len(registry.All()), n)
 	}

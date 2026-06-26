@@ -7,6 +7,7 @@ import (
 )
 
 func TestDefaultDeploymentEnvFallbacks_HasAllProviderDeployments(t *testing.T) {
+	t.Parallel()
 	fbs := DefaultDeploymentEnvFallbacks
 	for _, spec := range registry.All() {
 		if _, ok := fbs[spec.DeploymentID]; !ok {
@@ -16,6 +17,7 @@ func TestDefaultDeploymentEnvFallbacks_HasAllProviderDeployments(t *testing.T) {
 }
 
 func TestDefaultDeploymentEnvFallbacks_ExtraDeployments(t *testing.T) {
+	t.Parallel()
 	fbs := DefaultDeploymentEnvFallbacks
 	extras := []string{"anthropic-bedrock", "anthropic-vertex", "openai-azure", "gemini-vertex"}
 	for _, id := range extras {
@@ -26,6 +28,7 @@ func TestDefaultDeploymentEnvFallbacks_ExtraDeployments(t *testing.T) {
 }
 
 func TestDefaultDeploymentEnvFallbacks_GrokHasXAIAPIKey(t *testing.T) {
+	t.Parallel()
 	fbs := DefaultDeploymentEnvFallbacks
 	grok, ok := fbs["grok-direct"]
 	if !ok {
@@ -47,6 +50,7 @@ func TestDefaultDeploymentEnvFallbacks_GrokHasXAIAPIKey(t *testing.T) {
 }
 
 func TestDefaultDeploymentEnvFallbacks_ZAIHasZAIAPIBase(t *testing.T) {
+	t.Parallel()
 	fbs := DefaultDeploymentEnvFallbacks
 	zai, ok := fbs["zai_payg-direct"]
 	if !ok {
@@ -68,6 +72,7 @@ func TestDefaultDeploymentEnvFallbacks_ZAIHasZAIAPIBase(t *testing.T) {
 }
 
 func TestEnsureDeploymentEnvFallbacks(t *testing.T) {
+	t.Parallel()
 	c := &CatalogV1{
 		Deployments: map[string]DeploymentV1{
 			"anthropic-direct": {ID: "anthropic-direct"},
@@ -92,6 +97,7 @@ func TestEnsureDeploymentEnvFallbacks(t *testing.T) {
 }
 
 func TestEnvVarsForDeployment(t *testing.T) {
+	t.Parallel()
 	vars := EnvVarsForDeployment("anthropic-direct")
 	if len(vars) == 0 {
 		t.Fatal("anthropic-direct should have env vars")

@@ -18,6 +18,7 @@ func mockChatFn(calls *int64, returnErr error) func(ctx context.Context, message
 }
 
 func TestNewCacheWarmer(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "You are a helpful assistant.", "anthropic", "claude-sonnet-4-20250514")
@@ -40,6 +41,7 @@ func TestNewCacheWarmer(t *testing.T) {
 }
 
 func TestStartStop(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system prompt", "anthropic", "claude-sonnet-4-20250514")
@@ -71,6 +73,7 @@ func TestStartStop(t *testing.T) {
 }
 
 func TestStartAlreadyRunning(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system", "anthropic", "model")
@@ -88,6 +91,7 @@ func TestStartAlreadyRunning(t *testing.T) {
 }
 
 func TestNonAnthropicProviderNoOp(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system prompt", "openai", "gpt-4")
@@ -108,6 +112,7 @@ func TestNonAnthropicProviderNoOp(t *testing.T) {
 }
 
 func TestWarmSendsCorrectRequest(t *testing.T) {
+	t.Parallel()
 	var capturedMessages []Message
 	var capturedOpts ChatOptions
 	var mu sync.Mutex
@@ -154,6 +159,7 @@ func TestWarmSendsCorrectRequest(t *testing.T) {
 }
 
 func TestWarmNonAnthropicNoOp(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system", "openai", "gpt-4")
@@ -168,6 +174,7 @@ func TestWarmNonAnthropicNoOp(t *testing.T) {
 }
 
 func TestShouldWarmTimingLogic(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system", "anthropic", "model")
@@ -196,6 +203,7 @@ func TestShouldWarmTimingLogic(t *testing.T) {
 }
 
 func TestShouldWarmNonAnthropic(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system", "openai", "gpt-4")
@@ -206,6 +214,7 @@ func TestShouldWarmNonAnthropic(t *testing.T) {
 }
 
 func TestStatsTracking(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system", "anthropic", "model")
@@ -244,6 +253,7 @@ func TestStatsTracking(t *testing.T) {
 }
 
 func TestStatsTrackingWithError(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, context.DeadlineExceeded)
 	cw := NewCacheWarmer(fn, "system", "anthropic", "model")
@@ -262,6 +272,7 @@ func TestStatsTrackingWithError(t *testing.T) {
 }
 
 func TestEstimateSavings(t *testing.T) {
+	t.Parallel()
 	cw := NewCacheWarmer(nil, "", "anthropic", "model")
 
 	tests := []struct {
@@ -329,6 +340,7 @@ func TestEstimateSavings(t *testing.T) {
 }
 
 func TestEstimateSavingsNegativeForSingleRequest(t *testing.T) {
+	t.Parallel()
 	cw := NewCacheWarmer(nil, "", "anthropic", "model")
 
 	// Single request: cache write (1.25x) costs more than no cache (1x)
@@ -339,6 +351,7 @@ func TestEstimateSavingsNegativeForSingleRequest(t *testing.T) {
 }
 
 func TestCacheBreakpoints(t *testing.T) {
+	t.Parallel()
 	cw := NewCacheWarmer(nil, "", "anthropic", "model")
 
 	t.Run("empty messages", func(t *testing.T) {
@@ -421,6 +434,7 @@ func TestCacheBreakpoints(t *testing.T) {
 }
 
 func TestContextCancellationStopsWarmer(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system", "anthropic", "model")
@@ -455,6 +469,7 @@ func TestContextCancellationStopsWarmer(t *testing.T) {
 }
 
 func TestConcurrentStatsAccess(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system", "anthropic", "model")
@@ -497,6 +512,7 @@ func TestConcurrentStatsAccess(t *testing.T) {
 }
 
 func TestWarmWithNilChatFn(t *testing.T) {
+	t.Parallel()
 	cw := NewCacheWarmer(nil, "system", "anthropic", "model")
 
 	err := cw.Warm(context.Background())
@@ -506,6 +522,7 @@ func TestWarmWithNilChatFn(t *testing.T) {
 }
 
 func TestDisabledWarmerDoesNotPing(t *testing.T) {
+	t.Parallel()
 	var calls int64
 	fn := mockChatFn(&calls, nil)
 	cw := NewCacheWarmer(fn, "system", "anthropic", "model")
