@@ -14,6 +14,7 @@ import (
 )
 
 func TestDiscoverCatalog_MergesProviderModelsWithAPIKey(t *testing.T) {
+	t.Parallel()
 	orServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer test-or-key" {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)

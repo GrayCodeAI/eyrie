@@ -3,6 +3,7 @@ package config
 import "testing"
 
 func TestEnsureDeploymentConfigV2FromLegacyAnthropic(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{AnthropicAPIKey: "sk-test-1234567890"}
 	out := EnsureDeploymentConfigV2(cfg)
 	if out.ConfigVersion != 2 {

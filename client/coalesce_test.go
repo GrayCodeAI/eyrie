@@ -9,6 +9,7 @@ import (
 )
 
 func TestCoalesceKeyString(t *testing.T) {
+	t.Parallel()
 	key1 := CoalesceKey{
 		Provider:  "anthropic",
 		Model:     "claude-3-5-haiku",
@@ -51,6 +52,7 @@ func TestCoalesceKeyString(t *testing.T) {
 }
 
 func TestCoalesceDeduplicatesIdenticalRequests(t *testing.T) {
+	t.Parallel()
 	callCount := 0
 	var mu sync.Mutex
 	response := "coalesced response"
@@ -126,6 +128,7 @@ func TestCoalesceDeduplicatesIdenticalRequests(t *testing.T) {
 }
 
 func TestCoalesceWaiterGetsError(t *testing.T) {
+	t.Parallel()
 	expectedErr := errors.New("API rate limit exceeded")
 	fn := func() (*EyrieResponse, error) {
 		time.Sleep(50 * time.Millisecond)
@@ -167,6 +170,7 @@ func TestCoalesceWaiterGetsError(t *testing.T) {
 }
 
 func TestCoalesceRespectsContextCancellation(t *testing.T) {
+	t.Parallel()
 	fn := func() (*EyrieResponse, error) {
 		time.Sleep(500 * time.Millisecond)
 		return &EyrieResponse{Content: "slow response"}, nil
@@ -203,6 +207,7 @@ func TestCoalesceRespectsContextCancellation(t *testing.T) {
 }
 
 func TestCoalesceDifferentKeysNotDeduplicated(t *testing.T) {
+	t.Parallel()
 	callCount := 0
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -254,6 +259,7 @@ func TestCoalesceDifferentKeysNotDeduplicated(t *testing.T) {
 }
 
 func TestCoalesceStats(t *testing.T) {
+	t.Parallel()
 	coalescer := NewCoalescer(100 * time.Millisecond)
 
 	// Should start empty
@@ -313,6 +319,7 @@ func TestCoalesceStats(t *testing.T) {
 }
 
 func TestCoalesceIntegrationWithEyrieClient(t *testing.T) {
+	t.Parallel()
 	// Test that coalescing integrates properly with EyrieClient.Chat()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "coalesced integration response"
@@ -365,6 +372,7 @@ func TestCoalesceIntegrationWithEyrieClient(t *testing.T) {
 }
 
 func TestCoalesceDisabledByDefault(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "test"
 	c := Client(&EyrieConfig{Provider: "mock"}) // No coalescing enabled

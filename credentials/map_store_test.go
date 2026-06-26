@@ -6,6 +6,7 @@ import (
 )
 
 func TestMapStore_SetGetDelete(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		setKey    string
@@ -65,6 +66,7 @@ func TestMapStore_SetGetDelete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ms := &MapStore{}
 			ctx := context.Background()
 
@@ -103,6 +105,7 @@ func TestMapStore_SetGetDelete(t *testing.T) {
 }
 
 func TestMapStore_GetNilData(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	_, err := ms.Get(context.Background(), "any_key")
 	if err != ErrNotFound {
@@ -111,6 +114,7 @@ func TestMapStore_GetNilData(t *testing.T) {
 }
 
 func TestMapStore_DeleteNilData(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	// Should not panic.
 	if err := ms.Delete(context.Background(), "any_key"); err != nil {
@@ -119,6 +123,7 @@ func TestMapStore_DeleteNilData(t *testing.T) {
 }
 
 func TestMapStore_Overwrite(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	ctx := context.Background()
 

@@ -3,6 +3,7 @@ package catalog
 import "testing"
 
 func TestAnthropicNameToCanonical(t *testing.T) {
+	t.Parallel()
 	tests := []struct{ input, want string }{
 		{"claude-sonnet-4-6-20250814", "claude-sonnet-4-6"},
 		{"us.graycode.claude-opus-4-6-v1:0", "claude-opus-4-6"},
@@ -20,6 +21,7 @@ func TestAnthropicNameToCanonical(t *testing.T) {
 }
 
 func TestGetModelMarketingName(t *testing.T) {
+	t.Parallel()
 	tests := []struct{ input, want string }{
 		{"claude-opus-4-6", "Opus 4.6"},
 		{"claude-sonnet-4-6[1m]", "Sonnet 4.6 (1M context)"},
@@ -36,6 +38,7 @@ func TestGetModelMarketingName(t *testing.T) {
 }
 
 func TestGetProviderDefaultModel_AllProvidersEmptyWithoutCatalog(t *testing.T) {
+	t.Parallel()
 	// All providers return empty without a catalog (fully dynamic)
 	allProviders := []string{
 		"anthropic", "openai", "gemini", "grok", "bedrock", "kimi",
@@ -48,6 +51,7 @@ func TestGetProviderDefaultModel_AllProvidersEmptyWithoutCatalog(t *testing.T) {
 }
 
 func TestGetModelDeprecationWarning(t *testing.T) {
+	t.Parallel()
 	warning := GetModelDeprecationWarning("claude-3-7-sonnet-20250219", "anthropic")
 	if warning == "" {
 		t.Error("expected deprecation warning for claude-3-7-sonnet on anthropic")
@@ -59,6 +63,7 @@ func TestGetModelDeprecationWarning(t *testing.T) {
 }
 
 func TestModelsForProvider(t *testing.T) {
+	t.Parallel()
 	cat := testLegacyModelCatalog()
 	models := cat.Providers["anthropic"]
 	if len(models) == 0 {

@@ -6,6 +6,7 @@ import (
 )
 
 func TestResolveRole(t *testing.T) {
+	t.Parallel()
 	roles := ModelRoles{Primary: "big", Weak: "small", Editor: "edit"}
 	tests := []struct {
 		name  string
@@ -32,6 +33,7 @@ func TestResolveRole(t *testing.T) {
 }
 
 func TestRoleRouter_RoutesByContextRole(t *testing.T) {
+	t.Parallel()
 	roles := ModelRoles{Primary: "big", Weak: "small", Editor: "edit"}
 	tests := []struct {
 		name      string
@@ -72,6 +74,7 @@ func TestRoleRouter_RoutesByContextRole(t *testing.T) {
 }
 
 func TestRoleRouter_EmptySlotDoesNotClearModel(t *testing.T) {
+	t.Parallel()
 	// Primary empty: an unconfigured role must not wipe an explicit model.
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "ok"
@@ -89,6 +92,7 @@ func TestRoleRouter_EmptySlotDoesNotClearModel(t *testing.T) {
 }
 
 func TestRoleFromContext(t *testing.T) {
+	t.Parallel()
 	if got := RoleFromContext(context.Background()); got != "" {
 		t.Errorf("expected empty role, got %q", got)
 	}

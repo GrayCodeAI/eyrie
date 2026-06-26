@@ -1,0 +1,22 @@
+# CODEOWNERS for eyrie (code-generation engine)
+* @GrayCodeAI/maintainers
+
+# Engine core
+/codeagent/      @GrayCodeAI/core-team
+/router/         @GrayCodeAI/core-team
+/conversation/   @GrayCodeAI/core-team
+/internal/       @GrayCodeAI/core-team
+
+# Client / API surface
+/client/         @GrayCodeAI/core-team
+/api/            @GrayCodeAI/core-team
+
+# CI / release / build tooling
+/.github/        @GrayCodeAI/devops-team
+/Makefile        @GrayCodeAI/devops-team
+/lefthook.yml    @GrayCodeAI/devops-team
+/scripts/        @GrayCodeAI/devops-team
+
+# Documentation
+*.md             @GrayCodeAI/docs-team
+/docs/           @GrayCodeAI/docs-team

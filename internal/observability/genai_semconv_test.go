@@ -6,6 +6,7 @@ import "testing"
 // ecosystem-wide convention documented in docs/OTEL-CONVENTIONS.md cannot drift
 // silently. Other hawk-eco repos mirror these exact strings.
 func TestGenAISemConvKeys(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		got  string
@@ -32,6 +33,7 @@ func TestGenAISemConvKeys(t *testing.T) {
 // TestGenAISemConvKeysUnique guards against two constants accidentally sharing
 // the same attribute key.
 func TestGenAISemConvKeysUnique(t *testing.T) {
+	t.Parallel()
 	keys := []string{
 		AttrGenAISystem,
 		AttrGenAIRequestModel,

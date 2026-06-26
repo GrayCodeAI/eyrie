@@ -32,6 +32,7 @@ func (stubEmbedder) CreateEmbedding(_ context.Context, req EmbeddingRequest) (*E
 func userMsg(s string) []EyrieMessage { return []EyrieMessage{{Role: "user", Content: s}} }
 
 func TestEmbeddingCache_HitOnSimilarPrompt(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	sp := NewEmbeddingCachedProvider(mock, stubEmbedder{}, DefaultSemanticCacheConfig())
 	ctx := context.Background()
@@ -59,6 +60,7 @@ func TestEmbeddingCache_HitOnSimilarPrompt(t *testing.T) {
 }
 
 func TestEmbeddingCache_MissOnDissimilarPrompt(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	sp := NewEmbeddingCachedProvider(mock, stubEmbedder{}, DefaultSemanticCacheConfig())
 	ctx := context.Background()
@@ -75,6 +77,7 @@ func TestEmbeddingCache_MissOnDissimilarPrompt(t *testing.T) {
 }
 
 func TestEmbeddingCache_SkipsHighTemperature(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	sp := NewEmbeddingCachedProvider(mock, stubEmbedder{}, DefaultSemanticCacheConfig())
 	ctx := context.Background()
@@ -88,6 +91,7 @@ func TestEmbeddingCache_SkipsHighTemperature(t *testing.T) {
 }
 
 func TestEmbeddingCache_DegradesOnEmbedError(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	sp := NewEmbeddingCachedProvider(mock, errEmbedder{}, DefaultSemanticCacheConfig())
 	if _, err := sp.Chat(context.Background(), userMsg("weather"), ChatOptions{}); err != nil {
@@ -108,6 +112,7 @@ func (errEmbedder) CreateEmbedding(_ context.Context, _ EmbeddingRequest) (*Embe
 // embedding model must NOT be served to a request embedded by a different model,
 // even when the vectors are identical — they live in incompatible spaces.
 func TestEmbeddingCache_ModelIsolation(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cfg := DefaultSemanticCacheConfig()
 	cfg.EmbeddingModel = "model-A"
@@ -143,6 +148,7 @@ func TestEmbeddingCache_ModelIsolation(t *testing.T) {
 }
 
 func TestCosineSimilarity(t *testing.T) {
+	t.Parallel()
 	if got := cosineSimilarity([]float32{1, 0}, []float32{1, 0}); got < 0.999 {
 		t.Errorf("identical vectors should be ~1, got %f", got)
 	}

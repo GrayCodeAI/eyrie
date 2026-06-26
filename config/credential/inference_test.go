@@ -6,6 +6,7 @@ import (
 )
 
 func TestInferCredentialsFromAPIKey_ReturnsNil(t *testing.T) {
+	t.Parallel()
 	got := InferCredentialsFromAPIKey(context.Background(), "sk-ant-api03-test-key-1234567890")
 	if len(got) != 0 {
 		t.Fatalf("expected no prefix inference, got %d", len(got))
@@ -13,6 +14,7 @@ func TestInferCredentialsFromAPIKey_ReturnsNil(t *testing.T) {
 }
 
 func TestInferenceForProvider_Anthropic(t *testing.T) {
+	t.Parallel()
 	inf, err := InferenceForProvider("anthropic")
 	if err != nil {
 		t.Fatal(err)
@@ -23,6 +25,7 @@ func TestInferenceForProvider_Anthropic(t *testing.T) {
 }
 
 func TestInferenceForProvider_Ollama(t *testing.T) {
+	t.Parallel()
 	inf, err := InferenceForProvider("ollama")
 	if err != nil {
 		t.Fatal(err)
@@ -33,6 +36,7 @@ func TestInferenceForProvider_Ollama(t *testing.T) {
 }
 
 func TestInferenceForProvider_Unknown(t *testing.T) {
+	t.Parallel()
 	if _, err := InferenceForProvider("not-a-provider"); err == nil {
 		t.Fatal("expected error for unknown provider")
 	}

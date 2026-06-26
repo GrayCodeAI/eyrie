@@ -15,6 +15,7 @@ import (
 )
 
 func TestRetryDefaultRetryConfig(t *testing.T) {
+	t.Parallel()
 	cfg := DefaultRetryConfig()
 
 	if cfg.MaxRetries != 3 {
@@ -38,6 +39,7 @@ func TestRetryDefaultRetryConfig(t *testing.T) {
 }
 
 func TestRetryShouldRetryTrue(t *testing.T) {
+	t.Parallel()
 	cfg := DefaultRetryConfig()
 	codes := []int{429, 500, 502, 503, 529}
 	for _, code := range codes {
@@ -48,6 +50,7 @@ func TestRetryShouldRetryTrue(t *testing.T) {
 }
 
 func TestRetryShouldRetryFalse(t *testing.T) {
+	t.Parallel()
 	cfg := DefaultRetryConfig()
 	codes := []int{400, 401, 403, 404}
 	for _, code := range codes {
@@ -58,6 +61,7 @@ func TestRetryShouldRetryFalse(t *testing.T) {
 }
 
 func TestRetryDelayIncreasesExponentially(t *testing.T) {
+	t.Parallel()
 	cfg := NewRetryConfig(0, 100*time.Millisecond, 10*time.Second)
 
 	// Run multiple samples to confirm the trend despite jitter
@@ -85,6 +89,7 @@ func TestRetryDelayIncreasesExponentially(t *testing.T) {
 }
 
 func TestRetryParseRetryAfterHeader(t *testing.T) {
+	t.Parallel()
 	cfg := NewRetryConfig(0, 100*time.Millisecond, 60*time.Second)
 
 	resp := &http.Response{
@@ -99,6 +104,7 @@ func TestRetryParseRetryAfterHeader(t *testing.T) {
 }
 
 func TestRetryParseRetryDelayFromMessage(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		msg  string
 		want time.Duration
@@ -117,6 +123,7 @@ func TestRetryParseRetryDelayFromMessage(t *testing.T) {
 }
 
 func TestNewRetryConfig(t *testing.T) {
+	t.Parallel()
 	rc := NewRetryConfig(5, 200*time.Millisecond, 10*time.Second, 429, 500)
 	if rc.MaxRetries != 5 {
 		t.Errorf("MaxRetries = %d, want 5", rc.MaxRetries)
@@ -136,6 +143,7 @@ func TestNewRetryConfig(t *testing.T) {
 }
 
 func TestDoWithRetrySuccess(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
@@ -157,6 +165,7 @@ func TestDoWithRetrySuccess(t *testing.T) {
 }
 
 func TestDoWithRetryRetriesOn500ThenSucceeds(t *testing.T) {
+	t.Parallel()
 	var attempts atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		n := attempts.Add(1)
@@ -187,6 +196,7 @@ func TestDoWithRetryRetriesOn500ThenSucceeds(t *testing.T) {
 }
 
 func TestDoWithRetryExhaustsRetries(t *testing.T) {
+	t.Parallel()
 	var attempts atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts.Add(1)
@@ -209,6 +219,7 @@ func TestDoWithRetryExhaustsRetries(t *testing.T) {
 }
 
 func TestDoWithRetryNoRetryOn400(t *testing.T) {
+	t.Parallel()
 	var attempts atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts.Add(1)
@@ -234,6 +245,7 @@ func TestDoWithRetryNoRetryOn400(t *testing.T) {
 }
 
 func TestDoWithRetryContextCancellation(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
 	}))
@@ -262,6 +274,7 @@ func TestDoWithRetryContextCancellation(t *testing.T) {
 }
 
 func TestDoWithRetryRespectsRetryAfter(t *testing.T) {
+	t.Parallel()
 	var attempts atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		n := attempts.Add(1)
@@ -289,6 +302,7 @@ func TestDoWithRetryRespectsRetryAfter(t *testing.T) {
 }
 
 func TestDoWithRetryBodyReplay(t *testing.T) {
+	t.Parallel()
 	var bodies []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var buf [256]byte
@@ -317,18 +331,21 @@ func TestDoWithRetryBodyReplay(t *testing.T) {
 }
 
 func TestCryptoRandDurationZero(t *testing.T) {
+	t.Parallel()
 	if v := types.CryptoRandDuration(0); v != 0 {
 		t.Errorf("CryptoRandDuration(0) = %v, want 0", v)
 	}
 }
 
 func TestCryptoRandDurationNegative(t *testing.T) {
+	t.Parallel()
 	if v := types.CryptoRandDuration(-1); v != 0 {
 		t.Errorf("CryptoRandDuration(-1) = %v, want 0", v)
 	}
 }
 
 func TestCryptoRandDurationRange(t *testing.T) {
+	t.Parallel()
 	for i := 0; i < 100; i++ {
 		v := types.CryptoRandDuration(10 * time.Second)
 		if v < 0 || v >= 10*time.Second {
@@ -338,6 +355,7 @@ func TestCryptoRandDurationRange(t *testing.T) {
 }
 
 func TestBackoffDelayRetryAfterDate(t *testing.T) {
+	t.Parallel()
 	cfg := NewRetryConfig(0, 100*time.Millisecond, 60*time.Second)
 	resp := &http.Response{Header: http.Header{}}
 	// Set Retry-After to a date 2 seconds in the future
@@ -351,6 +369,7 @@ func TestBackoffDelayRetryAfterDate(t *testing.T) {
 }
 
 func TestBackoffDelayMaxCap(t *testing.T) {
+	t.Parallel()
 	cfg := NewRetryConfig(0, 1*time.Second, 500*time.Millisecond)
 	// Even with large attempt, delay should cap at MaxDelay
 	delay := cfg.backoffDelay(20, nil)

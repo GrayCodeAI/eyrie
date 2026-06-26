@@ -9,6 +9,7 @@ import (
 )
 
 func TestWeightedProviderSingleProvider(t *testing.T) {
+	t.Parallel()
 	p := NewMockProvider(MockModeFixed)
 	p.Response = "only one"
 
@@ -34,6 +35,7 @@ func TestWeightedProviderSingleProvider(t *testing.T) {
 }
 
 func TestWeightedProviderDistribution(t *testing.T) {
+	t.Parallel()
 	// Use named providers so stats can distinguish them.
 	primary := &namedProvider{name: "primary", mock: NewMockProvider(MockModeFixed)}
 	primary.mock.Response = "from primary"
@@ -79,6 +81,7 @@ func TestWeightedProviderDistribution(t *testing.T) {
 }
 
 func TestWeightedProviderFailoverOnRetriableError(t *testing.T) {
+	t.Parallel()
 	// Primary always returns a retriable error.
 	primary := &namedProvider{name: "primary", mock: nil, err: fmt.Errorf("HTTP 503 service unavailable")}
 	// Secondary succeeds.
@@ -102,6 +105,7 @@ func TestWeightedProviderFailoverOnRetriableError(t *testing.T) {
 }
 
 func TestWeightedProviderNoFailoverOnNonRetriableError(t *testing.T) {
+	t.Parallel()
 	// Primary returns a 400 (non-retriable).
 	primary := &namedProvider{name: "primary", mock: nil, err: fmt.Errorf("HTTP 400 bad request")}
 	// Secondary would succeed if reached.
@@ -126,6 +130,7 @@ func TestWeightedProviderNoFailoverOnNonRetriableError(t *testing.T) {
 }
 
 func TestWeightedProviderNoFailoverOn401(t *testing.T) {
+	t.Parallel()
 	// Primary returns a 401 (non-retriable).
 	primary := &namedProvider{name: "primary", mock: nil, err: fmt.Errorf("HTTP 401 unauthorized")}
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
@@ -148,6 +153,7 @@ func TestWeightedProviderNoFailoverOn401(t *testing.T) {
 }
 
 func TestWeightedProviderAllFail(t *testing.T) {
+	t.Parallel()
 	p1 := &namedProvider{name: "p1", mock: nil, err: fmt.Errorf("HTTP 503 service unavailable")}
 	p2 := &namedProvider{name: "p2", mock: nil, err: fmt.Errorf("HTTP 502 bad gateway")}
 	p3 := &namedProvider{name: "p3", mock: nil, err: fmt.Errorf("HTTP 500 internal error")}
@@ -167,6 +173,7 @@ func TestWeightedProviderAllFail(t *testing.T) {
 }
 
 func TestWeightedProviderName(t *testing.T) {
+	t.Parallel()
 	p1 := &namedProvider{name: "anthropic", mock: NewMockProvider(MockModeFixed)}
 	p2 := &namedProvider{name: "openai", mock: NewMockProvider(MockModeFixed)}
 
@@ -182,6 +189,7 @@ func TestWeightedProviderName(t *testing.T) {
 }
 
 func TestWeightedProviderPing(t *testing.T) {
+	t.Parallel()
 	p1 := &namedProvider{name: "failing", mock: nil, err: fmt.Errorf("ping failed")}
 	p2 := &namedProvider{name: "ok", mock: NewMockProvider(MockModeFixed)}
 
@@ -197,6 +205,7 @@ func TestWeightedProviderPing(t *testing.T) {
 }
 
 func TestWeightedProviderStreamFailover(t *testing.T) {
+	t.Parallel()
 	primary := &namedProvider{name: "primary", mock: nil, err: fmt.Errorf("HTTP 429 rate limited")}
 	secondary := &namedProvider{name: "secondary", mock: NewMockProvider(MockModeFixed)}
 	secondary.mock.Response = "streamed from secondary"
@@ -226,12 +235,14 @@ func TestWeightedProviderStreamFailover(t *testing.T) {
 }
 
 func TestWeightedProviderErrorOnEmpty(t *testing.T) {
+	t.Parallel()
 	if _, err := NewWeightedProvider(nil); err == nil {
 		t.Error("expected error with no provider configs")
 	}
 }
 
 func TestWeightedProviderErrorOnZeroWeight(t *testing.T) {
+	t.Parallel()
 	p := NewMockProvider(MockModeFixed)
 	if _, err := NewWeightedProvider([]WeightedProviderConfig{
 		{Provider: p, Weight: 0},

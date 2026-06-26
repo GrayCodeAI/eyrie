@@ -8,6 +8,7 @@ import (
 )
 
 func TestFetchKimi_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)
@@ -50,6 +51,7 @@ func TestFetchKimi_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchKimi_NoKey(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchKimi(map[string]string{})
 	if err != nil {
 		t.Fatal(err)

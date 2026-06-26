@@ -9,6 +9,7 @@ import (
 )
 
 func TestFetchMiniMaxTokenPlan_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	body, err := os.ReadFile("testdata/minimax_token_plan_models.json")
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +57,7 @@ func TestFetchMiniMaxTokenPlan_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchMiniMaxTokenPlan_NoKey(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchMiniMaxTokenPlan(map[string]string{})
 	if err != nil {
 		t.Fatal(err)
@@ -66,6 +68,7 @@ func TestFetchMiniMaxTokenPlan_NoKey(t *testing.T) {
 }
 
 func TestFetchMiniMaxTokenPlan_Unauthorized(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
@@ -82,6 +85,7 @@ func TestFetchMiniMaxTokenPlan_Unauthorized(t *testing.T) {
 }
 
 func TestFetchMiniMaxPayg_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	body, err := os.ReadFile("testdata/minimax_payg_models.json")
 	if err != nil {
 		t.Fatal(err)
@@ -123,6 +127,7 @@ func TestFetchMiniMaxPayg_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchMiniMaxPayg_NoKey(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchMiniMaxPayg(map[string]string{})
 	if err != nil {
 		t.Fatal(err)
@@ -133,6 +138,7 @@ func TestFetchMiniMaxPayg_NoKey(t *testing.T) {
 }
 
 func TestFetchMiniMaxPayg_NoGenericFallback(t *testing.T) {
+	t.Parallel()
 	// Generic MINIMAX_API_KEY should NOT be used — only plan-specific keys
 	entries, err := FetchMiniMaxPayg(map[string]string{
 		"MINIMAX_API_KEY": "generic-key",

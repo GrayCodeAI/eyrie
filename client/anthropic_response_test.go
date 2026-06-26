@@ -8,6 +8,7 @@ import (
 // TestParseAnthropicResponse_Thinking: a "thinking" content block
 // is extracted into the Thinking field (not the Content field).
 func TestParseAnthropicResponse_Thinking(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	body := `{"content":[{"type":"thinking","thinking":"Let me think about this..."}],"stop_reason":"end_turn","usage":{"input_tokens":5,"output_tokens":3,"output_tokens_details":{"thinking_tokens":2}}}`
 	if err := json.Unmarshal([]byte(body), &ar); err != nil {
@@ -31,6 +32,7 @@ func TestParseAnthropicResponse_Thinking(t *testing.T) {
 // or anywhere else. The reasoning is safety-sensitive and we must
 // never echo it back to the caller.
 func TestParseAnthropicResponse_RedactedThinking(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	body := `{"content":[{"type":"text","text":"answer"},{"type":"redacted_thinking","data":"ENCRYPTED_REDACTED_BLOB"}],"stop_reason":"end_turn","usage":{"input_tokens":5,"output_tokens":3}}`
 	if err := json.Unmarshal([]byte(body), &ar); err != nil {
@@ -52,6 +54,7 @@ func TestParseAnthropicResponse_RedactedThinking(t *testing.T) {
 // TestParseAnthropicResponse_Mixed: a realistic mixed response
 // (text + thinking + tool_use) extracts all three correctly.
 func TestParseAnthropicResponse_Mixed(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	body := `{
 		"content":[
@@ -88,6 +91,7 @@ func TestParseAnthropicResponse_Mixed(t *testing.T) {
 // TestParseAnthropicResponse_OrgID: the OrganizationID parameter
 // flows through to EyrieResponse.OrganizationID.
 func TestParseAnthropicResponse_OrgID(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	body := `{"content":[{"type":"text","text":"x"}],"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":1}}`
 	if err := json.Unmarshal([]byte(body), &ar); err != nil {
@@ -109,6 +113,7 @@ func TestParseAnthropicResponse_OrgID(t *testing.T) {
 // TestParseAnthropicResponse_MultipleTextBlocks: a response with
 // multiple text blocks concatenates them in order.
 func TestParseAnthropicResponse_MultipleTextBlocks(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	body := `{"content":[
 		{"type":"text","text":"Hello, "},
@@ -129,6 +134,7 @@ func TestParseAnthropicResponse_MultipleTextBlocks(t *testing.T) {
 // TestParseAnthropicResponse_MultipleToolUse: a response with
 // multiple tool_use blocks appends them in order.
 func TestParseAnthropicResponse_MultipleToolUse(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	body := `{"content":[
 		{"type":"tool_use","id":"t1","name":"search","input":{"q":"x"}},
@@ -155,6 +161,7 @@ func TestParseAnthropicResponse_MultipleToolUse(t *testing.T) {
 // with nil Arguments (the unmarshal error is swallowed — same
 // behavior as the previous inlined copy).
 func TestParseAnthropicResponse_ToolUse_BadJSON(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	body := `{"content":[
 		{"type":"tool_use","id":"t1","name":"search","input":"this-is-not-json"}
@@ -182,6 +189,7 @@ func TestParseAnthropicResponse_ToolUse_BadJSON(t *testing.T) {
 // sum of InputTokens + OutputTokens (Anthropic's wire format
 // doesn't include a TotalTokens field).
 func TestParseAnthropicResponse_TotalTokens(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	body := `{"content":[],"stop_reason":"end_turn","usage":{"input_tokens":42,"output_tokens":7}}`
 	if err := json.Unmarshal([]byte(body), &ar); err != nil {

@@ -25,6 +25,7 @@ func newTestBedrockClient(serverURL, accessKey, secretKey, sessionToken, region 
 }
 
 func TestBedrockClient_Name(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 	if c.Name() != "anthropic-bedrock" {
 		t.Errorf("expected name 'anthropic-bedrock', got %q", c.Name())
@@ -32,6 +33,7 @@ func TestBedrockClient_Name(t *testing.T) {
 }
 
 func TestBedrockClient_ModelURL(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-west-2")
 	url := c.modelURL("anthropic.claude-3-5-sonnet-20241022-v2:0")
 	// url.PathEscape does not encode ":" in Go, so it stays as-is
@@ -46,6 +48,7 @@ func TestBedrockClient_ModelURL(t *testing.T) {
 }
 
 func TestBedrockChat_Success(t *testing.T) {
+	t.Parallel()
 	var capturedMethod string
 	var capturedHeaders http.Header
 	var capturedBody []byte
@@ -142,6 +145,7 @@ func TestBedrockChat_Success(t *testing.T) {
 }
 
 func TestBedrockChat_ModelRequired(t *testing.T) {
+	t.Parallel()
 	c := newTestBedrockClient("http://localhost", "AKID", "secret", "", "us-east-1")
 	_, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -155,6 +159,7 @@ func TestBedrockChat_ModelRequired(t *testing.T) {
 }
 
 func TestBedrockChat_NoSessionToken(t *testing.T) {
+	t.Parallel()
 	var capturedHeaders http.Header
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -187,6 +192,7 @@ func TestBedrockChat_NoSessionToken(t *testing.T) {
 }
 
 func TestBedrockChat_ToolUseResponse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"content": []map[string]interface{}{
@@ -249,6 +255,7 @@ func TestBedrockChat_ToolUseResponse(t *testing.T) {
 }
 
 func TestBedrockBuildBody_DefaultMaxTokens(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -270,6 +277,7 @@ func TestBedrockBuildBody_DefaultMaxTokens(t *testing.T) {
 }
 
 func TestBedrockBuildBody_CustomMaxTokens(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -288,6 +296,7 @@ func TestBedrockBuildBody_CustomMaxTokens(t *testing.T) {
 }
 
 func TestBedrockBuildBody_WithSystemPrompt(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -311,6 +320,7 @@ func TestBedrockBuildBody_WithSystemPrompt(t *testing.T) {
 }
 
 func TestBedrockBuildBody_WithTools(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -345,6 +355,7 @@ func TestBedrockBuildBody_WithTools(t *testing.T) {
 }
 
 func TestBedrockBuildBody_ToolResultMessage(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -368,6 +379,7 @@ func TestBedrockBuildBody_ToolResultMessage(t *testing.T) {
 }
 
 func TestBedrockBuildBody_SystemMerge(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -391,6 +403,7 @@ func TestBedrockBuildBody_SystemMerge(t *testing.T) {
 }
 
 func TestBedrockChat_ErrorResponse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(403)
 		fmt.Fprint(w, `{"message":"User is not authorized to perform: bedrock:InvokeModel"}`)
@@ -415,6 +428,7 @@ func TestBedrockChat_ErrorResponse(t *testing.T) {
 }
 
 func TestBedrockChat_MissingCredentials(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("", "", "", "us-east-1")
 	c.httpClient = &http.Client{}
 	c.retry = NewRetryConfig(0, 0, 0)
@@ -431,6 +445,7 @@ func TestBedrockChat_MissingCredentials(t *testing.T) {
 }
 
 func TestBedrockSigV4_SignatureComponents(t *testing.T) {
+	t.Parallel()
 	// Test the signing helper functions
 	c := NewBedrockClient("AKID", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "session-token", "us-east-1")
 
@@ -473,6 +488,7 @@ func TestBedrockSigV4_SignatureComponents(t *testing.T) {
 }
 
 func TestBedrockSigV4_DeterministicSignature(t *testing.T) {
+	t.Parallel()
 	// Same inputs should produce the same signature
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 	now := mustParseTime("20230901T000000Z")
@@ -494,6 +510,7 @@ func TestBedrockSigV4_DeterministicSignature(t *testing.T) {
 }
 
 func TestBedrockPing_Success(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET for ping, got %s", r.Method)
@@ -520,6 +537,7 @@ func TestBedrockPing_Success(t *testing.T) {
 }
 
 func TestBedrockPing_MissingCredentials(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("", "", "", "")
 	err := c.Ping(context.Background())
 	if err == nil {
@@ -531,6 +549,7 @@ func TestBedrockPing_MissingCredentials(t *testing.T) {
 }
 
 func TestBedrockPing_InvalidCredentials(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(403)
 	}))
@@ -551,6 +570,7 @@ func TestBedrockPing_InvalidCredentials(t *testing.T) {
 }
 
 func TestBedrockStreamChat_ModelRequired(t *testing.T) {
+	t.Parallel()
 	c := newTestBedrockClient("http://localhost", "AKID", "secret", "", "us-east-1")
 	_, err := c.StreamChat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -564,6 +584,7 @@ func TestBedrockStreamChat_ModelRequired(t *testing.T) {
 }
 
 func TestBedrockStreamChat_MissingCredentials(t *testing.T) {
+	t.Parallel()
 	c := NewBedrockClient("", "", "", "us-east-1")
 	c.httpClient = &http.Client{}
 	c.retry = NewRetryConfig(0, 0, 0)
@@ -577,6 +598,7 @@ func TestBedrockStreamChat_MissingCredentials(t *testing.T) {
 }
 
 func TestBedrockModelIDMapping(t *testing.T) {
+	t.Parallel()
 	// Test that various model IDs produce correct URLs in modelURL
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
@@ -608,6 +630,7 @@ func TestBedrockModelIDMapping(t *testing.T) {
 }
 
 func TestBedrockChat_RegionInURL(t *testing.T) {
+	t.Parallel()
 	var capturedURL string
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -7,6 +7,7 @@ import (
 )
 
 func TestBuildRoutingPolicyFromDeployments_OpenAI(t *testing.T) {
+	t.Parallel()
 	deployments := map[string]DeploymentConfig{
 		"openai-direct": {APIKey: "sk-test"},
 		"openai-azure":  {APIKey: "az-test"},
@@ -23,6 +24,7 @@ func TestBuildRoutingPolicyFromDeployments_OpenAI(t *testing.T) {
 }
 
 func TestBuildRoutingPolicyFromDeployments_ZAI(t *testing.T) {
+	t.Parallel()
 	deployments := map[string]DeploymentConfig{
 		"zai_payg-direct": {APIKey: "zai-test"},
 	}
@@ -36,6 +38,7 @@ func TestBuildRoutingPolicyFromDeployments_ZAI(t *testing.T) {
 }
 
 func TestBuildRoutingPolicyFromDeployments_CanopyWave(t *testing.T) {
+	t.Parallel()
 	deployments := map[string]DeploymentConfig{
 		"canopywave": {APIKey: "cw-test"},
 		"openrouter": {APIKey: "or-test"},
@@ -53,6 +56,7 @@ func TestBuildRoutingPolicyFromDeployments_CanopyWave(t *testing.T) {
 }
 
 func TestSyncProviderConfigFromCatalog(t *testing.T) {
+	t.Parallel()
 	bootstrap := catalog.BootstrapCatalogV1()
 	compiled, err := catalog.CompileCatalogV1(&bootstrap)
 	if err != nil {

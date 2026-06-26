@@ -3,6 +3,7 @@ package catalog
 import "testing"
 
 func TestPrimaryAPIKeyEnvForProvider(t *testing.T) {
+	t.Parallel()
 	bootstrap := BootstrapCatalogV1()
 	compiled, err := CompileCatalogV1(&bootstrap)
 	if err != nil {
@@ -26,6 +27,7 @@ func TestPrimaryAPIKeyEnvForProvider(t *testing.T) {
 }
 
 func TestCredentialStatusForProvider_OllamaLocal(t *testing.T) {
+	t.Parallel()
 	bootstrap := BootstrapCatalogV1()
 	compiled, err := CompileCatalogV1(&bootstrap)
 	if err != nil {
@@ -39,6 +41,7 @@ func TestCredentialStatusForProvider_OllamaLocal(t *testing.T) {
 }
 
 func TestProviderIDsFromCompiled_Bootstrap(t *testing.T) {
+	t.Parallel()
 	bootstrap := BootstrapCatalogV1()
 	compiled, err := CompileCatalogV1(&bootstrap)
 	if err != nil {

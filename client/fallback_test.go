@@ -10,6 +10,7 @@ import (
 )
 
 func TestFallbackProviderSuccess(t *testing.T) {
+	t.Parallel()
 	primary := NewMockProvider(MockModeFixed)
 	primary.Response = "from primary"
 
@@ -26,6 +27,7 @@ func TestFallbackProviderSuccess(t *testing.T) {
 }
 
 func TestFallbackProviderFallsBack(t *testing.T) {
+	t.Parallel()
 	// Primary always errors (retriable).
 	primary := NewMockProvider(MockModeError)
 	// Secondary succeeds.
@@ -51,6 +53,7 @@ func TestFallbackProviderFallsBack(t *testing.T) {
 }
 
 func TestFallbackProviderAllFail(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeError)
 	p2 := NewMockProvider(MockModeError)
 	p3 := NewMockProvider(MockModeError)
@@ -69,6 +72,7 @@ func TestFallbackProviderAllFail(t *testing.T) {
 }
 
 func TestFallbackProviderStats(t *testing.T) {
+	t.Parallel()
 	primary := NewMockProvider(MockModeError)
 	secondary := NewMockProvider(MockModeFixed)
 	secondary.Response = "ok"
@@ -91,6 +95,7 @@ func TestFallbackProviderStats(t *testing.T) {
 }
 
 func TestFallbackProviderRespectsContextCancellation(t *testing.T) {
+	t.Parallel()
 	// A slow primary provider.
 	primary := NewMockProvider(MockModeFixed)
 	primary.Response = "slow"
@@ -113,6 +118,7 @@ func TestFallbackProviderRespectsContextCancellation(t *testing.T) {
 }
 
 func TestFallbackProviderStreamFallback(t *testing.T) {
+	t.Parallel()
 	primary := NewMockProvider(MockModeError)
 	secondary := NewMockProvider(MockModeFixed)
 	secondary.Response = "streamed from secondary"
@@ -139,6 +145,7 @@ func TestFallbackProviderStreamFallback(t *testing.T) {
 }
 
 func TestFallbackProviderPing(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeFixed)
 	p2 := NewMockProvider(MockModeFixed)
 
@@ -149,6 +156,7 @@ func TestFallbackProviderPing(t *testing.T) {
 }
 
 func TestFallbackProviderName(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeFixed)
 	p2 := NewMockProvider(MockModeFixed)
 
@@ -160,6 +168,7 @@ func TestFallbackProviderName(t *testing.T) {
 }
 
 func TestIsRetriableError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		err       error
@@ -232,6 +241,7 @@ func TestIsRetriableError(t *testing.T) {
 // behavioral difference: isRetriableError is optimistic (unknown errors retriable),
 // while types.IsTransient is conservative (unknown errors NOT retriable).
 func TestIsRetriableErrorVsIsTransientDivergence(t *testing.T) {
+	t.Parallel()
 	unknownErrors := []error{
 		fmt.Errorf("something weird happened"),
 		fmt.Errorf("provider crashed"),
@@ -276,6 +286,7 @@ func TestIsRetriableErrorVsIsTransientDivergence(t *testing.T) {
 }
 
 func TestFallbackProviderPanicOnEmpty(t *testing.T) {
+	t.Parallel()
 	fp := NewFallbackProvider()
 	if fp != nil {
 		t.Error("expected nil from NewFallbackProvider with no providers")
@@ -283,6 +294,7 @@ func TestFallbackProviderPanicOnEmpty(t *testing.T) {
 }
 
 func TestFallbackProviderNonRetriableDoesNotFallback(t *testing.T) {
+	t.Parallel()
 	// Create a custom mock that returns a 401-like error.
 	primary := &errorProvider{err: fmt.Errorf("HTTP 401 unauthorized")}
 	secondary := NewMockProvider(MockModeFixed)

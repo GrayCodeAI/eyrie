@@ -10,6 +10,7 @@ import (
 )
 
 func TestRuntimeProfileFields(t *testing.T) {
+	t.Parallel()
 	profiles := map[string]RuntimeProviderProfile{
 		"anthropic":  AnthropicRuntimeProfile,
 		"openai":     OpenAIRuntimeProfile,
@@ -43,6 +44,7 @@ func TestRuntimeProfileFields(t *testing.T) {
 }
 
 func TestRuntimeProfileAPIKeys(t *testing.T) {
+	t.Parallel()
 	// All profiles except ollama should have API keys
 	profiles := map[string]RuntimeProviderProfile{
 		"anthropic":  AnthropicRuntimeProfile,
@@ -72,6 +74,7 @@ func TestRuntimeProfileAPIKeys(t *testing.T) {
 }
 
 func TestModelEnvKeysCorrectForEachProvider(t *testing.T) {
+	t.Parallel()
 	expected := map[string]string{
 		ProviderAnthropic:  "ANTHROPIC_MODEL",
 		ProviderOpenAI:     "OPENAI_MODEL",
@@ -101,6 +104,7 @@ func TestModelEnvKeysCorrectForEachProvider(t *testing.T) {
 }
 
 func TestProviderModelEnvKeys_AllProvidersPresent(t *testing.T) {
+	t.Parallel()
 	allProviders := []string{
 		ProviderAnthropic, ProviderOpenAI, ProviderCanopyWave, ProviderDeepSeek,
 		ProviderOpenRouter, ProviderGrok, ProviderGemini,
@@ -115,6 +119,7 @@ func TestProviderModelEnvKeys_AllProvidersPresent(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
+	t.Parallel()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
@@ -136,6 +141,7 @@ func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
+	t.Parallel()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
@@ -154,6 +160,7 @@ func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
+	t.Parallel()
 	clearKeys := []string{
 		"OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
 		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "DEEPSEEK_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
@@ -173,6 +180,7 @@ func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_NoKeys(t *testing.T) {
+	t.Parallel()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
@@ -187,6 +195,7 @@ func TestResolveOpenAICompatibleRuntime_NoKeys(t *testing.T) {
 }
 
 func TestOpenAICompatibleRuntimeProfileOrder(t *testing.T) {
+	t.Parallel()
 	if len(OpenAICompatibleRuntimeProfileOrder) == 0 {
 		t.Fatal("runtime profile order should not be empty")
 	}
@@ -199,6 +208,7 @@ func TestOpenAICompatibleRuntimeProfileOrder(t *testing.T) {
 }
 
 func TestOpenAICompatibleRuntimeProfiles_Complete(t *testing.T) {
+	t.Parallel()
 	// Every profile in the map should have valid structure
 	for key, profile := range OpenAICompatibleRuntimeProfiles {
 		if profile.Mode == "" {

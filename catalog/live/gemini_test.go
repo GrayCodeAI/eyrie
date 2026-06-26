@@ -10,6 +10,7 @@ import (
 )
 
 func TestFetchGemini_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	body, err := os.ReadFile("testdata/gemini_models.json")
 	if err != nil {
 		t.Fatal(err)
@@ -57,6 +58,7 @@ func TestFetchGemini_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchGemini_NoKey(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchGemini(map[string]string{})
 	if err != nil {
 		t.Fatal(err)
@@ -67,6 +69,7 @@ func TestFetchGemini_NoKey(t *testing.T) {
 }
 
 func TestFetchGemini_Unauthorized(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
@@ -83,6 +86,7 @@ func TestFetchGemini_Unauthorized(t *testing.T) {
 }
 
 func TestFetchGemini_FiltersNonGenerateModels(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := map[string]any{
 			"models": []map[string]any{

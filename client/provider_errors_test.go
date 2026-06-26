@@ -11,6 +11,7 @@ import (
 func body(s string) io.ReadCloser { return io.NopCloser(strings.NewReader(s)) }
 
 func TestParseProviderError(t *testing.T) {
+	t.Parallel()
 	d, readErr := parseProviderError(body(`{"error":{"message":"Incorrect API key provided","type":"invalid_request_error","code":"invalid_api_key"}}`))
 	if readErr != nil {
 		t.Errorf("readErr = %v, want nil", readErr)
@@ -27,6 +28,7 @@ func TestParseProviderError(t *testing.T) {
 }
 
 func TestParseProviderError_NumericCode(t *testing.T) {
+	t.Parallel()
 	// Some providers send a bare numeric code.
 	d, readErr := parseProviderError(body(`{"error":{"message":"nope","code":404}}`))
 	if readErr != nil {
@@ -38,6 +40,7 @@ func TestParseProviderError_NumericCode(t *testing.T) {
 }
 
 func TestParseProviderError_Unstructured(t *testing.T) {
+	t.Parallel()
 	d, readErr := parseProviderError(body(`upstream proxy: 502 bad gateway`))
 	if readErr != nil {
 		t.Errorf("readErr = %v, want nil", readErr)
@@ -51,6 +54,7 @@ func TestParseProviderError_Unstructured(t *testing.T) {
 }
 
 func TestClassifyProviderError(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name   string
 		status int
@@ -84,6 +88,7 @@ func TestClassifyProviderError(t *testing.T) {
 }
 
 func TestFormatAPIError(t *testing.T) {
+	t.Parallel()
 	err := formatAPIError("openai", "chat", 401, "req_123",
 		providerErrorDetail{Message: "bad key", Type: "auth_error", Code: "invalid_api_key"}, nil)
 	s := err.Error()
@@ -95,6 +100,7 @@ func TestFormatAPIError(t *testing.T) {
 }
 
 func TestFormatAPIError_OmitsRequestIDWhenEmpty(t *testing.T) {
+	t.Parallel()
 	err := formatAPIError("vertex", "chat", 400, "", providerErrorDetail{Raw: "totally opaque"}, nil)
 	s := err.Error()
 	if !strings.Contains(s, "totally opaque") {
@@ -111,6 +117,7 @@ func TestFormatAPIError_OmitsRequestIDWhenEmpty(t *testing.T) {
 // structured IsRetriable()/IsAuthError()/IsRateLimited() helpers
 // instead of regex-parsing the message.
 func TestFormatAPIError_ReturnsEyrieError(t *testing.T) {
+	t.Parallel()
 	err := formatAPIError("openai", "chat", 429, "req_429",
 		providerErrorDetail{Message: "rate limited"}, nil)
 	var eyrieErr *EyrieError
@@ -143,6 +150,7 @@ func TestFormatAPIError_ReturnsEyrieError(t *testing.T) {
 // TestFormatAPIError_AuthError: 401/403 are flagged as auth errors
 // (not retriable on the same provider).
 func TestFormatAPIError_AuthError(t *testing.T) {
+	t.Parallel()
 	for _, status := range []int{401, 403} {
 		err := formatAPIError("openai", "chat", status, "req",
 			providerErrorDetail{Message: "unauthorized", Code: "invalid_api_key"}, nil)
@@ -161,6 +169,7 @@ func TestFormatAPIError_AuthError(t *testing.T) {
 
 // TestFormatAPIError_RetriableCodes: 5xx and 429 are retriable.
 func TestFormatAPIError_RetriableCodes(t *testing.T) {
+	t.Parallel()
 	for _, status := range []int{408, 429, 500, 502, 503, 504, 529} {
 		err := formatAPIError("openai", "chat", status, "req",
 			providerErrorDetail{Message: "try again"}, nil)
@@ -180,6 +189,7 @@ func TestFormatAPIError_RetriableCodes(t *testing.T) {
 // fixes the contract gap where Unwrap() always returned nil even
 // when the provider body failed to read.
 func TestFormatAPIError_InnerErrorUnwrap(t *testing.T) {
+	t.Parallel()
 	inner := io.ErrUnexpectedEOF
 	err := formatAPIError("openai", "chat", 500, "req_inner",
 		providerErrorDetail{Message: "bad gateway"}, inner)

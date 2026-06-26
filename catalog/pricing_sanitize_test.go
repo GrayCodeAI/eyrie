@@ -6,6 +6,7 @@ import (
 )
 
 func TestSanitizePricingV1_negativeInputRemoved(t *testing.T) {
+	t.Parallel()
 	p := sanitizePricingV1(PricingV1{
 		Status:     PricingKnown,
 		Currency:   "USD",
@@ -20,6 +21,7 @@ func TestSanitizePricingV1_negativeInputRemoved(t *testing.T) {
 }
 
 func TestPricingFromLegacy_negativeBecomesUnknown(t *testing.T) {
+	t.Parallel()
 	p := pricingFromLegacy(ModelCatalogEntry{
 		ID:               "openrouter/auto",
 		InputPricePer1M:  -5,

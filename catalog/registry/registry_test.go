@@ -7,6 +7,7 @@ import (
 // --- NewProviderRegistry + Register + Get ---
 
 func TestNewProviderRegistry_Empty(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	if len(r.All()) != 0 {
 		t.Fatalf("expected empty registry, got %d specs", len(r.All()))
@@ -14,6 +15,7 @@ func TestNewProviderRegistry_Empty(t *testing.T) {
 }
 
 func TestProviderRegistry_RegisterAndGet(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	spec := ProviderSpec{
 		ProviderID:    "test-provider",
@@ -37,6 +39,7 @@ func TestProviderRegistry_RegisterAndGet(t *testing.T) {
 }
 
 func TestProviderRegistry_Get_NotFound(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	_, ok := r.Get("nonexistent")
 	if ok {
@@ -45,6 +48,7 @@ func TestProviderRegistry_Get_NotFound(t *testing.T) {
 }
 
 func TestProviderRegistry_Get_AliasResolution(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{ProviderID: "gemini", DisplayName: "Gemini", DeploymentID: "gemini-direct"})
 
@@ -58,6 +62,7 @@ func TestProviderRegistry_Get_AliasResolution(t *testing.T) {
 }
 
 func TestProviderRegistry_Register_OverwritesExisting(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{ProviderID: "p", DisplayName: "Original"})
 	r.Register(ProviderSpec{ProviderID: "p", DisplayName: "Updated"})
@@ -77,6 +82,7 @@ func TestProviderRegistry_Register_OverwritesExisting(t *testing.T) {
 // --- GetByEnv tests ---
 
 func TestProviderRegistry_GetByEnv(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{ProviderID: "a", CredentialEnv: "A_KEY"})
 	r.Register(ProviderSpec{ProviderID: "b", CredentialEnv: "B_KEY"})
@@ -107,6 +113,7 @@ func TestProviderRegistry_GetByEnv(t *testing.T) {
 // --- GetForLiveFetcher tests ---
 
 func TestProviderRegistry_GetForLiveFetcher(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{ProviderID: "a", LiveFetcherKey: "fetcher-a"})
 	r.Register(ProviderSpec{ProviderID: "b", LiveFetcherKey: "fetcher-b"})
@@ -136,6 +143,7 @@ func TestProviderRegistry_GetForLiveFetcher(t *testing.T) {
 // --- All tests ---
 
 func TestProviderRegistry_All_ReturnsCopy(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{ProviderID: "a"})
 	r.Register(ProviderSpec{ProviderID: "b"})
@@ -157,6 +165,7 @@ func TestProviderRegistry_All_ReturnsCopy(t *testing.T) {
 // --- CredentialProviders tests ---
 
 func TestProviderRegistry_CredentialProviders(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{ProviderID: "a", RequiresKey: true})
 	r.Register(ProviderSpec{ProviderID: "b", RequiresKey: false})
@@ -170,6 +179,7 @@ func TestProviderRegistry_CredentialProviders(t *testing.T) {
 // --- LiveDiscoverable tests ---
 
 func TestProviderRegistry_LiveDiscoverable(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{ProviderID: "a", LiveFetcherKey: "fetch-a"})
 	r.Register(ProviderSpec{ProviderID: "b", LiveFetcherKey: ""})
@@ -191,6 +201,7 @@ func TestProviderRegistry_LiveDiscoverable(t *testing.T) {
 // --- LiveFetcherKeys tests ---
 
 func TestProviderRegistry_LiveFetcherKeys_Sorted(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{ProviderID: "z", LiveFetcherKey: "z-fetch"})
 	r.Register(ProviderSpec{ProviderID: "a", LiveFetcherKey: "a-fetch"})
@@ -206,6 +217,7 @@ func TestProviderRegistry_LiveFetcherKeys_Sorted(t *testing.T) {
 }
 
 func TestProviderRegistry_LiveFetcherKeys_Deduplicates(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{ProviderID: "a", LiveFetcherKey: "shared"})
 	r.Register(ProviderSpec{ProviderID: "b", LiveFetcherKey: "shared"})
@@ -219,6 +231,7 @@ func TestProviderRegistry_LiveFetcherKeys_Deduplicates(t *testing.T) {
 // --- DeploymentEnvFallbacks tests ---
 
 func TestProviderRegistry_DeploymentEnvFallbacks_WithAPIKey(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{
 		ProviderID: "test", DeploymentID: "test-direct",
@@ -246,6 +259,7 @@ func TestProviderRegistry_DeploymentEnvFallbacks_WithAPIKey(t *testing.T) {
 }
 
 func TestProviderRegistry_DeploymentEnvFallbacks_BaseURL(t *testing.T) {
+	t.Parallel()
 	r := NewProviderRegistry()
 	r.Register(ProviderSpec{
 		ProviderID: "test", DeploymentID: "test-direct",
@@ -276,6 +290,7 @@ func TestProviderRegistry_DeploymentEnvFallbacks_BaseURL(t *testing.T) {
 // --- CredentialPresent tests ---
 
 func TestCredentialPresent(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		spec ProviderSpec
@@ -326,6 +341,7 @@ func TestCredentialPresent(t *testing.T) {
 // --- CredentialRegistry tests ---
 
 func TestCredentialRegistry_SortedByOrder(t *testing.T) {
+	t.Parallel()
 	creds := CredentialRegistry()
 	if len(creds) == 0 {
 		t.Fatal("expected non-empty credential registry")
@@ -339,6 +355,7 @@ func TestCredentialRegistry_SortedByOrder(t *testing.T) {
 }
 
 func TestCredentialRegistry_FieldsPopulated(t *testing.T) {
+	t.Parallel()
 	creds := CredentialRegistry()
 	for _, c := range creds {
 		if c.ProviderID == "" {
@@ -356,6 +373,7 @@ func TestCredentialRegistry_FieldsPopulated(t *testing.T) {
 // --- DisplayName tests ---
 
 func TestDisplayName_Registered(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		id   string
 		want string
@@ -376,6 +394,7 @@ func TestDisplayName_Registered(t *testing.T) {
 }
 
 func TestDisplayName_Unknown(t *testing.T) {
+	t.Parallel()
 	got := DisplayName("nonexistent_provider_xyz")
 	if got != "nonexistent_provider_xyz" {
 		t.Errorf("DisplayName(unknown) = %q, want fallback to input", got)
@@ -385,6 +404,7 @@ func TestDisplayName_Unknown(t *testing.T) {
 // --- SpecForLiveFetcher tests ---
 
 func TestSpecForLiveFetcher(t *testing.T) {
+	t.Parallel()
 	spec, ok := SpecForLiveFetcher("anthropic")
 	if !ok {
 		t.Fatal("expected anthropic fetcher spec")
@@ -395,6 +415,7 @@ func TestSpecForLiveFetcher(t *testing.T) {
 }
 
 func TestSpecForLiveFetcher_NotFound(t *testing.T) {
+	t.Parallel()
 	_, ok := SpecForLiveFetcher("nonexistent_fetcher")
 	if ok {
 		t.Error("expected not found")
@@ -404,6 +425,7 @@ func TestSpecForLiveFetcher_NotFound(t *testing.T) {
 // --- LiveCatalogKeyForFetcher tests ---
 
 func TestLiveCatalogKeyForFetcher(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		fetcherKey string
 		wantKey    string
@@ -423,6 +445,7 @@ func TestLiveCatalogKeyForFetcher(t *testing.T) {
 }
 
 func TestLiveCatalogKeyForFetcher_Unknown(t *testing.T) {
+	t.Parallel()
 	got := LiveCatalogKeyForFetcher("unknown_fetcher")
 	if got != "unknown_fetcher" {
 		t.Errorf("expected fallback to input, got %q", got)

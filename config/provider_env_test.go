@@ -16,6 +16,7 @@ func testModelCatalog() catalog.ModelCatalog {
 }
 
 func TestLoadProviderConfig_ValidJSON(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "provider.json")
 
@@ -44,6 +45,7 @@ func TestLoadProviderConfig_ValidJSON(t *testing.T) {
 }
 
 func TestLoadProviderConfig_MissingFile(t *testing.T) {
+	t.Parallel()
 	loaded := LoadProviderConfig("/nonexistent/path/provider.json")
 	if loaded != nil {
 		t.Error("expected nil config for missing file")
@@ -51,6 +53,7 @@ func TestLoadProviderConfig_MissingFile(t *testing.T) {
 }
 
 func TestLoadProviderConfig_InvalidJSON(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "provider.json")
 
@@ -63,6 +66,7 @@ func TestLoadProviderConfig_InvalidJSON(t *testing.T) {
 }
 
 func TestLoadProviderConfigWithError_MissingFile(t *testing.T) {
+	t.Parallel()
 	cfg, err := LoadProviderConfigWithError("/nonexistent/path/provider.json")
 	if cfg != nil {
 		t.Error("expected nil config")
@@ -73,6 +77,7 @@ func TestLoadProviderConfigWithError_MissingFile(t *testing.T) {
 }
 
 func TestLoadProviderConfigWithError_InvalidJSON(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "provider.json")
 	os.WriteFile(path, []byte("{bad json"), 0o644)
@@ -90,6 +95,7 @@ func TestLoadProviderConfigWithError_InvalidJSON(t *testing.T) {
 }
 
 func TestLoadProviderConfigWithError_UnsupportedVersion(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "provider.json")
 	cfg := ProviderConfig{Version: "99"}
@@ -140,6 +146,7 @@ func TestGetProviderConfigPath(t *testing.T) {
 }
 
 func TestApplyProviderEnv_Anthropic(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		AnthropicAPIKey: "sk-ant-test-1234567890",
 		AnthropicModel:  "claude-sonnet-4-6",
@@ -157,6 +164,7 @@ func TestApplyProviderEnv_Anthropic(t *testing.T) {
 }
 
 func TestApplyProviderEnv_OpenAI(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		OpenAIAPIKey: "sk-openai-test-1234567890",
 	}
@@ -176,6 +184,7 @@ func TestApplyProviderEnv_OpenAI(t *testing.T) {
 }
 
 func TestApplyProviderEnv_Gemini(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		GeminiAPIKey: "gemini-key-1234567890",
 	}
@@ -196,6 +205,7 @@ func TestApplyProviderEnv_Gemini(t *testing.T) {
 }
 
 func TestApplyProviderEnv_DeepSeek(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		DeepSeekAPIKey: "deepseek-key-1234567890",
 	}
@@ -215,6 +225,7 @@ func TestApplyProviderEnv_DeepSeek(t *testing.T) {
 }
 
 func TestApplyProviderEnv_Ollama(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		OllamaBaseURL: "http://localhost:11434",
 	}
@@ -231,6 +242,7 @@ func TestApplyProviderEnv_Ollama(t *testing.T) {
 }
 
 func TestApplyProviderEnv_DefaultModel(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		AnthropicAPIKey: "sk-ant-test-1234567890",
 	}
@@ -263,6 +275,7 @@ func TestApplyProviderEnv_OverwriteFalse(t *testing.T) {
 }
 
 func TestSaveProviderConfig(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "subdir", "provider.json")
 
@@ -310,6 +323,7 @@ func TestSaveProviderConfig(t *testing.T) {
 }
 
 func TestSaveProviderConfig_CreatesDirectory(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "deep", "nested", "dir", "provider.json")
 
@@ -325,6 +339,7 @@ func TestSaveProviderConfig_CreatesDirectory(t *testing.T) {
 }
 
 func TestGetProviderModel(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		AnthropicModel: "claude-sonnet-4-6",
 		OpenAIModel:    "gpt-4o",
@@ -348,6 +363,7 @@ func TestGetProviderModel(t *testing.T) {
 }
 
 func TestGetProviderAPIKey(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		AnthropicAPIKey: "sk-ant-key",
 		GrokAPIKey:      "",
@@ -367,6 +383,7 @@ func TestGetProviderAPIKey(t *testing.T) {
 }
 
 func TestIsProviderConfigured(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		AnthropicAPIKey: "sk-ant-key",
 		OllamaBaseURL:   "http://localhost:11434",
@@ -384,6 +401,7 @@ func TestIsProviderConfigured(t *testing.T) {
 }
 
 func TestDefaultProviderFromConfig(t *testing.T) {
+	t.Parallel()
 	cfg := &ProviderConfig{
 		ActiveProvider:  "openai",
 		OpenAIAPIKey:    "sk-openai-key",

@@ -9,6 +9,7 @@ import (
 )
 
 func TestFetchPlatformModelsIndex_Mock(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"data": []json.RawMessage{
@@ -41,6 +42,7 @@ func TestFetchPlatformModelsIndex_Mock(t *testing.T) {
 }
 
 func TestApplyPlatformMetadata_MergesAndUsesPlatformRaw(t *testing.T) {
+	t.Parallel()
 	rawInf := json.RawMessage(`{"id":"mimo-v2.5","object":"model"}`)
 	platform := map[string]PlatformModel{
 		"mimo-v2.5": {
@@ -61,6 +63,7 @@ func TestApplyPlatformMetadata_MergesAndUsesPlatformRaw(t *testing.T) {
 }
 
 func TestNativeModelID(t *testing.T) {
+	t.Parallel()
 	if NativeModelID("xiaomi/mimo-v2.5-pro") != "mimo-v2.5-pro" {
 		t.Fatal()
 	}

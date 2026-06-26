@@ -13,6 +13,7 @@ import (
 )
 
 func TestRefreshProvider_MergesLiveModelsIntoCache(t *testing.T) {
+	t.Parallel()
 	body, err := os.ReadFile("../live/testdata/canopywave_models.json")
 	if err != nil {
 		t.Fatal(err)

@@ -10,6 +10,7 @@ import (
 )
 
 func TestMergeCatalogV1WithPolicy_ReplacesDeploymentOfferings(t *testing.T) {
+	t.Parallel()
 	dst := catalog.TestSeedCatalogV1()
 	dst.Offerings = append(dst.Offerings, catalog.ModelOfferingV1{
 		ID: "canopywave:old-model", CanonicalModelID: "z-ai/old", DeploymentID: "canopywave",
@@ -42,6 +43,7 @@ func TestMergeCatalogV1WithPolicy_ReplacesDeploymentOfferings(t *testing.T) {
 }
 
 func TestMergeCatalogV1WithPolicy_PreferLiveReplacesExistingModel(t *testing.T) {
+	t.Parallel()
 	dst := catalog.TestSeedCatalogV1()
 	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
 		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet",
@@ -72,6 +74,7 @@ func TestMergeCatalogV1WithPolicy_PreferLiveReplacesExistingModel(t *testing.T) 
 }
 
 func TestMergeCatalogV1WithPolicy_PreferLiveUpdatesExistingOffering(t *testing.T) {
+	t.Parallel()
 	dst := catalog.TestSeedCatalogV1()
 	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
 		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet",
@@ -128,6 +131,7 @@ func TestMergeCatalogV1WithPolicy_PreferLiveUpdatesExistingOffering(t *testing.T
 }
 
 func TestMergeCatalogV1WithPolicy_PreferLiveFullReplace(t *testing.T) {
+	t.Parallel()
 	dst := catalog.TestSeedCatalogV1()
 	dst.Models["openrouter/model-a"] = catalog.ModelV1{
 		ID: "openrouter/model-a", ProviderID: "openrouter", Name: "Model A (old)",
@@ -157,6 +161,7 @@ func TestMergeCatalogV1WithPolicy_PreferLiveFullReplace(t *testing.T) {
 }
 
 func TestMergeCatalogV1WithPolicy_PreferLiveUnconditionalPricing(t *testing.T) {
+	t.Parallel()
 	dst := catalog.TestSeedCatalogV1()
 	dst.Models["openrouter/model-a"] = catalog.ModelV1{
 		ID: "openrouter/model-a", ProviderID: "openrouter",
@@ -198,6 +203,7 @@ func TestMergeCatalogV1WithPolicy_PreferLiveUnconditionalPricing(t *testing.T) {
 }
 
 func TestMergeCatalogV1WithPolicy_PreferLiveZeroContextOverwrites(t *testing.T) {
+	t.Parallel()
 	dst := catalog.TestSeedCatalogV1()
 	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
 		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic",
@@ -224,6 +230,7 @@ func TestMergeCatalogV1WithPolicy_PreferLiveZeroContextOverwrites(t *testing.T) 
 }
 
 func TestMergeCatalogV1WithPolicy_NonPreferLivePreservesExisting(t *testing.T) {
+	t.Parallel()
 	dst := catalog.TestSeedCatalogV1()
 	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
 		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic",

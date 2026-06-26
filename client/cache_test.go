@@ -6,6 +6,7 @@ import (
 )
 
 func TestBuildAnthropicCachedRequest_BasicMessages(t *testing.T) {
+	t.Parallel()
 	messages := []EyrieMessage{
 		{Role: "system", Content: "You are helpful."},
 		{Role: "user", Content: "Hello"},
@@ -43,6 +44,7 @@ func TestBuildAnthropicCachedRequest_BasicMessages(t *testing.T) {
 }
 
 func TestBuildAnthropicCachedRequest_ToolUsePropagated(t *testing.T) {
+	t.Parallel()
 	messages := []EyrieMessage{
 		{Role: "user", Content: "read file.go"},
 		{Role: "assistant", Content: "", ToolUse: []ToolCall{
@@ -87,6 +89,7 @@ func TestBuildAnthropicCachedRequest_ToolUsePropagated(t *testing.T) {
 }
 
 func TestBuildAnthropicCachedRequest_ToolsAnnotated(t *testing.T) {
+	t.Parallel()
 	messages := []EyrieMessage{
 		{Role: "user", Content: "hello"},
 	}
@@ -115,6 +118,7 @@ func TestBuildAnthropicCachedRequest_ToolsAnnotated(t *testing.T) {
 }
 
 func TestCacheUsageParsing(t *testing.T) {
+	t.Parallel()
 	responseJSON := `{
 		"id": "msg_123",
 		"content": [{"type": "text", "text": "Hello!"}],
@@ -153,6 +157,7 @@ func TestCacheUsageParsing(t *testing.T) {
 }
 
 func TestBuildAnthropicCachedRequest_NoSystem(t *testing.T) {
+	t.Parallel()
 	messages := []EyrieMessage{
 		{Role: "user", Content: "Hello"},
 		{Role: "assistant", Content: "Hi"},
@@ -166,6 +171,7 @@ func TestBuildAnthropicCachedRequest_NoSystem(t *testing.T) {
 }
 
 func TestBuildAnthropicCachedRequest_StreamFlag(t *testing.T) {
+	t.Parallel()
 	messages := []EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}

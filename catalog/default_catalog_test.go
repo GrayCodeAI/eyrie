@@ -5,6 +5,7 @@ import (
 )
 
 func TestDefaultCatalogV1_ReturnsBootstrap(t *testing.T) {
+	t.Parallel()
 	c := DefaultCatalogV1()
 	if c.SchemaVersion != CatalogV1SchemaVersion {
 		t.Fatalf("schema_version = %q", c.SchemaVersion)
@@ -15,6 +16,7 @@ func TestDefaultCatalogV1_ReturnsBootstrap(t *testing.T) {
 }
 
 func TestDefaultCatalogV1_HasProviders(t *testing.T) {
+	t.Parallel()
 	c := DefaultCatalogV1()
 	expected := []string{"anthropic", "openai", "google", "xai", "openrouter", "ollama"}
 	for _, id := range expected {
@@ -25,6 +27,7 @@ func TestDefaultCatalogV1_HasProviders(t *testing.T) {
 }
 
 func TestDefaultCatalogV1_HasDeployments(t *testing.T) {
+	t.Parallel()
 	c := DefaultCatalogV1()
 	expected := []string{
 		"anthropic-direct", "openai-direct", "gemini-direct",
@@ -38,6 +41,7 @@ func TestDefaultCatalogV1_HasDeployments(t *testing.T) {
 }
 
 func TestDefaultCatalogV1_HasAPIProtocols(t *testing.T) {
+	t.Parallel()
 	c := DefaultCatalogV1()
 	expected := []string{"anthropic-messages", "openai-chat-completions", "gemini-generate-content"}
 	for _, id := range expected {
@@ -48,6 +52,7 @@ func TestDefaultCatalogV1_HasAPIProtocols(t *testing.T) {
 }
 
 func TestDefaultCatalogV1_NoModels(t *testing.T) {
+	t.Parallel()
 	c := DefaultCatalogV1()
 	if len(c.Models) != 0 {
 		t.Fatalf("bootstrap catalog should have no models, got %d", len(c.Models))
@@ -58,6 +63,7 @@ func TestDefaultCatalogV1_NoModels(t *testing.T) {
 }
 
 func TestDefaultCatalogV1_DeploymentsReferenceProviders(t *testing.T) {
+	t.Parallel()
 	c := DefaultCatalogV1()
 	for id, dep := range c.Deployments {
 		if c.Providers[dep.ProviderID].ID == "" {
@@ -70,6 +76,7 @@ func TestDefaultCatalogV1_DeploymentsReferenceProviders(t *testing.T) {
 }
 
 func TestDefaultCatalogV1_Validates(t *testing.T) {
+	t.Parallel()
 	c := DefaultCatalogV1()
 	if err := ValidateCatalogV1(&c); err != nil {
 		t.Fatalf("default catalog should validate: %v", err)
@@ -77,6 +84,7 @@ func TestDefaultCatalogV1_Validates(t *testing.T) {
 }
 
 func TestDefaultCatalogV1_Compiles(t *testing.T) {
+	t.Parallel()
 	c := DefaultCatalogV1()
 	compiled, err := CompileCatalogV1(&c)
 	if err != nil {
@@ -88,6 +96,7 @@ func TestDefaultCatalogV1_Compiles(t *testing.T) {
 }
 
 func TestIsBootstrapCatalog(t *testing.T) {
+	t.Parallel()
 	bootstrap := BootstrapCatalogV1()
 	if !IsBootstrapCatalog(&bootstrap) {
 		t.Error("BootstrapCatalogV1 should be identified as bootstrap")
@@ -104,6 +113,7 @@ func TestIsBootstrapCatalog(t *testing.T) {
 }
 
 func TestBootstrapCatalogV1_HasEnvFallbacks(t *testing.T) {
+	t.Parallel()
 	c := BootstrapCatalogV1()
 	anthDep, ok := c.Deployments["anthropic-direct"]
 	if !ok {
@@ -115,6 +125,7 @@ func TestBootstrapCatalogV1_HasEnvFallbacks(t *testing.T) {
 }
 
 func TestBootstrapCatalogV1_HasCredentialProviders(t *testing.T) {
+	t.Parallel()
 	c := BootstrapCatalogV1()
 	// Ollama is local, should not require key
 	ollamaDep, ok := c.Deployments["ollama-local"]

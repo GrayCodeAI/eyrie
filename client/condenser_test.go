@@ -7,6 +7,7 @@ import (
 )
 
 func TestLLMSummarizingCondenser_NoTriggerUnderMaxSize(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "SUMMARY"
 	c := NewLLMSummarizingCondenser(mock)
@@ -29,6 +30,7 @@ func TestLLMSummarizingCondenser_NoTriggerUnderMaxSize(t *testing.T) {
 }
 
 func TestLLMSummarizingCondenser_TriggersAndKeepsFirst(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "SUMMARY"
 	c := NewLLMSummarizingCondenser(mock)
@@ -76,6 +78,7 @@ func TestLLMSummarizingCondenser_TriggersAndKeepsFirst(t *testing.T) {
 }
 
 func TestLLMSummarizingCondenser_UsesWeakRole(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "SUMMARY"
 	c := NewLLMSummarizingCondenser(mock,
@@ -96,6 +99,7 @@ func TestLLMSummarizingCondenser_UsesWeakRole(t *testing.T) {
 }
 
 func TestCondensingProvider_CondensesBeforeChat(t *testing.T) {
+	t.Parallel()
 	// summarizer mock is distinct from the downstream chat mock so we can
 	// assert the inner provider receives the reduced history.
 	summarizer := NewMockProvider(MockModeFixed)
@@ -131,6 +135,7 @@ func TestCondensingProvider_CondensesBeforeChat(t *testing.T) {
 }
 
 func TestCondensingProvider_PassThroughWhenDisabled(t *testing.T) {
+	t.Parallel()
 	summarizer := NewMockProvider(MockModeFixed)
 	cond := NewLLMSummarizingCondenser(summarizer)
 	inner := NewMockProvider(MockModeFixed)

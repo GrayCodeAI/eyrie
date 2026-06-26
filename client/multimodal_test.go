@@ -9,6 +9,7 @@ import (
 // --- Helper function tests ---
 
 func TestNewImageMessage_URL(t *testing.T) {
+	t.Parallel()
 	msg := NewImageMessage("https://example.com/cat.jpg")
 	if msg.Role != "user" {
 		t.Errorf("expected role=user, got %s", msg.Role)
@@ -29,6 +30,7 @@ func TestNewImageMessage_URL(t *testing.T) {
 }
 
 func TestNewImageMessageWithText(t *testing.T) {
+	t.Parallel()
 	msg := NewImageMessageWithText("What is this?", "https://example.com/pic.png")
 	if msg.Role != "user" {
 		t.Errorf("expected role=user, got %s", msg.Role)
@@ -45,6 +47,7 @@ func TestNewImageMessageWithText(t *testing.T) {
 }
 
 func TestNewBase64ImageMessage(t *testing.T) {
+	t.Parallel()
 	msg := NewBase64ImageMessage("iVBORw0KGgoAAAANS", "image/png")
 	if msg.Role != "user" {
 		t.Errorf("expected role=user, got %s", msg.Role)
@@ -66,6 +69,7 @@ func TestNewBase64ImageMessage(t *testing.T) {
 }
 
 func TestNewBase64ImageMessageWithText(t *testing.T) {
+	t.Parallel()
 	msg := NewBase64ImageMessageWithText("Describe this image", "/9j/4AAQ", "image/jpeg")
 	if len(msg.ContentParts) != 2 {
 		t.Fatalf("expected 2 content parts, got %d", len(msg.ContentParts))
@@ -80,6 +84,7 @@ func TestNewBase64ImageMessageWithText(t *testing.T) {
 }
 
 func TestNewAudioMessage(t *testing.T) {
+	t.Parallel()
 	msg := NewAudioMessage("UklGRiQAAABXQVZF", "wav")
 	if msg.Role != "user" {
 		t.Errorf("expected role=user, got %s", msg.Role)
@@ -103,6 +108,7 @@ func TestNewAudioMessage(t *testing.T) {
 }
 
 func TestNewAudioMessageWithText(t *testing.T) {
+	t.Parallel()
 	msg := NewAudioMessageWithText("Transcribe this", "SGVsbG8=", "mp3")
 	if len(msg.ContentParts) != 2 {
 		t.Fatalf("expected 2 content parts, got %d", len(msg.ContentParts))
@@ -121,6 +127,7 @@ func TestNewAudioMessageWithText(t *testing.T) {
 // --- OpenAI ContentParts serialization tests ---
 
 func TestOpenAI_ContentParts_ImageURL(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewImageMessage("https://example.com/cat.jpg"),
 	}
@@ -148,6 +155,7 @@ func TestOpenAI_ContentParts_ImageURL(t *testing.T) {
 }
 
 func TestOpenAI_ContentParts_ImageURLWithDetail(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{{
 		Role: "user",
 		ContentParts: []ContentPart{
@@ -163,6 +171,7 @@ func TestOpenAI_ContentParts_ImageURLWithDetail(t *testing.T) {
 }
 
 func TestOpenAI_ContentParts_TextPlusImage(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewImageMessageWithText("What is this?", "https://example.com/pic.png"),
 	}
@@ -180,6 +189,7 @@ func TestOpenAI_ContentParts_TextPlusImage(t *testing.T) {
 }
 
 func TestOpenAI_ContentParts_Audio(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewAudioMessage("UklGRiQAAABXQVZF", "wav"),
 	}
@@ -204,6 +214,7 @@ func TestOpenAI_ContentParts_Audio(t *testing.T) {
 }
 
 func TestOpenAI_ContentParts_TextPlusAudio(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewAudioMessageWithText("Transcribe this audio", "SGVsbG8=", "mp3"),
 	}
@@ -221,6 +232,7 @@ func TestOpenAI_ContentParts_TextPlusAudio(t *testing.T) {
 }
 
 func TestOpenAI_ContentParts_MixedImageAndAudio(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{{
 		Role: "user",
 		ContentParts: []ContentPart{
@@ -247,6 +259,7 @@ func TestOpenAI_ContentParts_MixedImageAndAudio(t *testing.T) {
 
 // Test that ContentParts take precedence over Images
 func TestOpenAI_ContentParts_PrecedenceOverImages(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{{
 		Role:         "user",
 		Content:      "Old text",
@@ -265,6 +278,7 @@ func TestOpenAI_ContentParts_PrecedenceOverImages(t *testing.T) {
 
 // Test that legacy Images still work
 func TestOpenAI_LegacyImages_StillWork(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{{
 		Role:    "user",
 		Content: "Describe this",
@@ -286,6 +300,7 @@ func TestOpenAI_LegacyImages_StillWork(t *testing.T) {
 // --- Anthropic ContentParts serialization tests ---
 
 func TestAnthropic_ContentParts_ImageURL(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewImageMessage("https://example.com/cat.jpg"),
 	}
@@ -313,6 +328,7 @@ func TestAnthropic_ContentParts_ImageURL(t *testing.T) {
 }
 
 func TestAnthropic_ContentParts_ImageBase64(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewBase64ImageMessage("iVBORw0KGgoAAAANS", "image/png"),
 	}
@@ -334,6 +350,7 @@ func TestAnthropic_ContentParts_ImageBase64(t *testing.T) {
 }
 
 func TestAnthropic_ContentParts_TextPlusImage(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewImageMessageWithText("What is this?", "https://example.com/pic.png"),
 	}
@@ -351,6 +368,7 @@ func TestAnthropic_ContentParts_TextPlusImage(t *testing.T) {
 }
 
 func TestAnthropic_ContentParts_AudioWAV(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewAudioMessage("UklGRiQAAABXQVZF", "wav"),
 	}
@@ -375,6 +393,7 @@ func TestAnthropic_ContentParts_AudioWAV(t *testing.T) {
 }
 
 func TestAnthropic_ContentParts_AudioMP3(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewAudioMessage("SGVsbG8=", "mp3"),
 	}
@@ -387,6 +406,7 @@ func TestAnthropic_ContentParts_AudioMP3(t *testing.T) {
 }
 
 func TestAnthropic_ContentParts_TextPlusAudio(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{
 		NewAudioMessageWithText("Transcribe this", "SGVsbG8=", "wav"),
 	}
@@ -404,6 +424,7 @@ func TestAnthropic_ContentParts_TextPlusAudio(t *testing.T) {
 }
 
 func TestAnthropic_ContentParts_PrecedenceOverImages(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{{
 		Role:         "user",
 		Content:      "Old text",
@@ -423,6 +444,7 @@ func TestAnthropic_ContentParts_PrecedenceOverImages(t *testing.T) {
 // --- audioFormatToMediaType tests ---
 
 func TestAudioFormatToMediaType(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input    string
 		expected string
@@ -452,6 +474,7 @@ func TestAudioFormatToMediaType(t *testing.T) {
 // --- JSON serialization round-trip test ---
 
 func TestContentParts_JSONRoundTrip(t *testing.T) {
+	t.Parallel()
 	original := EyrieMessage{
 		Role: "user",
 		ContentParts: []ContentPart{

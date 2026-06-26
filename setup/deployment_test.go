@@ -10,6 +10,7 @@ import (
 )
 
 func TestProviderForDeploymentAnthropicBedrockFromConfig(t *testing.T) {
+	t.Parallel()
 	p, ok := ProviderForDeployment("anthropic-bedrock", config.DeploymentConfig{
 		Region:          "us-east-1",
 		AccessKeyID:     "AKIATEST",
@@ -125,6 +126,7 @@ func TestUseDeploymentRouting_LegacyConfig(t *testing.T) {
 // --- FirstNonEmpty ---
 
 func TestFirstNonEmpty(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		values []string
@@ -141,6 +143,7 @@ func TestFirstNonEmpty(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := FirstNonEmpty(tt.values...)
 			if got != tt.want {
 				t.Fatalf("FirstNonEmpty(%v) = %q, want %q", tt.values, got, tt.want)
@@ -152,6 +155,7 @@ func TestFirstNonEmpty(t *testing.T) {
 // --- CloneStringMap ---
 
 func TestCloneStringMap_Nil(t *testing.T) {
+	t.Parallel()
 	if got := CloneStringMap(nil); got != nil {
 		t.Fatalf("expected nil, got %v", got)
 	}

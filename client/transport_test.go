@@ -7,6 +7,7 @@ import (
 )
 
 func TestDefaultTransportReturnsNonNil(t *testing.T) {
+	t.Parallel()
 	tr := defaultTransport()
 	if tr == nil {
 		t.Fatal("defaultTransport() returned nil")
@@ -14,6 +15,7 @@ func TestDefaultTransportReturnsNonNil(t *testing.T) {
 }
 
 func TestDefaultTransportIsSingleton(t *testing.T) {
+	t.Parallel()
 	a := defaultTransport()
 	b := defaultTransport()
 	if a != b {
@@ -22,6 +24,7 @@ func TestDefaultTransportIsSingleton(t *testing.T) {
 }
 
 func TestDefaultTransportIdleConnSettings(t *testing.T) {
+	t.Parallel()
 	tr := defaultTransport()
 	if tr.MaxIdleConns != 100 {
 		t.Errorf("MaxIdleConns = %d, want 100", tr.MaxIdleConns)
@@ -35,6 +38,7 @@ func TestDefaultTransportIdleConnSettings(t *testing.T) {
 }
 
 func TestDefaultTransportTLSSettings(t *testing.T) {
+	t.Parallel()
 	tr := defaultTransport()
 	if tr.TLSHandshakeTimeout != 10*time.Second {
 		t.Errorf("TLSHandshakeTimeout = %v, want 10s", tr.TLSHandshakeTimeout)
@@ -45,6 +49,7 @@ func TestDefaultTransportTLSSettings(t *testing.T) {
 }
 
 func TestNewPooledHTTPClientTimeout(t *testing.T) {
+	t.Parallel()
 	c := NewPooledHTTPClient(30 * time.Second)
 	if c.Timeout != 30*time.Second {
 		t.Errorf("Timeout = %v, want 30s", c.Timeout)
@@ -52,6 +57,7 @@ func TestNewPooledHTTPClientTimeout(t *testing.T) {
 }
 
 func TestNewPooledHTTPClientUsesSharedTransport(t *testing.T) {
+	t.Parallel()
 	a := NewPooledHTTPClient(1 * time.Second)
 	b := NewPooledHTTPClient(2 * time.Second)
 
@@ -69,6 +75,7 @@ func TestNewPooledHTTPClientUsesSharedTransport(t *testing.T) {
 }
 
 func TestNewPooledHTTPClientSharesDefaultTransport(t *testing.T) {
+	t.Parallel()
 	c := NewPooledHTTPClient(5 * time.Second)
 	tr := defaultTransport()
 	if c.Transport != tr {

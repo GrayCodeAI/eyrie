@@ -33,6 +33,7 @@ func basicMessages() []EyrieMessage {
 // --- TestOpenAIChat ---
 
 func TestOpenAIChat_Success(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/chat/completions" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -128,6 +129,7 @@ func TestOpenAIChat_Success(t *testing.T) {
 }
 
 func TestOpenAIChat_MissingModel(t *testing.T) {
+	t.Parallel()
 	c := newTestOpenAIClient("http://localhost", nil)
 	_, err := c.Chat(context.Background(), basicMessages(), ChatOptions{})
 	if err == nil {
@@ -139,6 +141,7 @@ func TestOpenAIChat_MissingModel(t *testing.T) {
 }
 
 func TestOpenAIChat_WithUsageCacheDetails(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "req-cached")
 		resp := map[string]interface{}{
@@ -175,6 +178,7 @@ func TestOpenAIChat_WithUsageCacheDetails(t *testing.T) {
 // --- TestOpenAIChat_ToolCalls ---
 
 func TestOpenAIChat_ToolCallsInResponse(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify tools are sent in request
 		var reqBody map[string]interface{}
@@ -261,6 +265,7 @@ func TestOpenAIChat_ToolCallsInResponse(t *testing.T) {
 // --- TestOpenAIChat_ResponseFormat ---
 
 func TestOpenAIChat_ResponseFormatJSON(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var reqBody map[string]interface{}
 		json.NewDecoder(r.Body).Decode(&reqBody)
@@ -299,6 +304,7 @@ func TestOpenAIChat_ResponseFormatJSON(t *testing.T) {
 }
 
 func TestOpenAIChat_ResponseFormatJSONSchema(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var reqBody map[string]interface{}
 		json.NewDecoder(r.Body).Decode(&reqBody)
@@ -345,6 +351,7 @@ func TestOpenAIChat_ResponseFormatJSONSchema(t *testing.T) {
 // --- TestOpenAIChat_ErrorHandling ---
 
 func TestOpenAIChat_Error401(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "req-401")
 		w.WriteHeader(401)
@@ -374,6 +381,7 @@ func TestOpenAIChat_Error401(t *testing.T) {
 }
 
 func TestOpenAIChat_Error429(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "req-429")
 		w.WriteHeader(429)
@@ -398,6 +406,7 @@ func TestOpenAIChat_Error429(t *testing.T) {
 }
 
 func TestOpenAIChat_Error500(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "req-500")
 		w.WriteHeader(500)
@@ -416,6 +425,7 @@ func TestOpenAIChat_Error500(t *testing.T) {
 }
 
 func TestOpenAIChat_ContextCancelled(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second)
 		w.WriteHeader(200)

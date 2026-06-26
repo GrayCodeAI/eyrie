@@ -12,6 +12,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestErrNotFound_DoesNotContainSecrets(t *testing.T) {
+	t.Parallel()
 	// ErrNotFound is a sentinel error. Its message must not contain any
 	// secret values or hint at what the secret might be.
 	errMsg := ErrNotFound.Error()
@@ -21,6 +22,7 @@ func TestErrNotFound_DoesNotContainSecrets(t *testing.T) {
 }
 
 func TestMapStore_GetErrorDoesNotLeakValue(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	ctx := context.Background()
 
@@ -41,6 +43,7 @@ func TestMapStore_GetErrorDoesNotLeakValue(t *testing.T) {
 }
 
 func TestMapStore_GetEmptyKeyReturnsNotFound(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	ctx := context.Background()
 
@@ -52,6 +55,7 @@ func TestMapStore_GetEmptyKeyReturnsNotFound(t *testing.T) {
 }
 
 func TestMapStore_SetEmptySecretStoresEmpty(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	ctx := context.Background()
 
@@ -73,6 +77,7 @@ func TestMapStore_SetEmptySecretStoresEmpty(t *testing.T) {
 }
 
 func TestMapStore_SetWhitespaceSecretStoresEmpty(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	ctx := context.Background()
 
@@ -95,6 +100,7 @@ func TestMapStore_SetWhitespaceSecretStoresEmpty(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAccountForEnv_NormalizesCorrectly(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input string
 		want  string
@@ -110,6 +116,7 @@ func TestAccountForEnv_NormalizesCorrectly(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
 			got := AccountForEnv(tt.input)
 			if got != tt.want {
 				t.Errorf("AccountForEnv(%q) = %q, want %q", tt.input, got, tt.want)
@@ -123,6 +130,7 @@ func TestAccountForEnv_NormalizesCorrectly(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvForAccount_DoesNotReturnSecretValues(t *testing.T) {
+	t.Parallel()
 	// EnvForAccount maps account names to env var NAMES (not values).
 	// Verify it returns env var names, not actual secret values.
 	tests := []struct {
@@ -138,6 +146,7 @@ func TestEnvForAccount_DoesNotReturnSecretValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.account, func(t *testing.T) {
+			t.Parallel()
 			got := EnvForAccount(tt.account)
 			if got != tt.wantEnv {
 				t.Errorf("EnvForAccount(%q) = %q, want %q", tt.account, got, tt.wantEnv)
@@ -155,6 +164,7 @@ func TestEnvForAccount_DoesNotReturnSecretValues(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestLookupSecret_EmptyKeyReturnsEmpty(t *testing.T) {
+	t.Parallel()
 	// Empty env key should return empty string, not error or panic.
 	result := LookupSecret(context.Background(), "")
 	if result != "" {
@@ -163,6 +173,7 @@ func TestLookupSecret_EmptyKeyReturnsEmpty(t *testing.T) {
 }
 
 func TestLookupSecret_WhitespaceKeyReturnsEmpty(t *testing.T) {
+	t.Parallel()
 	result := LookupSecret(context.Background(), "   ")
 	if result != "" {
 		t.Errorf("LookupSecret('   ') = %q, want empty", result)
@@ -170,6 +181,7 @@ func TestLookupSecret_WhitespaceKeyReturnsEmpty(t *testing.T) {
 }
 
 func TestLookupSecret_NilContextHandled(t *testing.T) {
+	t.Parallel()
 	// Nil context should not panic.
 	result := LookupSecret(context.Background(), "NONEXISTENT_KEY")
 	if result != "" {
@@ -178,12 +190,14 @@ func TestLookupSecret_NilContextHandled(t *testing.T) {
 }
 
 func TestHasSecret_EmptyKeyReturnsFalse(t *testing.T) {
+	t.Parallel()
 	if HasSecret(context.Background(), "") {
 		t.Error("HasSecret('') should return false")
 	}
 }
 
 func TestHasSecret_NilContextHandled(t *testing.T) {
+	t.Parallel()
 	// Should not panic.
 	if HasSecret(context.Background(), "NONEXISTENT_KEY") {
 		t.Error("HasSecret(context.Background(), 'NONEXISTENT_KEY') should return false")
@@ -195,6 +209,7 @@ func TestHasSecret_NilContextHandled(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDeleteSecret_EmptyKeyReturnsError(t *testing.T) {
+	t.Parallel()
 	err := DeleteSecret(context.Background(), "")
 	if err == nil {
 		t.Error("DeleteSecret('') should return an error")
@@ -206,6 +221,7 @@ func TestDeleteSecret_EmptyKeyReturnsError(t *testing.T) {
 }
 
 func TestDeleteSecret_WhitespaceKeyReturnsError(t *testing.T) {
+	t.Parallel()
 	err := DeleteSecret(context.Background(), "   ")
 	if err == nil {
 		t.Error("DeleteSecret('   ') should return an error")
@@ -213,6 +229,7 @@ func TestDeleteSecret_WhitespaceKeyReturnsError(t *testing.T) {
 }
 
 func TestDeleteSecret_NonexistentKeyNoError(t *testing.T) {
+	// Not parallel: mutates global DefaultStore.
 	// Deleting a non-existent key should not error.
 	store := &MapStore{}
 	SetDefaultStore(store)
@@ -229,11 +246,13 @@ func TestDeleteSecret_NonexistentKeyNoError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestScrubProcessEnv_EmptyKeysIgnored(t *testing.T) {
+	t.Parallel()
 	// Should not panic with empty or whitespace keys.
 	ScrubProcessEnv([]string{"", "  ", "\t"})
 }
 
 func TestScrubProcessEnv_NilKeysIgnored(t *testing.T) {
+	t.Parallel()
 	// Should not panic with nil.
 	ScrubProcessEnv(nil)
 }
@@ -243,6 +262,7 @@ func TestScrubProcessEnv_NilKeysIgnored(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAPIKeysMap_SecretsNotInErrorPaths(t *testing.T) {
+	t.Parallel()
 	ms := &MapStore{}
 	ctx := context.Background()
 
@@ -263,6 +283,7 @@ func TestAPIKeysMap_SecretsNotInErrorPaths(t *testing.T) {
 }
 
 func TestAPIKeysMap_NilStoreHandledGracefully(t *testing.T) {
+	// Not parallel: mutates global DefaultStore.
 	ms := &MapStore{}
 	SetDefaultStore(ms)
 	t.Cleanup(func() { SetDefaultStore(nil) })
@@ -277,6 +298,7 @@ func TestAPIKeysMap_NilStoreHandledGracefully(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFormatStorageReport_NoSecretValues(t *testing.T) {
+	t.Parallel()
 	report := StorageReport{
 		PlatformStore:    "macOS Keychain",
 		KeychainWritable: true,
@@ -300,6 +322,7 @@ func TestFormatStorageReport_NoSecretValues(t *testing.T) {
 }
 
 func TestStorageReport_EmptyKeysReportedCorrectly(t *testing.T) {
+	t.Parallel()
 	report := StorageReport{
 		PlatformStore:    "TestStore",
 		KeychainWritable: false,

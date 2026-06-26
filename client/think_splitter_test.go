@@ -15,6 +15,7 @@ func feedAll(deltas []string) (content, thinking string) {
 }
 
 func TestThinkSplitter(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name         string
 		deltas       []string
@@ -83,6 +84,7 @@ func TestThinkSplitter(t *testing.T) {
 }
 
 func TestPartialSuffixLen(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		s, tag string
 		want   int

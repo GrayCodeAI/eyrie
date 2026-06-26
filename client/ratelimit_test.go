@@ -7,6 +7,7 @@ import (
 )
 
 func TestRateLimitAllowsWithinRate(t *testing.T) {
+	t.Parallel()
 	rl := NewRateLimiter(RateLimitConfig{
 		RequestsPerMinute: 600, // 10/sec
 		BurstSize:         10,
@@ -22,6 +23,7 @@ func TestRateLimitAllowsWithinRate(t *testing.T) {
 }
 
 func TestRateLimitBlocksExceedingRate(t *testing.T) {
+	t.Parallel()
 	rl := NewRateLimiter(RateLimitConfig{
 		RequestsPerMinute: 60, // 1/sec
 		BurstSize:         2,
@@ -42,6 +44,7 @@ func TestRateLimitBlocksExceedingRate(t *testing.T) {
 }
 
 func TestRateLimitBurstAllowsImmediate(t *testing.T) {
+	t.Parallel()
 	rl := NewRateLimiter(RateLimitConfig{
 		RequestsPerMinute: 60,
 		BurstSize:         5,
@@ -62,6 +65,7 @@ func TestRateLimitBurstAllowsImmediate(t *testing.T) {
 }
 
 func TestRateLimitContextCancellation(t *testing.T) {
+	t.Parallel()
 	rl := NewRateLimiter(RateLimitConfig{
 		RequestsPerMinute: 60,
 		BurstSize:         1,
@@ -82,6 +86,7 @@ func TestRateLimitContextCancellation(t *testing.T) {
 }
 
 func TestRateLimitUnlimited(t *testing.T) {
+	t.Parallel()
 	rl := NewRateLimiter(RateLimitConfig{
 		RequestsPerMinute: 0, // unlimited
 	})
@@ -95,6 +100,7 @@ func TestRateLimitUnlimited(t *testing.T) {
 }
 
 func TestRateLimitProviderDelegation(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "delegated"
 
@@ -136,6 +142,7 @@ func TestRateLimitProviderDelegation(t *testing.T) {
 }
 
 func TestRateLimitChatBlockedByContext(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeFixed)
 	mock.Response = "should not see this"
 

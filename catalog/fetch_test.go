@@ -7,6 +7,7 @@ import (
 )
 
 func TestFetchOllamaModels_DelegatesLive(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchOllamaModels(map[string]string{})
 	if err != nil {
 		t.Fatal(err)

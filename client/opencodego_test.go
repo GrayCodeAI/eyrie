@@ -13,6 +13,7 @@ import (
 )
 
 func TestOpenCodeGoUsesMessagesAPI(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		model string
 		want  bool
@@ -32,12 +33,14 @@ func TestOpenCodeGoUsesMessagesAPI(t *testing.T) {
 }
 
 func TestOpenCodeGoAnthropicBase(t *testing.T) {
+	t.Parallel()
 	if got := AnthropicBaseFromOpenAIV1("https://opencode.ai/zen/go/v1"); got != "https://opencode.ai/zen/go" {
 		t.Fatalf("base = %q, want https://opencode.ai/zen/go", got)
 	}
 }
 
 func TestOpenCodeGoOACompatUnsupportedError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		err  error
 		want bool
@@ -55,6 +58,7 @@ func TestOpenCodeGoOACompatUnsupportedError(t *testing.T) {
 }
 
 func TestOpenCodeGoClient_RoutesMiniMaxToAnthropic(t *testing.T) {
+	t.Parallel()
 	var gotPath, gotAuth string
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		gotPath = r.URL.Path
@@ -87,6 +91,7 @@ func TestOpenCodeGoClient_RoutesMiniMaxToAnthropic(t *testing.T) {
 }
 
 func TestOpenCodeGoClient_RoutesKimiToOpenAI(t *testing.T) {
+	t.Parallel()
 	var gotPath string
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		gotPath = r.URL.Path
@@ -116,6 +121,7 @@ func TestOpenCodeGoClient_RoutesKimiToOpenAI(t *testing.T) {
 }
 
 func TestOpenCodeGoClient_Qwen401FallsBackToOpenAI(t *testing.T) {
+	t.Parallel()
 	var paths []string
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		paths = append(paths, r.URL.Path)
@@ -147,6 +153,7 @@ func TestOpenCodeGoClient_Qwen401FallsBackToOpenAI(t *testing.T) {
 }
 
 func TestOpenCodeGoClient_MessagesEmptyFallsBackToOpenAI(t *testing.T) {
+	t.Parallel()
 	var paths []string
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		paths = append(paths, r.URL.Path)
@@ -183,6 +190,7 @@ func TestOpenCodeGoClient_MessagesEmptyFallsBackToOpenAI(t *testing.T) {
 }
 
 func TestOpenCodeGoClient_NormalizesModelID(t *testing.T) {
+	t.Parallel()
 	var gotModel string
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if strings.HasSuffix(r.URL.Path, "/chat/completions") {
@@ -212,6 +220,7 @@ func TestOpenCodeGoClient_NormalizesModelID(t *testing.T) {
 }
 
 func TestOpenCodeGoClient_StreamMiniMaxReasoningOnlyFallsBackToChat(t *testing.T) {
+	t.Parallel()
 	var paths []string
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		paths = append(paths, r.URL.Path)

@@ -9,6 +9,7 @@ import (
 // TestTTFTEventFiresBeforeContent verifies that a "ttft" event is emitted before
 // the first "content" event and that it carries a non-negative TTFT value.
 func TestTTFTEventFiresBeforeContent(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"content":"Hello"},"finish_reason":null}]}`}
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"content":" world"},"finish_reason":null}]}`}
@@ -55,6 +56,7 @@ func TestTTFTEventFiresBeforeContent(t *testing.T) {
 // TestTTFTEventFiresOnToolCallDelta verifies that a "ttft" event is emitted when
 // the first token is a tool-call argument delta (not a content delta).
 func TestTTFTEventFiresOnToolCallDelta(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","function":{"name":"fn","arguments":""}}]},"finish_reason":null}]}`}
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"x\":1}"}}]},"finish_reason":null}]}`}
@@ -85,6 +87,7 @@ func TestTTFTEventFiresOnToolCallDelta(t *testing.T) {
 
 // TestTTFTEventFiredExactlyOnce verifies only one ttft event is emitted per stream.
 func TestTTFTEventFiredExactlyOnce(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	for i := 0; i < 5; i++ {
 		events <- SSEEvent{Data: `{"choices":[{"delta":{"content":"x"},"finish_reason":null}]}`}
@@ -108,6 +111,7 @@ func TestTTFTEventFiredExactlyOnce(t *testing.T) {
 
 // TestTTFTValue verifies the TTFT value is plausible (measured against wall clock).
 func TestTTFTValue(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 
 	// Use processOpenAIStreamWithOpts with a known start time to test the value.

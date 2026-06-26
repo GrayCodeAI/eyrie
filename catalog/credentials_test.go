@@ -5,6 +5,7 @@ import (
 )
 
 func TestCredentials_Env_FiltersEmpty(t *testing.T) {
+	t.Parallel()
 	c := Credentials{
 		APIKeys: map[string]string{
 			"OPENAI_API_KEY":    "sk-test",
@@ -32,6 +33,7 @@ func TestCredentials_Env_FiltersEmpty(t *testing.T) {
 }
 
 func TestCredentials_Env_ReturnsCopy(t *testing.T) {
+	t.Parallel()
 	c := Credentials{
 		APIKeys: map[string]string{"KEY": "val"},
 	}
@@ -43,6 +45,7 @@ func TestCredentials_Env_ReturnsCopy(t *testing.T) {
 }
 
 func TestCredentials_Env_NilMap(t *testing.T) {
+	t.Parallel()
 	var c Credentials
 	env := c.Env()
 	if len(env) != 0 {
@@ -51,6 +54,7 @@ func TestCredentials_Env_NilMap(t *testing.T) {
 }
 
 func TestCredentials_Merge_AddsKeys(t *testing.T) {
+	t.Parallel()
 	c := Credentials{
 		APIKeys: map[string]string{"A": "1"},
 	}
@@ -63,6 +67,7 @@ func TestCredentials_Merge_AddsKeys(t *testing.T) {
 }
 
 func TestCredentials_Merge_OverwritesExisting(t *testing.T) {
+	t.Parallel()
 	c := Credentials{
 		APIKeys: map[string]string{"KEY": "old"},
 	}
@@ -75,6 +80,7 @@ func TestCredentials_Merge_OverwritesExisting(t *testing.T) {
 }
 
 func TestCredentials_Merge_InitializesNilMap(t *testing.T) {
+	t.Parallel()
 	var c Credentials
 	c.Merge(Credentials{
 		APIKeys: map[string]string{"KEY": "val"},
@@ -88,6 +94,7 @@ func TestCredentials_Merge_InitializesNilMap(t *testing.T) {
 }
 
 func TestCredentials_Merge_SkipsEmptyKeys(t *testing.T) {
+	t.Parallel()
 	c := Credentials{}
 	c.Merge(Credentials{
 		APIKeys: map[string]string{

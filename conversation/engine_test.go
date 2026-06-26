@@ -38,6 +38,7 @@ func testEngine(t *testing.T) *Engine {
 }
 
 func TestPromptCreatesNodes(t *testing.T) {
+	t.Parallel()
 	e := testEngine(t)
 	ctx := context.Background()
 
@@ -72,6 +73,7 @@ func TestPromptCreatesNodes(t *testing.T) {
 }
 
 func TestPromptFromBranches(t *testing.T) {
+	t.Parallel()
 	e := testEngine(t)
 	ctx := context.Background()
 
@@ -102,6 +104,7 @@ func TestPromptFromBranches(t *testing.T) {
 }
 
 func TestResolveNode(t *testing.T) {
+	t.Parallel()
 	e := testEngine(t)
 	ctx := context.Background()
 

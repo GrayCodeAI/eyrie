@@ -5,6 +5,7 @@ import (
 )
 
 func TestNormalizeRegion(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input   string
 		want    Region
@@ -36,6 +37,7 @@ func TestNormalizeRegion(t *testing.T) {
 }
 
 func TestPlanForProvider(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		providerID string
 		wantPlan   Plan
@@ -59,6 +61,7 @@ func TestPlanForProvider(t *testing.T) {
 }
 
 func TestResolveOpenAIBase(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		plan     Plan
@@ -91,6 +94,7 @@ func TestResolveOpenAIBase(t *testing.T) {
 }
 
 func TestResolveAnthropicBase(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		region Region
@@ -111,6 +115,7 @@ func TestResolveAnthropicBase(t *testing.T) {
 }
 
 func TestKeyMismatchHint(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		plan     Plan
@@ -150,6 +155,7 @@ func containsAt(s, substr string) bool {
 }
 
 func TestAppendKeyMismatchHint(t *testing.T) {
+	t.Parallel()
 	err := AppendKeyMismatchHint(nil, "zai_coding", "key")
 	if err != nil {
 		t.Errorf("AppendKeyMismatchHint on nil error should return nil")

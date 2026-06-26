@@ -14,6 +14,7 @@ func (e *codedError) Error() string { return e.msg }
 func (e *codedError) Code() string  { return e.code }
 
 func TestExtractConnectionErrorDetails(t *testing.T) {
+	t.Parallel()
 	err := &codedError{code: "CERT_HAS_EXPIRED", msg: "certificate expired"}
 	details := ExtractConnectionErrorDetails(err)
 	if details == nil {
@@ -37,6 +38,7 @@ func TestExtractConnectionErrorDetails(t *testing.T) {
 }
 
 func TestExtractConnectionErrorDetailsNil(t *testing.T) {
+	t.Parallel()
 	if ExtractConnectionErrorDetails(nil) != nil {
 		t.Error("expected nil for nil error")
 	}
@@ -46,6 +48,7 @@ func TestExtractConnectionErrorDetailsNil(t *testing.T) {
 }
 
 func TestGetSSLErrorHint(t *testing.T) {
+	t.Parallel()
 	err := &codedError{code: "DEPTH_ZERO_SELF_SIGNED_CERT", msg: "self signed"}
 	hint := GetSSLErrorHint(err)
 	if hint == nil {
@@ -62,6 +65,7 @@ func TestGetSSLErrorHint(t *testing.T) {
 }
 
 func TestSanitizeAPIError(t *testing.T) {
+	t.Parallel()
 	if got := SanitizeAPIError("plain error"); got != "plain error" {
 		t.Errorf("expected plain error, got %q", got)
 	}

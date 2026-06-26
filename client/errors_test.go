@@ -13,6 +13,7 @@ import (
 )
 
 func TestAnthropicClient401(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-401")
 		w.WriteHeader(401)
@@ -35,6 +36,7 @@ func TestAnthropicClient401(t *testing.T) {
 }
 
 func TestAnthropicClient429WithRetry(t *testing.T) {
+	t.Parallel()
 	attempts := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
@@ -68,6 +70,7 @@ func TestAnthropicClient429WithRetry(t *testing.T) {
 }
 
 func TestAnthropicClient500(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 		fmt.Fprint(w, `{"error":{"type":"server_error","message":"internal server error"}}`)
@@ -87,6 +90,7 @@ func TestAnthropicClient500(t *testing.T) {
 }
 
 func TestAnthropicClientTimeout(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(200 * time.Millisecond)
 		w.WriteHeader(200)
@@ -103,6 +107,7 @@ func TestAnthropicClientTimeout(t *testing.T) {
 }
 
 func TestAnthropicClientMalformedJSON(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		fmt.Fprint(w, `{invalid json`)
@@ -122,6 +127,7 @@ func TestAnthropicClientMalformedJSON(t *testing.T) {
 }
 
 func TestAnthropicClientContextCancelled(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(5 * time.Second)
 	}))
@@ -140,6 +146,7 @@ func TestAnthropicClientContextCancelled(t *testing.T) {
 }
 
 func TestEyrieErrorStructure(t *testing.T) {
+	t.Parallel()
 	err := &EyrieError{
 		Provider:   "anthropic",
 		Op:         "chat",
@@ -172,6 +179,7 @@ func TestEyrieErrorStructure(t *testing.T) {
 }
 
 func TestAnthropicToolCallParsing(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":   "msg_123",
@@ -213,6 +221,7 @@ func TestAnthropicToolCallParsing(t *testing.T) {
 }
 
 func TestFallbackProviderIntegration(t *testing.T) {
+	t.Parallel()
 	// First provider always fails
 	failServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
@@ -245,6 +254,7 @@ func TestFallbackProviderIntegration(t *testing.T) {
 }
 
 func TestStreamParsingEdgeCases(t *testing.T) {
+	t.Parallel()
 	t.Run("empty events ignored", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/event-stream")
