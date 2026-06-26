@@ -12,6 +12,7 @@ import (
 )
 
 func TestProbeGemini_UsesHeaderNotQuery(t *testing.T) {
+	t.Parallel()
 	var gotKey string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotKey = r.Header.Get("x-goog-api-key")
@@ -72,6 +73,7 @@ func TestProbeCredential_XiaomiTokenPlan_ResolvesBaseFromProviderConfig(t *testi
 }
 
 func TestProbeCredential_XiaomiTokenPlan_StaleBaseUsesRegion(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/models" {
 			http.NotFound(w, r)
@@ -100,6 +102,7 @@ func TestProbeCredential_XiaomiTokenPlan_StaleBaseUsesRegion(t *testing.T) {
 }
 
 func TestProbeHTTPError_NoResponseBodyLeak(t *testing.T) {
+	t.Parallel()
 	err := credential.ProbeCredential(context.Background(), "OPENAI_API_KEY", "sk-test-key-1234567890")
 	if err == nil {
 		return

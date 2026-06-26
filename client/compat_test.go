@@ -11,6 +11,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestCompatMatrixCoreProvidersHaveCompat(t *testing.T) {
+	t.Parallel()
 	// Every core provider must have a non-nil Compat config after init().
 	for _, name := range []string{"openai", "azure", "bedrock", "vertex"} {
 		p, ok := CoreProviders[name]
@@ -24,6 +25,7 @@ func TestCompatMatrixCoreProvidersHaveCompat(t *testing.T) {
 }
 
 func TestCompatMatrixOpenAICompatibleProvidersHaveCompat(t *testing.T) {
+	t.Parallel()
 	// Every OpenAI-compatible provider must have a non-nil Compat config after init().
 	expected := []string{
 		"grok", "openrouter", "gemini", "zai_payg", "zai_coding",
@@ -41,6 +43,7 @@ func TestCompatMatrixOpenAICompatibleProvidersHaveCompat(t *testing.T) {
 }
 
 func TestCompatMatrixMaxTokensFieldValues(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		provider string
 		field    string
@@ -72,6 +75,7 @@ func TestCompatMatrixMaxTokensFieldValues(t *testing.T) {
 }
 
 func TestCompatMatrixOpenAIUniqueCapabilities(t *testing.T) {
+	t.Parallel()
 	// OpenAI is the only provider with SupportsStore and SupportsDeveloperRole.
 	if !OpenAICompat.SupportsStore {
 		t.Error("OpenAI should support store")
@@ -101,6 +105,7 @@ func TestCompatMatrixOpenAIUniqueCapabilities(t *testing.T) {
 }
 
 func TestCompatMatrixThinkingFormatValues(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		compat *OpenAICompatConfig
 		format string
@@ -130,6 +135,7 @@ func TestCompatMatrixThinkingFormatValues(t *testing.T) {
 }
 
 func TestCompatMatrixUsageInStreaming(t *testing.T) {
+	t.Parallel()
 	// Providers that report usage in streaming.
 	supportsUsage := []*OpenAICompatConfig{
 		&OpenAICompat, &OpenRouterCompat, &GeminiCompat, &ZAICompat, &OpenCodeGoCompat,
@@ -158,6 +164,7 @@ func TestCompatMatrixUsageInStreaming(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCompatDeprecatedModels(t *testing.T) {
+	t.Parallel()
 	dc := NewDeprecationChecker()
 
 	tests := []struct {
@@ -187,6 +194,7 @@ func TestCompatDeprecatedModels(t *testing.T) {
 }
 
 func TestCompatCurrentModelsNotDeprecated(t *testing.T) {
+	t.Parallel()
 	dc := NewDeprecationChecker()
 
 	current := []string{
@@ -201,6 +209,7 @@ func TestCompatCurrentModelsNotDeprecated(t *testing.T) {
 }
 
 func TestCompatDeprecationCheckerNilSafety(t *testing.T) {
+	t.Parallel()
 	dc := NewDeprecationChecker()
 	// Check a non-existent model.
 	if info := dc.Check("nonexistent-model-xyz"); info != nil {
@@ -213,6 +222,7 @@ func TestCompatDeprecationCheckerNilSafety(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCompatFeatureMatrixAllProviders(t *testing.T) {
+	t.Parallel()
 	// With no catalog loaded, all providers return zero-value FeatureSet
 	orig := cachedCatalog
 	defer func() { cachedCatalog = orig }()
@@ -235,6 +245,7 @@ func TestCompatFeatureMatrixAllProviders(t *testing.T) {
 }
 
 func TestCompatSupportsAllFeatureAliases(t *testing.T) {
+	t.Parallel()
 	pf := NewProviderFeatures()
 
 	// Verify that feature name aliases resolve identically.
@@ -257,6 +268,7 @@ func TestCompatSupportsAllFeatureAliases(t *testing.T) {
 }
 
 func TestCompatSupportsUnknownFeatureReturnsFalse(t *testing.T) {
+	t.Parallel()
 	pf := NewProviderFeatures()
 	if pf.Supports("anthropic", "nonexistent_feature_xyz") {
 		t.Error("unknown feature should return false")
@@ -264,6 +276,7 @@ func TestCompatSupportsUnknownFeatureReturnsFalse(t *testing.T) {
 }
 
 func TestCompatSupportsCaseInsensitiveFeatureNames(t *testing.T) {
+	t.Parallel()
 	pf := NewProviderFeatures()
 	// "Thinking" vs "thinking" should resolve the same.
 	if pf.Supports("anthropic", "Thinking") != pf.Supports("anthropic", "thinking") {
@@ -276,6 +289,7 @@ func TestCompatSupportsCaseInsensitiveFeatureNames(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCompatFallbackChainOrder(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeError)
 	p2 := NewMockProvider(MockModeError)
 	p3 := NewMockProvider(MockModeFixed)
@@ -298,6 +312,7 @@ func TestCompatFallbackChainOrder(t *testing.T) {
 }
 
 func TestCompatFallbackStopsOnFirstSuccess(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeFixed)
 	p1.Response = "first"
 	p2 := NewMockProvider(MockModeFixed)
@@ -319,6 +334,7 @@ func TestCompatFallbackStopsOnFirstSuccess(t *testing.T) {
 }
 
 func TestCompatFallbackNonRetriableStopsChain(t *testing.T) {
+	t.Parallel()
 	// 400 errors are non-retriable; fallback should not proceed.
 	p1 := &errorProvider{err: fmt.Errorf("HTTP 400 bad request")}
 	p2 := NewMockProvider(MockModeFixed)
@@ -337,6 +353,7 @@ func TestCompatFallbackNonRetriableStopsChain(t *testing.T) {
 }
 
 func TestCompatFallbackRetriableContinuesChain(t *testing.T) {
+	t.Parallel()
 	retriableStatuses := []int{429, 500, 502, 503}
 	for _, code := range retriableStatuses {
 		t.Run(fmt.Sprintf("HTTP_%d", code), func(t *testing.T) {
@@ -363,6 +380,7 @@ func TestCompatFallbackRetriableContinuesChain(t *testing.T) {
 }
 
 func TestCompatFallbackStreamFallsBack(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeError)
 	p2 := NewMockProvider(MockModeFixed)
 	p2.Response = "streamed"
@@ -388,6 +406,7 @@ func TestCompatFallbackStreamFallsBack(t *testing.T) {
 }
 
 func TestCompatFallbackStatsTrackSuccesses(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeError)
 	p2 := NewMockProvider(MockModeFixed)
 	p2.Response = "ok"
@@ -409,6 +428,7 @@ func TestCompatFallbackStatsTrackSuccesses(t *testing.T) {
 }
 
 func TestCompatFallbackNameFormat(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeFixed)
 	p2 := NewMockProvider(MockModeFixed)
 	p3 := NewMockProvider(MockModeFixed)
@@ -421,6 +441,7 @@ func TestCompatFallbackNameFormat(t *testing.T) {
 }
 
 func TestCompatFallbackPingChainSucceedsOnFirst(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeFixed)
 	p2 := NewMockProvider(MockModeFixed)
 
@@ -431,6 +452,7 @@ func TestCompatFallbackPingChainSucceedsOnFirst(t *testing.T) {
 }
 
 func TestCompatFallbackPingChainFallsBack(t *testing.T) {
+	t.Parallel()
 	p1 := &errorProvider{err: fmt.Errorf("ping failed")}
 	p2 := NewMockProvider(MockModeFixed)
 
@@ -441,6 +463,7 @@ func TestCompatFallbackPingChainFallsBack(t *testing.T) {
 }
 
 func TestCompatFallbackPingAllFail(t *testing.T) {
+	t.Parallel()
 	p1 := &errorProvider{err: fmt.Errorf("fail 1")}
 	p2 := &errorProvider{err: fmt.Errorf("fail 2")}
 
@@ -451,6 +474,7 @@ func TestCompatFallbackPingAllFail(t *testing.T) {
 }
 
 func TestCompatFallbackContextCancellation(t *testing.T) {
+	t.Parallel()
 	p1 := NewMockProvider(MockModeFixed)
 	p1.Response = "ok"
 	p1.Delay = 5_000_000_000 // 5 seconds
@@ -469,6 +493,7 @@ func TestCompatFallbackContextCancellation(t *testing.T) {
 }
 
 func TestCompatFallbackPanicsWithNoProviders(t *testing.T) {
+	t.Parallel()
 	fp := NewFallbackProvider()
 	if fp != nil {
 		t.Error("expected nil from NewFallbackProvider with no providers")

@@ -8,6 +8,7 @@ import (
 )
 
 func TestNewCodeAgentRetryDefaultsLeaveFallbacksUnset(t *testing.T) {
+	t.Parallel()
 	cr := NewCodeAgentRetry()
 
 	for _, errorType := range []string{"context_length", "budget_exceeded"} {
@@ -22,6 +23,7 @@ func TestNewCodeAgentRetryDefaultsLeaveFallbacksUnset(t *testing.T) {
 }
 
 func TestWithFallbackConfiguresFallbackDecision(t *testing.T) {
+	t.Parallel()
 	cr := NewCodeAgentRetry(
 		WithFallback("context_length", "claude-sonnet", "anthropic"),
 	)
@@ -51,6 +53,7 @@ func TestWithFallbackConfiguresFallbackDecision(t *testing.T) {
 }
 
 func TestWithStrategyOverridesDefaultStrategy(t *testing.T) {
+	t.Parallel()
 	override := RetryStrategy{
 		Name:       "Custom Timeout",
 		MaxRetries: 1,

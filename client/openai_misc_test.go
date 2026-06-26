@@ -16,6 +16,7 @@ import (
 // --- TestOpenAIPing ---
 
 func TestOpenAIPing_Success(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			t.Errorf("expected /models, got %s", r.URL.Path)
@@ -39,6 +40,7 @@ func TestOpenAIPing_Success(t *testing.T) {
 }
 
 func TestOpenAIPing_InvalidKey(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		fmt.Fprint(w, `{"error":{"message":"invalid key"}}`)
@@ -56,6 +58,7 @@ func TestOpenAIPing_InvalidKey(t *testing.T) {
 }
 
 func TestOpenAIPing_ServerError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 	}))
@@ -72,6 +75,7 @@ func TestOpenAIPing_ServerError(t *testing.T) {
 // --- TestOpenAI_CompatOverrides ---
 
 func TestOpenAICompat_MaxTokensField(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		compat     *OpenAICompatConfig
@@ -133,6 +137,7 @@ func TestOpenAICompat_MaxTokensField(t *testing.T) {
 }
 
 func TestOpenAICompat_StreamOptionsNotSentWhenUnsupported(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var reqBody map[string]interface{}
@@ -168,6 +173,7 @@ func TestOpenAICompat_StreamOptionsNotSentWhenUnsupported(t *testing.T) {
 // --- TestOpenAI_ImageContent ---
 
 func TestOpenAIChat_ImageContent_DataURI(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var reqBody map[string]interface{}
@@ -218,6 +224,7 @@ func TestOpenAIChat_ImageContent_DataURI(t *testing.T) {
 }
 
 func TestOpenAIChat_ImageContent_HTTPUrl(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var reqBody map[string]interface{}
@@ -258,6 +265,7 @@ func TestOpenAIChat_ImageContent_HTTPUrl(t *testing.T) {
 }
 
 func TestOpenAIChat_ImageContent_RawBase64(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var reqBody map[string]interface{}
@@ -301,6 +309,7 @@ func TestOpenAIChat_ImageContent_RawBase64(t *testing.T) {
 // --- TestOpenAI_ToolResultMessages ---
 
 func TestOpenAIChat_ToolResultMessage(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var reqBody map[string]interface{}
@@ -368,6 +377,7 @@ func TestOpenAIChat_ToolResultMessage(t *testing.T) {
 // --- TestOpenAI_Name ---
 
 func TestOpenAIClient_Name(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("key", "http://example.com", nil)
 	if c.Name() != "openai" {
 		t.Errorf("expected name=openai, got %s", c.Name())
@@ -377,6 +387,7 @@ func TestOpenAIClient_Name(t *testing.T) {
 // --- TestOpenAI_DefaultBaseURL ---
 
 func TestOpenAIClient_DefaultBaseURL(t *testing.T) {
+	t.Parallel()
 	c := NewOpenAIClient("key", "", nil)
 	if c.baseURL != "https://api.openai.com/v1" {
 		t.Errorf("expected default baseURL, got %s", c.baseURL)
@@ -386,6 +397,7 @@ func TestOpenAIClient_DefaultBaseURL(t *testing.T) {
 // --- TestOpenAI_MaxTokensDefault ---
 
 func TestOpenAIChat_MaxTokensDefault(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var reqBody map[string]interface{}
@@ -419,6 +431,7 @@ func TestOpenAIChat_MaxTokensDefault(t *testing.T) {
 }
 
 func TestOpenAIChat_MaxTokensCustom(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var reqBody map[string]interface{}
@@ -458,6 +471,7 @@ func msgs() []EyrieMessage {
 // --- TestOpenAI_EmptyChoices ---
 
 func TestOpenAIChat_EmptyChoices(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "req-empty")
 		resp := map[string]interface{}{
@@ -484,6 +498,7 @@ func TestOpenAIChat_EmptyChoices(t *testing.T) {
 // --- TestOpenAI_Temperature ---
 
 func TestOpenAIChat_Temperature(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var reqBody map[string]interface{}

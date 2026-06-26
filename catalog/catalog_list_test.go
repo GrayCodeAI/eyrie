@@ -8,6 +8,7 @@ import (
 // --- ownerFromLiveMetadata tests ---
 
 func TestOwnerFromLiveMetadata(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		raw  json.RawMessage
@@ -33,6 +34,7 @@ func TestOwnerFromLiveMetadata(t *testing.T) {
 // --- ownerFromModelID tests ---
 
 func TestOwnerFromModelID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input string
 		want  string
@@ -57,6 +59,7 @@ func TestOwnerFromModelID(t *testing.T) {
 // --- descriptionFromLiveMetadata tests ---
 
 func TestDescriptionFromLiveMetadata(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		raw  json.RawMessage
@@ -83,6 +86,7 @@ func TestDescriptionFromLiveMetadata(t *testing.T) {
 // --- serverToolsFromOffering tests ---
 
 func TestServerToolsFromOffering(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		offering ModelOfferingV1
@@ -155,6 +159,7 @@ func TestServerToolsFromOffering(t *testing.T) {
 // --- modelEntryFromOffering tests ---
 
 func TestModelEntryFromOffering(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name         string
 		model        ModelV1
@@ -218,6 +223,7 @@ func TestModelEntryFromOffering(t *testing.T) {
 // --- ModelEntriesForProvider additional tests ---
 
 func TestModelEntriesForProvider_NilCompiled(t *testing.T) {
+	t.Parallel()
 	entries := ModelEntriesForProvider(nil, "anthropic")
 	if entries != nil {
 		t.Fatalf("expected nil, got %v", entries)
@@ -225,6 +231,7 @@ func TestModelEntriesForProvider_NilCompiled(t *testing.T) {
 }
 
 func TestModelEntriesForProvider_EmptyProvider(t *testing.T) {
+	t.Parallel()
 	compiled := &CompiledCatalogV1{
 		ModelsByID: map[string]ModelV1{
 			"anthropic/claude-sonnet-4-6": {ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet", ProviderID: "anthropic"},
@@ -237,6 +244,7 @@ func TestModelEntriesForProvider_EmptyProvider(t *testing.T) {
 }
 
 func TestModelEntriesForProvider_DeduplicatesByNativeID(t *testing.T) {
+	t.Parallel()
 	compiled := &CompiledCatalogV1{
 		ModelsByID: map[string]ModelV1{
 			"anthropic/claude-sonnet-4-6": {ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet", ProviderID: "anthropic"},
@@ -256,6 +264,7 @@ func TestModelEntriesForProvider_DeduplicatesByNativeID(t *testing.T) {
 // --- DiscoveryEnvKeysFromCatalog tests ---
 
 func TestDiscoveryEnvKeysFromCatalog(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		compiled *CompiledCatalogV1
@@ -283,6 +292,7 @@ func TestDiscoveryEnvKeysFromCatalog(t *testing.T) {
 }
 
 func TestDiscoveryEnvKeysFromCatalog_ReturnsUniqueKeys(t *testing.T) {
+	t.Parallel()
 	c := testLegacyCatalogV1()
 	compiled, err := CompileCatalogV1(&c)
 	if err != nil {
@@ -307,6 +317,7 @@ func TestDiscoveryEnvKeysFromCatalog_ReturnsUniqueKeys(t *testing.T) {
 // --- APIKeyEnvsForProvider tests ---
 
 func TestAPIKeyEnvsForProvider(t *testing.T) {
+	t.Parallel()
 	c := testLegacyCatalogV1()
 	compiled, err := CompileCatalogV1(&c)
 	if err != nil {
@@ -333,6 +344,7 @@ func TestAPIKeyEnvsForProvider(t *testing.T) {
 }
 
 func TestAPIKeyEnvsForProvider_NilCompiled(t *testing.T) {
+	t.Parallel()
 	got := APIKeyEnvsForProvider(nil, "anthropic")
 	if got != nil {
 		t.Fatalf("expected nil, got %v", got)
@@ -342,6 +354,7 @@ func TestAPIKeyEnvsForProvider_NilCompiled(t *testing.T) {
 // --- PrimaryAPIKeyEnvForDeployment tests ---
 
 func TestPrimaryAPIKeyEnvForDeployment(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		deploymentID string
 		wantEmpty    bool
@@ -364,6 +377,7 @@ func TestPrimaryAPIKeyEnvForDeployment(t *testing.T) {
 }
 
 func TestPrimaryAPIKeyEnvForDeployment_WithCompiled(t *testing.T) {
+	t.Parallel()
 	c := testLegacyCatalogV1()
 	compiled, err := CompileCatalogV1(&c)
 	if err != nil {

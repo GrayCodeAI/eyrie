@@ -7,6 +7,7 @@ import (
 
 // TestNewStreamGuardrails tests StreamGuardrails constructor validation.
 func TestStreamGuardrailsNew(t *testing.T) {
+	t.Parallel()
 	t.Run("valid configuration", func(t *testing.T) {
 		guards := NewGuardrails(
 			GuardrailRule{
@@ -39,6 +40,7 @@ func TestStreamGuardrailsNew(t *testing.T) {
 
 // TestStreamProcessChunkSafe tests that safe text passes through unchanged.
 func TestStreamProcessChunkSafe(t *testing.T) {
+	t.Parallel()
 	guards := NewGuardrails(
 		GuardrailRule{
 			Type:    GuardrailPII,
@@ -78,6 +80,7 @@ func TestStreamProcessChunkSafe(t *testing.T) {
 
 // TestStreamProcessChunkPII tests PII detection and redaction.
 func TestStreamProcessChunkPII(t *testing.T) {
+	t.Parallel()
 	t.Run("PII redaction on single chunk", func(t *testing.T) {
 		guards := NewGuardrails(
 			GuardrailRule{
@@ -150,6 +153,7 @@ func TestStreamProcessChunkPII(t *testing.T) {
 
 // TestStreamProcessChunkInjection tests prompt injection detection and blocking.
 func TestStreamProcessChunkInjection(t *testing.T) {
+	t.Parallel()
 	guards := NewGuardrails(
 		GuardrailRule{
 			Type:     GuardrailPromptInjection,
@@ -180,6 +184,7 @@ func TestStreamProcessChunkInjection(t *testing.T) {
 
 // TestStreamProcessChunkDisabled tests that disabled guardrails pass through.
 func TestStreamProcessChunkDisabled(t *testing.T) {
+	t.Parallel()
 	guards := NewGuardrails(
 		GuardrailRule{
 			Type:    GuardrailPromptInjection,
@@ -208,6 +213,7 @@ func TestStreamProcessChunkDisabled(t *testing.T) {
 
 // TestStreamFlush tests the Flush method.
 func TestStreamFlush(t *testing.T) {
+	t.Parallel()
 	t.Run("flush with no accumulation returns nil", func(t *testing.T) {
 		guards := NewGuardrails(
 			GuardrailRule{
@@ -303,6 +309,7 @@ func TestStreamFlush(t *testing.T) {
 
 // TestStreamReset tests the Reset method.
 func TestStreamReset(t *testing.T) {
+	t.Parallel()
 	t.Run("reset clears blocked state", func(t *testing.T) {
 		guards := NewGuardrails(
 			GuardrailRule{
@@ -367,6 +374,7 @@ func TestStreamReset(t *testing.T) {
 
 // TestStreamIsBlocked tests the blocked state tracking.
 func TestStreamIsBlocked(t *testing.T) {
+	t.Parallel()
 	t.Run("initially not blocked", func(t *testing.T) {
 		guards := NewGuardrails()
 		sg := NewStreamGuardrails(guards, StreamGuardrailConfig{
@@ -451,6 +459,7 @@ func TestStreamIsBlocked(t *testing.T) {
 
 // TestStreamSecretLeak tests secret leak detection.
 func TestStreamSecretLeak(t *testing.T) {
+	t.Parallel()
 	guards := NewGuardrails(DefaultSecretLeakRules()...)
 
 	sg := NewStreamGuardrails(guards, StreamGuardrailConfig{
@@ -471,6 +480,7 @@ func TestStreamSecretLeak(t *testing.T) {
 
 // TestStreamMultipleViolations tests multiple violations in a single chunk.
 func TestStreamMultipleViolations(t *testing.T) {
+	t.Parallel()
 	guards := NewGuardrails(
 		GuardrailRule{
 			Type:    GuardrailPII,
@@ -506,6 +516,7 @@ func TestStreamMultipleViolations(t *testing.T) {
 
 // TestStreamConcurrentAccess tests thread safety of stream guardrails.
 func TestStreamConcurrentAccess(t *testing.T) {
+	t.Parallel()
 	guards := NewGuardrails(
 		GuardrailRule{
 			Type:    GuardrailPII,
@@ -545,6 +556,7 @@ func TestStreamConcurrentAccess(t *testing.T) {
 
 // TestStreamIntegration tests a realistic streaming scenario.
 func TestStreamIntegration(t *testing.T) {
+	t.Parallel()
 	guards := NewGuardrails(AllDefaultRules()...)
 
 	sg := NewStreamGuardrails(guards, StreamGuardrailConfig{

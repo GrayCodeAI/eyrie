@@ -6,6 +6,7 @@ import (
 )
 
 func TestHealthRecordSuccess(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	ph.RecordSuccess("provider-a", 100*time.Millisecond)
@@ -18,6 +19,7 @@ func TestHealthRecordSuccess(t *testing.T) {
 }
 
 func TestHealthRecordFailure(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	ph.RecordSuccess("provider-b", 100*time.Millisecond)
@@ -31,6 +33,7 @@ func TestHealthRecordFailure(t *testing.T) {
 }
 
 func TestHealthScoreCalculation(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	// 8 successes, 2 failures => 80% success rate
@@ -50,6 +53,7 @@ func TestHealthScoreCalculation(t *testing.T) {
 }
 
 func TestHealthScoreUnknownProvider(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	score := ph.Score("unknown-provider")
@@ -59,6 +63,7 @@ func TestHealthScoreUnknownProvider(t *testing.T) {
 }
 
 func TestHealthHealthiestReturnsUnknown(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	// Record some failures for a known provider
@@ -73,6 +78,7 @@ func TestHealthHealthiestReturnsUnknown(t *testing.T) {
 }
 
 func TestHealthHealthiestReturnsBestScore(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	// Provider A: all successes
@@ -94,6 +100,7 @@ func TestHealthHealthiestReturnsBestScore(t *testing.T) {
 }
 
 func TestHealthHealthiestEmptyCandidates(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	best := ph.Healthiest([]string{})
@@ -103,6 +110,7 @@ func TestHealthHealthiestEmptyCandidates(t *testing.T) {
 }
 
 func TestHealthConsecutiveFailures(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	// Start with successes to build up some history
@@ -126,6 +134,7 @@ func TestHealthConsecutiveFailures(t *testing.T) {
 }
 
 func TestHealthConsecutiveResets(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	// Build consecutive failures
@@ -150,6 +159,7 @@ func TestHealthConsecutiveResets(t *testing.T) {
 }
 
 func TestHealthAllScores(t *testing.T) {
+	t.Parallel()
 	ph := NewProviderHealth()
 
 	ph.RecordSuccess("alpha", 50*time.Millisecond)

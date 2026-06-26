@@ -25,6 +25,7 @@ func newTestAzureClient(serverURL string) *AzureClient {
 }
 
 func TestAzureClient_Name(t *testing.T) {
+	t.Parallel()
 	c := NewAzureClient("key", "https://example.openai.azure.com", "")
 	if c.Name() != "azure" {
 		t.Errorf("expected name 'azure', got %q", c.Name())
@@ -32,6 +33,7 @@ func TestAzureClient_Name(t *testing.T) {
 }
 
 func TestAzureClient_DefaultAPIVersion(t *testing.T) {
+	t.Parallel()
 	c := NewAzureClient("key", "https://example.openai.azure.com", "")
 	if c.apiVersion != "2024-10-21" {
 		t.Errorf("expected default api-version '2024-10-21', got %q", c.apiVersion)
@@ -39,6 +41,7 @@ func TestAzureClient_DefaultAPIVersion(t *testing.T) {
 }
 
 func TestAzureClient_CustomAPIVersion(t *testing.T) {
+	t.Parallel()
 	c := NewAzureClient("key", "https://example.openai.azure.com", "2024-10-01-preview")
 	if c.apiVersion != "2024-10-01-preview" {
 		t.Errorf("expected custom api-version '2024-10-01-preview', got %q", c.apiVersion)
@@ -46,6 +49,7 @@ func TestAzureClient_CustomAPIVersion(t *testing.T) {
 }
 
 func TestAzureClient_EndpointTrailingSlashStripped(t *testing.T) {
+	t.Parallel()
 	c := NewAzureClient("key", "https://example.openai.azure.com/", "")
 	if c.endpoint != "https://example.openai.azure.com" {
 		t.Errorf("expected trailing slash stripped, got %q", c.endpoint)
@@ -53,6 +57,7 @@ func TestAzureClient_EndpointTrailingSlashStripped(t *testing.T) {
 }
 
 func TestAzureChat_Success(t *testing.T) {
+	t.Parallel()
 	var capturedMethod, capturedPath, capturedQuery string
 	var capturedHeaders http.Header
 	var capturedBody map[string]interface{}
@@ -167,6 +172,7 @@ func TestAzureChat_Success(t *testing.T) {
 }
 
 func TestAzureChat_ModelRequired(t *testing.T) {
+	t.Parallel()
 	c := newTestAzureClient("http://localhost")
 	_, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -180,6 +186,7 @@ func TestAzureChat_ModelRequired(t *testing.T) {
 }
 
 func TestAzureChat_CacheReadTokens(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "azure-cache")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -212,6 +219,7 @@ func TestAzureChat_CacheReadTokens(t *testing.T) {
 }
 
 func TestAzureChat_ToolCallsInResponse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "azure-tc")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -266,6 +274,7 @@ func TestAzureChat_ToolCallsInResponse(t *testing.T) {
 }
 
 func TestAzureChat_ErrorResponse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "azure-err-001")
 		w.WriteHeader(401)
@@ -289,6 +298,7 @@ func TestAzureChat_ErrorResponse(t *testing.T) {
 }
 
 func TestAzureChat_ToolsIncludedInRequest(t *testing.T) {
+	t.Parallel()
 	var capturedBody map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
@@ -332,6 +342,7 @@ func TestAzureChat_ToolsIncludedInRequest(t *testing.T) {
 }
 
 func TestAzureStreamChat_Success(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify the Accept header is set for SSE
 		if r.Header.Get("Accept") != "text/event-stream" {
@@ -394,6 +405,7 @@ func TestAzureStreamChat_Success(t *testing.T) {
 }
 
 func TestAzureStreamChat_ModelRequired(t *testing.T) {
+	t.Parallel()
 	c := newTestAzureClient("http://localhost")
 	_, err := c.StreamChat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -407,6 +419,7 @@ func TestAzureStreamChat_ModelRequired(t *testing.T) {
 }
 
 func TestAzurePing_Success(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET for ping, got %s", r.Method)
@@ -433,6 +446,7 @@ func TestAzurePing_Success(t *testing.T) {
 }
 
 func TestAzurePing_InvalidKey(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 	}))
@@ -449,6 +463,7 @@ func TestAzurePing_InvalidKey(t *testing.T) {
 }
 
 func TestAzureChat_EmptyChoices(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "azure-empty")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -478,14 +493,17 @@ func TestAzureChat_EmptyChoices(t *testing.T) {
 // =============================================================================
 
 func TestAzureClient_ImplementsProvider(t *testing.T) {
+	t.Parallel()
 	var _ Provider = (*AzureClient)(nil)
 }
 
 func TestVertexClient_ImplementsProvider(t *testing.T) {
+	t.Parallel()
 	var _ Provider = (*VertexClient)(nil)
 }
 
 func TestBedrockClient_ImplementsProvider(t *testing.T) {
+	t.Parallel()
 	var _ Provider = (*BedrockClient)(nil)
 }
 
@@ -494,6 +512,7 @@ func TestBedrockClient_ImplementsProvider(t *testing.T) {
 // =============================================================================
 
 func TestParseAnthropicResponse_TextOnly(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	if err := json.Unmarshal([]byte(`{"content":[{"type":"text","text":"Hello!"}],"stop_reason":"end_turn","usage":{"input_tokens":10,"output_tokens":5}}`), &ar); err != nil {
 		t.Fatal(err)
@@ -521,6 +540,7 @@ func TestParseAnthropicResponse_TextOnly(t *testing.T) {
 }
 
 func TestParseAnthropicResponse_WithToolUse(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	if err := json.Unmarshal([]byte(`{"content":[{"type":"text","text":"Let me search."},{"type":"tool_use","id":"toolu_1","name":"search","input":{"q":"test"}}],"stop_reason":"tool_use","usage":{"input_tokens":20,"output_tokens":15,"cache_creation_input_tokens":100,"cache_read_input_tokens":50}}`), &ar); err != nil {
 		t.Fatal(err)
@@ -554,6 +574,7 @@ func TestParseAnthropicResponse_WithToolUse(t *testing.T) {
 }
 
 func TestParseAnthropicResponse_EmptyContent(t *testing.T) {
+	t.Parallel()
 	var ar anthropicResponse
 	if err := json.Unmarshal([]byte(`{"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":0}}`), &ar); err != nil {
 		t.Fatal(err)
@@ -573,6 +594,7 @@ func TestParseAnthropicResponse_EmptyContent(t *testing.T) {
 // =============================================================================
 
 func TestSHA256Hex(t *testing.T) {
+	t.Parallel()
 	// SHA-256 of empty bytes
 	hash := sha256Hex([]byte{})
 	expected := "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -589,6 +611,7 @@ func TestSHA256Hex(t *testing.T) {
 }
 
 func TestAWSSigningKey(t *testing.T) {
+	t.Parallel()
 	// Verify signing key derivation doesn't panic and produces consistent results
 	key1 := awsSigningKey("secret", "20230901", "us-east-1", "bedrock")
 	key2 := awsSigningKey("secret", "20230901", "us-east-1", "bedrock")
@@ -616,6 +639,7 @@ func TestAWSSigningKey(t *testing.T) {
 }
 
 func TestCanonicalAWSHeaders(t *testing.T) {
+	t.Parallel()
 	headers := http.Header{}
 	headers.Set("Content-Type", "application/json")
 	headers.Set("Host", "bedrock-runtime.us-east-1.amazonaws.com")
@@ -639,6 +663,7 @@ func TestCanonicalAWSHeaders(t *testing.T) {
 }
 
 func TestAWSCanonicalURI(t *testing.T) {
+	t.Parallel()
 	if awsCanonicalURI("") != "/" {
 		t.Errorf("expected '/' for empty path, got %q", awsCanonicalURI(""))
 	}

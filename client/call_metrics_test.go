@@ -7,6 +7,7 @@ import (
 )
 
 func TestMetricsCollector_Record_and_Recent(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	// Record 3 entries
@@ -34,6 +35,7 @@ func TestMetricsCollector_Record_and_Recent(t *testing.T) {
 }
 
 func TestMetricsCollector_RingBuffer_Wraps(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	// Fill beyond buffer capacity
@@ -62,6 +64,7 @@ func TestMetricsCollector_RingBuffer_Wraps(t *testing.T) {
 }
 
 func TestMetricsCollector_TotalCost(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	mc.Record(CallMetrics{
@@ -80,6 +83,7 @@ func TestMetricsCollector_TotalCost(t *testing.T) {
 }
 
 func TestMetricsCollector_Empty(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	recent := mc.Recent(5)

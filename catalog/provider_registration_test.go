@@ -7,6 +7,7 @@ import (
 )
 
 func TestSpecByProviderID_RegisteredProviders(t *testing.T) {
+	t.Parallel()
 	providers := []string{"anthropic", "openai", "gemini", "grok", "openrouter", "zai_payg", "zai_coding", "canopywave", "ollama", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan"}
 	for _, id := range providers {
 		spec, ok := SpecByProviderID(id)
@@ -27,6 +28,7 @@ func TestSpecByProviderID_RegisteredProviders(t *testing.T) {
 }
 
 func TestSpecByProviderID_CatalogAliases(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		alias, wantProviderID string
 	}{
@@ -46,6 +48,7 @@ func TestSpecByProviderID_CatalogAliases(t *testing.T) {
 }
 
 func TestSpecByProviderID_Unknown(t *testing.T) {
+	t.Parallel()
 	_, ok := SpecByProviderID("nonexistent_provider_xyz")
 	if ok {
 		t.Error("expected not found for unknown provider")
@@ -53,6 +56,7 @@ func TestSpecByProviderID_Unknown(t *testing.T) {
 }
 
 func TestSpecByEnvVar_FindsProvider(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		envVar         string
 		wantProviderID string
@@ -77,6 +81,7 @@ func TestSpecByEnvVar_FindsProvider(t *testing.T) {
 }
 
 func TestSpecByEnvVar_Unknown(t *testing.T) {
+	t.Parallel()
 	_, ok := SpecByEnvVar("NONEXISTENT_ENV_VAR")
 	if ok {
 		t.Error("expected not found for unknown env var")
@@ -84,6 +89,7 @@ func TestSpecByEnvVar_Unknown(t *testing.T) {
 }
 
 func TestProviderDisplayName(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		id, want string
 	}{
@@ -101,6 +107,7 @@ func TestProviderDisplayName(t *testing.T) {
 }
 
 func TestEnsureCredentialRegistryInCatalog_AddsMissingProviders(t *testing.T) {
+	t.Parallel()
 	c := &CatalogV1{
 		Providers:    map[string]ProviderV1{},
 		Deployments:  map[string]DeploymentV1{},
@@ -119,6 +126,7 @@ func TestEnsureCredentialRegistryInCatalog_AddsMissingProviders(t *testing.T) {
 }
 
 func TestEnsureCredentialRegistryInCatalog_PreservesExisting(t *testing.T) {
+	t.Parallel()
 	c := &CatalogV1{
 		Providers: map[string]ProviderV1{
 			"anthropic": {ID: "anthropic", Name: "Custom Anthropic"},
@@ -138,10 +146,12 @@ func TestEnsureCredentialRegistryInCatalog_PreservesExisting(t *testing.T) {
 }
 
 func TestEnsureCredentialRegistryInCatalog_NilCatalog(t *testing.T) {
+	t.Parallel()
 	EnsureCredentialRegistryInCatalog(nil) // should not panic
 }
 
 func TestProviderIDsFromCompiled_LegacyCatalog(t *testing.T) {
+	t.Parallel()
 	c := testLegacyCatalogV1()
 	compiled, _ := CompileCatalogV1(&c)
 	ids := ProviderIDsFromCompiled(compiled)
@@ -161,6 +171,7 @@ func TestProviderIDsFromCompiled_LegacyCatalog(t *testing.T) {
 }
 
 func TestProviderIDsFromCompiled_ReturnsNilForNil(t *testing.T) {
+	t.Parallel()
 	ids := ProviderIDsFromCompiled(nil)
 	if ids != nil {
 		t.Fatalf("expected nil, got %v", ids)
@@ -168,6 +179,7 @@ func TestProviderIDsFromCompiled_ReturnsNilForNil(t *testing.T) {
 }
 
 func TestPrimaryAPIKeyEnvForProvider_LegacyCatalog(t *testing.T) {
+	t.Parallel()
 	c := testLegacyCatalogV1()
 	compiled, _ := CompileCatalogV1(&c)
 	tests := []struct {
@@ -185,6 +197,7 @@ func TestPrimaryAPIKeyEnvForProvider_LegacyCatalog(t *testing.T) {
 }
 
 func TestPrimaryAPIKeyEnvForProvider_ReturnsEmptyForNilCompiled(t *testing.T) {
+	t.Parallel()
 	got := PrimaryAPIKeyEnvForProvider(nil, "anthropic")
 	if got != "" {
 		t.Fatalf("expected empty, got %q", got)
@@ -192,6 +205,7 @@ func TestPrimaryAPIKeyEnvForProvider_ReturnsEmptyForNilCompiled(t *testing.T) {
 }
 
 func TestCredentialStatusForProvider_LegacyCatalog(t *testing.T) {
+	t.Parallel()
 	c := testLegacyCatalogV1()
 	compiled, _ := CompileCatalogV1(&c)
 	if got := CredentialStatusForProvider(compiled, "anthropic"); got != "required" {

@@ -16,6 +16,7 @@ import (
 // --- TestOpenAIStreamChat ---
 
 func TestOpenAIStreamChat_Success(t *testing.T) {
+	t.Parallel()
 	sseData := []string{
 		`data: {"id":"chatcmpl-stream","choices":[{"delta":{"role":"assistant","content":""},"finish_reason":null}]}`,
 		"",
@@ -82,6 +83,7 @@ func TestOpenAIStreamChat_Success(t *testing.T) {
 }
 
 func TestOpenAIStreamChat_ToolCalls(t *testing.T) {
+	t.Parallel()
 	sseData := []string{
 		`data: {"id":"chatcmpl-tc","choices":[{"delta":{"role":"assistant","content":""},"finish_reason":null}]}`,
 		"",
@@ -149,6 +151,7 @@ func TestOpenAIStreamChat_ToolCalls(t *testing.T) {
 }
 
 func TestOpenAIStreamChat_MultipleToolCalls(t *testing.T) {
+	t.Parallel()
 	sseData := []string{
 		`data: {"id":"chatcmpl-mtc","choices":[{"delta":{"role":"assistant"},"finish_reason":null}]}`,
 		"",
@@ -201,6 +204,7 @@ func TestOpenAIStreamChat_MultipleToolCalls(t *testing.T) {
 }
 
 func TestOpenAIStreamChat_WithUsage(t *testing.T) {
+	t.Parallel()
 	sseData := []string{
 		`data: {"id":"chatcmpl-u","choices":[{"delta":{"content":"Hi"},"finish_reason":null}]}`,
 		"",
@@ -258,6 +262,7 @@ func TestOpenAIStreamChat_WithUsage(t *testing.T) {
 }
 
 func TestOpenAIStreamChat_MissingModel(t *testing.T) {
+	t.Parallel()
 	c := newTestOpenAIClient("http://localhost", nil)
 	_, err := c.StreamChat(context.Background(), basicMessages(), ChatOptions{})
 	if err == nil {
@@ -269,6 +274,7 @@ func TestOpenAIStreamChat_MissingModel(t *testing.T) {
 }
 
 func TestOpenAIStreamChat_Error401(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Request-Id", "req-stream-401")
 		w.WriteHeader(401)

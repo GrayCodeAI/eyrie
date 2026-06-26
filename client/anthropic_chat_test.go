@@ -15,6 +15,7 @@ import (
 // --- AnthropicClient.Chat() tests ---
 
 func TestAnthropicChat_Success(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify request
 		if r.Method != "POST" {
@@ -92,6 +93,7 @@ func TestAnthropicChat_Success(t *testing.T) {
 }
 
 func TestAnthropicChat_WithToolCallResponse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-tool-1")
 		// Return a response with tool_use blocks
@@ -145,6 +147,7 @@ func TestAnthropicChat_WithToolCallResponse(t *testing.T) {
 }
 
 func TestAnthropicChat_MultipleToolCalls(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-multi")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -189,6 +192,7 @@ func TestAnthropicChat_MultipleToolCalls(t *testing.T) {
 }
 
 func TestAnthropicChat_DefaultMaxTokens(t *testing.T) {
+	t.Parallel()
 	var capturedBody anthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
@@ -217,6 +221,7 @@ func TestAnthropicChat_DefaultMaxTokens(t *testing.T) {
 }
 
 func TestAnthropicChat_ModelRequired(t *testing.T) {
+	t.Parallel()
 	client := NewAnthropicClient("key", "http://localhost")
 	_, err := client.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -230,6 +235,7 @@ func TestAnthropicChat_ModelRequired(t *testing.T) {
 }
 
 func TestAnthropicChat_SystemMerge(t *testing.T) {
+	t.Parallel()
 	var capturedBody anthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
@@ -263,6 +269,7 @@ func TestAnthropicChat_SystemMerge(t *testing.T) {
 }
 
 func TestAnthropicChat_WithTools(t *testing.T) {
+	t.Parallel()
 	var capturedBody anthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
@@ -299,6 +306,7 @@ func TestAnthropicChat_WithTools(t *testing.T) {
 }
 
 func TestAnthropicChat_CacheUsage(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-cache")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -333,6 +341,7 @@ func TestAnthropicChat_CacheUsage(t *testing.T) {
 // --- StreamChat tests ---
 
 func TestAnthropicStreamChat_TextContent(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Accept") != "text/event-stream" {
 			t.Errorf("expected Accept: text/event-stream, got %q", r.Header.Get("Accept"))
@@ -412,6 +421,7 @@ func TestAnthropicStreamChat_TextContent(t *testing.T) {
 }
 
 func TestAnthropicStreamChat_ToolUse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Request-Id", "req-stream-tool")
@@ -498,6 +508,7 @@ func TestAnthropicStreamChat_ToolUse(t *testing.T) {
 }
 
 func TestAnthropicStreamChat_ModelRequired(t *testing.T) {
+	t.Parallel()
 	client := NewAnthropicClient("key", "http://localhost")
 	_, err := client.StreamChat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -511,6 +522,7 @@ func TestAnthropicStreamChat_ModelRequired(t *testing.T) {
 }
 
 func TestAnthropicStreamChat_ContextCancel(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Request-Id", "req-cancel")

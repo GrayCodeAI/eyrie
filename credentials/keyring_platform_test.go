@@ -12,6 +12,7 @@ import (
 // TestKeyringDo_NormalReturn verifies keyringDo returns fn's result when fn
 // completes before context cancellation.
 func TestKeyringDo_NormalReturn(t *testing.T) {
+	t.Parallel()
 	err := keyringDoWithTimeout(context.Background(), func() error { return nil }, time.Second)
 	if err != nil {
 		t.Errorf("keyringDo(nil) = %v, want nil", err)
@@ -28,6 +29,7 @@ func TestKeyringDo_NormalReturn(t *testing.T) {
 // immediately (and does NOT spawn the inner goroutine) when the context is
 // already done.
 func TestKeyringDo_AlreadyCancelledContext(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -51,6 +53,7 @@ func TestKeyringDo_AlreadyCancelledContext(t *testing.T) {
 // unavoidable cost of using a ctx-unaware keyring library; keyringDo
 // guarantees only that the caller is released promptly.
 func TestKeyringDo_ContextCancel_ReturnsPromptly(t *testing.T) {
+	t.Parallel()
 	started := make(chan struct{})
 	release := make(chan struct{})
 	defer close(release)
@@ -90,6 +93,7 @@ func TestKeyringDo_ContextCancel_ReturnsPromptly(t *testing.T) {
 
 // TestKeyringDo_ContextTimeout verifies keyringDo respects context deadlines.
 func TestKeyringDo_ContextTimeout(t *testing.T) {
+	t.Parallel()
 	release := make(chan struct{})
 	defer close(release)
 
@@ -119,6 +123,7 @@ func TestKeyringDo_ContextTimeout(t *testing.T) {
 // the timeout rather than waiting forever. The inner goroutine continues
 // to run, but the caller gets a deterministic deadline.
 func TestKeyringDo_HardTimeout(t *testing.T) {
+	t.Parallel()
 	release := make(chan struct{})
 	// intentionally not closing release — simulates a stuck keyring
 
@@ -144,6 +149,7 @@ func TestKeyringDo_HardTimeout(t *testing.T) {
 // independently leaking (its own inline select+goroutine before the
 // refactor moved it onto keyringDo).
 func TestKeyringStore_Get_CancelledContext(t *testing.T) {
+	t.Parallel()
 	k := &keyringStore{}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

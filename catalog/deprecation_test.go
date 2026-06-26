@@ -6,6 +6,7 @@ import (
 )
 
 func TestGetModelDeprecationWarning_KnownDeprecated(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		modelID  string
 		provider string
@@ -32,6 +33,7 @@ func TestGetModelDeprecationWarning_KnownDeprecated(t *testing.T) {
 }
 
 func TestGetModelDeprecationWarning_NonDeprecated(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		modelID  string
 		provider string
@@ -52,6 +54,7 @@ func TestGetModelDeprecationWarning_NonDeprecated(t *testing.T) {
 }
 
 func TestGetModelDeprecationWarning_WrongProvider(t *testing.T) {
+	t.Parallel()
 	// claude-3-7-sonnet is deprecated on anthropic, but not necessarily on other providers
 	warning := GetModelDeprecationWarning("claude-3-7-sonnet-20250219", "openai")
 	if warning != "" {
@@ -60,6 +63,7 @@ func TestGetModelDeprecationWarning_WrongProvider(t *testing.T) {
 }
 
 func TestGetModelDeprecationWarning_CaseInsensitive(t *testing.T) {
+	t.Parallel()
 	// Should handle case insensitivity
 	warning := GetModelDeprecationWarning("Claude-3-7-Sonnet-20250219", "anthropic")
 	if warning == "" {
@@ -68,6 +72,7 @@ func TestGetModelDeprecationWarning_CaseInsensitive(t *testing.T) {
 }
 
 func TestDeprecatedModelsRegistry(t *testing.T) {
+	t.Parallel()
 	// Verify the registry has expected entries
 	if len(DeprecatedModels) == 0 {
 		t.Fatal("DeprecatedModels should not be empty")

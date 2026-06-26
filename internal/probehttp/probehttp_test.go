@@ -10,6 +10,7 @@ import (
 )
 
 func TestProbeError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		status     int
@@ -38,6 +39,7 @@ func TestProbeError(t *testing.T) {
 }
 
 func TestDoGet_RespondsAndBoundsBody(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("X-Test") != "ok" {
 			t.Errorf("missing X-Test header; got %q", r.Header.Get("X-Test"))
@@ -60,6 +62,7 @@ func TestDoGet_RespondsAndBoundsBody(t *testing.T) {
 }
 
 func TestDoGet_RespectsContextDeadline(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(200 * time.Millisecond)
 		_, _ = w.Write([]byte("late"))
@@ -76,6 +79,7 @@ func TestDoGet_RespectsContextDeadline(t *testing.T) {
 }
 
 func TestJoinURL(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		base, path, want string
 	}{
@@ -95,12 +99,14 @@ func TestJoinURL(t *testing.T) {
 }
 
 func TestUserAgent(t *testing.T) {
+	t.Parallel()
 	if got := UserAgent(); !strings.HasPrefix(got, "eyrie-") {
 		t.Errorf("UserAgent() = %q; want it to start with \"eyrie-\"", got)
 	}
 }
 
 func TestDefaultClient_HasTimeout(t *testing.T) {
+	t.Parallel()
 	if DefaultClient.Timeout <= 0 {
 		t.Errorf("DefaultClient.Timeout = %v; expected > 0 so the client bounds requests", DefaultClient.Timeout)
 	}

@@ -15,6 +15,7 @@ import (
 // --- Ping tests ---
 
 func TestAnthropicPing_Success(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/models" {
 			t.Errorf("expected /v1/models for ping, got %s", r.URL.Path)
@@ -38,6 +39,7 @@ func TestAnthropicPing_Success(t *testing.T) {
 }
 
 func TestAnthropicPing_InvalidKey(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -57,6 +59,7 @@ func TestAnthropicPing_InvalidKey(t *testing.T) {
 }
 
 func TestAnthropicPing_NonAuthError(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 500 is not treated as auth error by Ping
 		w.WriteHeader(500)
@@ -74,6 +77,7 @@ func TestAnthropicPing_NonAuthError(t *testing.T) {
 // --- Error handling tests ---
 
 func TestAnthropicChat_Error401(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-401")
 		w.WriteHeader(401)
@@ -102,6 +106,7 @@ func TestAnthropicChat_Error401(t *testing.T) {
 }
 
 func TestAnthropicChat_Error429_Retry(t *testing.T) {
+	t.Parallel()
 	attempts := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
@@ -141,6 +146,7 @@ func TestAnthropicChat_Error429_Retry(t *testing.T) {
 }
 
 func TestAnthropicChat_Error500_ExhaustedRetries(t *testing.T) {
+	t.Parallel()
 	attempts := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
@@ -171,6 +177,7 @@ func TestAnthropicChat_Error500_ExhaustedRetries(t *testing.T) {
 }
 
 func TestAnthropicChat_ErrorInvalidJSON(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-bad-json")
 		w.WriteHeader(200)
@@ -191,6 +198,7 @@ func TestAnthropicChat_ErrorInvalidJSON(t *testing.T) {
 }
 
 func TestAnthropicStreamChat_ErrorResponse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-stream-err")
 		w.WriteHeader(400)
@@ -221,6 +229,7 @@ func TestAnthropicStreamChat_ErrorResponse(t *testing.T) {
 // --- Client configuration tests ---
 
 func TestAnthropicClient_Name(t *testing.T) {
+	t.Parallel()
 	client := NewAnthropicClient("key", "")
 	if client.Name() != "anthropic" {
 		t.Errorf("expected 'anthropic', got %q", client.Name())
@@ -228,6 +237,7 @@ func TestAnthropicClient_Name(t *testing.T) {
 }
 
 func TestAnthropicClient_DefaultBaseURL(t *testing.T) {
+	t.Parallel()
 	client := NewAnthropicClient("key", "")
 	if client.baseURL != "https://api.anthropic.com" {
 		t.Errorf("expected default base URL, got %q", client.baseURL)
@@ -235,6 +245,7 @@ func TestAnthropicClient_DefaultBaseURL(t *testing.T) {
 }
 
 func TestAnthropicClient_CustomBaseURL(t *testing.T) {
+	t.Parallel()
 	client := NewAnthropicClient("key", "https://custom.proxy.com")
 	if client.baseURL != "https://custom.proxy.com" {
 		t.Errorf("expected custom base URL, got %q", client.baseURL)
@@ -242,6 +253,7 @@ func TestAnthropicClient_CustomBaseURL(t *testing.T) {
 }
 
 func TestAnthropicClient_WithOptions(t *testing.T) {
+	t.Parallel()
 	customHTTP := &http.Client{Timeout: 30 * time.Second}
 	retryConfig := NewRetryConfig(5, 2*time.Second, 60*time.Second, 429)
 
@@ -261,6 +273,7 @@ func TestAnthropicClient_WithOptions(t *testing.T) {
 // --- parseImageString tests ---
 
 func TestAnthropicParseImageString_Base64(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input     string
 		mediaType string
@@ -307,6 +320,7 @@ func TestAnthropicParseImageString_Base64(t *testing.T) {
 }
 
 func TestAnthropicParseImageString_URL(t *testing.T) {
+	t.Parallel()
 	tests := []string{
 		"https://example.com/image.png",
 		"http://localhost:8080/pic.jpg",
@@ -327,6 +341,7 @@ func TestAnthropicParseImageString_URL(t *testing.T) {
 }
 
 func TestAnthropicParseImageString_DataURIWithoutBase64(t *testing.T) {
+	t.Parallel()
 	// data: URI without ;base64, marker should be treated as URL
 	input := "data:text/plain,Hello"
 	_, data, isBase64 := parseImageString(input)
@@ -341,6 +356,7 @@ func TestAnthropicParseImageString_DataURIWithoutBase64(t *testing.T) {
 // --- Temperature tests ---
 
 func TestAnthropicChat_WithTemperature(t *testing.T) {
+	t.Parallel()
 	var capturedBody map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
@@ -372,6 +388,7 @@ func TestAnthropicChat_WithTemperature(t *testing.T) {
 // --- Request body verification tests ---
 
 func TestAnthropicChat_RequestBodyStructure(t *testing.T) {
+	t.Parallel()
 	var capturedBody map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
@@ -409,6 +426,7 @@ func TestAnthropicChat_RequestBodyStructure(t *testing.T) {
 // --- Conversation with tool round-trip ---
 
 func TestAnthropicChat_FullToolRoundTrip(t *testing.T) {
+	t.Parallel()
 	callNum := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callNum++
@@ -487,6 +505,7 @@ func TestAnthropicChat_FullToolRoundTrip(t *testing.T) {
 // =============================================================================
 
 func TestResolveThinking_Modes(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		opts     ChatOptions
@@ -520,6 +539,7 @@ func TestResolveThinking_Modes(t *testing.T) {
 }
 
 func TestResolveThinking_Display(t *testing.T) {
+	t.Parallel()
 	got := resolveThinking(ChatOptions{ThinkingMode: "enabled", ThinkingBudgetTokens: 5000, ThinkingDisplay: "omitted"})
 	if got == nil || got.Display != "omitted" {
 		t.Fatalf("expected display=omitted, got %+v", got)
@@ -527,6 +547,7 @@ func TestResolveThinking_Display(t *testing.T) {
 }
 
 func TestResolveToolChoice(t *testing.T) {
+	t.Parallel()
 	if resolveToolChoice(nil) != nil {
 		t.Fatal("expected nil for nil input")
 	}
@@ -537,6 +558,7 @@ func TestResolveToolChoice(t *testing.T) {
 }
 
 func TestResolveOutputConfig(t *testing.T) {
+	t.Parallel()
 	if resolveOutputConfig(ChatOptions{}) != nil {
 		t.Fatal("expected nil for empty opts")
 	}
@@ -551,6 +573,7 @@ func TestResolveOutputConfig(t *testing.T) {
 }
 
 func TestAnthropicRequest_NewFields(t *testing.T) {
+	t.Parallel()
 	req := anthropicRequest{
 		Model:         "claude-sonnet-4-6",
 		MaxTokens:     4096,
@@ -576,6 +599,7 @@ func TestAnthropicRequest_NewFields(t *testing.T) {
 }
 
 func TestAnthropicChat_ThinkingBlocksInResponse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Request-Id", "req-think-1")
 		_, _ = w.Write([]byte(`{"id":"msg_think","content":[{"type":"thinking","thinking":"Let me reason..."},{"type":"text","text":"The answer is 42."}],"stop_reason":"end_turn","usage":{"input_tokens":10,"output_tokens":20,"output_tokens_details":{"thinking_tokens":10}}}`))
@@ -603,6 +627,7 @@ func TestAnthropicChat_ThinkingBlocksInResponse(t *testing.T) {
 }
 
 func TestAnthropicChat_RedactedThinkingSkipped(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"id":"msg_rt","content":[{"type":"redacted_thinking","data":"encrypted"},{"type":"text","text":"Done."}],"stop_reason":"end_turn","usage":{"input_tokens":5,"output_tokens":3}}`))
 	}))
@@ -622,6 +647,7 @@ func TestAnthropicChat_RedactedThinkingSkipped(t *testing.T) {
 }
 
 func TestAnthropicRequest_WithToolChoice(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}
 		_ = json.NewDecoder(r.Body).Decode(&body)
@@ -650,6 +676,7 @@ func TestAnthropicRequest_WithToolChoice(t *testing.T) {
 }
 
 func TestAnthropicRequest_WithTopPAndStopSequences(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}
 		_ = json.NewDecoder(r.Body).Decode(&body)

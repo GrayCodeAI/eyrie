@@ -9,6 +9,7 @@ import (
 )
 
 func TestNewTelemetry(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 	if tel == nil {
 		t.Fatal("NewTelemetry returned nil")
@@ -19,6 +20,7 @@ func TestNewTelemetry(t *testing.T) {
 }
 
 func TestNilTelemetryIsNoOp(t *testing.T) {
+	t.Parallel()
 	var tel *Telemetry
 
 	// All methods should be safe on nil receiver.
@@ -42,6 +44,7 @@ func TestNilTelemetryIsNoOp(t *testing.T) {
 }
 
 func TestNilMetricsCollectorIsNoOp(t *testing.T) {
+	t.Parallel()
 	var mc *MetricsCollector
 
 	mc.RecordRequest("openai", "gpt-4", 100, 50, time.Second, 0.01, false)
@@ -82,6 +85,7 @@ func TestNilMetricsCollectorIsNoOp(t *testing.T) {
 }
 
 func TestStartAndEndSpan(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 
 	attrs := map[string]string{
@@ -139,6 +143,7 @@ func TestStartAndEndSpan(t *testing.T) {
 }
 
 func TestEndSpanWithError(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 
 	span := tel.StartSpan(SpanLLMChat, map[string]string{
@@ -156,6 +161,7 @@ func TestEndSpanWithError(t *testing.T) {
 }
 
 func TestSpanAddEvent(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 	span := tel.StartSpan(SpanLLMRetry, nil)
 	span.AddEvent("retry_attempt", map[string]string{"attempt": "2"})
@@ -173,6 +179,7 @@ func TestSpanAddEvent(t *testing.T) {
 }
 
 func TestMetricsCollectorRequestCount(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	mc.RecordRequest("openai", "gpt-4", 100, 50, 200*time.Millisecond, 0.01, false)
@@ -191,6 +198,7 @@ func TestMetricsCollectorRequestCount(t *testing.T) {
 }
 
 func TestMetricsCollectorTokensUsed(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	mc.RecordRequest("openai", "gpt-4", 100, 50, time.Second, 0.01, false)
@@ -206,6 +214,7 @@ func TestMetricsCollectorTokensUsed(t *testing.T) {
 }
 
 func TestMetricsCollectorLatencyHistogram(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	// Record 100 requests with increasing latency from 1ms to 100ms.
@@ -230,6 +239,7 @@ func TestMetricsCollectorLatencyHistogram(t *testing.T) {
 }
 
 func TestMetricsCollectorErrorRate(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	mc.RecordRequest("openai", "gpt-4", 100, 50, time.Second, 0.01, false)
@@ -245,6 +255,7 @@ func TestMetricsCollectorErrorRate(t *testing.T) {
 }
 
 func TestMetricsCollectorCost(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	mc.RecordRequest("openai", "gpt-4", 1000, 500, time.Second, 0.05, false)
@@ -263,6 +274,7 @@ func TestMetricsCollectorCost(t *testing.T) {
 }
 
 func TestMetricsCollectorCacheHitRate(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	// Simulate cache operations.
@@ -281,6 +293,7 @@ func TestMetricsCollectorCacheHitRate(t *testing.T) {
 }
 
 func TestExportJSON(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	mc.RecordRequest("openai", "gpt-4", 100, 50, 200*time.Millisecond, 0.01, false)
@@ -310,6 +323,7 @@ func TestExportJSON(t *testing.T) {
 }
 
 func TestExportPrometheus(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 
 	mc.RecordRequest("openai", "gpt-4", 100, 50, 200*time.Millisecond, 0.01, false)
@@ -354,6 +368,7 @@ func TestExportPrometheus(t *testing.T) {
 }
 
 func TestTelemetryRecordsSpanMetrics(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 
 	span := tel.StartSpan(SpanLLMChat, map[string]string{
@@ -371,6 +386,7 @@ func TestTelemetryRecordsSpanMetrics(t *testing.T) {
 }
 
 func TestTelemetryCacheHitSpan(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 
 	// Record a cache hit span.
@@ -395,6 +411,7 @@ func TestTelemetryCacheHitSpan(t *testing.T) {
 }
 
 func TestTelemetryOnSpanEndCallback(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 
 	var captured *Span
@@ -417,6 +434,7 @@ func TestTelemetryOnSpanEndCallback(t *testing.T) {
 }
 
 func TestTelemetrySpansList(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 
 	for i := 0; i < 5; i++ {
@@ -434,6 +452,7 @@ func TestTelemetrySpansList(t *testing.T) {
 }
 
 func TestRecordMetric(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 
 	tel.RecordMetric("custom.latency", 42.5, map[string]string{"region": "us-east"})
@@ -447,6 +466,7 @@ func TestRecordMetric(t *testing.T) {
 }
 
 func TestPercentileEdgeCases(t *testing.T) {
+	t.Parallel()
 	// Empty slice.
 	if p := percentile(nil, 50); p != 0 {
 		t.Errorf("expected 0, got %f", p)
@@ -465,6 +485,7 @@ func TestPercentileEdgeCases(t *testing.T) {
 }
 
 func TestSplitKey(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		key          string
 		wantProvider string
@@ -484,6 +505,7 @@ func TestSplitKey(t *testing.T) {
 }
 
 func TestTraceAndSpanIDUniqueness(t *testing.T) {
+	t.Parallel()
 	tel := NewTelemetry()
 
 	ids := make(map[string]bool)
@@ -502,6 +524,7 @@ func TestTraceAndSpanIDUniqueness(t *testing.T) {
 }
 
 func TestConcurrentMetricsAccess(t *testing.T) {
+	t.Parallel()
 	mc := NewMetricsCollector()
 	done := make(chan struct{})
 

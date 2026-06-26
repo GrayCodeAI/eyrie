@@ -9,6 +9,7 @@ import (
 )
 
 func TestLiveEntriesToCatalog_PreservesFullJSONInOffering(t *testing.T) {
+	t.Parallel()
 	raw := json.RawMessage(`{"id":"moonshotai/kimi-k2.6","owned_by":"moonshotai"}`)
 	entries := catalog.LiveEntriesToCatalog([]live.Entry{{
 		ID: "moonshotai/kimi-k2.6", DisplayName: "Kimi K2.6", RawJSON: raw,

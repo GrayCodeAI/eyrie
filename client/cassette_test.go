@@ -8,6 +8,7 @@ import (
 )
 
 func TestSaveAndLoadCassette(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test-cassette.json")
 
@@ -71,6 +72,7 @@ func TestSaveAndLoadCassette(t *testing.T) {
 }
 
 func TestSaveCassetteCreatesDirectory(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "subdir", "deep", "cassette.json")
 
@@ -85,6 +87,7 @@ func TestSaveCassetteCreatesDirectory(t *testing.T) {
 }
 
 func TestLoadCassetteMissingFile(t *testing.T) {
+	t.Parallel()
 	_, err := LoadCassette("/nonexistent/path/cassette.json")
 	if err == nil {
 		t.Fatal("LoadCassette should fail for missing file")
@@ -92,6 +95,7 @@ func TestLoadCassetteMissingFile(t *testing.T) {
 }
 
 func TestLoadCassetteInvalidJSON(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "bad.json")
 	if err := os.WriteFile(path, []byte("not valid json{{{"), 0o644); err != nil {
@@ -105,6 +109,7 @@ func TestLoadCassetteInvalidJSON(t *testing.T) {
 }
 
 func TestCassetteMultipleInteractions(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "multi.json")
 
@@ -147,6 +152,7 @@ func TestCassetteMultipleInteractions(t *testing.T) {
 }
 
 func TestCassetteWithToolCalls(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "tools.json")
 
@@ -191,6 +197,7 @@ func TestCassetteWithToolCalls(t *testing.T) {
 }
 
 func TestCassetteWithError(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "error.json")
 
@@ -224,6 +231,7 @@ func TestCassetteWithError(t *testing.T) {
 }
 
 func TestRequestHashDeterministic(t *testing.T) {
+	t.Parallel()
 	messages := []EyrieMessage{
 		{Role: "user", Content: "Hello"},
 		{Role: "assistant", Content: "Hi"},
@@ -238,6 +246,7 @@ func TestRequestHashDeterministic(t *testing.T) {
 }
 
 func TestRequestHashDifferentInputs(t *testing.T) {
+	t.Parallel()
 	opts := ChatOptions{Model: "gpt-4o"}
 
 	h1 := requestHash([]EyrieMessage{{Role: "user", Content: "Hello"}}, opts)
@@ -248,6 +257,7 @@ func TestRequestHashDifferentInputs(t *testing.T) {
 }
 
 func TestRequestHashDifferentModel(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{{Role: "user", Content: "Hello"}}
 
 	h1 := requestHash(msgs, ChatOptions{Model: "gpt-4o"})
@@ -258,6 +268,7 @@ func TestRequestHashDifferentModel(t *testing.T) {
 }
 
 func TestRequestHashDifferentSystem(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{{Role: "user", Content: "Hello"}}
 
 	h1 := requestHash(msgs, ChatOptions{Model: "gpt-4o", System: "You are helpful"})
@@ -268,6 +279,7 @@ func TestRequestHashDifferentSystem(t *testing.T) {
 }
 
 func TestRequestHashExcludesTemperature(t *testing.T) {
+	t.Parallel()
 	msgs := []EyrieMessage{{Role: "user", Content: "Hello"}}
 	t1 := 0.5
 	t2 := 0.9

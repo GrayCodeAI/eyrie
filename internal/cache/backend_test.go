@@ -11,6 +11,7 @@ import (
 )
 
 func TestMemoryBackend(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	tests := []struct {
@@ -207,6 +208,7 @@ func readCommand(r *bufio.Reader) ([]string, error) {
 }
 
 func TestRedisBackendAgainstFakeServer(t *testing.T) {
+	t.Parallel()
 	fr := newFakeRedis(t)
 	defer fr.close()
 

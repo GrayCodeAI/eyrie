@@ -9,6 +9,7 @@ import (
 )
 
 func TestShrinkDescription_Basic(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		in   string
@@ -37,6 +38,7 @@ func TestShrinkDescription_Basic(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got, _ := shrink.ShrinkDescription(tc.in)
 			if got != tc.want {
 				t.Errorf("got %q, want %q", got, tc.want)
@@ -46,6 +48,7 @@ func TestShrinkDescription_Basic(t *testing.T) {
 }
 
 func TestShrinkDescription_SafetyPassThrough(t *testing.T) {
+	t.Parallel()
 	dangerous := []string{
 		"Run rm -rf to clean up",
 		"Use sudo apt update",
@@ -55,6 +58,7 @@ func TestShrinkDescription_SafetyPassThrough(t *testing.T) {
 	}
 	for _, in := range dangerous {
 		t.Run(in, func(t *testing.T) {
+			t.Parallel()
 			got, shrunk := shrink.ShrinkDescription(in)
 			if shrunk {
 				t.Errorf("expected pass-through for %q, got shrunk: %q", in, got)
@@ -67,6 +71,7 @@ func TestShrinkDescription_SafetyPassThrough(t *testing.T) {
 }
 
 func TestShrinkDescription_Empty(t *testing.T) {
+	t.Parallel()
 	got, shrunk := shrink.ShrinkDescription("")
 	if got != "" {
 		t.Errorf("expected empty, got %q", got)
@@ -77,6 +82,7 @@ func TestShrinkDescription_Empty(t *testing.T) {
 }
 
 func TestShrinkDescription_MaxLength(t *testing.T) {
+	t.Parallel()
 	long := strings.Repeat("word ", 100) // ~500 chars
 	got, _ := shrink.ShrinkDescription(long)
 	if len(got) > shrink.MaxLen+1 { // +1 for the ellipsis
@@ -88,6 +94,7 @@ func TestShrinkDescription_MaxLength(t *testing.T) {
 }
 
 func TestShrinkDescription_CaseInsensitive(t *testing.T) {
+	t.Parallel()
 	got, _ := shrink.ShrinkDescription("IN ORDER TO install")
 	if !strings.Contains(got, "to") {
 		t.Errorf("expected case-insensitive replace, got %q", got)
@@ -95,6 +102,7 @@ func TestShrinkDescription_CaseInsensitive(t *testing.T) {
 }
 
 func TestShrinkTools_Empty(t *testing.T) {
+	t.Parallel()
 	tools, r := shrink.ShrinkTools(nil)
 	if len(tools) != 0 {
 		t.Errorf("expected 0 tools, got %d", len(tools))
@@ -105,6 +113,7 @@ func TestShrinkTools_Empty(t *testing.T) {
 }
 
 func TestShrinkTools_AllSafe(t *testing.T) {
+	t.Parallel()
 	tools := []types.Tool{
 		{Name: "read", Description: "Read the contents of a file from disk."},
 		{Name: "write", Description: "In order to write content to a file, use this tool."},
@@ -142,6 +151,7 @@ func TestShrinkTools_AllSafe(t *testing.T) {
 }
 
 func TestShrinkTools_MixedSafety(t *testing.T) {
+	t.Parallel()
 	tools := []types.Tool{
 		{Name: "read", Description: "Read a file"},
 		{Name: "dangerous", Description: "rm -rf the filesystem"},
@@ -157,6 +167,7 @@ func TestShrinkTools_MixedSafety(t *testing.T) {
 }
 
 func TestShrinkToolsIf_Disabled(t *testing.T) {
+	t.Parallel()
 	tools := []types.Tool{
 		{Name: "read", Description: "Read a file"},
 		{Name: "write", Description: "Write a file"},
@@ -173,6 +184,7 @@ func TestShrinkToolsIf_Disabled(t *testing.T) {
 }
 
 func TestShrinkToolsIf_Enabled(t *testing.T) {
+	t.Parallel()
 	tools := []types.Tool{
 		{Name: "read", Description: "Read a file"},
 	}
@@ -183,6 +195,7 @@ func TestShrinkToolsIf_Enabled(t *testing.T) {
 }
 
 func TestShrinkTools_OriginalsUnchanged(t *testing.T) {
+	t.Parallel()
 	orig := "In order to read a file, just use this tool."
 	tools := []types.Tool{{Name: "read", Description: orig}}
 	_, _ = shrink.ShrinkTools(tools)

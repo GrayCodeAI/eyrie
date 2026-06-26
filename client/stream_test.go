@@ -17,6 +17,7 @@ func testLogger() *slog.Logger {
 // --- parseSSEStream tests ---
 
 func TestSSEParseBasicEvents(t *testing.T) {
+	t.Parallel()
 	sseData := "event:message\ndata:hello world\n\nevent:done\ndata:bye\n\n"
 	body := io.NopCloser(strings.NewReader(sseData))
 	ctx := context.Background()
@@ -39,6 +40,7 @@ func TestSSEParseBasicEvents(t *testing.T) {
 }
 
 func TestSSEParseMultilineData(t *testing.T) {
+	t.Parallel()
 	sseData := "event:content\ndata:line one\ndata:line two\ndata:line three\n\n"
 	body := io.NopCloser(strings.NewReader(sseData))
 	ctx := context.Background()
@@ -58,6 +60,7 @@ func TestSSEParseMultilineData(t *testing.T) {
 }
 
 func TestSSEParseEmptyEvents(t *testing.T) {
+	t.Parallel()
 	// Empty lines between events should not produce events with no data
 	sseData := "\n\nevent:ping\ndata:pong\n\n\n\n"
 	body := io.NopCloser(strings.NewReader(sseData))
@@ -78,6 +81,7 @@ func TestSSEParseEmptyEvents(t *testing.T) {
 }
 
 func TestSSEParseContextCancellation(t *testing.T) {
+	t.Parallel()
 	// Create a body that will block until closed
 	pr, pw := io.Pipe()
 
@@ -111,6 +115,7 @@ func TestSSEParseContextCancellation(t *testing.T) {
 // --- processAnthropicStream tests ---
 
 func TestSSEAnthropicContentBlockDelta(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}`}
 	events <- SSEEvent{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" world"}}`}
@@ -149,6 +154,7 @@ func TestSSEAnthropicContentBlockDelta(t *testing.T) {
 }
 
 func TestSSEAnthropicToolUse(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Event: "content_block_start", Data: `{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"tc_123","name":"get_weather"}}`}
 	events <- SSEEvent{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"city\""}}`}
@@ -190,6 +196,7 @@ func TestSSEAnthropicToolUse(t *testing.T) {
 }
 
 func TestSSEAnthropicThinkingDelta(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Event: "content_block_start", Data: `{"type":"content_block_start","index":0,"content_block":{"type":"thinking"}}`}
 	events <- SSEEvent{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","text":"Let me think..."}}`}
@@ -218,6 +225,7 @@ func TestSSEAnthropicThinkingDelta(t *testing.T) {
 }
 
 func TestSSEAnthropicThinkingTextDeltaHidden(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Event: "content_block_start", Data: `{"type":"content_block_start","index":0,"content_block":{"type":"thinking"}}`}
 	events <- SSEEvent{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"private reasoning"}}`}
@@ -248,6 +256,7 @@ func TestSSEAnthropicThinkingTextDeltaHidden(t *testing.T) {
 }
 
 func TestSSEAnthropicStopReason(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Event: "message_delta", Data: `{"type":"message_delta","delta":{"stop_reason":"max_tokens"}}`}
 	events <- SSEEvent{Event: "message_stop", Data: `{"type":"message_stop"}`}
@@ -278,6 +287,7 @@ func TestSSEAnthropicStopReason(t *testing.T) {
 // --- processOpenAIStream tests ---
 
 func TestSSEOpenAIChoicesDelta(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"content":"Hi"},"finish_reason":null}]}`}
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"content":" there"},"finish_reason":null}]}`}
@@ -319,6 +329,7 @@ func TestSSEOpenAIChoicesDelta(t *testing.T) {
 }
 
 func TestSSEOpenAIToolCallsAccumulation(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	// First chunk: tool call starts
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_abc","function":{"name":"search","arguments":""}}]},"finish_reason":null}]}`}
@@ -361,6 +372,7 @@ func TestSSEOpenAIToolCallsAccumulation(t *testing.T) {
 }
 
 func TestSSEOpenAIFinishReason(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"content":"done"},"finish_reason":null}]}`}
 	events <- SSEEvent{Data: `{"choices":[{"delta":{},"finish_reason":"length"}]}`}
@@ -386,6 +398,7 @@ func TestSSEOpenAIFinishReason(t *testing.T) {
 }
 
 func TestSSEOpenAIUsage(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"content":"hi"},"finish_reason":null}]}`}
 	events <- SSEEvent{Data: `{"choices":[],"usage":{"prompt_tokens":50,"completion_tokens":10,"total_tokens":60}}`}
@@ -423,6 +436,7 @@ func TestSSEOpenAIUsage(t *testing.T) {
 // --- ParseInlineToolCalls tests ---
 
 func TestSSEParseInlineToolCallsCanopywave(t *testing.T) {
+	t.Parallel()
 	text := `Here is my response.
 <|tool_calls_section_begin|>
 <|tool_call_begin|>
@@ -454,6 +468,7 @@ functions.get_weather:0
 }
 
 func TestSSEParseInlineToolCallsNoMarker(t *testing.T) {
+	t.Parallel()
 	text := "Just a normal response with no tool calls."
 	cleanText, toolCalls := ParseInlineToolCalls(text)
 
@@ -466,6 +481,7 @@ func TestSSEParseInlineToolCallsNoMarker(t *testing.T) {
 }
 
 func TestSSEParseInlineToolCallsMultiple(t *testing.T) {
+	t.Parallel()
 	text := `Thinking...
 <|tool_calls_section_begin|>
 <|tool_call_begin|>

@@ -36,6 +36,7 @@ func init() {
 // missing from OpenAICompatibleProviders, causing NewOpenAICompatibleClient
 // to mis-route callers to NewOpenAIClient with BaseURL="" (4xx).
 func TestProviderRegistry_NoDriftFromCatalog(t *testing.T) {
+	t.Parallel()
 	specs := registry.All()
 	specNames := make(map[string]bool, len(specs))
 	for _, s := range specs {

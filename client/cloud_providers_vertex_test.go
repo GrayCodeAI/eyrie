@@ -23,6 +23,7 @@ func newTestVertexClient(serverURL, projectID, region, token string) *VertexClie
 }
 
 func TestVertexClient_Name(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("my-project", "us-central1", "test-token")
 	if c.Name() != "anthropic-vertex" {
 		t.Errorf("expected name 'anthropic-vertex', got %q", c.Name())
@@ -30,6 +31,7 @@ func TestVertexClient_Name(t *testing.T) {
 }
 
 func TestVertexClient_BaseURL(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("my-project", "us-east1", "token")
 	expected := "https://us-east1-aiplatform.googleapis.com/v1/projects/my-project/locations/us-east1/publishers/anthropic/models"
 	if c.baseURL() != expected {
@@ -38,6 +40,7 @@ func TestVertexClient_BaseURL(t *testing.T) {
 }
 
 func TestVertexChat_Success(t *testing.T) {
+	t.Parallel()
 	var capturedMethod, capturedPath string
 	var capturedHeaders http.Header
 	var capturedBody map[string]interface{}
@@ -127,6 +130,7 @@ func TestVertexChat_Success(t *testing.T) {
 }
 
 func TestVertexChat_ModelRequired(t *testing.T) {
+	t.Parallel()
 	c := newTestVertexClient("http://localhost", "proj", "us-central1", "token")
 	_, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -140,6 +144,7 @@ func TestVertexChat_ModelRequired(t *testing.T) {
 }
 
 func TestVertexBuildBody_WithSystemPrompt(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -163,6 +168,7 @@ func TestVertexBuildBody_WithSystemPrompt(t *testing.T) {
 }
 
 func TestVertexBuildBody_SystemMerge(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -186,6 +192,7 @@ func TestVertexBuildBody_SystemMerge(t *testing.T) {
 }
 
 func TestVertexBuildBody_CustomMaxTokens(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -204,6 +211,7 @@ func TestVertexBuildBody_CustomMaxTokens(t *testing.T) {
 }
 
 func TestVertexBuildBody_WithTemperature(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 	temp := 0.5
 
@@ -223,6 +231,7 @@ func TestVertexBuildBody_WithTemperature(t *testing.T) {
 }
 
 func TestVertexBuildBody_WithTools(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -257,6 +266,7 @@ func TestVertexBuildBody_WithTools(t *testing.T) {
 }
 
 func TestVertexBuildBody_StreamFlag(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -275,6 +285,7 @@ func TestVertexBuildBody_StreamFlag(t *testing.T) {
 }
 
 func TestVertexBuildBody_ToolResultMessage(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -298,6 +309,7 @@ func TestVertexBuildBody_ToolResultMessage(t *testing.T) {
 }
 
 func TestVertexBuildBody_VertexVersionField(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
 	body, err := c.buildBody([]EyrieMessage{
@@ -321,6 +333,7 @@ func TestVertexBuildBody_VertexVersionField(t *testing.T) {
 }
 
 func TestVertexChat_SuccessWithFullResponse(t *testing.T) {
+	t.Parallel()
 	// Test by creating a mock server and using a custom transport
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify Bearer auth
@@ -387,6 +400,7 @@ func TestVertexChat_SuccessWithFullResponse(t *testing.T) {
 }
 
 func TestVertexChat_ToolUseResponse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"content": []map[string]interface{}{
@@ -441,6 +455,7 @@ func TestVertexChat_ToolUseResponse(t *testing.T) {
 }
 
 func TestVertexChat_ErrorResponse(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(403)
 		fmt.Fprint(w, `{"error":{"code":403,"message":"Permission denied"}}`)
@@ -465,6 +480,7 @@ func TestVertexChat_ErrorResponse(t *testing.T) {
 }
 
 func TestVertexStreamChat_Success(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify stream path uses streamRawPredict
 		if !strings.Contains(r.URL.Path, ":streamRawPredict") {
@@ -531,6 +547,7 @@ func TestVertexStreamChat_Success(t *testing.T) {
 }
 
 func TestVertexStreamChat_ModelRequired(t *testing.T) {
+	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 	_, err := c.StreamChat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -544,6 +561,7 @@ func TestVertexStreamChat_ModelRequired(t *testing.T) {
 }
 
 func TestVertexPing_Success(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET for ping, got %s", r.Method)
@@ -565,6 +583,7 @@ func TestVertexPing_Success(t *testing.T) {
 }
 
 func TestVertexPing_InvalidCredentials(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 	}))

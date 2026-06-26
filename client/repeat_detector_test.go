@@ -6,6 +6,7 @@ import (
 )
 
 func TestRepeatDetector_NonRepeating(t *testing.T) {
+	t.Parallel()
 	rd := DefaultRepeatDetector()
 	// Feed 200 runes of varied prose — should NOT trigger.
 	text := "The quick brown fox jumps over the lazy dog. " +
@@ -21,6 +22,7 @@ func TestRepeatDetector_NonRepeating(t *testing.T) {
 }
 
 func TestRepeatDetector_Repeating(t *testing.T) {
+	t.Parallel()
 	rd := DefaultRepeatDetector()
 	// "abc" repeated 100 times (300 runes) is highly repetitive.
 	rd.Feed(strings.Repeat("abc", 100))
@@ -31,6 +33,7 @@ func TestRepeatDetector_Repeating(t *testing.T) {
 }
 
 func TestRepeatDetector_ShortTextNoTrigger(t *testing.T) {
+	t.Parallel()
 	rd := DefaultRepeatDetector()
 	// < 100 runes must never fire even if all identical.
 	rd.Feed(strings.Repeat("x", 50))
@@ -40,6 +43,7 @@ func TestRepeatDetector_ShortTextNoTrigger(t *testing.T) {
 }
 
 func TestRepeatDetector_ExactlyAtMinLength(t *testing.T) {
+	t.Parallel()
 	rd := DefaultRepeatDetector()
 	// Feed exactly MinLength runes of the same character.
 	// The > check means we need > 100 runes to fire.
@@ -56,6 +60,7 @@ func TestRepeatDetector_ExactlyAtMinLength(t *testing.T) {
 }
 
 func TestRepeatDetector_GetRepeatness_EmptyInput(t *testing.T) {
+	t.Parallel()
 	rd := DefaultRepeatDetector()
 	if r := rd.GetRepeatness(); r != 1.0 {
 		t.Errorf("empty input GetRepeatness = %f, want 1.0", r)
@@ -63,6 +68,7 @@ func TestRepeatDetector_GetRepeatness_EmptyInput(t *testing.T) {
 }
 
 func TestRepeatDetector_IncrementalFeed(t *testing.T) {
+	t.Parallel()
 	rdBulk := DefaultRepeatDetector()
 	rdIncremental := DefaultRepeatDetector()
 
@@ -82,6 +88,7 @@ func TestRepeatDetector_IncrementalFeed(t *testing.T) {
 }
 
 func TestRepeatDetector_AddAndFeedConsistent(t *testing.T) {
+	t.Parallel()
 	rdAdd := DefaultRepeatDetector()
 	rdFeed := DefaultRepeatDetector()
 

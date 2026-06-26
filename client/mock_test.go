@@ -7,6 +7,7 @@ import (
 )
 
 func TestNewMockProviderMode(t *testing.T) {
+	t.Parallel()
 	modes := []MockMode{MockModeEcho, MockModeFixed, MockModeToolUse, MockModeError, MockModeMaxTokens}
 	for _, mode := range modes {
 		mp := NewMockProvider(mode)
@@ -17,6 +18,7 @@ func TestNewMockProviderMode(t *testing.T) {
 }
 
 func TestMockProviderName(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 	if mp.Name() != "mock" {
 		t.Errorf("Name() = %q, want %q", mp.Name(), "mock")
@@ -24,6 +26,7 @@ func TestMockProviderName(t *testing.T) {
 }
 
 func TestMockProviderPing(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 	if err := mp.Ping(context.Background()); err != nil {
 		t.Errorf("Ping() = %v, want nil", err)
@@ -31,10 +34,12 @@ func TestMockProviderPing(t *testing.T) {
 }
 
 func TestMockProviderImplementsProvider(t *testing.T) {
+	t.Parallel()
 	var _ Provider = (*MockProvider)(nil)
 }
 
 func TestMockProviderEchoMode(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 	msgs := []EyrieMessage{
 		{Role: "user", Content: "Hello world"},
@@ -52,6 +57,7 @@ func TestMockProviderEchoMode(t *testing.T) {
 }
 
 func TestMockProviderEchoModeNoUser(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 	msgs := []EyrieMessage{
 		{Role: "assistant", Content: "system message"},
@@ -66,6 +72,7 @@ func TestMockProviderEchoModeNoUser(t *testing.T) {
 }
 
 func TestMockProviderFixedMode(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeFixed)
 	mp.Response = "fixed answer"
 	msgs := []EyrieMessage{{Role: "user", Content: "test"}}
@@ -80,6 +87,7 @@ func TestMockProviderFixedMode(t *testing.T) {
 }
 
 func TestMockProviderErrorMode(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeError)
 	msgs := []EyrieMessage{{Role: "user", Content: "test"}}
 
@@ -93,6 +101,7 @@ func TestMockProviderErrorMode(t *testing.T) {
 }
 
 func TestMockProviderToolUseMode(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeToolUse)
 	mp.ToolName = "search"
 	mp.ToolArgs = map[string]interface{}{"query": "hello"}
@@ -118,6 +127,7 @@ func TestMockProviderToolUseMode(t *testing.T) {
 }
 
 func TestMockProviderToolUseModeDefaults(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeToolUse)
 	msgs := []EyrieMessage{{Role: "user", Content: "test"}}
 
@@ -135,6 +145,7 @@ func TestMockProviderToolUseModeDefaults(t *testing.T) {
 }
 
 func TestMockProviderMaxTokensMode(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeMaxTokens)
 	msgs := []EyrieMessage{{Role: "user", Content: "test"}}
 
@@ -151,6 +162,7 @@ func TestMockProviderMaxTokensMode(t *testing.T) {
 }
 
 func TestMockProviderCallRecording(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 	if mp.CallCount() != 0 {
 		t.Fatalf("initial CallCount = %d, want 0", mp.CallCount())
@@ -180,6 +192,7 @@ func TestMockProviderCallRecording(t *testing.T) {
 }
 
 func TestMockProviderMultipleCalls(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 
 	for i := 0; i < 5; i++ {
@@ -191,6 +204,7 @@ func TestMockProviderMultipleCalls(t *testing.T) {
 }
 
 func TestMockProviderReset(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 	mp.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "test"}}, ChatOptions{})
 	if mp.CallCount() != 1 {
@@ -207,6 +221,7 @@ func TestMockProviderReset(t *testing.T) {
 }
 
 func TestMockProviderMarshalCalls(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 	mp.Chat(context.Background(), []EyrieMessage{{Role: "user", Content: "test"}}, ChatOptions{})
 
@@ -220,6 +235,7 @@ func TestMockProviderMarshalCalls(t *testing.T) {
 }
 
 func TestMockProviderUsageInResponse(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeFixed)
 	mp.Response = "test"
 	msgs := []EyrieMessage{{Role: "user", Content: "test"}}
@@ -243,6 +259,7 @@ func TestMockProviderUsageInResponse(t *testing.T) {
 }
 
 func TestMockProviderContextCancellation(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 	mp.Delay = 10 * time.Second // long delay
 
@@ -256,6 +273,7 @@ func TestMockProviderContextCancellation(t *testing.T) {
 }
 
 func TestMockProviderStreamChat(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeEcho)
 	msgs := []EyrieMessage{{Role: "user", Content: "Hello world"}}
 
@@ -280,6 +298,7 @@ func TestMockProviderStreamChat(t *testing.T) {
 }
 
 func TestMockProviderStreamChatToolUse(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeToolUse)
 	mp.ToolName = "calculator"
 	msgs := []EyrieMessage{{Role: "user", Content: "compute"}}
@@ -305,6 +324,7 @@ func TestMockProviderStreamChatToolUse(t *testing.T) {
 }
 
 func TestMockProviderStreamChatError(t *testing.T) {
+	t.Parallel()
 	mp := NewMockProvider(MockModeError)
 	msgs := []EyrieMessage{{Role: "user", Content: "test"}}
 

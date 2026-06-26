@@ -29,6 +29,7 @@ func testDefaultModelCatalog() ModelCatalog {
 }
 
 func TestGetPreferredProviderModel_AllTiers(t *testing.T) {
+	t.Parallel()
 	cat := testDefaultModelCatalog()
 	tests := []struct {
 		provider string
@@ -57,6 +58,7 @@ func TestGetPreferredProviderModel_AllTiers(t *testing.T) {
 }
 
 func TestGetPreferredProviderModel_NilCatalog(t *testing.T) {
+	t.Parallel()
 	model := GetPreferredProviderModel("anthropic", TierSonnet, nil)
 	if model != "" {
 		t.Errorf("expected empty model with nil catalog, got %q", model)
@@ -64,6 +66,7 @@ func TestGetPreferredProviderModel_NilCatalog(t *testing.T) {
 }
 
 func TestGetPreferredProviderModel_EmptyCatalog(t *testing.T) {
+	t.Parallel()
 	cat := ModelCatalog{Source: "test", Providers: map[string][]ModelCatalogEntry{}}
 	model := GetPreferredProviderModel("anthropic", TierSonnet, &cat)
 	if model != "" {
@@ -72,6 +75,7 @@ func TestGetPreferredProviderModel_EmptyCatalog(t *testing.T) {
 }
 
 func TestAllProvidersReturnDefaultEmptyWithoutCatalog(t *testing.T) {
+	t.Parallel()
 	allProviders := []string{
 		"anthropic", "openai", "gemini", "grok", "opencodego",
 		"canopywave", "z_ai", "openrouter", "ollama",
@@ -86,6 +90,7 @@ func TestAllProvidersReturnDefaultEmptyWithoutCatalog(t *testing.T) {
 }
 
 func TestUnknownProviderReturnsEmpty(t *testing.T) {
+	t.Parallel()
 	cat := testDefaultModelCatalog()
 	model := GetPreferredProviderModel("nonexistent_provider", TierSonnet, &cat)
 	if model != "" {
@@ -94,6 +99,7 @@ func TestUnknownProviderReturnsEmpty(t *testing.T) {
 }
 
 func TestModelTierAliases(t *testing.T) {
+	t.Parallel()
 	if len(ModelTierAliases) != 3 {
 		t.Errorf("expected 3 tier aliases, got %d", len(ModelTierAliases))
 	}

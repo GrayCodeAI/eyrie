@@ -30,6 +30,7 @@ func (orphanMockProvider) StreamChat(_ context.Context, _ []client.EyrieMessage,
 }
 
 func TestInjectSyntheticToolResults_InjectsAfterOrphanNode(t *testing.T) {
+	t.Parallel()
 	ancestors := []*storage.Node{
 		{ID: "u1", NodeType: storage.NodeTypeUser, Content: "hi", Sequence: 1},
 		{ID: "a1", NodeType: storage.NodeTypeAssistant, Content: `[{"type":"tool_use","id":"t1","name":"search","input":{}}]`, Sequence: 2},
@@ -48,6 +49,7 @@ func TestInjectSyntheticToolResults_InjectsAfterOrphanNode(t *testing.T) {
 }
 
 func TestPromptFrom_RepairsOrphanedToolUse(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "orphan.db")
 	store, err := storage.Open(path)
 	if err != nil {

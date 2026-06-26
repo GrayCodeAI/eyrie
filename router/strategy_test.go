@@ -60,6 +60,7 @@ func (m *usageMockProvider) Ping(_ context.Context) error { return nil }
 func (m *usageMockProvider) Name() string                 { return m.name }
 
 func TestDefaultStrategyIsWeighted(t *testing.T) {
+	t.Parallel()
 	p := &mockProvider{name: "p"}
 	r := New([]RouteEntry{{Provider: p, Weight: 100}}, nil, nil)
 	if r.strategy != StrategyWeighted {
@@ -68,6 +69,7 @@ func TestDefaultStrategyIsWeighted(t *testing.T) {
 }
 
 func TestWithStrategyOption(t *testing.T) {
+	t.Parallel()
 	p := &mockProvider{name: "p"}
 	r := New([]RouteEntry{{Provider: p, Weight: 100}}, nil, nil, WithStrategy(StrategyLeastBusy))
 	if r.strategy != StrategyLeastBusy {
@@ -76,6 +78,7 @@ func TestWithStrategyOption(t *testing.T) {
 }
 
 func TestSimpleShuffleDistribution(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1"}
 	p2 := &mockProvider{name: "p2"}
 	// Heavily skewed weights, but simple-shuffle must ignore them and pick uniformly.
@@ -96,6 +99,7 @@ func TestSimpleShuffleDistribution(t *testing.T) {
 }
 
 func TestLeastBusySelectsIdleProvider(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1"}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 1}, {Provider: p2, Weight: 1}}, nil, nil, WithStrategy(StrategyLeastBusy))
@@ -120,6 +124,7 @@ func TestLeastBusySelectsIdleProvider(t *testing.T) {
 }
 
 func TestLatencyBasedSelectsFastest(t *testing.T) {
+	t.Parallel()
 	fast := &latencyMockProvider{name: "fast", delay: 0}
 	slow := &latencyMockProvider{name: "slow", delay: 30 * time.Millisecond}
 	r := New([]RouteEntry{{Provider: slow, Weight: 1}, {Provider: fast, Weight: 1}}, nil, nil, WithStrategy(StrategyLatencyBased))
@@ -135,6 +140,7 @@ func TestLatencyBasedSelectsFastest(t *testing.T) {
 }
 
 func TestLatencyBasedRecordsEWMA(t *testing.T) {
+	t.Parallel()
 	p := &latencyMockProvider{name: "p", delay: 5 * time.Millisecond}
 	r := New([]RouteEntry{{Provider: p, Weight: 1}}, nil, nil, WithStrategy(StrategyLatencyBased))
 
@@ -149,6 +155,7 @@ func TestLatencyBasedRecordsEWMA(t *testing.T) {
 }
 
 func TestCostBasedSelectsCheapest(t *testing.T) {
+	t.Parallel()
 	cheap := &mockProvider{name: "cheap"}
 	pricey := &mockProvider{name: "pricey"}
 	r := New([]RouteEntry{
@@ -163,6 +170,7 @@ func TestCostBasedSelectsCheapest(t *testing.T) {
 }
 
 func TestCostBasedFallsBackToWeight(t *testing.T) {
+	t.Parallel()
 	a := &mockProvider{name: "a"}
 	b := &mockProvider{name: "b"}
 	// No Cost set; Weight is used as the cost proxy, so lower weight wins.
@@ -178,6 +186,7 @@ func TestCostBasedFallsBackToWeight(t *testing.T) {
 }
 
 func TestUsageBasedSelectsLeastUsed(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1"}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 1}, {Provider: p2, Weight: 1}}, nil, nil, WithStrategy(StrategyUsageBased))
@@ -192,6 +201,7 @@ func TestUsageBasedSelectsLeastUsed(t *testing.T) {
 }
 
 func TestUsageBasedRecordsTokens(t *testing.T) {
+	t.Parallel()
 	p := &usageMockProvider{name: "p", tokens: 250}
 	r := New([]RouteEntry{{Provider: p, Weight: 1}}, nil, nil, WithStrategy(StrategyUsageBased))
 
@@ -204,6 +214,7 @@ func TestUsageBasedRecordsTokens(t *testing.T) {
 }
 
 func TestWeightedStrategyZeroWeightFallback(t *testing.T) {
+	t.Parallel()
 	p := &mockProvider{name: "p"}
 	r := New([]RouteEntry{{Provider: p, Weight: 0}}, nil, nil)
 	if e := r.selectEntry(); e.Provider.Name() != "p" {
@@ -212,6 +223,7 @@ func TestWeightedStrategyZeroWeightFallback(t *testing.T) {
 }
 
 func TestInFlightDecrementedAfterChat(t *testing.T) {
+	t.Parallel()
 	p := &mockProvider{name: "p"}
 	r := New([]RouteEntry{{Provider: p, Weight: 1}}, nil, nil, WithStrategy(StrategyLeastBusy))
 
@@ -222,6 +234,7 @@ func TestInFlightDecrementedAfterChat(t *testing.T) {
 }
 
 func TestLeastBusyConcurrentSafe(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1"}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 1}, {Provider: p2, Weight: 1}}, nil, nil, WithStrategy(StrategyLeastBusy))

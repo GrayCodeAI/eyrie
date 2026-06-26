@@ -8,6 +8,7 @@ import (
 )
 
 func TestFetchXiaomiPayg_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)
@@ -50,6 +51,7 @@ func TestFetchXiaomiPayg_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchXiaomiPayg_EnrichesFromPlatformAPI(t *testing.T) {
+	t.Parallel()
 	inferenceSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(struct {
 			Data []json.RawMessage `json:"data"`
@@ -92,6 +94,7 @@ func TestFetchXiaomiPayg_EnrichesFromPlatformAPI(t *testing.T) {
 }
 
 func TestFetchXiaomiTokenPlan_RegionResolvesBase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" {
 			http.NotFound(w, r)
@@ -122,6 +125,7 @@ func TestFetchXiaomiTokenPlan_RegionResolvesBase(t *testing.T) {
 }
 
 func TestResolveTokenPlanOpenAIBase_StaleOverrideUsesRegion(t *testing.T) {
+	t.Parallel()
 	base := resolveTokenPlanOpenAIBase(map[string]string{
 		"XIAOMI_MIMO_TOKEN_PLAN_REGION":   "sgp",
 		"XIAOMI_MIMO_TOKEN_PLAN_BASE_URL": "https://token-plan-cn.xiaomimimo.com/v1",
@@ -133,6 +137,7 @@ func TestResolveTokenPlanOpenAIBase_StaleOverrideUsesRegion(t *testing.T) {
 }
 
 func TestFetchXiaomiPayg_NoKey(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchXiaomiPayg(map[string]string{})
 	if err != nil {
 		t.Fatal(err)

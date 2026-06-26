@@ -36,10 +36,12 @@ func (m *mockProvider) Ping(_ context.Context) error { return m.err }
 func (m *mockProvider) Name() string                 { return m.name }
 
 func TestRouterImplementsProvider(t *testing.T) {
+	t.Parallel()
 	var _ client.Provider = (*Router)(nil)
 }
 
 func TestWeightedSelection(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1"}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 80}, {Provider: p2, Weight: 20}}, nil, nil)
@@ -58,6 +60,7 @@ func TestWeightedSelection(t *testing.T) {
 }
 
 func TestFallbackOnError(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1", err: fmt.Errorf("HTTP 500 internal")}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 100}}, []client.Provider{p2}, &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
@@ -72,6 +75,7 @@ func TestFallbackOnError(t *testing.T) {
 }
 
 func TestAllProvidersFail(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1", err: fmt.Errorf("HTTP 500")}
 	p2 := &mockProvider{name: "p2", err: fmt.Errorf("HTTP 502")}
 	r := New([]RouteEntry{{Provider: p1, Weight: 100}}, []client.Provider{p2}, &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
@@ -83,6 +87,7 @@ func TestAllProvidersFail(t *testing.T) {
 }
 
 func TestNonTransientNoFallback(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1", err: fmt.Errorf("HTTP 401 unauthorized")}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 100}}, []client.Provider{p2}, &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
@@ -94,6 +99,7 @@ func TestNonTransientNoFallback(t *testing.T) {
 }
 
 func TestIsTransientCodes(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		msg    string
 		expect bool
@@ -116,6 +122,7 @@ func TestIsTransientCodes(t *testing.T) {
 }
 
 func TestBackoffDelay(t *testing.T) {
+	t.Parallel()
 	cfg := NewRetryConfig(0, 100*time.Millisecond, 5*time.Second)
 	// Run multiple times to account for jitter
 	for i := 0; i < 10; i++ {
@@ -134,6 +141,7 @@ func TestBackoffDelay(t *testing.T) {
 }
 
 func TestOnRetryCallback(t *testing.T) {
+	t.Parallel()
 	calls := 0
 	p := &mockProvider{name: "p", err: fmt.Errorf("HTTP 500")}
 	cfg := NewRetryConfig(2, time.Millisecond, time.Millisecond)
@@ -147,6 +155,7 @@ func TestOnRetryCallback(t *testing.T) {
 }
 
 func TestToolFilter(t *testing.T) {
+	t.Parallel()
 	f := NewToolFilter(map[string][]string{
 		"claude-3": {"web_search"},
 	})
@@ -169,6 +178,7 @@ func TestToolFilter(t *testing.T) {
 }
 
 func TestStreamFallback(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1", err: fmt.Errorf("HTTP 503")}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 100}}, []client.Provider{p2}, &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
@@ -182,6 +192,7 @@ func TestStreamFallback(t *testing.T) {
 }
 
 func TestNewDefaultRetryConfig(t *testing.T) {
+	t.Parallel()
 	p := &mockProvider{name: "p"}
 	r := New([]RouteEntry{{Provider: p, Weight: 100}}, nil, nil)
 
@@ -198,6 +209,7 @@ func TestNewDefaultRetryConfig(t *testing.T) {
 }
 
 func TestNewCustomRetryConfig(t *testing.T) {
+	t.Parallel()
 	p := &mockProvider{name: "p"}
 	custom := &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 7, BaseDelay: 500 * time.Millisecond, MaxDelay: 10 * time.Second}}
 	r := New([]RouteEntry{{Provider: p, Weight: 100}}, nil, custom)
@@ -211,6 +223,7 @@ func TestNewCustomRetryConfig(t *testing.T) {
 }
 
 func TestNewStatsInitialized(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "alpha"}
 	p2 := &mockProvider{name: "beta"}
 	fb := &mockProvider{name: "gamma"}
@@ -228,6 +241,7 @@ func TestNewStatsInitialized(t *testing.T) {
 }
 
 func TestNewPerEntryRetryConfig(t *testing.T) {
+	t.Parallel()
 	p := &mockProvider{name: "p"}
 	entryRetry := &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 10, BaseDelay: 200 * time.Millisecond, MaxDelay: 5 * time.Second}}
 	r := New([]RouteEntry{{Provider: p, Weight: 100, Retry: entryRetry}}, nil, nil)
@@ -243,6 +257,7 @@ func TestNewPerEntryRetryConfig(t *testing.T) {
 }
 
 func TestRouterName(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "openai"}
 	p2 := &mockProvider{name: "anthropic"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 50}, {Provider: p2, Weight: 50}}, nil, nil)
@@ -254,6 +269,7 @@ func TestRouterName(t *testing.T) {
 }
 
 func TestPingFirstEntry(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1"}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 50}, {Provider: p2, Weight: 50}}, nil, nil)
@@ -264,6 +280,7 @@ func TestPingFirstEntry(t *testing.T) {
 }
 
 func TestPingFirstEntryFails(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1", err: fmt.Errorf("connection refused")}
 	r := New([]RouteEntry{{Provider: p1, Weight: 100}}, nil, nil)
 
@@ -273,6 +290,7 @@ func TestPingFirstEntryFails(t *testing.T) {
 }
 
 func TestPingFallbackOnly(t *testing.T) {
+	t.Parallel()
 	fb := &mockProvider{name: "fallback"}
 	r := New(nil, []client.Provider{fb}, nil)
 
@@ -282,6 +300,7 @@ func TestPingFallbackOnly(t *testing.T) {
 }
 
 func TestPingNoProviders(t *testing.T) {
+	t.Parallel()
 	r := New(nil, nil, nil)
 
 	err := r.Ping(context.Background())
@@ -294,6 +313,7 @@ func TestPingNoProviders(t *testing.T) {
 }
 
 func TestStats(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1"}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 100}}, []client.Provider{p2}, &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
@@ -309,6 +329,7 @@ func TestStats(t *testing.T) {
 }
 
 func TestStatsAfterFallback(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1", err: fmt.Errorf("HTTP 503")}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 100}}, []client.Provider{p2}, &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
@@ -324,6 +345,7 @@ func TestStatsAfterFallback(t *testing.T) {
 }
 
 func TestSelectProviderZeroWeight(t *testing.T) {
+	t.Parallel()
 	p := &mockProvider{name: "p"}
 	// All entries have weight 0; selectProvider falls back to first entry.
 	r := New([]RouteEntry{{Provider: p, Weight: 0}}, nil, nil)
@@ -335,6 +357,7 @@ func TestSelectProviderZeroWeight(t *testing.T) {
 }
 
 func TestContextCancellationDuringRetry(t *testing.T) {
+	t.Parallel()
 	p := &mockProvider{name: "p", err: fmt.Errorf("HTTP 500")}
 	cfg := NewRetryConfig(5, 10*time.Second, 30*time.Second)
 	r := New([]RouteEntry{{Provider: p, Weight: 100}}, nil, &cfg)
@@ -355,6 +378,7 @@ func TestContextCancellationDuringRetry(t *testing.T) {
 }
 
 func TestShouldTryNextDeployment(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		msg    string
 		expect bool
@@ -383,12 +407,14 @@ func TestShouldTryNextDeployment(t *testing.T) {
 }
 
 func TestShouldTryNextDeploymentNil(t *testing.T) {
+	t.Parallel()
 	if ShouldTryNextDeployment(nil) {
 		t.Error("ShouldTryNextDeployment(nil) should be false")
 	}
 }
 
 func TestStreamNonTransientNoFallback(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1", err: fmt.Errorf("HTTP 401 unauthorized")}
 	p2 := &mockProvider{name: "p2"}
 	r := New([]RouteEntry{{Provider: p1, Weight: 100}}, []client.Provider{p2}, &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
@@ -400,6 +426,7 @@ func TestStreamNonTransientNoFallback(t *testing.T) {
 }
 
 func TestStreamAllProvidersFail(t *testing.T) {
+	t.Parallel()
 	p1 := &mockProvider{name: "p1", err: fmt.Errorf("HTTP 500")}
 	p2 := &mockProvider{name: "p2", err: fmt.Errorf("HTTP 502")}
 	r := New([]RouteEntry{{Provider: p1, Weight: 100}}, []client.Provider{p2}, &RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
@@ -411,6 +438,7 @@ func TestStreamAllProvidersFail(t *testing.T) {
 }
 
 func TestCircuitBreakerBasicFlow(t *testing.T) {
+	t.Parallel()
 	cb := NewCircuitBreaker(3, 50*time.Millisecond)
 
 	// Closed: allows requests.
@@ -446,6 +474,7 @@ func TestCircuitBreakerBasicFlow(t *testing.T) {
 }
 
 func TestCircuitBreakerReset(t *testing.T) {
+	t.Parallel()
 	cb := NewCircuitBreaker(2, time.Hour)
 	cb.Failure()
 	cb.Failure()
@@ -462,6 +491,7 @@ func TestCircuitBreakerReset(t *testing.T) {
 }
 
 func TestCircuitBreakerDefaultThresholds(t *testing.T) {
+	t.Parallel()
 	cb := NewCircuitBreaker(0, 0)
 	// Zero/negative values should get defaults (threshold=5, cooldown=30s).
 	for i := 0; i < 4; i++ {

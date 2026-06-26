@@ -147,10 +147,12 @@ func waitUntil(t *testing.T, timeout time.Duration, cond func() bool) {
 // --- tests ---
 
 func TestCallbackProviderImplementsProvider(t *testing.T) {
+	t.Parallel()
 	var _ Provider = (*CallbackProvider)(nil)
 }
 
 func TestCallbackProviderName(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 	if cp.Name() != "mock/callbacks" {
@@ -159,6 +161,7 @@ func TestCallbackProviderName(t *testing.T) {
 }
 
 func TestCallbackProviderPing(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 	if err := cp.Ping(context.Background()); err != nil {
@@ -167,6 +170,7 @@ func TestCallbackProviderPing(t *testing.T) {
 }
 
 func TestCallbackProviderInner(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 	if cp.Inner() != mock {
@@ -175,6 +179,7 @@ func TestCallbackProviderInner(t *testing.T) {
 }
 
 func TestCallbackBasicInvocation(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 
@@ -229,6 +234,7 @@ func TestCallbackBasicInvocation(t *testing.T) {
 }
 
 func TestCallbackErrorInvocation(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeError)
 	cp := mustCallbackProvider(t, mock)
 
@@ -266,6 +272,7 @@ func TestCallbackErrorInvocation(t *testing.T) {
 }
 
 func TestCallbackMultipleCallbacks(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 
@@ -298,6 +305,7 @@ func TestCallbackMultipleCallbacks(t *testing.T) {
 }
 
 func TestCallbackRemoveCallback(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 
@@ -332,6 +340,7 @@ func TestCallbackRemoveCallback(t *testing.T) {
 }
 
 func TestCallbackPanicRecovery(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 
 	// Use a thread-safe buffer since the slog handler writes from a goroutine.
@@ -373,6 +382,7 @@ func TestCallbackPanicRecovery(t *testing.T) {
 }
 
 func TestCallbackPanicRecoveryDefaultLogger(t *testing.T) {
+	t.Parallel()
 	// Verify that a nil logger set via SetLogger is a no-op (uses the default).
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
@@ -387,6 +397,7 @@ func TestCallbackPanicRecoveryDefaultLogger(t *testing.T) {
 }
 
 func TestCallbackThreadSafety(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 
@@ -440,6 +451,7 @@ func TestCallbackThreadSafety(t *testing.T) {
 }
 
 func TestCallbackConcurrentRegistration(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 
@@ -481,6 +493,7 @@ func TestCallbackConcurrentRegistration(t *testing.T) {
 }
 
 func TestCallbackStreamChat(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 
@@ -525,6 +538,7 @@ func TestCallbackStreamChat(t *testing.T) {
 }
 
 func TestCallbackStreamChatError(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeError)
 	cp := mustCallbackProvider(t, mock)
 
@@ -553,6 +567,7 @@ func TestCallbackStreamChatError(t *testing.T) {
 }
 
 func TestCallbackNilCallbackIgnored(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 
@@ -563,6 +578,7 @@ func TestCallbackNilCallbackIgnored(t *testing.T) {
 }
 
 func TestCallbackEmptyCallbacksNoop(t *testing.T) {
+	t.Parallel()
 	mock := NewMockProvider(MockModeEcho)
 	cp := mustCallbackProvider(t, mock)
 
@@ -578,6 +594,7 @@ func TestCallbackEmptyCallbacksNoop(t *testing.T) {
 }
 
 func TestCallbackErrorInNewCallbackProvider(t *testing.T) {
+	t.Parallel()
 	if _, err := NewCallbackProvider(nil); err == nil {
 		t.Error("NewCallbackProvider(nil) should return an error")
 	}

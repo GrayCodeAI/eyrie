@@ -9,6 +9,7 @@ import (
 )
 
 func TestFetchLiveProviderCatalog_SkipsProvidersWithoutCredentials(t *testing.T) {
+	t.Parallel()
 	cat, enrichment := catalog.FetchLiveProviderCatalog(map[string]string{})
 	if len(cat.Providers) != 0 {
 		t.Fatalf("expected no providers without creds, got %d", len(cat.Providers))
@@ -24,6 +25,7 @@ func TestFetchLiveProviderCatalog_SkipsProvidersWithoutCredentials(t *testing.T)
 }
 
 func TestFetchLiveProviderCatalog_AttemptsAllRegisteredFetchers(t *testing.T) {
+	t.Parallel()
 	env := map[string]string{}
 	for _, spec := range registry.All() {
 		if !spec.RequiresKey {

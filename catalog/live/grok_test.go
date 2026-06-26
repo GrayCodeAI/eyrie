@@ -9,6 +9,7 @@ import (
 )
 
 func TestFetchGrok_MockHTTPServer(t *testing.T) {
+	t.Parallel()
 	body, err := os.ReadFile("testdata/grok_models.json")
 	if err != nil {
 		t.Fatal(err)
@@ -39,6 +40,7 @@ func TestFetchGrok_MockHTTPServer(t *testing.T) {
 }
 
 func TestFetchGrok_NoKey(t *testing.T) {
+	t.Parallel()
 	entries, err := FetchGrok(map[string]string{})
 	if err != nil {
 		t.Fatal(err)
@@ -49,6 +51,7 @@ func TestFetchGrok_NoKey(t *testing.T) {
 }
 
 func TestFetchGrok_ParsesProviderFields(t *testing.T) {
+	t.Parallel()
 	raw := json.RawMessage(`{
 		"id": "grok-3-beta",
 		"owned_by": "xai",

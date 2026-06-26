@@ -9,6 +9,7 @@ import (
 )
 
 func TestNormalizeImageSource_DataURL(t *testing.T) {
+	t.Parallel()
 	mt, data, isB64, err := normalizeImageSource("data:image/png;base64,QUJD")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -19,6 +20,7 @@ func TestNormalizeImageSource_DataURL(t *testing.T) {
 }
 
 func TestNormalizeImageSource_DataURLUnsupported(t *testing.T) {
+	t.Parallel()
 	_, _, _, err := normalizeImageSource("data:image/tiff;base64,QUJD")
 	if err == nil || !strings.Contains(err.Error(), "unsupported image format") {
 		t.Errorf("expected unsupported-format error, got %v", err)
@@ -26,6 +28,7 @@ func TestNormalizeImageSource_DataURLUnsupported(t *testing.T) {
 }
 
 func TestNormalizeImageSource_HTTPPassthrough(t *testing.T) {
+	t.Parallel()
 	mt, data, isB64, err := normalizeImageSource("https://example.com/cat.png")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -36,6 +39,7 @@ func TestNormalizeImageSource_HTTPPassthrough(t *testing.T) {
 }
 
 func TestNormalizeImageSource_LocalFile(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "pic.jpg")
 	raw := []byte("\xff\xd8\xff\xe0fakejpegbytes")
@@ -63,6 +67,7 @@ func TestNormalizeImageSource_LocalFile(t *testing.T) {
 }
 
 func TestNormalizeImageSource_NonImageExtensionTreatedAsRawBase64(t *testing.T) {
+	t.Parallel()
 	// A token without a recognized image extension is treated as raw base64
 	// data, not a file path (preserving eyrie's long-standing default).
 	mt, data, isB64, err := normalizeImageSource("QUJDtoken")
@@ -75,6 +80,7 @@ func TestNormalizeImageSource_NonImageExtensionTreatedAsRawBase64(t *testing.T) 
 }
 
 func TestNormalizeImageSource_MissingFile(t *testing.T) {
+	t.Parallel()
 	_, _, _, err := normalizeImageSource(filepath.Join(t.TempDir(), "nope.png"))
 	if err == nil || !strings.Contains(err.Error(), "reading image file") {
 		t.Errorf("expected read error, got %v", err)
@@ -82,6 +88,7 @@ func TestNormalizeImageSource_MissingFile(t *testing.T) {
 }
 
 func TestOpenAIImageURL(t *testing.T) {
+	t.Parallel()
 	// HTTP passes through.
 	if got := openAIImageURL("https://x/y.png"); got != "https://x/y.png" {
 		t.Errorf("http url = %q", got)
@@ -108,6 +115,7 @@ func TestOpenAIImageURL(t *testing.T) {
 
 // parseImageString shim must keep its lenient behavior for callers.
 func TestParseImageStringShim(t *testing.T) {
+	t.Parallel()
 	mt, data, isB64 := parseImageString("data:image/png;base64,QUJD")
 	if !isB64 || mt != "image/png" || data != "QUJD" {
 		t.Errorf("data url shim got (%q,%q,%v)", mt, data, isB64)

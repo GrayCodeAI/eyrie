@@ -8,6 +8,7 @@ import (
 )
 
 func TestConstantTimeEqual(t *testing.T) {
+	t.Parallel()
 	key := "super-secret-api-key"
 	if !ConstantTimeEqual(key, key) {
 		t.Fatal("expected equal tokens to match")
@@ -24,6 +25,7 @@ func TestConstantTimeEqual(t *testing.T) {
 }
 
 func TestIsLoopbackHost(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		host string
 		want bool
@@ -45,6 +47,7 @@ func TestIsLoopbackHost(t *testing.T) {
 }
 
 func TestValidateAuthConfig(t *testing.T) {
+	t.Parallel()
 	if err := ValidateAuthConfig("127.0.0.1:8080", ""); err != nil {
 		t.Errorf("loopback with no key should be allowed: %v", err)
 	}
@@ -57,6 +60,7 @@ func TestValidateAuthConfig(t *testing.T) {
 }
 
 func TestExtractBearerToken(t *testing.T) {
+	t.Parallel()
 	req := httptest.NewRequest("GET", "/", nil)
 	req.Header.Set("Authorization", "Bearer my-token")
 	if got := ExtractBearerToken(req); got != "my-token" {
@@ -76,6 +80,7 @@ func TestExtractBearerToken(t *testing.T) {
 }
 
 func TestWriteJSON(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	if w.Code != http.StatusOK {
@@ -91,6 +96,7 @@ func TestWriteJSON(t *testing.T) {
 }
 
 func TestSecurityHeaders(t *testing.T) {
+	t.Parallel()
 	handler := SecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))

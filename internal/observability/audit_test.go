@@ -12,6 +12,7 @@ import (
 )
 
 func TestNoopSink(t *testing.T) {
+	t.Parallel()
 	var sink AuditSink = NoopSink{}
 	if err := sink.Record(AuditEvent{Model: "m"}); err != nil {
 		t.Errorf("NoopSink.Record should never error, got %v", err)
@@ -19,6 +20,7 @@ func TestNoopSink(t *testing.T) {
 }
 
 func TestHashContentDeterminism(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		a    string
@@ -50,6 +52,7 @@ func TestHashContentDeterminism(t *testing.T) {
 }
 
 func TestJSONLFileSinkWriteAndReadBack(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "audit.jsonl")
 	sink, err := NewJSONLFileSink(path)
 	if err != nil {
@@ -137,6 +140,7 @@ func TestJSONLFileSinkWriteAndReadBack(t *testing.T) {
 }
 
 func TestJSONLFileSinkAppends(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "audit.jsonl")
 
 	// First sink writes one event.

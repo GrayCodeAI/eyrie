@@ -33,6 +33,7 @@ func fullConfig() HealthCheckConfig {
 }
 
 func TestNewHealthChecker_Defaults(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(HealthCheckConfig{})
 	if hc == nil {
 		t.Fatal("expected non-nil HealthChecker")
@@ -55,6 +56,7 @@ func TestNewHealthChecker_Defaults(t *testing.T) {
 }
 
 func TestNewHealthChecker_CustomConfig(t *testing.T) {
+	t.Parallel()
 	cfg := HealthCheckConfig{
 		Interval:          10 * time.Second,
 		Timeout:           1 * time.Second,
@@ -69,6 +71,7 @@ func TestNewHealthChecker_CustomConfig(t *testing.T) {
 }
 
 func TestRegister_StartsHealthy(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(fullConfig())
 	hc.Register(&mockProvider{name: "test-provider"})
 	status := hc.Check("test-provider")
@@ -81,6 +84,7 @@ func TestRegister_StartsHealthy(t *testing.T) {
 }
 
 func TestRegister_Unregister(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(fullConfig())
 	hc.Register(&mockProvider{name: "p1"})
 	hc.Unregister("p1")
@@ -91,6 +95,7 @@ func TestRegister_Unregister(t *testing.T) {
 }
 
 func TestRecordSuccess_TransitionToHealthy(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(fullConfig())
 	hc.Register(&mockProvider{name: "p1"})
 	status := hc.Check("p1")
@@ -103,6 +108,7 @@ func TestRecordSuccess_TransitionToHealthy(t *testing.T) {
 }
 
 func TestRecordFailure_TransitionToDegraded(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(fullConfig())
 	hc.Register(&mockProvider{
 		name: "p1",
@@ -120,6 +126,7 @@ func TestRecordFailure_TransitionToDegraded(t *testing.T) {
 }
 
 func TestRecordFailure_TransitionToUnhealthy(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(HealthCheckConfig{
 		Interval:          30 * time.Second,
 		Timeout:           5 * time.Second,
@@ -147,6 +154,7 @@ func TestRecordFailure_TransitionToUnhealthy(t *testing.T) {
 }
 
 func TestRecoveryAfterFailure(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(fullConfig())
 	fail := true
 	hc.Register(&mockProvider{
@@ -180,6 +188,7 @@ func TestRecoveryAfterFailure(t *testing.T) {
 }
 
 func TestLatencyThreshold_Degradation(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(HealthCheckConfig{
 		Interval:          30 * time.Second,
 		Timeout:           5 * time.Second,
@@ -204,6 +213,7 @@ func TestLatencyThreshold_Degradation(t *testing.T) {
 }
 
 func TestLatencyThreshold_Healthy(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(HealthCheckConfig{
 		Interval:          30 * time.Second,
 		Timeout:           5 * time.Second,
@@ -222,6 +232,7 @@ func TestLatencyThreshold_Healthy(t *testing.T) {
 }
 
 func TestNilHealthChecker_Safety(t *testing.T) {
+	t.Parallel()
 	var hc *HealthChecker
 	hc.Register(&mockProvider{name: "p1"})
 	hc.Unregister("p1")
@@ -237,6 +248,7 @@ func TestNilHealthChecker_Safety(t *testing.T) {
 }
 
 func TestConcurrentAccessSafety(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(fullConfig())
 	hc.Register(&mockProvider{name: "p1"})
 	var wg sync.WaitGroup
@@ -264,6 +276,7 @@ func TestConcurrentAccessSafety(t *testing.T) {
 }
 
 func TestStatusFormatting(t *testing.T) {
+	t.Parallel()
 	if Healthy.String() != "healthy" {
 		t.Errorf("expected 'healthy', got %q", Healthy.String())
 	}
@@ -297,6 +310,7 @@ func TestStatusFormatting(t *testing.T) {
 }
 
 func TestAllProviderHealth(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(fullConfig())
 	hc.Register(&mockProvider{name: "p1"})
 	hc.Register(&mockProvider{name: "p2"})
@@ -310,6 +324,7 @@ func TestAllProviderHealth(t *testing.T) {
 }
 
 func TestStartStop(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(HealthCheckConfig{
 		Interval:          50 * time.Millisecond,
 		Timeout:           5 * time.Second,
@@ -329,6 +344,7 @@ func TestStartStop(t *testing.T) {
 }
 
 func TestUnregisteredProviderCheck(t *testing.T) {
+	t.Parallel()
 	hc := NewHealthChecker(fullConfig())
 	status := hc.Check("nonexistent")
 	if status.State != Unhealthy {

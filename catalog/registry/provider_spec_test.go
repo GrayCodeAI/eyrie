@@ -8,18 +8,21 @@ import (
 )
 
 func TestAllProviders_Count(t *testing.T) {
+	t.Parallel()
 	if n := len(registry.All()); n != 19 {
 		t.Fatalf("expected 19 providers, got %d", n)
 	}
 }
 
 func TestCredentialRegistry_MatchesAll(t *testing.T) {
+	t.Parallel()
 	if len(registry.CredentialRegistry()) != len(registry.All()) {
 		t.Fatal("credential registry should cover all provider specs")
 	}
 }
 
 func TestLiveFetcherKeys_AllProviders(t *testing.T) {
+	t.Parallel()
 	keys := registry.LiveFetcherKeys()
 	if len(keys) != 19 {
 		t.Fatalf("expected 19 live fetcher keys, got %d", len(keys))
@@ -27,6 +30,7 @@ func TestLiveFetcherKeys_AllProviders(t *testing.T) {
 }
 
 func TestOpenCodeGo_HasProbeBaseURL(t *testing.T) {
+	t.Parallel()
 	spec, ok := registry.SpecByProviderID("opencodego")
 	if !ok {
 		t.Fatal("missing opencodego spec")
@@ -43,6 +47,7 @@ func TestOpenCodeGo_HasProbeBaseURL(t *testing.T) {
 }
 
 func TestProviderSpecs_TableDriven(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name             string
 		providerID       string

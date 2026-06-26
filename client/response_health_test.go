@@ -7,6 +7,7 @@ import (
 )
 
 func TestDetectResponseHealth(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		sig  ResponseSignals
@@ -29,6 +30,7 @@ func TestDetectResponseHealth(t *testing.T) {
 }
 
 func TestResponseHealth_DiagnosticAndErr(t *testing.T) {
+	t.Parallel()
 	if ResponseOK.Diagnostic() != "" {
 		t.Error("OK should have no diagnostic")
 	}
@@ -44,6 +46,7 @@ func TestResponseHealth_DiagnosticAndErr(t *testing.T) {
 }
 
 func TestHealthFromResponse(t *testing.T) {
+	t.Parallel()
 	if got := healthFromResponse(&EyrieResponse{Content: "hello"}, false); got != ResponseOK {
 		t.Errorf("got %q, want ok", got)
 	}
@@ -61,6 +64,7 @@ func TestHealthFromResponse(t *testing.T) {
 // Integration: a stream that emits only reasoning_content then finishes must
 // produce a diagnostic error event before the terminal done.
 func TestStreamEmitsErrorOnlyReasoningDiagnostic(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"reasoning_content":"thinking hard..."},"finish_reason":null}]}`}
 	events <- SSEEvent{Data: `{"choices":[{"delta":{},"finish_reason":"stop"}]}`}
@@ -94,6 +98,7 @@ func TestStreamEmitsErrorOnlyReasoningDiagnostic(t *testing.T) {
 
 // A normal stream with content must NOT emit a health diagnostic.
 func TestStreamNoDiagnosticOnHealthyResponse(t *testing.T) {
+	t.Parallel()
 	events := make(chan SSEEvent, 10)
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"content":"answer"},"finish_reason":null}]}`}
 	events <- SSEEvent{Data: `{"choices":[{"delta":{},"finish_reason":"stop"}]}`}
