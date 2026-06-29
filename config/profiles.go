@@ -172,6 +172,13 @@ var (
 		BaseURLEnv:   []string{"MINIMAX_PAYG_BASE_URL", "MINIMAX_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "MINIMAX_PAYG_API_KEY", Source: "minimax_payg"}},
 	}
+	OllamaRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: OllamaDefaultBaseURL,
+		DetectionEnv: []string{"OLLAMA_BASE_URL"},
+		ModelEnv:     []string{"OLLAMA_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"OLLAMA_BASE_URL"},
+		APIKeys:      []APIKeyDef{{Env: "OLLAMA_API_KEY", Source: "ollama"}},
+	}
 )
 
 // APIProviderDetectionOrder is the priority order for provider detection.
@@ -231,4 +238,33 @@ var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
 	"xiaomi_mimo_token_plan": XiaomiTokenPlanRuntimeProfile,
 	"minimax_token_plan":     MiniMaxTokenPlanRuntimeProfile,
 	"minimax_payg":           MiniMaxPaygRuntimeProfile,
+}
+
+// RuntimeProviderProfiles maps provider/profile keys to runtime detection profiles.
+var RuntimeProviderProfiles = map[string]RuntimeProviderProfile{
+	"anthropic":              AnthropicRuntimeProfile,
+	"openai":                 OpenAIRuntimeProfile,
+	"grok":                   GrokRuntimeProfile,
+	"gemini":                 GeminiRuntimeProfile,
+	"vertex":                 VertexRuntimeProfile,
+	"azure":                  AzureRuntimeProfile,
+	"bedrock":                BedrockRuntimeProfile,
+	"openrouter":             OpenRouterRuntimeProfile,
+	"zai_payg":               ZAIPaygRuntimeProfile,
+	"zai_coding":             ZAICodingRuntimeProfile,
+	"canopywave":             CanopyWaveRuntimeProfile,
+	"deepseek":               DeepSeekRuntimeProfile,
+	"opencodego":             OpenCodeGoRuntimeProfile,
+	"kimi":                   KimiRuntimeProfile,
+	"xiaomi_mimo_payg":       XiaomiPaygRuntimeProfile,
+	"xiaomi_mimo_token_plan": XiaomiTokenPlanRuntimeProfile,
+	"minimax_token_plan":     MiniMaxTokenPlanRuntimeProfile,
+	"minimax_payg":           MiniMaxPaygRuntimeProfile,
+	"ollama":                 OllamaRuntimeProfile,
+}
+
+// RuntimeProfileByKey returns the provider runtime profile registered for key.
+func RuntimeProfileByKey(key string) (RuntimeProviderProfile, bool) {
+	profile, ok := RuntimeProviderProfiles[key]
+	return profile, ok
 }
