@@ -225,30 +225,17 @@ func gatewayCredentialEnvKeys(providerID string) []string {
 	for _, env := range spec.CredentialEnvFallbacks {
 		add(env)
 	}
-	for _, env := range providerCredentialAliases(providerID) {
+	for _, env := range registry.CredentialAliases(providerID) {
 		add(env)
 	}
 	return out
 }
 
-func providerCredentialAliases(providerID string) []string {
-	switch providerID {
-	case "anthropic":
-		return []string{"CLAUDE_API_KEY"}
-	case "gemini":
-		return []string{"GOOGLE_API_KEY"}
-	case "xiaomi_mimo_payg":
-		return []string{"XIAOMI_MIMO_API_KEY"}
-	default:
-		return nil
-	}
-}
-
 // PrepareCredentialDiscovery applies runtime-owned gateway env derivations before probe/discovery.
 func PrepareCredentialDiscovery(ctx context.Context) {
-	ApplyGatewayEnv(ctx, GatewayXiaomiTokenPlan)
-	ApplyGatewayEnv(ctx, gatewayZAIPayg)
-	ApplyGatewayEnv(ctx, gatewayZAICoding)
+	for _, providerID := range registry.CredentialEnvPreparedProviders() {
+		ApplyGatewayEnv(ctx, providerID)
+	}
 }
 
 // ApplyGatewayEnv applies derived env settings from provider.json for gateways that need them.

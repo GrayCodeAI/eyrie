@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/client"
 )
 
@@ -64,15 +65,11 @@ func directChatProvider(ctx context.Context, primary string) client.Provider {
 
 func directFallbackProviderIDs(ctx context.Context, primary string) []string {
 	primary = NormalizeProviderID(primary)
-	switch primary {
-	case "openai":
-		if providerConfigured(ctx, "anthropic") {
-			return []string{"anthropic"}
-		}
-	case "anthropic":
-		if providerConfigured(ctx, "openai") {
-			return []string{"openai"}
+	var out []string
+	for _, providerID := range registry.DirectFallbackProviderIDs(primary) {
+		if providerConfigured(ctx, providerID) {
+			out = append(out, providerID)
 		}
 	}
-	return nil
+	return out
 }

@@ -8,31 +8,10 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
 )
-
-var chatProviderPreferenceOrder = []string{
-	"openai",
-	"anthropic",
-	"openrouter",
-	"grok",
-	"gemini",
-	"vertex",
-	"bedrock",
-	"zai_coding",
-	"zai_payg",
-	"canopywave",
-	"deepseek",
-	"azure",
-	"opencodego",
-	"kimi",
-	"xiaomi_mimo_payg",
-	"xiaomi_mimo_token_plan",
-	"minimax_token_plan",
-	"minimax_payg",
-	"ollama",
-}
 
 // DefaultModelProviderFilter returns the catalog provider id to use when listing models
 // with no explicit provider (e.g. /config model picker after paste-key).
@@ -102,7 +81,7 @@ func preferredConfiguredProvider(ctx context.Context) string {
 			configured[provider] = struct{}{}
 		}
 	}
-	for _, provider := range chatProviderPreferenceOrder {
+	for _, provider := range registry.ChatProviderPreferenceOrder() {
 		if _, ok := configured[provider]; ok {
 			return provider
 		}
@@ -120,73 +99,31 @@ func preferredConfiguredProvider(ctx context.Context) string {
 }
 
 func preferredDetectedProvider() string {
-	for _, provider := range chatProviderPreferenceOrder {
-		switch provider {
-		case "ollama":
-			if runtimeEnvValue("OLLAMA_BASE_URL") != "" {
-				return provider
+	for _, provider := range registry.ChatProviderPreferenceOrder() {
+		profile, ok := runtimeProfileForProvider(provider)
+		if !ok {
+			continue
+		}
+		ready := true
+		for _, envKey := range profile.DetectionEnv {
+			if runtimeEnvValue(envKey) == "" {
+				ready = false
+				break
 			}
-		default:
-			profile, ok := runtimeProfileForProvider(provider)
-			if !ok {
-				continue
-			}
-			ready := true
-			for _, envKey := range profile.DetectionEnv {
-				if runtimeEnvValue(envKey) == "" {
-					ready = false
-					break
-				}
-			}
-			if ready {
-				return provider
-			}
+		}
+		if ready {
+			return provider
 		}
 	}
 	return ""
 }
 
 func runtimeProfileForProvider(provider string) (config.RuntimeProviderProfile, bool) {
-	switch provider {
-	case "anthropic":
-		return config.AnthropicRuntimeProfile, true
-	case "openai":
-		return config.OpenAIRuntimeProfile, true
-	case "openrouter":
-		return config.OpenRouterRuntimeProfile, true
-	case "grok":
-		return config.GrokRuntimeProfile, true
-	case "gemini":
-		return config.GeminiRuntimeProfile, true
-	case "vertex":
-		return config.VertexRuntimeProfile, true
-	case "bedrock":
-		return config.BedrockRuntimeProfile, true
-	case "zai_coding":
-		return config.ZAICodingRuntimeProfile, true
-	case "zai_payg":
-		return config.ZAIPaygRuntimeProfile, true
-	case "canopywave":
-		return config.CanopyWaveRuntimeProfile, true
-	case "deepseek":
-		return config.DeepSeekRuntimeProfile, true
-	case "azure":
-		return config.AzureRuntimeProfile, true
-	case "opencodego":
-		return config.OpenCodeGoRuntimeProfile, true
-	case "kimi":
-		return config.KimiRuntimeProfile, true
-	case "xiaomi_mimo_payg":
-		return config.XiaomiPaygRuntimeProfile, true
-	case "xiaomi_mimo_token_plan":
-		return config.XiaomiTokenPlanRuntimeProfile, true
-	case "minimax_token_plan":
-		return config.MiniMaxTokenPlanRuntimeProfile, true
-	case "minimax_payg":
-		return config.MiniMaxPaygRuntimeProfile, true
-	default:
+	key := registry.RuntimeProfileKey(provider)
+	if key == "" {
 		return config.RuntimeProviderProfile{}, false
 	}
+	return config.RuntimeProfileByKey(key)
 }
 
 func runtimeEnvValue(key string) string {
