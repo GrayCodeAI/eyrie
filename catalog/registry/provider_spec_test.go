@@ -46,6 +46,44 @@ func TestOpenCodeGo_HasProbeBaseURL(t *testing.T) {
 	}
 }
 
+func TestProviderRuntimePolicy_Metadata(t *testing.T) {
+	t.Parallel()
+
+	order := registry.ChatProviderPreferenceOrder()
+	if len(order) < 3 {
+		t.Fatalf("runtime preference order too short: %v", order)
+	}
+	if order[0] != "openai" || order[1] != "anthropic" || order[2] != "openrouter" {
+		t.Fatalf("unexpected runtime preference prefix: %v", order[:3])
+	}
+
+	if got := registry.DirectFallbackProviderIDs("openai"); len(got) != 1 || got[0] != "anthropic" {
+		t.Fatalf("openai direct fallbacks = %v, want [anthropic]", got)
+	}
+	if got := registry.DirectFallbackProviderIDs("anthropic"); len(got) != 1 || got[0] != "openai" {
+		t.Fatalf("anthropic direct fallbacks = %v, want [openai]", got)
+	}
+
+	if got := registry.CredentialAliases("anthropic"); len(got) != 1 || got[0] != "CLAUDE_API_KEY" {
+		t.Fatalf("anthropic credential aliases = %v", got)
+	}
+
+	prepared := registry.CredentialEnvPreparedProviders()
+	wantPrepared := map[string]bool{
+		"xiaomi_mimo_token_plan": true,
+		"zai_coding":             true,
+		"zai_payg":               true,
+	}
+	if len(prepared) != len(wantPrepared) {
+		t.Fatalf("prepared providers = %v", prepared)
+	}
+	for _, providerID := range prepared {
+		if !wantPrepared[providerID] {
+			t.Fatalf("unexpected prepared provider %q in %v", providerID, prepared)
+		}
+	}
+}
+
 func TestProviderSpecs_TableDriven(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

@@ -48,9 +48,9 @@ func TestProtocolForModel(t *testing.T) {
 }
 
 func TestUsesMessagesAPI_HeuristicFallback(t *testing.T) {
-	t.Parallel()
 	// Reset map so we test the heuristic fallback.
 	ResetProtocolMap()
+	t.Cleanup(ResetProtocolMap)
 	tests := []struct {
 		model string
 		want  bool
@@ -75,8 +75,8 @@ func TestUsesMessagesAPI_HeuristicFallback(t *testing.T) {
 }
 
 func TestUsesMessagesAPI_DynamicMapOverrides(t *testing.T) {
-	t.Parallel()
 	ResetProtocolMap()
+	t.Cleanup(ResetProtocolMap)
 	// Simulate live fetch returning protocol data.
 	UpdateProtocolMap([]struct{ ID, Protocol string }{
 		{"kimi-k2.6", "openai"},
@@ -100,13 +100,11 @@ func TestUsesMessagesAPI_DynamicMapOverrides(t *testing.T) {
 	if UsesMessagesAPI("totally-new-model") {
 		t.Error("totally-new-model should default to openai (heuristic fallback)")
 	}
-
-	ResetProtocolMap()
 }
 
 func TestProtocolMapSnapshot(t *testing.T) {
-	t.Parallel()
 	ResetProtocolMap()
+	t.Cleanup(ResetProtocolMap)
 	UpdateProtocolMap([]struct{ ID, Protocol string }{
 		{"kimi-k2.6", "openai"},
 		{"minimax-m3", "anthropic"},
@@ -118,7 +116,6 @@ func TestProtocolMapSnapshot(t *testing.T) {
 	if snap["minimax-m3"] != "anthropic" {
 		t.Errorf("snapshot minimax-m3 = %q, want anthropic", snap["minimax-m3"])
 	}
-	ResetProtocolMap()
 }
 
 func TestUsageTracker_RecordAndSpend(t *testing.T) {

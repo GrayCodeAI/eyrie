@@ -46,6 +46,82 @@ func DisplayName(providerID string) string {
 	return providerID
 }
 
+// ChatProviderPreferenceOrder returns provider ids ordered by chat/runtime preference.
+func ChatProviderPreferenceOrder() []string {
+	specs := DefaultRegistry.All()
+	sort.Slice(specs, func(i, j int) bool {
+		left := specs[i].ChatPreference
+		right := specs[j].ChatPreference
+		if left == 0 {
+			left = specs[i].SortOrder + 10_000
+		}
+		if right == 0 {
+			right = specs[j].SortOrder + 10_000
+		}
+		if left != right {
+			return left < right
+		}
+		return specs[i].ProviderID < specs[j].ProviderID
+	})
+	out := make([]string, 0, len(specs))
+	for _, spec := range specs {
+		if spec.ProviderID != "" {
+			out = append(out, spec.ProviderID)
+		}
+	}
+	return out
+}
+
+// RuntimeProfileKey returns the config runtime-profile key for a provider.
+func RuntimeProfileKey(providerID string) string {
+	if spec, ok := SpecByProviderID(providerID); ok {
+		return strings.TrimSpace(spec.RuntimeProfileKey)
+	}
+	return ""
+}
+
+// DirectFallbackProviderIDs returns direct-provider fallback ids for providerID.
+func DirectFallbackProviderIDs(providerID string) []string {
+	spec, ok := SpecByProviderID(providerID)
+	if !ok || len(spec.DirectFallbacks) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(spec.DirectFallbacks))
+	for _, id := range spec.DirectFallbacks {
+		if trimmed := strings.TrimSpace(id); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
+// CredentialAliases returns compatibility env var names for providerID.
+func CredentialAliases(providerID string) []string {
+	spec, ok := SpecByProviderID(providerID)
+	if !ok || len(spec.CredentialAliases) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(spec.CredentialAliases))
+	for _, env := range spec.CredentialAliases {
+		if trimmed := strings.TrimSpace(env); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
+// CredentialEnvPreparedProviders returns providers that need config-derived env before discovery.
+func CredentialEnvPreparedProviders() []string {
+	var out []string
+	for _, spec := range DefaultRegistry.All() {
+		if spec.PrepareCredentialEnv && spec.ProviderID != "" {
+			out = append(out, spec.ProviderID)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 // CredentialRegistry derives credential rows from provider specs.
 func CredentialRegistry() []CredentialSpec {
 	specs := DefaultRegistry.All()

@@ -28,9 +28,11 @@ type ProviderSpec struct {
 	DisplayName            string
 	DeploymentID           string
 	SortOrder              int
+	ChatPreference         int
 	RequiresKey            bool
 	CredentialEnv          string
 	CredentialEnvFallbacks []string // additional env var names for the same credential
+	CredentialAliases      []string // compatibility env var names accepted by host UIs
 	BaseURLEnv             []string
 	ProbeKind              ProbeKind
 	ProbeBaseURL           string
@@ -38,6 +40,9 @@ type ProviderSpec struct {
 	LiveCatalogKey         string // legacy provider key in ModelCatalog.Providers map
 	APIProtocolID          string
 	AdapterID              string
+	RuntimeProfileKey      string
+	DirectFallbacks        []string
+	PrepareCredentialEnv   bool
 	RetryConfig            *RetryConfig
 	IsLocal                bool
 }
