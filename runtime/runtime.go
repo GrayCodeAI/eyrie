@@ -26,8 +26,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -118,9 +116,22 @@ func (r *Runtime) ChatProvider(ctx context.Context) (client.Provider, error) {
 	return p, nil
 }
 
+// ChatProvider builds the configured chat provider without requiring callers to
+// load runtime state first. Host applications should prefer this over reaching
+// into lower-level setup/config packages.
+func ChatProvider(ctx context.Context) (client.Provider, error) {
+	cfg := config.LoadProviderConfig("")
+	return setup.DeploymentProvider(ctx, cfg)
+}
+
+// AvailableProviders lists the currently registered provider IDs.
+func AvailableProviders() []string {
+	return client.Client(nil).GetProviders()
+}
+
 // RoutingPreviewJSON returns effective routing for a model ID.
 func (r *Runtime) RoutingPreviewJSON(model string) (string, error) {
-	return setup.RoutingPreview(ctxWithBackground(), model)
+	return RoutingPreview(ctxWithBackground(), model)
 }
 
 func ctxWithBackground() context.Context {
@@ -252,7 +263,5 @@ func configuredDeploymentIDsForProvider(compiled *catalog.CompiledCatalogV1, pro
 
 // DefaultPaths reports standard eyrie paths on disk.
 func DefaultPaths() (catalogPath, providerPath string) {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".eyrie", "model_catalog.json"),
-		config.GetProviderConfigPath()
+	return catalog.DefaultCachePath(), config.GetProviderConfigPath()
 }
