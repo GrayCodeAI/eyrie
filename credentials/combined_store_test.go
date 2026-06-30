@@ -3,8 +3,53 @@ package credentials
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 )
+
+type countingStore struct {
+	mu      sync.Mutex
+	data    map[string]string
+	gets    int
+	deletes int
+}
+
+func (s *countingStore) Set(ctx context.Context, account, secret string) error {
+	_ = ctx
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.data == nil {
+		s.data = map[string]string{}
+	}
+	s.data[account] = secret
+	return nil
+}
+
+func (s *countingStore) Get(ctx context.Context, account string) (string, error) {
+	_ = ctx
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.gets++
+	if s.data == nil {
+		return "", ErrNotFound
+	}
+	v, ok := s.data[account]
+	if !ok || v == "" {
+		return "", ErrNotFound
+	}
+	return v, nil
+}
+
+func (s *countingStore) Delete(ctx context.Context, account string) error {
+	_ = ctx
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.deletes++
+	if s.data != nil {
+		delete(s.data, account)
+	}
+	return nil
+}
 
 // --- CombinedStore edge-case tests (nil keychain, empty secrets) ---
 
@@ -100,6 +145,69 @@ func TestCombinedStore_FullCycle(t *testing.T) {
 	_, err = cs.Get(ctx, account)
 	if err != ErrNotFound {
 		t.Fatalf("Get after Delete: err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestCombinedStore_GetUsesShortLivedCache(t *testing.T) {
+	t.Parallel()
+	backend := &countingStore{data: map[string]string{"account": "secret"}}
+	cs := &CombinedStore{Keychain: backend}
+	ctx := context.Background()
+
+	got1, err := cs.Get(ctx, "account")
+	if err != nil || got1 != "secret" {
+		t.Fatalf("first Get = (%q, %v), want (secret, nil)", got1, err)
+	}
+	got2, err := cs.Get(ctx, "account")
+	if err != nil || got2 != "secret" {
+		t.Fatalf("second Get = (%q, %v), want (secret, nil)", got2, err)
+	}
+	if backend.gets != 1 {
+		t.Fatalf("backend Get count = %d, want 1", backend.gets)
+	}
+}
+
+func TestCombinedStore_SetInvalidatesCache(t *testing.T) {
+	t.Parallel()
+	backend := &countingStore{data: map[string]string{"account": "old"}}
+	cs := &CombinedStore{Keychain: backend}
+	ctx := context.Background()
+
+	got, err := cs.Get(ctx, "account")
+	if err != nil || got != "old" {
+		t.Fatalf("initial Get = (%q, %v), want (old, nil)", got, err)
+	}
+	if err := cs.Set(ctx, "account", "new"); err != nil {
+		t.Fatalf("Set error: %v", err)
+	}
+	got, err = cs.Get(ctx, "account")
+	if err != nil || got != "new" {
+		t.Fatalf("post-Set Get = (%q, %v), want (new, nil)", got, err)
+	}
+	if backend.gets != 2 {
+		t.Fatalf("backend Get count after invalidation = %d, want 2", backend.gets)
+	}
+}
+
+func TestCombinedStore_DeleteInvalidatesCache(t *testing.T) {
+	t.Parallel()
+	backend := &countingStore{data: map[string]string{"account": "secret"}}
+	cs := &CombinedStore{Keychain: backend}
+	ctx := context.Background()
+
+	got, err := cs.Get(ctx, "account")
+	if err != nil || got != "secret" {
+		t.Fatalf("initial Get = (%q, %v), want (secret, nil)", got, err)
+	}
+	if err := cs.Delete(ctx, "account"); err != nil {
+		t.Fatalf("Delete error: %v", err)
+	}
+	got, err = cs.Get(ctx, "account")
+	if err != ErrNotFound || got != "" {
+		t.Fatalf("post-Delete Get = (%q, %v), want (\"\", ErrNotFound)", got, err)
+	}
+	if backend.gets != 2 {
+		t.Fatalf("backend Get count after delete invalidation = %d, want 2", backend.gets)
 	}
 }
 

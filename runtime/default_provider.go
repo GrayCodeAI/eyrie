@@ -49,35 +49,37 @@ func PreferredProvider(ctx context.Context) string {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if provider := normalizeRuntimeProviderID(ActiveProvider(ctx)); provider != "" && providerConfigured(ctx, provider) {
+	return preferredProviderWithState(ctx, newSelectionRuntimeState(ctx))
+}
+
+func preferredProviderWithState(ctx context.Context, state *selectionRuntimeState) string {
+	if provider := normalizeRuntimeProviderID(ActiveProvider(ctx)); provider != "" && providerConfiguredWithState(state, provider) {
 		return provider
 	}
 	if model := ActiveModel(ctx); model != "" {
-		if provider := inferProviderForModel(ctx, model); provider != "" && providerConfigured(ctx, provider) {
+		if provider := inferProviderForModel(ctx, model); provider != "" && providerConfiguredWithState(state, provider) {
 			return provider
 		}
 	}
-	if provider := preferredConfiguredProvider(ctx); provider != "" {
+	if provider := preferredConfiguredProviderWithState(state); provider != "" {
 		return provider
 	}
-	return preferredDetectedProvider()
+	return preferredDetectedProviderWithState(state)
 }
 
-func preferredConfiguredProvider(ctx context.Context) string {
-	rt, err := Load(ctx)
-	if err != nil || rt == nil {
+func preferredConfiguredProviderWithState(state *selectionRuntimeState) string {
+	compiled := state.compiledCatalog()
+	if compiled == nil || compiled.Catalog == nil {
 		return ""
 	}
-	rows, err := rt.DeploymentRows()
-	if err != nil || len(rows) == 0 {
-		return ""
-	}
-	configured := make(map[string]struct{}, len(rows))
-	for _, row := range rows {
-		if !row.Configured {
+	env := state.env()
+	configured := make(map[string]struct{}, len(compiled.Catalog.Deployments))
+	for id, dep := range compiled.Catalog.Deployments {
+		dc := config.DeploymentConfigFromEnv(dep, env)
+		if !config.DeploymentConfigured(id, dep, dc) {
 			continue
 		}
-		if provider := catalog.CanonicalProviderID(row.ProviderID); provider != "" {
+		if provider := catalog.CanonicalProviderID(dep.ProviderID); provider != "" {
 			configured[provider] = struct{}{}
 		}
 	}
@@ -98,7 +100,8 @@ func preferredConfiguredProvider(ctx context.Context) string {
 	return ordered[0]
 }
 
-func preferredDetectedProvider() string {
+func preferredDetectedProviderWithState(state *selectionRuntimeState) string {
+	env := state.env()
 	for _, provider := range registry.ChatProviderPreferenceOrder() {
 		profile, ok := runtimeProfileForProvider(provider)
 		if !ok {
@@ -106,7 +109,7 @@ func preferredDetectedProvider() string {
 		}
 		ready := true
 		for _, envKey := range profile.DetectionEnv {
-			if runtimeEnvValue(envKey) == "" {
+			if strings.TrimSpace(env[envKey]) == "" && runtimeEnvValue(envKey) == "" {
 				ready = false
 				break
 			}
