@@ -12,6 +12,87 @@ import (
 	"github.com/GrayCodeAI/eyrie/setup"
 )
 
+type selectionRuntimeState struct {
+	ctx                     context.Context
+	compiled                *catalog.CompiledCatalogV1
+	compiledLoaded          bool
+	discoveryEnv            map[string]string
+	discoveryEnvLoaded      bool
+	hasConfiguredDeployment bool
+	hasConfiguredLoaded     bool
+	providerConfiguredCache map[string]bool
+}
+
+func newSelectionRuntimeState(ctx context.Context) *selectionRuntimeState {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return &selectionRuntimeState{
+		ctx:                     ctx,
+		providerConfiguredCache: make(map[string]bool),
+	}
+}
+
+func (s *selectionRuntimeState) compiledCatalog() *catalog.CompiledCatalogV1 {
+	if s == nil {
+		return nil
+	}
+	if s.compiledLoaded {
+		return s.compiled
+	}
+	s.compiledLoaded = true
+	compiled, err := catalog.LoadCatalogForDiscovery(s.ctx)
+	if err == nil {
+		s.compiled = compiled
+	}
+	return s.compiled
+}
+
+func (s *selectionRuntimeState) env() map[string]string {
+	if s == nil {
+		return nil
+	}
+	if s.discoveryEnvLoaded {
+		return s.discoveryEnv
+	}
+	s.discoveryEnvLoaded = true
+	s.discoveryEnv = config.DiscoveryEnvMap(s.ctx)
+	return s.discoveryEnv
+}
+
+func (s *selectionRuntimeState) hasAnyConfiguredDeployment() bool {
+	if s == nil {
+		return false
+	}
+	if s.hasConfiguredLoaded {
+		return s.hasConfiguredDeployment
+	}
+	s.hasConfiguredLoaded = true
+	env := s.env()
+	compiled := s.compiledCatalog()
+	if compiled == nil || compiled.Catalog == nil {
+		s.hasConfiguredDeployment = runtimeAnyNonemptyCredentialEnv(env)
+		return s.hasConfiguredDeployment
+	}
+	for id, dep := range compiled.Catalog.Deployments {
+		dc := config.DeploymentConfigFromEnv(dep, env)
+		if config.DeploymentConfigured(id, dep, dc) {
+			s.hasConfiguredDeployment = true
+			return true
+		}
+	}
+	return false
+}
+
+func runtimeAnyNonemptyCredentialEnv(env map[string]string) bool {
+	for _, v := range env {
+		if !config.LooksLikePlaceholderSecret(v) {
+			return true
+		}
+	}
+	return false
+}
+
 // ActiveModel returns the selected model from provider.json.
 func ActiveModel(ctx context.Context) string {
 	cfg := config.LoadProviderConfig("")
@@ -112,7 +193,11 @@ func SyncSelectionWithCredentials(ctx context.Context) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if !HasConfiguredDeployment(ctx) {
+	syncSelectionWithCredentials(ctx, newSelectionRuntimeState(ctx))
+}
+
+func syncSelectionWithCredentials(ctx context.Context, state *selectionRuntimeState) {
+	if !state.hasAnyConfiguredDeployment() {
 		if strings.TrimSpace(ActiveModel(ctx)) != "" || strings.TrimSpace(ActiveProvider(ctx)) != "" {
 			_ = ClearActiveSelection(ctx)
 		}
@@ -122,7 +207,7 @@ func SyncSelectionWithCredentials(ctx context.Context) {
 	if gateway == "" {
 		return
 	}
-	if !providerConfigured(ctx, gateway) {
+	if !providerConfiguredWithState(state, gateway) {
 		_ = ClearActiveSelection(ctx)
 	}
 }
@@ -134,10 +219,11 @@ func EffectiveSelection(ctx context.Context, opts SelectionOpts) SelectionState 
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	SyncSelectionWithCredentials(ctx)
+	stateCache := newSelectionRuntimeState(ctx)
+	syncSelectionWithCredentials(ctx, stateCache)
 	cfg := config.LoadProviderConfig("")
 	state := SelectionState{
-		HasConfiguredDeployment: HasConfiguredDeployment(ctx),
+		HasConfiguredDeployment: stateCache.hasAnyConfiguredDeployment(),
 		DeploymentRouting:       useDeploymentRouting(cfg, opts.DeploymentRoutingOverride),
 	}
 
@@ -156,7 +242,7 @@ func EffectiveSelection(ctx context.Context, opts SelectionOpts) SelectionState 
 	}
 
 	if provider == "" {
-		provider = PreferredProvider(ctx)
+		provider = preferredProviderWithState(ctx, stateCache)
 	}
 
 	if !state.HasConfiguredDeployment {
@@ -165,8 +251,8 @@ func EffectiveSelection(ctx context.Context, opts SelectionOpts) SelectionState 
 		return state
 	}
 
-	if provider != "" && !providerConfigured(ctx, provider) {
-		if detected := normalizeRuntimeProviderID(client.DetectProvider()); detected != "" && providerConfigured(ctx, detected) {
+	if provider != "" && !providerConfiguredWithState(stateCache, provider) {
+		if detected := normalizeRuntimeProviderID(client.DetectProvider()); detected != "" && providerConfiguredWithState(stateCache, detected) {
 			provider = detected
 			model = ""
 		}
@@ -257,25 +343,42 @@ func activeGateway(ctx context.Context) string {
 }
 
 func providerConfigured(ctx context.Context, provider string) bool {
+	return providerConfiguredWithState(newSelectionRuntimeState(ctx), provider)
+}
+
+func providerConfiguredWithState(state *selectionRuntimeState, provider string) bool {
 	provider = normalizeRuntimeProviderID(provider)
 	if provider == "" {
 		return false
+	}
+	if state != nil {
+		if cached, ok := state.providerConfiguredCache[provider]; ok {
+			return cached
+		}
 	}
 	spec, ok := registry.SpecByProviderID(provider)
 	if !ok {
 		return false
 	}
-	compiled, err := catalog.LoadCatalogForDiscovery(ctx)
-	if err != nil || compiled == nil || compiled.Catalog == nil {
+	var compiled *catalog.CompiledCatalogV1
+	var env map[string]string
+	if state != nil {
+		compiled = state.compiledCatalog()
+		env = state.env()
+	}
+	if compiled == nil || compiled.Catalog == nil {
 		return false
 	}
 	dep, ok := compiled.Catalog.Deployments[spec.DeploymentID]
 	if !ok {
 		return false
 	}
-	env := config.DiscoveryEnvMap(ctx)
 	dc := config.DeploymentConfigFromEnv(dep, env)
-	return config.DeploymentConfigured(spec.DeploymentID, dep, dc)
+	configured := config.DeploymentConfigured(spec.DeploymentID, dep, dc)
+	if state != nil {
+		state.providerConfiguredCache[provider] = configured
+	}
+	return configured
 }
 
 func normalizeRuntimeProviderID(provider string) string {

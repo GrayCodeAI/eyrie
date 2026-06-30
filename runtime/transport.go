@@ -28,6 +28,19 @@ func ResolveChatTransport(ctx context.Context, opts ChatTransportOpts) (ChatTran
 		ctx = context.Background()
 	}
 	selection := EffectiveSelection(ctx, opts.Selection)
+	return resolveChatTransportSelection(ctx, selection)
+}
+
+// ResolveChatTransportFromSelection constructs a transport from an already
+// resolved selection state, avoiding redundant provider/model discovery.
+func ResolveChatTransportFromSelection(ctx context.Context, selection SelectionState) (ChatTransport, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return resolveChatTransportSelection(ctx, selection)
+}
+
+func resolveChatTransportSelection(ctx context.Context, selection SelectionState) (ChatTransport, error) {
 	transport := ChatTransport{Selection: selection}
 	if !selection.DeploymentRouting {
 		transport.Provider = directChatProvider(ctx, selection.Provider)
