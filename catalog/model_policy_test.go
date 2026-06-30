@@ -101,6 +101,16 @@ func TestModelPolicyPreferredProviderModelV1(t *testing.T) {
 	}
 }
 
+func TestModelPolicyPreferredModelsForTierV1(t *testing.T) {
+	t.Parallel()
+	compiled := testPolicyCatalogV1(t)
+
+	got := PreferredModelsForTierV1(compiled, "anthropic", TierHaiku, 3)
+	if len(got) != 1 || got[0] != "claude-haiku" {
+		t.Fatalf("PreferredModelsForTierV1 = %v, want [claude-haiku]", got)
+	}
+}
+
 func TestModelPolicyCostTierOf(t *testing.T) {
 	t.Parallel()
 	compiled := testPolicyCatalogV1(t)

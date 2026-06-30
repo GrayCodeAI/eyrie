@@ -61,6 +61,38 @@ func PreferredProviderModelV1(compiled *CompiledCatalogV1, provider string, tier
 	}
 }
 
+// PreferredModelsForTierV1 returns unique preferred models for a tier, starting
+// with primaryProvider and then following the registry chat preference order.
+func PreferredModelsForTierV1(compiled *CompiledCatalogV1, primaryProvider string, tier ModelTier, limit int) []string {
+	seenProviders := map[string]bool{}
+	seenModels := map[string]bool{}
+	providers := make([]string, 0, len(registry.ChatProviderPreferenceOrder())+1)
+	if primary := CanonicalProviderID(strings.TrimSpace(primaryProvider)); primary != "" {
+		providers = append(providers, primary)
+	}
+	providers = append(providers, registry.ChatProviderPreferenceOrder()...)
+	providers = append(providers, AllModelProvidersV1(compiled)...)
+
+	models := make([]string, 0, len(providers))
+	for _, provider := range providers {
+		provider = CanonicalProviderID(strings.TrimSpace(provider))
+		if provider == "" || seenProviders[provider] {
+			continue
+		}
+		seenProviders[provider] = true
+		model := PreferredProviderModelV1(compiled, provider, tier, "")
+		if model == "" || seenModels[model] {
+			continue
+		}
+		seenModels[model] = true
+		models = append(models, model)
+		if limit > 0 && len(models) >= limit {
+			return models
+		}
+	}
+	return models
+}
+
 // CheapestModelForProviderV1 returns the lowest known input-priced model for a provider.
 func CheapestModelForProviderV1(compiled *CompiledCatalogV1, provider, fallback string) string {
 	models := ModelEntriesForProvider(compiled, provider)
