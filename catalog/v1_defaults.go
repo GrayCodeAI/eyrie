@@ -154,6 +154,16 @@ func legacyDeploymentAndOwner(provider string) (deploymentID, ownerProviderID st
 		return "xiaomi_mimo_token_plan-direct", "xiaomi_mimo_token_plan"
 	case "deepseek":
 		return "deepseek-direct", "deepseek"
+	case "poolside":
+		return "poolside", "poolside"
+	case "groq":
+		return "groq-direct", "groq"
+	case "clinepass":
+		return "clinepass", "clinepass"
+	case "minimax_token_plan":
+		return "minimax_token_plan-direct", "minimax_token_plan"
+	case "minimax_payg":
+		return "minimax_payg-direct", "minimax_payg"
 	default:
 		return "", ""
 	}
