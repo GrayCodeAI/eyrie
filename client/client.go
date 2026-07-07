@@ -11,14 +11,12 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
-// Version is exported here for backwards compatibility. Callers should prefer
-// the canonical eyrie.Version (which is sourced from the repo-root VERSION
-// file). This variable is initialised by the root package via SetVersion to
-// avoid a circular import.
+// Version is set by the root eyrie package's init() from the VERSION file.
+// Default is "dev" until the root package initialises.
 var Version = "dev"
 
 // SetVersion is called by the root eyrie package's init to wire the canonical
-// version into this sub-package without creating an import cycle.
+// version from the VERSION file into this sub-package.
 func SetVersion(v string) { Version = v }
 
 // userAgent returns the User-Agent string for HTTP requests.

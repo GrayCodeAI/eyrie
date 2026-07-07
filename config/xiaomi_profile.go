@@ -1,8 +1,6 @@
 package config
 
 import (
-	"strings"
-
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 )
 
@@ -59,25 +57,4 @@ func ResolveXiaomiAnthropicBase(providerID string, cfg *ProviderConfig) (string,
 func IsXiaomiMimoProvider(providerID string) bool {
 	_, ok := xiaomi.BillingForProvider(providerID)
 	return ok
-}
-
-// MigrateLegacyXiaomiProvider rewrites deprecated xiaomi_mimo ids and env to payg.
-func MigrateLegacyXiaomiProvider(cfg *ProviderConfig) {
-	if cfg == nil {
-		return
-	}
-	if strings.TrimSpace(cfg.ActiveProvider) == "xiaomi_mimo" {
-		cfg.ActiveProvider = xiaomi.ProviderPayAsYouGo
-	}
-	if base := strings.TrimSpace(cfg.XiaomiBaseURL); base != "" && strings.TrimSpace(cfg.XiaomiMimoPaygBaseURL) == "" {
-		cfg.XiaomiMimoPaygBaseURL = base
-	}
-	if cfg.Deployments != nil {
-		if dep, ok := cfg.Deployments["xiaomi_mimo-direct"]; ok {
-			if _, exists := cfg.Deployments["xiaomi_mimo_payg-direct"]; !exists {
-				cfg.Deployments["xiaomi_mimo_payg-direct"] = dep
-			}
-			delete(cfg.Deployments, "xiaomi_mimo-direct")
-		}
-	}
 }

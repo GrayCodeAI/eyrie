@@ -88,9 +88,6 @@ func Load(ctx context.Context) (*Runtime, error) {
 		return nil, err
 	}
 	cfg := config.LoadProviderConfig("")
-	if cfg != nil {
-		cfg = config.EnsureDeploymentConfigV2(cfg)
-	}
 	return &Runtime{
 		Catalog:      compiled,
 		Provider:     cfg,

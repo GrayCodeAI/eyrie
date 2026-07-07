@@ -59,7 +59,6 @@ func UseDeploymentRouting(cfg *config.ProviderConfig) bool {
 
 // DeploymentProvider builds a catalog-aware router over configured deployments.
 func DeploymentProvider(ctx context.Context, cfg *config.ProviderConfig) (client.Provider, error) {
-	cfg = config.EnsureDeploymentConfigV2(cfg)
 	home, _ := os.UserHomeDir()
 	cachePath := filepath.Join(home, ".eyrie", "model_catalog.json")
 	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
