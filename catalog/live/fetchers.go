@@ -54,6 +54,7 @@ const (
 	DefaultDeepSeekBaseURL  = "https://api.deepseek.com/v1"
 	DefaultPoolsideBaseURL  = "https://inference.poolside.ai/v1"
 	DefaultGroqBaseURL      = "https://api.groq.com/openai/v1"
+	DefaultClinePassBaseURL = "https://api.cline.bot/api/v1"
 )
 
 // Registry maps fetcher keys to implementations.
@@ -79,6 +80,7 @@ var Registry = map[string]FetchFunc{
 	"deepseek":               FetchDeepSeek,
 	"poolside":               FetchPoolside,
 	"groq":                   FetchGroq,
+	"clinepass":              FetchClinePass,
 }
 
 // Fetch runs a registered live fetcher.

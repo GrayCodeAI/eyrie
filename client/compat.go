@@ -62,6 +62,9 @@ var (
 	GroqCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens",
 	}
+	ClinePassCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
 	KimiCompat = OpenAICompatConfig{
 		MaxTokensField:    "max_tokens",
 		SupportsCacheRole: true,
@@ -123,6 +126,10 @@ func init() {
 	if p, ok := OpenAICompatibleProviders["groq"]; ok {
 		p.Compat = &GroqCompat
 		OpenAICompatibleProviders["groq"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["clinepass"]; ok {
+		p.Compat = &ClinePassCompat
+		OpenAICompatibleProviders["clinepass"] = p
 	}
 	if p, ok := OpenAICompatibleProviders["ollama"]; ok {
 		p.Compat = &OllamaCompat

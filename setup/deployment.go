@@ -232,6 +232,12 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultGroqOpenAIBaseURL), &client.GroqCompat), true
+	case "clinepass":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("CLINE_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultClinePassOpenAIBaseURL), &client.ClinePassCompat), true
 	case "zai_payg-direct":
 		return newZAIDeploymentClient(deployment, "zai_payg", "ZAI_API_KEY", storeSecret)
 	case "zai_coding-direct":

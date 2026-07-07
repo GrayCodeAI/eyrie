@@ -1,0 +1,26 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "cline-pass/deepseek-v4-pro",
+      "object": "model",
+      "created": 1745000000,
+      "owned_by": "deepseek",
+      "name": "DeepSeek V4 Pro"
+    },
+    {
+      "id": "cline-pass/kimi-k2.7-code",
+      "object": "model",
+      "created": 1745000001,
+      "owned_by": "moonshot",
+      "name": "Kimi K2.7 Code"
+    },
+    {
+      "id": "cline-pass/qwen3.7-max",
+      "object": "model",
+      "created": 1745000002,
+      "owned_by": "qwen",
+      "name": "Qwen 3.7 Max"
+    }
+  ]
+}

@@ -138,6 +138,8 @@ func deploymentOwnerProviderID(deploymentID string) string {
 		return "poolside"
 	case "groq-direct":
 		return "groq"
+	case "clinepass":
+		return "clinepass"
 	case "zai_payg-direct":
 		return "zai_payg"
 	case "zai_coding-direct":

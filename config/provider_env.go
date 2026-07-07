@@ -59,6 +59,9 @@ type ProviderConfig struct {
 	GroqAPIKey                 string                      `json:"groq_api_key,omitempty"`
 	GroqBaseURL                string                      `json:"groq_base_url,omitempty"`
 	GroqModel                  string                      `json:"groq_model,omitempty"`
+	ClinePassAPIKey            string                      `json:"clinepass_api_key,omitempty"`
+	ClinePassBaseURL           string                      `json:"clinepass_base_url,omitempty"`
+	ClinePassModel             string                      `json:"clinepass_model,omitempty"`
 	MiniMaxModel               string                      `json:"minimax_model,omitempty"`
 	AnthropicModel             string                      `json:"anthropic_model,omitempty"`
 	OpenAIModel                string                      `json:"openai_model,omitempty"`
@@ -180,6 +183,11 @@ var providerFields = map[string]providerFieldMap{
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.GroqAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.GroqModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.GroqBaseURL },
+	},
+	ProviderClinePass: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.ClinePassAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.ClinePassModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.ClinePassBaseURL },
 	},
 	ProviderGemini: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.GeminiAPIKey} },
@@ -480,6 +488,7 @@ func ClearProviderRuntimeEnv() {
 		"OPENCODEGO_API_KEY", "OPENCODEGO_MODEL", "OPENCODEGO_BASE_URL",
 		"GROQ_API_KEY", "GROQ_MODEL", "GROQ_BASE_URL",
 		"POOLSIDE_API_KEY", "POOLSIDE_MODEL", "POOLSIDE_BASE_URL",
+		"CLINE_API_KEY", "CLINE_MODEL", "CLINE_API_BASE",
 		"MOONSHOT_API_KEY", "MOONSHOT_MODEL", "MOONSHOT_BASE_URL",
 		"XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
 		"XIAOMI_MIMO_TOKEN_PLAN_REGION", "XIAOMI_MODEL", "XIAOMI_BASE_URL",
@@ -603,6 +612,14 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 			m = catalog.GetProviderDefaultModel("groq", cat)
 		}
 		collectOpenAICompatibleProvider(env, "GROQ", apiKey, m, base, overwrite)
+	case ProviderClinePass:
+		apiKey := AsNonEmptyString(config.ClinePassAPIKey)
+		base := firstNonEmpty(config.ClinePassBaseURL, DefaultClinePassOpenAIBaseURL)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("clinepass", cat)
+		}
+		collectOpenAICompatibleProvider(env, "CLINE", apiKey, m, base, overwrite)
 	case ProviderCanopyWave:
 		apiKey := AsNonEmptyString(config.CanopyWaveAPIKey)
 		base := firstNonEmpty(config.CanopyWaveBaseURL, DefaultCanopyWaveOpenAIBaseURL)

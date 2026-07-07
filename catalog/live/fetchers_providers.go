@@ -596,3 +596,12 @@ func FetchGroq(env map[string]string) ([]Entry, error) {
 		env["GROQ_API_KEY"], "Bearer",
 	)
 }
+
+// FetchClinePass lists models from the ClinePass OpenAI-compatible API.
+func FetchClinePass(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "CLINE_API_BASE", DefaultClinePassBaseURL),
+		env["CLINE_API_KEY"], "Bearer",
+	)
+}
