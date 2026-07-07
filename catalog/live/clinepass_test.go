@@ -34,8 +34,8 @@ func TestFetchClinePass_ReturnsStaticList(t *testing.T) {
 		}
 	}
 	// Verify OpenRouter pricing (poolside is free).
-	if entries[0].InputPricePer1M != 0.435 || entries[0].OutputPricePer1M != 0.87 {
-		t.Errorf("deepseek-v4-pro: in=%f out=%f, want 0.435/0.87", entries[0].InputPricePer1M, entries[0].OutputPricePer1M)
+	if entries[0].InputPricePer1M != 1.74 || entries[0].OutputPricePer1M != 3.48 {
+		t.Errorf("deepseek-v4-pro: in=%f out=%f, want 1.74/3.48", entries[0].InputPricePer1M, entries[0].OutputPricePer1M)
 	}
 	if entries[10].InputPricePer1M != 0 || entries[10].OutputPricePer1M != 0 {
 		t.Errorf("poolside: in=%f out=%f, want 0/0", entries[10].InputPricePer1M, entries[10].OutputPricePer1M)
