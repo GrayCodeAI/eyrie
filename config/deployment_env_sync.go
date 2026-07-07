@@ -8,7 +8,7 @@ import (
 )
 
 // DeploymentConfigFromEnv builds deployment credentials from catalog env_fallbacks and env values.
-func DeploymentConfigFromEnv(dep catalog.DeploymentV1, env map[string]string) DeploymentConfig {
+func DeploymentConfigFromEnv(dep catalog.Deployment, env map[string]string) DeploymentConfig {
 	var dc DeploymentConfig
 	for _, fb := range dep.EnvFallbacks {
 		val := firstEnvFromMap(env, fb.Env)
@@ -39,7 +39,7 @@ func DeploymentConfigFromEnv(dep catalog.DeploymentV1, env map[string]string) De
 }
 
 // DeploymentConfigured reports whether env supplies enough credentials for this deployment.
-func DeploymentConfigured(deploymentID string, dep catalog.DeploymentV1, dc DeploymentConfig) bool {
+func DeploymentConfigured(deploymentID string, dep catalog.Deployment, dc DeploymentConfig) bool {
 	switch deploymentID {
 	case "ollama-local":
 		return strings.TrimSpace(dc.BaseURL) != ""
@@ -71,7 +71,7 @@ func firstEnvFromMap(env map[string]string, keys []string) string {
 }
 
 // SyncProviderConfigFromCatalog merges catalog + env into provider.json deployments and routing.
-func SyncProviderConfigFromCatalog(compiled *catalog.CompiledCatalogV1, env map[string]string) *ProviderConfig {
+func SyncProviderConfigFromCatalog(compiled *catalog.CompiledCatalog, env map[string]string) *ProviderConfig {
 	cfg := LoadProviderConfig("")
 	if cfg == nil {
 		cfg = &ProviderConfig{}

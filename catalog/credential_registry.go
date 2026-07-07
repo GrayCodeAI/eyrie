@@ -7,23 +7,23 @@ import (
 )
 
 // EnsureCredentialRegistryInCatalog merges registry providers/deployments into catalog v1.
-func EnsureCredentialRegistryInCatalog(c *CatalogV1) {
+func EnsureCredentialRegistryInCatalog(c *Catalog) {
 	if c == nil {
 		return
 	}
 	if c.Providers == nil {
-		c.Providers = map[string]ProviderV1{}
+		c.Providers = map[string]Provider{}
 	}
 	if c.Deployments == nil {
-		c.Deployments = map[string]DeploymentV1{}
+		c.Deployments = map[string]Deployment{}
 	}
 	for _, spec := range registry.DefaultRegistry.All() {
 		pid := CanonicalProviderID(spec.ProviderID)
 		if c.Providers[pid].ID == "" {
-			c.Providers[pid] = ProviderV1{ID: pid, Name: spec.DisplayName}
+			c.Providers[pid] = Provider{ID: pid, Name: spec.DisplayName}
 		}
 		if c.Deployments[spec.DeploymentID].ID == "" {
-			c.Deployments[spec.DeploymentID] = DeploymentV1{
+			c.Deployments[spec.DeploymentID] = Deployment{
 				ID:                  spec.DeploymentID,
 				Name:                spec.DisplayName,
 				ProviderID:          pid,

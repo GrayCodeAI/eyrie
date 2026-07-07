@@ -51,14 +51,14 @@ func DefaultCircuitBreakerConfig() CircuitBreakerConfig {
 }
 
 type DeploymentRouterOptions struct {
-	Catalog        *catalog.CompiledCatalogV1
+	Catalog        *catalog.CompiledCatalog
 	Deployments    map[string]DeploymentAdapter
 	Routing        RoutingPolicy
 	CircuitBreaker *CircuitBreakerConfig // optional, defaults applied if nil
 }
 
 type DeploymentRouter struct {
-	catalog     *catalog.CompiledCatalogV1
+	catalog     *catalog.CompiledCatalog
 	deployments map[string]DeploymentAdapter
 	routing     RoutingPolicy
 	cbConfig    CircuitBreakerConfig
@@ -463,10 +463,10 @@ func (r *DeploymentRouter) streamWithDeployment(ctx context.Context, out chan<- 
 	return true, fmt.Errorf("deployment %q stream ended before output", deploymentID)
 }
 
-func (r *DeploymentRouter) resolveOffering(target deploymentTarget, deploymentID string) (catalog.ModelOfferingV1, DeploymentAdapter, error) {
+func (r *DeploymentRouter) resolveOffering(target deploymentTarget, deploymentID string) (catalog.ModelOffering, DeploymentAdapter, error) {
 	adapter, ok := r.deployments[deploymentID]
 	if !ok {
-		return catalog.ModelOfferingV1{}, DeploymentAdapter{}, fmt.Errorf("deployment %q is not configured", deploymentID)
+		return catalog.ModelOffering{}, DeploymentAdapter{}, fmt.Errorf("deployment %q is not configured", deploymentID)
 	}
 	if offering, ok := r.catalog.OfferingForDeployment(target.canonicalModelID, deploymentID); ok {
 		if nativeID := adapter.ModelMappings[target.canonicalModelID]; nativeID != "" {
@@ -481,27 +481,27 @@ func (r *DeploymentRouter) resolveOffering(target deploymentTarget, deploymentID
 		}
 		nativeID := adapter.ModelMappings[target.canonicalModelID]
 		if nativeID == "" {
-			return catalog.ModelOfferingV1{}, DeploymentAdapter{}, fmt.Errorf("deployment %q requires model mapping for %q", deploymentID, target.canonicalModelID)
+			return catalog.ModelOffering{}, DeploymentAdapter{}, fmt.Errorf("deployment %q requires model mapping for %q", deploymentID, target.canonicalModelID)
 		}
 		return materializeTemplate(tmpl, nativeID), adapter, nil
 	}
 	if target.nativeHint != "" {
 		deployment := r.catalog.DeploymentsByID[deploymentID]
 		if deployment.ID != "" && deployment.NativeModelIDSource == catalog.NativeModelIDDiscovered {
-			return catalog.ModelOfferingV1{
+			return catalog.ModelOffering{
 				ID:               deploymentID + ":" + target.nativeHint,
 				CanonicalModelID: target.canonicalModelID,
 				DeploymentID:     deploymentID,
 				NativeModelID:    nativeModelHintForDeployment(target.nativeHint, deployment),
-				Pricing:          catalog.PricingV1{Status: catalog.PricingUnknown},
+				Pricing:          catalog.Pricing{Status: catalog.PricingUnknown},
 			}, adapter, nil
 		}
 	}
-	return catalog.ModelOfferingV1{}, DeploymentAdapter{}, fmt.Errorf("deployment %q cannot serve %q", deploymentID, target.canonicalModelID)
+	return catalog.ModelOffering{}, DeploymentAdapter{}, fmt.Errorf("deployment %q cannot serve %q", deploymentID, target.canonicalModelID)
 }
 
-func materializeTemplate(tmpl catalog.ModelOfferingTemplateV1, nativeID string) catalog.ModelOfferingV1 {
-	return catalog.ModelOfferingV1{
+func materializeTemplate(tmpl catalog.ModelOfferingTemplate, nativeID string) catalog.ModelOffering {
+	return catalog.ModelOffering{
 		ID:               tmpl.DeploymentID + ":" + nativeID,
 		CanonicalModelID: tmpl.CanonicalModelID,
 		DeploymentID:     tmpl.DeploymentID,
@@ -512,7 +512,7 @@ func materializeTemplate(tmpl catalog.ModelOfferingTemplateV1, nativeID string) 
 	}
 }
 
-func optsForOffering(opts client.ChatOptions, offering catalog.ModelOfferingV1) client.ChatOptions {
+func optsForOffering(opts client.ChatOptions, offering catalog.ModelOffering) client.ChatOptions {
 	copied := opts
 	copied.Model = offering.NativeModelID
 	copied.Provider = offering.DeploymentID
@@ -522,7 +522,7 @@ func optsForOffering(opts client.ChatOptions, offering catalog.ModelOfferingV1) 
 	return copied
 }
 
-func filterTools(tools []client.EyrieTool, offering catalog.ModelOfferingV1) []client.EyrieTool {
+func filterTools(tools []client.EyrieTool, offering catalog.ModelOffering) []client.EyrieTool {
 	if len(offering.Capabilities.ServerTools) == 0 {
 		return tools
 	}
@@ -551,7 +551,7 @@ func requestedServerTools(tools []client.EyrieTool) []string {
 	return out
 }
 
-func offeringSupportsTools(offering catalog.ModelOfferingV1, tools []string) bool {
+func offeringSupportsTools(offering catalog.ModelOffering, tools []string) bool {
 	for _, tool := range tools {
 		if offering.Capabilities.ServerTools[tool] != catalog.CapabilitySupported {
 			return false
@@ -590,7 +590,7 @@ func ownerProviderID(canonicalModelID string) string {
 	return catalog.CanonicalProviderID(owner)
 }
 
-func nativeModelHintForDeployment(model string, deployment catalog.DeploymentV1) string {
+func nativeModelHintForDeployment(model string, deployment catalog.Deployment) string {
 	if deployment.ID == "openrouter" {
 		if native, ok := strings.CutPrefix(model, "openrouter/"); ok {
 			return native

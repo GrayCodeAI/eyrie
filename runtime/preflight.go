@@ -48,7 +48,7 @@ func Preflight(ctx context.Context) PreflightReport {
 			Detail: "model catalog cache missing — hawk will discover on /config or refresh automatically",
 		})
 	} else {
-		compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+		compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
 			CachePath: cachePath, RequireCache: false,
 		})
 		nModels := 0

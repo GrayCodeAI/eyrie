@@ -2,6 +2,7 @@ package discover
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -29,16 +30,16 @@ func refreshProvider(ctx context.Context, providerID string, creds catalog.Crede
 	}
 
 	cachePath := catalog.DefaultCachePath()
-	var base *catalog.CatalogV1
+	var base *catalog.Catalog
 	source := "cache"
-	if compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+	if compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
 		CachePath: cachePath,
 	}); err == nil && compiled != nil && compiled.Catalog != nil {
 		base = compiled.Catalog
 	} else if compiled, ok := catalog.LoadValidCatalogCache(cachePath); ok && compiled.Catalog != nil {
 		base = compiled.Catalog
 	} else {
-		bootstrap := catalog.BootstrapCatalogV1()
+		bootstrap := catalog.BootstrapCatalog()
 		base = &bootstrap
 		source = catalog.BootstrapSource()
 	}
@@ -61,36 +62,88 @@ func refreshProvider(ctx context.Context, providerID string, creds catalog.Crede
 		return nil, fmt.Errorf("catalog discover: live API returned no models for %q", providerID)
 	}
 
-	legacy := catalog.ModelCatalog{
-		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
-		Source:    "live-providers",
-		Providers: map[string][]catalog.ModelCatalogEntry{
-			spec.LiveCatalogKey: catalog.LiveEntriesToCatalog(entries),
-		},
+	generatedAt := time.Now().UTC().Truncate(time.Second)
+	cat := catalog.SeedCatalog()
+	cat.SchemaVersion = catalog.CatalogSchemaVersion
+	cat.GeneratedAt = generatedAt
+	cat.StaleAfter = generatedAt.Add(catalog.LiveStaleDuration)
+	catalog.EnsureDeploymentEnvFallbacks(&cat)
+	catalog.EnsureCredentialRegistryInCatalog(&cat)
+	cat.Provenance = &catalog.Provenance{Source: "live-providers", ObservedAt: generatedAt}
+
+	provID := spec.ProviderID
+	if _, ok := cat.Providers[provID]; !ok {
+		cat.Providers[provID] = catalog.Provider{ID: provID, Name: provID}
 	}
-	enriched := catalog.CatalogV1FromLegacy(legacy)
-	base = MergeCatalogV1WithPolicy(base, &enriched, MergePolicy{
+	depID := spec.DeploymentID
+	if _, ok := cat.Deployments[depID]; !ok {
+		cat.Deployments[depID] = catalog.Deployment{
+			ID:                     depID,
+			Name:                   provID,
+			ProviderID:             provID,
+			APIProtocolID:          "openai-chat-completions",
+			AdapterConstructor:     "openai",
+			NativeModelIDSource:    catalog.NativeModelIDDiscovered,
+			ModelMappingsRequired:  false,
+		}
+	}
+
+	for _, entry := range entries {
+		entryID := entry.ID
+		if entryID == "" {
+			continue
+		}
+		name := entry.DisplayName
+		if name == "" {
+			name = entryID
+		}
+		canonicalID := entryID
+		var liveMeta map[string]interface{}
+		if json.Unmarshal(entry.RawJSON, &liveMeta) == nil {
+			if inputPrice, ok := liveMeta["input_token_price_per_m"]; ok {
+				if _, ok := inputPrice.(float64); ok {
+					canonicalID = provID + "/" + entryID
+				}
+			}
+		}
+		cat.Models[canonicalID] = catalog.Model{
+			ID:            canonicalID,
+			ProviderID:    provID,
+			Name:          name,
+			ContextWindow:  entry.ContextWindow,
+			MaxOutput:     entry.MaxOutput,
+		}
+		cat.Aliases[entryID] = canonicalID
+		offeringID := depID + ":" + entryID
+		cat.Offerings = append(cat.Offerings, catalog.ModelOffering{
+			ID:               offeringID,
+			CanonicalModelID: canonicalID,
+			DeploymentID:     depID,
+			NativeModelID:    entryID,
+			Capabilities:     catalog.CapabilitySetFromEntry(entry),
+			Pricing:          catalog.PricingFromEntry(entry),
+			LiveMetadata:     entry.RawJSON,
+		})
+	}
+
+	base = MergeCatalogWithPolicy(base, &cat, MergePolicy{
 		PreferLive:                 true,
 		PreferLiveProviders:        []string{catalog.CanonicalProviderID(spec.ProviderID)},
 		ReplaceDeploymentOfferings: []string{spec.DeploymentID},
 	})
 	now := time.Now().UTC().Truncate(time.Second)
 	base.GeneratedAt = now
-	base.StaleAfter = now.Add(catalog.LiveCatalogStaleDuration)
+	base.StaleAfter = now.Add(catalog.LiveStaleDuration)
 	if base.Provenance == nil {
-		base.Provenance = &catalog.CatalogProvenanceV1{}
+		base.Provenance = &catalog.Provenance{}
 	}
 	base.Provenance.ObservedAt = now
-	if source == catalog.BootstrapSource() {
-		source = "providers"
-	} else {
-		source += "+providers"
-	}
+	source = appendSourceSuffix(source, "providers")
 
-	if err := catalog.WriteCatalogV1Cache(cachePath, base); err != nil {
+	if err := catalog.WriteCatalogCache(cachePath, base); err != nil {
 		return nil, fmt.Errorf("catalog discover: write cache: %w", err)
 	}
-	compiled, err := catalog.CompileCatalogV1(base)
+	compiled, err := catalog.CompileCatalog(base)
 	if err != nil {
 		return nil, fmt.Errorf("catalog discover: compile: %w", err)
 	}

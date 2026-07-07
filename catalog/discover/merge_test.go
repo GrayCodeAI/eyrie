@@ -9,19 +9,25 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog/discover"
 )
 
-func TestMergeCatalogV1WithPolicy_ReplacesDeploymentOfferings(t *testing.T) {
+func TestMergeCatalogWithPolicy_ReplacesDeploymentOfferings(t *testing.T) {
 	t.Parallel()
-	dst := catalog.TestSeedCatalogV1()
-	dst.Offerings = append(dst.Offerings, catalog.ModelOfferingV1{
+	dst := catalog.SeedCatalog()
+	dst.Offerings = append(dst.Offerings, catalog.ModelOffering{
 		ID: "canopywave:old-model", CanonicalModelID: "z-ai/old", DeploymentID: "canopywave",
-		NativeModelID: "old-model", Pricing: catalog.PricingV1{Status: catalog.PricingUnknown},
+		NativeModelID: "old-model", Pricing: catalog.Pricing{Status: catalog.PricingUnknown},
 	})
-	src := catalog.CatalogV1FromLegacy(catalog.ModelCatalog{
-		Providers: map[string][]catalog.ModelCatalogEntry{
-			"canopywave": {{ID: "moonshotai/kimi-k2.6"}},
-		},
+	src := catalog.SeedCatalog()
+	src.Providers["canopywave"] = catalog.Provider{ID: "canopywave", Name: "CanopyWave"}
+	src.Deployments["canopywave"] = catalog.Deployment{ID: "canopywave"}
+	src.Models["moonshotai/kimi-k2.6"] = catalog.Model{
+		ID: "moonshotai/kimi-k2.6", ProviderID: "canopywave", Name: "Kimi K2.6",
+	}
+	src.Offerings = append(src.Offerings, catalog.ModelOffering{
+		ID: "canopywave:moonshotai/kimi-k2.6", CanonicalModelID: "moonshotai/kimi-k2.6",
+		DeploymentID: "canopywave", NativeModelID: "moonshotai/kimi-k2.6",
+		Pricing:      catalog.Pricing{Status: catalog.PricingUnknown},
 	})
-	out := discover.MergeCatalogV1WithPolicy(&dst, &src, discover.MergePolicy{
+	out := discover.MergeCatalogWithPolicy(&dst, &src, discover.MergePolicy{
 		PreferLive:                 true,
 		ReplaceDeploymentOfferings: []string{"canopywave"},
 	})
@@ -42,23 +48,23 @@ func TestMergeCatalogV1WithPolicy_ReplacesDeploymentOfferings(t *testing.T) {
 	}
 }
 
-func TestMergeCatalogV1WithPolicy_PreferLiveReplacesExistingModel(t *testing.T) {
+func TestMergeCatalogWithPolicy_PreferLiveReplacesExistingModel(t *testing.T) {
 	t.Parallel()
-	dst := catalog.TestSeedCatalogV1()
-	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
+	dst := catalog.SeedCatalog()
+	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.Model{
 		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet",
 		ContextWindow: 100000, MaxOutput: 4096, Aliases: []string{"claude-sonnet"},
 	}
-	src := &catalog.CatalogV1{
-		Models: map[string]catalog.ModelV1{
+	src := &catalog.Catalog{
+		Models: map[string]catalog.Model{
 			"anthropic/claude-sonnet-4-6": {
 				ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet 4.6",
 				ContextWindow: 200000, MaxOutput: 8192, Aliases: []string{"sonnet-4-6"},
-				Provenance: &catalog.CatalogProvenanceV1{Source: "live", ObservedAt: time.Now().UTC()},
+				Provenance: &catalog.Provenance{Source: "live", ObservedAt: time.Now().UTC()},
 			},
 		},
 	}
-	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{
+	out := discover.MergeCatalogWithPolicy(&dst, src, discover.MergePolicy{
 		PreferLiveProviders: []string{"anthropic"},
 	})
 	got := out.Models["anthropic/claude-sonnet-4-6"]
@@ -73,46 +79,46 @@ func TestMergeCatalogV1WithPolicy_PreferLiveReplacesExistingModel(t *testing.T) 
 	}
 }
 
-func TestMergeCatalogV1WithPolicy_PreferLiveUpdatesExistingOffering(t *testing.T) {
+func TestMergeCatalogWithPolicy_PreferLiveUpdatesExistingOffering(t *testing.T) {
 	t.Parallel()
-	dst := catalog.TestSeedCatalogV1()
-	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
+	dst := catalog.SeedCatalog()
+	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.Model{
 		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet",
 	}
-	dst.Offerings = []catalog.ModelOfferingV1{{
+	dst.Offerings = []catalog.ModelOffering{{
 		ID:               "anthropic-direct:claude-sonnet-4-6",
 		CanonicalModelID: "anthropic/claude-sonnet-4-6",
 		DeploymentID:     "anthropic-direct",
 		NativeModelID:    "claude-sonnet-4-6",
-		Pricing:          catalog.PricingV1{Status: catalog.PricingUnknown},
+		Pricing:          catalog.Pricing{Status: catalog.PricingUnknown},
 	}}
 	liveMeta, _ := json.Marshal(map[string]any{"mode": "live"})
-	src := &catalog.CatalogV1{
-		Models: map[string]catalog.ModelV1{
+	src := &catalog.Catalog{
+		Models: map[string]catalog.Model{
 			"anthropic/claude-sonnet-4-6": {
 				ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic", Name: "Claude Sonnet 4.6",
 			},
 		},
-		Offerings: []catalog.ModelOfferingV1{{
+		Offerings: []catalog.ModelOffering{{
 			ID:               "anthropic-direct:claude-sonnet-4-6",
 			CanonicalModelID: "anthropic/claude-sonnet-4-6",
 			DeploymentID:     "anthropic-direct",
 			NativeModelID:    "claude-sonnet-4-6",
-			Capabilities: catalog.CapabilitySetV1{
+			Capabilities: catalog.CapabilitySet{
 				FunctionCalling:        "supported",
 				ExplicitThinkingBudget: "supported",
 			},
-			Pricing: catalog.PricingV1{
+			Pricing: catalog.Pricing{
 				Status:     catalog.PricingKnown,
 				Currency:   "USD",
 				RatesPer1M: map[string]float64{"input_tokens": 3, "output_tokens": 15},
 				Source:     "live",
 			},
 			LiveMetadata: liveMeta,
-			Provenance:   &catalog.CatalogProvenanceV1{Source: "live", ObservedAt: time.Now().UTC()},
+			Provenance:   &catalog.Provenance{Source: "live", ObservedAt: time.Now().UTC()},
 		}},
 	}
-	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{
+	out := discover.MergeCatalogWithPolicy(&dst, src, discover.MergePolicy{
 		PreferLiveProviders: []string{"anthropic"},
 	})
 	if len(out.Offerings) != 1 {
@@ -130,22 +136,22 @@ func TestMergeCatalogV1WithPolicy_PreferLiveUpdatesExistingOffering(t *testing.T
 	}
 }
 
-func TestMergeCatalogV1WithPolicy_PreferLiveFullReplace(t *testing.T) {
+func TestMergeCatalogWithPolicy_PreferLiveFullReplace(t *testing.T) {
 	t.Parallel()
-	dst := catalog.TestSeedCatalogV1()
-	dst.Models["openrouter/model-a"] = catalog.ModelV1{
+	dst := catalog.SeedCatalog()
+	dst.Models["openrouter/model-a"] = catalog.Model{
 		ID: "openrouter/model-a", ProviderID: "openrouter", Name: "Model A (old)",
 		ContextWindow: 100000, MaxOutput: 4096,
 	}
-	src := &catalog.CatalogV1{
-		Models: map[string]catalog.ModelV1{
+	src := &catalog.Catalog{
+		Models: map[string]catalog.Model{
 			"openrouter/model-a": {
 				ID: "openrouter/model-a", ProviderID: "openrouter", Name: "Model A (live)",
 				ContextWindow: 0, MaxOutput: 0,
 			},
 		},
 	}
-	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{
+	out := discover.MergeCatalogWithPolicy(&dst, src, discover.MergePolicy{
 		PreferLiveProviders: []string{"openrouter"},
 	})
 	got := out.Models["openrouter/model-a"]
@@ -160,34 +166,34 @@ func TestMergeCatalogV1WithPolicy_PreferLiveFullReplace(t *testing.T) {
 	}
 }
 
-func TestMergeCatalogV1WithPolicy_PreferLiveUnconditionalPricing(t *testing.T) {
+func TestMergeCatalogWithPolicy_PreferLiveUnconditionalPricing(t *testing.T) {
 	t.Parallel()
-	dst := catalog.TestSeedCatalogV1()
-	dst.Models["openrouter/model-a"] = catalog.ModelV1{
+	dst := catalog.SeedCatalog()
+	dst.Models["openrouter/model-a"] = catalog.Model{
 		ID: "openrouter/model-a", ProviderID: "openrouter",
 	}
-	dst.Offerings = []catalog.ModelOfferingV1{{
+	dst.Offerings = []catalog.ModelOffering{{
 		ID: "openrouter:model-a", CanonicalModelID: "openrouter/model-a",
 		DeploymentID: "openrouter", NativeModelID: "model-a",
-		Pricing: catalog.PricingV1{
+		Pricing: catalog.Pricing{
 			Status: catalog.PricingKnown, Currency: "USD",
 			RatesPer1M: map[string]float64{"input_tokens": 5, "output_tokens": 15},
 		},
 	}}
-	src := &catalog.CatalogV1{
-		Models: map[string]catalog.ModelV1{
+	src := &catalog.Catalog{
+		Models: map[string]catalog.Model{
 			"openrouter/model-a": {ID: "openrouter/model-a", ProviderID: "openrouter"},
 		},
-		Offerings: []catalog.ModelOfferingV1{{
+		Offerings: []catalog.ModelOffering{{
 			ID: "openrouter:model-a", CanonicalModelID: "openrouter/model-a",
 			DeploymentID: "openrouter", NativeModelID: "model-a",
-			Pricing: catalog.PricingV1{
+			Pricing: catalog.Pricing{
 				Status: catalog.PricingKnown, Currency: "EUR",
 				RatesPer1M: map[string]float64{"input_tokens": 3, "output_tokens": 10},
 			},
 		}},
 	}
-	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{
+	out := discover.MergeCatalogWithPolicy(&dst, src, discover.MergePolicy{
 		PreferLiveProviders: []string{"openrouter"},
 	})
 	if len(out.Offerings) != 1 {
@@ -202,22 +208,22 @@ func TestMergeCatalogV1WithPolicy_PreferLiveUnconditionalPricing(t *testing.T) {
 	}
 }
 
-func TestMergeCatalogV1WithPolicy_PreferLiveZeroContextOverwrites(t *testing.T) {
+func TestMergeCatalogWithPolicy_PreferLiveZeroContextOverwrites(t *testing.T) {
 	t.Parallel()
-	dst := catalog.TestSeedCatalogV1()
-	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
+	dst := catalog.SeedCatalog()
+	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.Model{
 		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic",
 		ContextWindow: 200000, MaxOutput: 8192,
 	}
-	src := &catalog.CatalogV1{
-		Models: map[string]catalog.ModelV1{
+	src := &catalog.Catalog{
+		Models: map[string]catalog.Model{
 			"anthropic/claude-sonnet-4-6": {
 				ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic",
 				ContextWindow: 0, MaxOutput: 0,
 			},
 		},
 	}
-	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{
+	out := discover.MergeCatalogWithPolicy(&dst, src, discover.MergePolicy{
 		PreferLiveProviders: []string{"anthropic"},
 	})
 	got := out.Models["anthropic/claude-sonnet-4-6"]
@@ -229,22 +235,22 @@ func TestMergeCatalogV1WithPolicy_PreferLiveZeroContextOverwrites(t *testing.T) 
 	}
 }
 
-func TestMergeCatalogV1WithPolicy_NonPreferLivePreservesExisting(t *testing.T) {
+func TestMergeCatalogWithPolicy_NonPreferLivePreservesExisting(t *testing.T) {
 	t.Parallel()
-	dst := catalog.TestSeedCatalogV1()
-	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.ModelV1{
+	dst := catalog.SeedCatalog()
+	dst.Models["anthropic/claude-sonnet-4-6"] = catalog.Model{
 		ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic",
 		ContextWindow: 200000, MaxOutput: 8192, Name: "Old",
 	}
-	src := &catalog.CatalogV1{
-		Models: map[string]catalog.ModelV1{
+	src := &catalog.Catalog{
+		Models: map[string]catalog.Model{
 			"anthropic/claude-sonnet-4-6": {
 				ID: "anthropic/claude-sonnet-4-6", ProviderID: "anthropic",
 				ContextWindow: 0, MaxOutput: 0, Name: "New",
 			},
 		},
 	}
-	out := discover.MergeCatalogV1WithPolicy(&dst, src, discover.MergePolicy{})
+	out := discover.MergeCatalogWithPolicy(&dst, src, discover.MergePolicy{})
 	got := out.Models["anthropic/claude-sonnet-4-6"]
 	if got.ContextWindow != 200000 {
 		t.Fatalf("context = %d (expected preserved without live policy)", got.ContextWindow)

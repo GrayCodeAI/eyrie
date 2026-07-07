@@ -8,13 +8,16 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
-// FetchLiveProviderCatalog enriches catalog from live provider list APIs.
-func FetchLiveProviderCatalog(env map[string]string) (ModelCatalog, []LiveProviderEnrichment) {
-	cat := ModelCatalog{
-		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
-		Source:    "live-providers",
-		Providers: make(map[string][]ModelCatalogEntry),
-	}
+
+
+// FetchLiveProviderCatalog discovers models from all registered live provider APIs
+// that have API keys available in env. Returns a catalog with enriched model listings
+// and a list of per-provider fetch statuses.
+func FetchLiveProviderCatalog(env map[string]string) (Catalog, []LiveProviderEnrichment) {
+	cat := SeedCatalog()
+	EnsureDeploymentEnvFallbacks(&cat)
+	EnsureCredentialRegistryInCatalog(&cat)
+
 	var enrichment []LiveProviderEnrichment
 	for _, fetcherKey := range registry.LiveFetcherKeys() {
 		spec, ok := registry.SpecForLiveFetcher(fetcherKey)
@@ -42,7 +45,70 @@ func FetchLiveProviderCatalog(env map[string]string) (ModelCatalog, []LiveProvid
 			enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: "no models returned", DurationMs: duration})
 			continue
 		}
-		cat.Providers[catalogKey] = LiveEntriesToCatalog(models)
+
+		providerID := spec.ProviderID
+		if _, ok := cat.Providers[providerID]; !ok {
+			cat.Providers[providerID] = Provider{ID: providerID, Name: providerID}
+		}
+
+		deploymentID := spec.DeploymentID
+		if _, ok := cat.Deployments[deploymentID]; !ok {
+			cat.Deployments[deploymentID] = Deployment{
+				ID:                     deploymentID,
+				Name:                   providerID,
+				ProviderID:             providerID,
+				APIProtocolID:             "openai-chat-completions",
+				AdapterConstructor:     "openai",
+				NativeModelIDSource:    NativeModelIDDiscovered,
+				ModelMappingsRequired:  false,
+			}
+		}
+
+		for _, entry := range models {
+			entryID := entry.ID
+			if entryID == "" {
+				continue
+			}
+			name := entry.DisplayName
+			if name == "" {
+				name = entryID
+			}
+
+			// If the native model ID already contains a "/" and the owner
+			// matches the provider's canonical form, keep it as-is.
+			canonicalID := entryID
+			if hasSlash(entryID) {
+				owner, _, hasOwner := splitOwner(entryID)
+				if hasOwner && owner == canonicalProviderID(providerID) {
+					canonicalID = entryID
+				} else if hasInputPricing(entry.RawJSON) {
+					canonicalID = providerID + "/" + entryID
+				}
+			} else if hasInputPricing(entry.RawJSON) {
+				canonicalID = providerID + "/" + entryID
+			}
+
+			cat.Models[canonicalID] = Model{
+				ID:            canonicalID,
+				ProviderID:    providerID,
+				Name:          name,
+				ContextWindow:  entry.ContextWindow,
+				MaxOutput:     entry.MaxOutput,
+			}
+			cat.Aliases[entryID] = canonicalID
+
+			offeringID := deploymentID + ":" + entryID
+			cat.Offerings = append(cat.Offerings, ModelOffering{
+				ID:               offeringID,
+				CanonicalModelID: canonicalID,
+				DeploymentID:     deploymentID,
+				NativeModelID:    entryID,
+				Capabilities:     CapabilitySetFromEntry(entry),
+				Pricing:          PricingFromEntry(entry),
+				LiveMetadata:     entry.RawJSON,
+			})
+		}
+
 		enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, ModelCount: len(models), DurationMs: duration})
 	}
 	return cat, enrichment
@@ -58,9 +124,6 @@ func FetchLiveModelEntriesForProvider(env map[string]string, providerID string) 
 		return nil, fmt.Errorf("catalog: provider %q has no live model list API", providerID)
 	}
 	if !registry.CredentialPresent(spec, env) {
-		if !spec.RequiresKey {
-			return nil, fmt.Errorf("catalog: set %s for %s", spec.CredentialEnv, providerID)
-		}
 		return nil, fmt.Errorf("catalog: set %s for %s", spec.CredentialEnv, providerID)
 	}
 	entries, err := live.Fetch(spec.LiveFetcherKey, env)
@@ -73,7 +136,7 @@ func FetchLiveModelEntriesForProvider(env map[string]string, providerID string) 
 	return LiveEntriesToCatalog(entries), nil
 }
 
-// LiveDiscoverableDeploymentIDs returns provider keys with live model-list APIs.
+// LiveDiscoverableDeploymentIDs returns provider IDs that have live model-list APIs.
 func LiveDiscoverableDeploymentIDs() []string {
 	return registry.LiveFetcherKeys()
 }

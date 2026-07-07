@@ -17,8 +17,8 @@ func TestBuildSetupUI_NilCatalog(t *testing.T) {
 }
 
 func TestBuildSetupUI_EmptyCatalog(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{
-		ModelsByID: map[string]catalog.ModelV1{},
+	compiled := &catalog.CompiledCatalog{
+		ModelsByID: map[string]catalog.Model{},
 	}
 	ui := BuildSetupUI(compiled, "")
 	if len(ui.Providers) != 0 {
@@ -27,8 +27,8 @@ func TestBuildSetupUI_EmptyCatalog(t *testing.T) {
 }
 
 func TestBuildSetupUI_WithModels(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{
-		ModelsByID: map[string]catalog.ModelV1{
+	compiled := &catalog.CompiledCatalog{
+		ModelsByID: map[string]catalog.Model{
 			"anthropic/claude-sonnet-4": {
 				ID:         "anthropic/claude-sonnet-4",
 				ProviderID: "anthropic",
@@ -70,8 +70,8 @@ func TestBuildSetupUI_WithModels(t *testing.T) {
 }
 
 func TestBuildSetupUI_ProviderFilter(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{
-		ModelsByID: map[string]catalog.ModelV1{
+	compiled := &catalog.CompiledCatalog{
+		ModelsByID: map[string]catalog.Model{
 			"anthropic/claude-sonnet-4": {
 				ID:         "anthropic/claude-sonnet-4",
 				ProviderID: "anthropic",
@@ -94,8 +94,8 @@ func TestBuildSetupUI_ProviderFilter(t *testing.T) {
 }
 
 func TestBuildSetupUI_DisplayNameFallback(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{
-		ModelsByID: map[string]catalog.ModelV1{
+	compiled := &catalog.CompiledCatalog{
+		ModelsByID: map[string]catalog.Model{
 			"anthropic/my-model": {
 				ID:         "anthropic/my-model",
 				ProviderID: "anthropic",
@@ -117,8 +117,8 @@ func TestBuildSetupUI_DisplayNameFallback(t *testing.T) {
 }
 
 func TestBuildSetupUI_DisplayNameFallbackNoSlash(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{
-		ModelsByID: map[string]catalog.ModelV1{
+	compiled := &catalog.CompiledCatalog{
+		ModelsByID: map[string]catalog.Model{
 			"anthropic/claude": {
 				ID:         "anthropic/claude",
 				ProviderID: "anthropic",
@@ -136,19 +136,19 @@ func TestBuildSetupUI_DisplayNameFallbackNoSlash(t *testing.T) {
 }
 
 func TestBuildSetupUI_ModelProvenanceSource(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{
-		ModelsByID: map[string]catalog.ModelV1{
+	compiled := &catalog.CompiledCatalog{
+		ModelsByID: map[string]catalog.Model{
 			"anthropic/claude": {
 				ID:         "anthropic/claude",
 				ProviderID: "anthropic",
 				Name:       "Claude",
-				Provenance: &catalog.CatalogProvenanceV1{Source: "remote"},
+				Provenance: &catalog.Provenance{Source: "remote"},
 			},
 			"openai/gpt": {
 				ID:         "openai/gpt",
 				ProviderID: "openai",
 				Name:       "GPT",
-				Provenance: &catalog.CatalogProvenanceV1{Source: "live"},
+				Provenance: &catalog.Provenance{Source: "live"},
 			},
 			"gemini/pro": {
 				ID:         "gemini/pro",
@@ -188,7 +188,7 @@ func TestProviderIDForDeployment_NilCatalog(t *testing.T) {
 }
 
 func TestProviderIDForDeployment_NilDeployments(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{}
+	compiled := &catalog.CompiledCatalog{}
 	got := ProviderIDForDeployment(compiled, "anthropic-direct")
 	if got != "" {
 		t.Fatalf("expected empty, got %q", got)
@@ -196,8 +196,8 @@ func TestProviderIDForDeployment_NilDeployments(t *testing.T) {
 }
 
 func TestProviderIDForDeployment_Found(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{
-		DeploymentsByID: map[string]catalog.DeploymentV1{
+	compiled := &catalog.CompiledCatalog{
+		DeploymentsByID: map[string]catalog.Deployment{
 			"anthropic-direct": {ProviderID: "anthropic"},
 		},
 	}
@@ -208,8 +208,8 @@ func TestProviderIDForDeployment_Found(t *testing.T) {
 }
 
 func TestProviderIDForDeployment_NotFound(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{
-		DeploymentsByID: map[string]catalog.DeploymentV1{
+	compiled := &catalog.CompiledCatalog{
+		DeploymentsByID: map[string]catalog.Deployment{
 			"anthropic-direct": {ProviderID: "anthropic"},
 		},
 	}
@@ -220,8 +220,8 @@ func TestProviderIDForDeployment_NotFound(t *testing.T) {
 }
 
 func TestBuildSetupUI_SkipsModelsWithEmptyProviderID(t *testing.T) {
-	compiled := &catalog.CompiledCatalogV1{
-		ModelsByID: map[string]catalog.ModelV1{
+	compiled := &catalog.CompiledCatalog{
+		ModelsByID: map[string]catalog.Model{
 			"no-provider/model": {
 				ID:         "no-provider/model",
 				ProviderID: "",
@@ -237,8 +237,8 @@ func TestBuildSetupUI_SkipsModelsWithEmptyProviderID(t *testing.T) {
 
 func TestBuildSetupUI_ProviderWithNoModelsExcluded(t *testing.T) {
 	// All models belong to "openai"; filter for "anthropic" should yield nothing.
-	compiled := &catalog.CompiledCatalogV1{
-		ModelsByID: map[string]catalog.ModelV1{
+	compiled := &catalog.CompiledCatalog{
+		ModelsByID: map[string]catalog.Model{
 			"openai/gpt-4o": {
 				ID:         "openai/gpt-4o",
 				ProviderID: "openai",

@@ -119,14 +119,14 @@ func TestFeatureSetFromCatalog_OverridesHardcoded(t *testing.T) {
 	defer func() { cachedCatalog = orig }()
 
 	// Inject a mock catalog with per-model capabilities
-	cachedCatalog = &catalog.CompiledCatalogV1{
-		OfferingsByDeployment: map[string][]catalog.ModelOfferingV1{
+	cachedCatalog = &catalog.CompiledCatalog{
+		OfferingsByDeployment: map[string][]catalog.ModelOffering{
 			"anthropic-direct": {
 				{
 					CanonicalModelID: "anthropic/claude-haiku-4-5",
 					NativeModelID:    "claude-haiku-4-5-20251001",
 					DeploymentID:     "anthropic-direct",
-					Capabilities: catalog.CapabilitySetV1{
+					Capabilities: catalog.CapabilitySet{
 						ExplicitThinkingBudget: catalog.CapabilitySupported,
 						AdaptiveThinking:       catalog.CapabilitySupported,
 						FunctionCalling:        catalog.CapabilitySupported,
@@ -139,7 +139,7 @@ func TestFeatureSetFromCatalog_OverridesHardcoded(t *testing.T) {
 					CanonicalModelID: "anthropic/claude-opus-4-8",
 					NativeModelID:    "claude-opus-4-8",
 					DeploymentID:     "anthropic-direct",
-					Capabilities: catalog.CapabilitySetV1{
+					Capabilities: catalog.CapabilitySet{
 						ExplicitThinkingBudget: catalog.CapabilitySupported,
 						AdaptiveThinking:       catalog.CapabilitySupported,
 						FunctionCalling:        catalog.CapabilitySupported,
@@ -153,13 +153,13 @@ func TestFeatureSetFromCatalog_OverridesHardcoded(t *testing.T) {
 				},
 			},
 		},
-		OfferingsByCanonicalModel: map[string][]catalog.ModelOfferingV1{
+		OfferingsByCanonicalModel: map[string][]catalog.ModelOffering{
 			"anthropic/claude-haiku-4-5": {
 				{
 					CanonicalModelID: "anthropic/claude-haiku-4-5",
 					NativeModelID:    "claude-haiku-4-5-20251001",
 					DeploymentID:     "anthropic-direct",
-					Capabilities: catalog.CapabilitySetV1{
+					Capabilities: catalog.CapabilitySet{
 						ExplicitThinkingBudget: catalog.CapabilitySupported,
 						MaxInputTokens:         200000,
 						MaxOutputTokens:        64000,
@@ -218,7 +218,7 @@ func TestFeatureSetFromCatalog_FallsBackWhenNil(t *testing.T) {
 
 func TestFeatureSetFromCapabilities(t *testing.T) {
 	t.Parallel()
-	caps := catalog.CapabilitySetV1{
+	caps := catalog.CapabilitySet{
 		ExplicitThinkingBudget: catalog.CapabilitySupported,
 		AdaptiveThinking:       catalog.CapabilitySupported,
 		FunctionCalling:        catalog.CapabilitySupported,

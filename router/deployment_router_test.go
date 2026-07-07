@@ -47,7 +47,7 @@ func (m *deploymentMockProvider) StreamChat(_ context.Context, _ []client.EyrieM
 func (m *deploymentMockProvider) Ping(_ context.Context) error { return m.err }
 func (m *deploymentMockProvider) Name() string                 { return m.name }
 
-func testCompiledCatalog(t *testing.T) *catalog.CompiledCatalogV1 {
+func testCompiledCatalog(t *testing.T) *catalog.CompiledCatalog {
 	t.Helper()
 	compiled, err := catalog.CompileTestCatalog()
 	if err != nil {
@@ -129,27 +129,27 @@ func TestShouldTryNextDeploymentCredits(t *testing.T) {
 
 func TestDeploymentRouterFallsBackOnInsufficientCredits(t *testing.T) {
 	t.Parallel()
-	c := catalog.TestSeedCatalogV1()
-	c.Providers["moonshotai"] = catalog.ProviderV1{ID: "moonshotai", Name: "Moonshot AI"}
-	c.Models["moonshotai/kimi-k2.6"] = catalog.ModelV1{
+	c := catalog.SeedCatalog()
+	c.Providers["moonshotai"] = catalog.Provider{ID: "moonshotai", Name: "Moonshot AI"}
+	c.Models["moonshotai/kimi-k2.6"] = catalog.Model{
 		ID:         "moonshotai/kimi-k2.6",
 		ProviderID: "moonshotai",
 		Name:       "Kimi K2.6",
 	}
 	c.Offerings = append(
 		c.Offerings,
-		catalog.ModelOfferingV1{
+		catalog.ModelOffering{
 			ID: "openrouter:moonshotai/kimi-k2.6", CanonicalModelID: "moonshotai/kimi-k2.6",
 			DeploymentID: "openrouter", NativeModelID: "moonshotai/kimi-k2.6",
-			Pricing: catalog.PricingV1{Status: catalog.PricingUnknown},
+			Pricing: catalog.Pricing{Status: catalog.PricingUnknown},
 		},
-		catalog.ModelOfferingV1{
+		catalog.ModelOffering{
 			ID: "canopywave:moonshotai/kimi-k2.6", CanonicalModelID: "moonshotai/kimi-k2.6",
 			DeploymentID: "canopywave", NativeModelID: "moonshotai/kimi-k2.6",
-			Pricing: catalog.PricingV1{Status: catalog.PricingUnknown},
+			Pricing: catalog.Pricing{Status: catalog.PricingUnknown},
 		},
 	)
-	compiled, err := catalog.CompileCatalogV1(&c)
+	compiled, err := catalog.CompileCatalog(&c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -310,27 +310,27 @@ func TestDeploymentRouterStreamFallbackBeforeOutput(t *testing.T) {
 func TestDeploymentRouterNativeMimoUsesConfiguredXiaomiDeployment(t *testing.T) {
 	t.Parallel()
 	mimo := &deploymentMockProvider{name: "xiaomi"}
-	compiled := &catalog.CompiledCatalogV1{
-		Catalog: &catalog.CatalogV1{
+	compiled := &catalog.CompiledCatalog{
+		Catalog: &catalog.Catalog{
 			Aliases: map[string]string{"mimo-v2.5-pro": "opencodego/mimo-v2.5-pro"},
 		},
-		ModelsByID: map[string]catalog.ModelV1{
+		ModelsByID: map[string]catalog.Model{
 			"opencodego/mimo-v2.5-pro": {ID: "opencodego/mimo-v2.5-pro", ProviderID: "opencodego"},
 			"xiaomi_mimo_token_plan/mimo-v2.5-pro": {
 				ID: "xiaomi_mimo_token_plan/mimo-v2.5-pro", ProviderID: "xiaomi_mimo_token_plan",
 			},
 		},
-		DeploymentsByID: map[string]catalog.DeploymentV1{
+		DeploymentsByID: map[string]catalog.Deployment{
 			"xiaomi_mimo_token_plan-direct": {ID: "xiaomi_mimo_token_plan-direct", ProviderID: "xiaomi_mimo_token_plan"},
 		},
-		OfferingsByDeployment: map[string][]catalog.ModelOfferingV1{
+		OfferingsByDeployment: map[string][]catalog.ModelOffering{
 			"xiaomi_mimo_token_plan-direct": {{
 				CanonicalModelID: "xiaomi_mimo_token_plan/mimo-v2.5-pro",
 				DeploymentID:     "xiaomi_mimo_token_plan-direct",
 				NativeModelID:    "mimo-v2.5-pro",
 			}},
 		},
-		OfferingsByCanonicalModel: map[string][]catalog.ModelOfferingV1{
+		OfferingsByCanonicalModel: map[string][]catalog.ModelOffering{
 			"xiaomi_mimo_token_plan/mimo-v2.5-pro": {{
 				CanonicalModelID: "xiaomi_mimo_token_plan/mimo-v2.5-pro",
 				DeploymentID:     "xiaomi_mimo_token_plan-direct",

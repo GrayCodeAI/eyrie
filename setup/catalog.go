@@ -33,7 +33,7 @@ func DiscoverModelCatalogWithOptions(ctx context.Context, creds catalog.Credenti
 		}
 	}
 	return discover.Run(ctx, discover.Options{
-		LoadCatalogV1Options: catalog.LoadCatalogV1Options{
+		LoadCatalogOptions: catalog.LoadCatalogOptions{
 			CachePath:     cachePath,
 			RefreshRemote: refreshRemote,
 		},
@@ -47,8 +47,8 @@ func DiscoverProviderCatalog(ctx context.Context, providerID string, creds catal
 }
 
 // LoadCompiledCatalog returns the compiled catalog from cache/embedded data without network refresh.
-func LoadCompiledCatalog(ctx context.Context) (*catalog.CompiledCatalogV1, error) {
-	return catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+func LoadCompiledCatalog(ctx context.Context) (*catalog.CompiledCatalog, error) {
+	return catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
 		CachePath:    catalog.DefaultCachePath(),
 		RequireCache: true,
 	})

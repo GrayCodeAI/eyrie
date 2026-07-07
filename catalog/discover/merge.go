@@ -23,13 +23,13 @@ func (p MergePolicy) preferLiveForProvider(providerID string) bool {
 	return providerID != "" && slices.Contains(p.PreferLiveProviders, providerID)
 }
 
-// MergeCatalogV1 merges models, offerings, providers, deployments, and aliases from src into dst.
-func MergeCatalogV1(dst, src *catalog.CatalogV1) *catalog.CatalogV1 {
-	return MergeCatalogV1WithPolicy(dst, src, MergePolicy{})
+// MergeCatalog merges models, offerings, providers, deployments, and aliases from src into dst.
+func MergeCatalog(dst, src *catalog.Catalog) *catalog.Catalog {
+	return MergeCatalogWithPolicy(dst, src, MergePolicy{})
 }
 
-// MergeCatalogV1WithPolicy merges with live replacement for prefer-live providers.
-func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *catalog.CatalogV1 {
+// MergeCatalogWithPolicy merges with live replacement for prefer-live providers.
+func MergeCatalogWithPolicy(dst, src *catalog.Catalog, policy MergePolicy) *catalog.Catalog {
 	if dst == nil {
 		return src
 	}
@@ -37,23 +37,23 @@ func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *
 		return dst
 	}
 	if dst.Providers == nil {
-		dst.Providers = map[string]catalog.ProviderV1{}
+		dst.Providers = map[string]catalog.Provider{}
 	}
 	for id, p := range src.Providers {
 		if dst.Providers[id].ID == "" {
 			dst.Providers[id] = p
 		}
 	}
-	if dst.APIProtocols == nil {
-		dst.APIProtocols = map[string]catalog.APIProtocolV1{}
+	if dst.Protocols == nil {
+		dst.Protocols = map[string]catalog.Protocol{}
 	}
-	for id, p := range src.APIProtocols {
-		if dst.APIProtocols[id].ID == "" {
-			dst.APIProtocols[id] = p
+	for id, p := range src.Protocols {
+		if dst.Protocols[id].ID == "" {
+			dst.Protocols[id] = p
 		}
 	}
 	if dst.Deployments == nil {
-		dst.Deployments = map[string]catalog.DeploymentV1{}
+		dst.Deployments = map[string]catalog.Deployment{}
 	}
 	for id, d := range src.Deployments {
 		if dst.Deployments[id].ID == "" {
@@ -61,7 +61,7 @@ func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *
 		}
 	}
 	if dst.Models == nil {
-		dst.Models = map[string]catalog.ModelV1{}
+		dst.Models = map[string]catalog.Model{}
 	}
 	if len(policy.ReplaceDeploymentOfferings) > 0 {
 		remove := map[string]bool{}
@@ -119,7 +119,7 @@ func MergeCatalogV1WithPolicy(dst, src *catalog.CatalogV1, policy MergePolicy) *
 	return dst
 }
 
-func providerIDForOffering(c *catalog.CatalogV1, offering catalog.ModelOfferingV1) string {
+func providerIDForOffering(c *catalog.Catalog, offering catalog.ModelOffering) string {
 	if c == nil {
 		return ""
 	}
@@ -130,7 +130,7 @@ func providerIDForOffering(c *catalog.CatalogV1, offering catalog.ModelOfferingV
 	return ""
 }
 
-func mergeOfferingV1(existing, live catalog.ModelOfferingV1, providerID string, policy MergePolicy) catalog.ModelOfferingV1 {
+func mergeOfferingV1(existing, live catalog.ModelOffering, providerID string, policy MergePolicy) catalog.ModelOffering {
 	if strings.TrimSpace(live.CanonicalModelID) != "" {
 		existing.CanonicalModelID = live.CanonicalModelID
 	}
@@ -153,7 +153,7 @@ func mergeOfferingV1(existing, live catalog.ModelOfferingV1, providerID string, 
 	return existing
 }
 
-func mergeCapabilities(existing, live catalog.CapabilitySetV1) catalog.CapabilitySetV1 {
+func mergeCapabilities(existing, live catalog.CapabilitySet) catalog.CapabilitySet {
 	if len(live.ServerTools) > 0 {
 		if existing.ServerTools == nil {
 			existing.ServerTools = map[string]catalog.CapabilityState{}
@@ -202,7 +202,7 @@ func mergeCapabilities(existing, live catalog.CapabilitySetV1) catalog.Capabilit
 	return existing
 }
 
-func shouldReplacePricing(existing, live catalog.PricingV1) bool {
+func shouldReplacePricing(existing, live catalog.Pricing) bool {
 	if live.Status == "" {
 		return false
 	}

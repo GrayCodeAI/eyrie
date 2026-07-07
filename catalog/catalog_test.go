@@ -64,7 +64,7 @@ func TestGetModelDeprecationWarning(t *testing.T) {
 
 func TestModelsForProvider(t *testing.T) {
 	t.Parallel()
-	cat := testLegacyModelCatalog()
+	cat := testModelCatalog()
 	models := cat.Providers["anthropic"]
 	if len(models) == 0 {
 		t.Error("expected anthropic models in default catalog")

@@ -108,10 +108,10 @@ func TestProviderDisplayName(t *testing.T) {
 
 func TestEnsureCredentialRegistryInCatalog_AddsMissingProviders(t *testing.T) {
 	t.Parallel()
-	c := &CatalogV1{
-		Providers:    map[string]ProviderV1{},
-		Deployments:  map[string]DeploymentV1{},
-		APIProtocols: map[string]APIProtocolV1{},
+	c := &Catalog{
+		Providers:    map[string]Provider{},
+		Deployments:  map[string]Deployment{},
+		Protocols: map[string]Protocol{},
 	}
 	EnsureCredentialRegistryInCatalog(c)
 	for _, spec := range registry.DefaultRegistry.All() {
@@ -127,14 +127,14 @@ func TestEnsureCredentialRegistryInCatalog_AddsMissingProviders(t *testing.T) {
 
 func TestEnsureCredentialRegistryInCatalog_PreservesExisting(t *testing.T) {
 	t.Parallel()
-	c := &CatalogV1{
-		Providers: map[string]ProviderV1{
+	c := &Catalog{
+		Providers: map[string]Provider{
 			"anthropic": {ID: "anthropic", Name: "Custom Anthropic"},
 		},
-		Deployments: map[string]DeploymentV1{
+		Deployments: map[string]Deployment{
 			"anthropic-direct": {ID: "anthropic-direct", Name: "Custom Anthropic Direct"},
 		},
-		APIProtocols: map[string]APIProtocolV1{},
+		Protocols: map[string]Protocol{},
 	}
 	EnsureCredentialRegistryInCatalog(c)
 	if c.Providers["anthropic"].Name != "Custom Anthropic" {
@@ -152,8 +152,8 @@ func TestEnsureCredentialRegistryInCatalog_NilCatalog(t *testing.T) {
 
 func TestProviderIDsFromCompiled_LegacyCatalog(t *testing.T) {
 	t.Parallel()
-	c := testLegacyCatalogV1()
-	compiled, _ := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
 	ids := ProviderIDsFromCompiled(compiled)
 	if len(ids) == 0 {
 		t.Fatal("expected provider IDs")
@@ -180,8 +180,8 @@ func TestProviderIDsFromCompiled_ReturnsNilForNil(t *testing.T) {
 
 func TestPrimaryAPIKeyEnvForProvider_LegacyCatalog(t *testing.T) {
 	t.Parallel()
-	c := testLegacyCatalogV1()
-	compiled, _ := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
 	tests := []struct {
 		provider, wantEnv string
 	}{
@@ -206,8 +206,8 @@ func TestPrimaryAPIKeyEnvForProvider_ReturnsEmptyForNilCompiled(t *testing.T) {
 
 func TestCredentialStatusForProvider_LegacyCatalog(t *testing.T) {
 	t.Parallel()
-	c := testLegacyCatalogV1()
-	compiled, _ := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
 	if got := CredentialStatusForProvider(compiled, "anthropic"); got != "required" {
 		t.Errorf("anthropic status = %q, want required", got)
 	}
