@@ -53,6 +53,9 @@ type ProviderConfig struct {
 	XiaomiMimoTokenPlanRegion  string                      `json:"xiaomi_mimo_token_plan_region,omitempty"`
 	MiniMaxTokenPlanBaseURL    string                      `json:"minimax_token_plan_base_url,omitempty"`
 	MiniMaxPaygBaseURL         string                      `json:"minimax_payg_base_url,omitempty"`
+	PoolsideAPIKey             string                      `json:"poolside_api_key,omitempty"`
+	PoolsideBaseURL            string                      `json:"poolside_base_url,omitempty"`
+	PoolsideModel              string                      `json:"poolside_model,omitempty"`
 	MiniMaxModel               string                      `json:"minimax_model,omitempty"`
 	AnthropicModel             string                      `json:"anthropic_model,omitempty"`
 	OpenAIModel                string                      `json:"openai_model,omitempty"`
@@ -164,6 +167,11 @@ var providerFields = map[string]providerFieldMap{
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.GrokAPIKey, c.XAIAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.GrokModel, c.XAIModel} },
 		BaseURL: func(c *ProviderConfig) string { return firstNonEmpty(c.GrokBaseURL, c.XAIBaseURL) },
+	},
+	ProviderPoolside: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.PoolsideAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.PoolsideModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.PoolsideBaseURL },
 	},
 	ProviderGemini: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.GeminiAPIKey} },
@@ -462,6 +470,8 @@ func ClearProviderRuntimeEnv() {
 		"GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL",
 		"OLLAMA_BASE_URL",
 		"OPENCODEGO_API_KEY", "OPENCODEGO_MODEL", "OPENCODEGO_BASE_URL",
+		"GROQ_API_KEY", "GROQ_MODEL", "GROQ_BASE_URL",
+		"POOLSIDE_API_KEY", "POOLSIDE_MODEL", "POOLSIDE_BASE_URL",
 		"MOONSHOT_API_KEY", "MOONSHOT_MODEL", "MOONSHOT_BASE_URL",
 		"XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
 		"XIAOMI_MIMO_TOKEN_PLAN_REGION", "XIAOMI_MODEL", "XIAOMI_BASE_URL",
@@ -569,6 +579,14 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		}
 		collectEnvValue(env, "XAI_API_KEY", apiKey, overwrite)
 		collectOpenAICompatibleProvider(env, "XAI", apiKey, m, base, overwrite)
+	case ProviderPoolside:
+		apiKey := AsNonEmptyString(config.PoolsideAPIKey)
+		base := firstNonEmpty(config.PoolsideBaseURL, "https://api.poolside.ai/v1")
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("poolside", cat)
+		}
+		collectOpenAICompatibleProvider(env, "POOLSIDE", apiKey, m, base, overwrite)
 	case ProviderCanopyWave:
 		apiKey := AsNonEmptyString(config.CanopyWaveAPIKey)
 		base := firstNonEmpty(config.CanopyWaveBaseURL, DefaultCanopyWaveOpenAIBaseURL)
