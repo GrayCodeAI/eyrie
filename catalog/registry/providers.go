@@ -188,7 +188,7 @@ func providerSpecs() []ProviderSpec {
 			ProviderID: "clinepass", DisplayName: "ClinePass", DeploymentID: "clinepass", SortOrder: 20, ChatPreference: 22,
 			RequiresKey: true, CredentialEnv: "CLINE_API_KEY",
 			BaseURLEnv: []string{"CLINE_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
-			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.cline.bot/api/v1",
+			ProbeKind:      ProbeNone,
 			LiveFetcherKey: "clinepass", LiveCatalogKey: "clinepass",
 			APIProtocolID: "openai-chat-completions", AdapterID: "clinepass", RuntimeProfileKey: "clinepass",
 		},

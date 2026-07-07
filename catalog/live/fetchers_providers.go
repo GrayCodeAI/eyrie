@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
@@ -597,11 +598,39 @@ func FetchGroq(env map[string]string) ([]Entry, error) {
 	)
 }
 
-// FetchClinePass lists models from the ClinePass OpenAI-compatible API.
+// FetchClinePass returns a curated list of known ClinePass models.
+// ClinePass does not expose a GET /models endpoint, so we return a
+// static list based on official documentation at docs.cline.bot.
 func FetchClinePass(env map[string]string) ([]Entry, error) {
-	return fetchOpenAICompatModels(
-		context.Background(),
-		envOr(env, "CLINE_API_BASE", DefaultClinePassBaseURL),
-		env["CLINE_API_KEY"], "Bearer",
-	)
+	apiKey := strings.TrimSpace(env["CLINE_API_KEY"])
+	if apiKey == "" {
+		return nil, nil
+	}
+	now := time.Now().Unix()
+	models := []struct {
+		id, name, owner string
+		ctx, maxOut     int
+	}{
+		{"cline-pass/deepseek-v4-pro", "DeepSeek V4 Pro", "deepseek", 131072, 8192},
+		{"cline-pass/deepseek-v4-flash", "DeepSeek V4 Flash", "deepseek", 131072, 8192},
+		{"cline-pass/glm-5.2", "GLM 5.2", "zhipu", 131072, 8192},
+		{"cline-pass/kimi-k2.7-code", "Kimi K2.7 Code", "moonshot", 131072, 8192},
+		{"cline-pass/kimi-k2.6", "Kimi K2.6", "moonshot", 131072, 8192},
+		{"cline-pass/minimax-m3", "MiniMax M3", "minimax", 131072, 8192},
+		{"cline-pass/mimo-v2.5-pro", "MiMo V2.5 Pro", "xiaomi", 131072, 8192},
+		{"cline-pass/mimo-v2.5", "MiMo V2.5", "xiaomi", 131072, 8192},
+		{"cline-pass/qwen3.7-max", "Qwen 3.7 Max", "qwen", 131072, 8192},
+		{"cline-pass/qwen3.7-plus", "Qwen 3.7 Plus", "qwen", 131072, 8192},
+	}
+	var entries []Entry
+	for _, m := range models {
+		entry, _ := entryFromOpenAICompatJSON(json.RawMessage(fmt.Sprintf(
+			`{"id":%q,"name":%q,"owned_by":%q,"context_length":%d,"max_completion_tokens":%d,"created":%d}`,
+			m.id, m.name, m.owner, m.ctx, m.maxOut, now,
+		)))
+		if entry.ID != "" {
+			entries = append(entries, entry)
+		}
+	}
+	return entries, nil
 }
