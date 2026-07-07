@@ -610,18 +610,19 @@ func FetchClinePass(env map[string]string) ([]Entry, error) {
 	models := []struct {
 		id, name, owner string
 		ctx, maxOut     int
+		inPrice, outPrice float64 // per 1M tokens (OpenRouter pricing), 0 = free
 	}{
-		{"cline-pass/deepseek-v4-pro", "DeepSeek V4 Pro", "deepseek", 131072, 8192},
-		{"cline-pass/deepseek-v4-flash", "DeepSeek V4 Flash", "deepseek", 131072, 8192},
-		{"cline-pass/glm-5.2", "GLM 5.2", "zhipu", 131072, 8192},
-		{"cline-pass/kimi-k2.7-code", "Kimi K2.7 Code", "moonshot", 131072, 8192},
-		{"cline-pass/kimi-k2.6", "Kimi K2.6", "moonshot", 131072, 8192},
-		{"cline-pass/minimax-m3", "MiniMax M3", "minimax", 131072, 8192},
-		{"cline-pass/mimo-v2.5-pro", "MiMo V2.5 Pro", "xiaomi", 131072, 8192},
-		{"cline-pass/mimo-v2.5", "MiMo V2.5", "xiaomi", 131072, 8192},
-		{"cline-pass/qwen3.7-max", "Qwen 3.7 Max", "qwen", 131072, 8192},
-		{"cline-pass/qwen3.7-plus", "Qwen 3.7 Plus", "qwen", 131072, 8192},
-		{"cline-pass/poolside-laguna-m.1-free", "Poolside Laguna M.1 (Free)", "poolside", 262144, 32768},
+		{"cline-pass/deepseek-v4-pro", "DeepSeek V4 Pro", "deepseek", 131072, 8192, 0.435, 0.87},
+		{"cline-pass/deepseek-v4-flash", "DeepSeek V4 Flash", "deepseek", 131072, 8192, 0.09, 0.18},
+		{"cline-pass/glm-5.2", "GLM 5.2", "zhipu", 131072, 8192, 0.90, 2.86},
+		{"cline-pass/kimi-k2.7-code", "Kimi K2.7 Code", "moonshot", 131072, 8192, 0.74, 3.50},
+		{"cline-pass/kimi-k2.6", "Kimi K2.6", "moonshot", 131072, 8192, 0.66, 3.41},
+		{"cline-pass/minimax-m3", "MiniMax M3", "minimax", 131072, 8192, 0.30, 1.20},
+		{"cline-pass/mimo-v2.5-pro", "MiMo V2.5 Pro", "xiaomi", 131072, 8192, 0.435, 0.87},
+		{"cline-pass/mimo-v2.5", "MiMo V2.5", "xiaomi", 131072, 8192, 0.105, 0.28},
+		{"cline-pass/qwen3.7-max", "Qwen 3.7 Max", "qwen", 131072, 8192, 1.25, 3.75},
+		{"cline-pass/qwen3.7-plus", "Qwen 3.7 Plus", "qwen", 131072, 8192, 0.32, 1.28},
+		{"cline-pass/poolside-laguna-m.1-free", "Poolside Laguna M.1 (Free)", "poolside", 262144, 32768, 0, 0},
 	}
 	var entries []Entry
 	for _, m := range models {
@@ -630,6 +631,8 @@ func FetchClinePass(env map[string]string) ([]Entry, error) {
 			m.id, m.name, m.owner, m.ctx, m.maxOut, now,
 		)))
 		if entry.ID != "" {
+			entry.InputPricePer1M = m.inPrice
+			entry.OutputPricePer1M = m.outPrice
 			entries = append(entries, entry)
 		}
 	}
