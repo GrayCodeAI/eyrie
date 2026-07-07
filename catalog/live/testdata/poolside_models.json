@@ -1,0 +1,52 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "poolside/laguna-m.1",
+      "object": "model",
+      "created": 1773321358,
+      "owned_by": "poolside",
+      "name": "Poolside: Laguna M.1",
+      "description": "Poolside's most capable coding agent model",
+      "context_length": 262144,
+      "max_completion_tokens": 32768,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0",
+        "image": "0",
+        "request": "0",
+        "input_cache_read": "0"
+      },
+      "supported_sampling_parameters": ["temperature"],
+      "supported_features": ["tools", "reasoning"],
+      "input_modalities": ["text"],
+      "output_modalities": ["text"],
+      "is_free": true
+    },
+    {
+      "id": "poolside/laguna-xs.2",
+      "object": "model",
+      "created": 1776776074,
+      "owned_by": "poolside",
+      "name": "Poolside: Laguna XS.2",
+      "description": "Poolside's second-generation coding agent model in the XS size class",
+      "context_length": 262144,
+      "max_completion_tokens": 32768,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0",
+        "image": "0",
+        "request": "0",
+        "input_cache_read": "0"
+      },
+      "supported_sampling_parameters": ["temperature"],
+      "supported_features": ["tools", "reasoning"],
+      "input_modalities": ["text"],
+      "output_modalities": ["text"],
+      "hugging_face_id": "poolside/Laguna-XS.2",
+      "is_free": true,
+      "discount_to_user": 0.0,
+      "deprecation_date": "2026-07-09"
+    }
+  ]
+}
