@@ -33,6 +33,13 @@ func TestFetchClinePass_ReturnsStaticList(t *testing.T) {
 			t.Errorf("entry[%d].ID = %q, want %q", i, e.ID, expected[i])
 		}
 	}
+	// Verify OpenRouter pricing (poolside is free).
+	if entries[0].InputPricePer1M != 1.74 || entries[0].OutputPricePer1M != 3.48 {
+		t.Errorf("deepseek-v4-pro: in=%f out=%f, want 1.74/3.48", entries[0].InputPricePer1M, entries[0].OutputPricePer1M)
+	}
+	if entries[10].InputPricePer1M != 0 || entries[10].OutputPricePer1M != 0 {
+		t.Errorf("poolside: in=%f out=%f, want 0/0", entries[10].InputPricePer1M, entries[10].OutputPricePer1M)
+	}
 }
 
 func TestFetchClinePass_NoKey(t *testing.T) {
