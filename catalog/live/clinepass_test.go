@@ -12,8 +12,8 @@ func TestFetchClinePass_ReturnsStaticList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 10 {
-		t.Fatalf("expected 10 curated models, got %d", len(entries))
+	if len(entries) != 11 {
+		t.Fatalf("expected 11 curated models, got %d", len(entries))
 	}
 	expected := []string{
 		"cline-pass/deepseek-v4-pro",
@@ -26,6 +26,7 @@ func TestFetchClinePass_ReturnsStaticList(t *testing.T) {
 		"cline-pass/mimo-v2.5",
 		"cline-pass/qwen3.7-max",
 		"cline-pass/qwen3.7-plus",
+		"cline-pass/poolside-laguna-m.1-free",
 	}
 	for i, e := range entries {
 		if e.ID != expected[i] {

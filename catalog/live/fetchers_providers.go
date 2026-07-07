@@ -621,6 +621,7 @@ func FetchClinePass(env map[string]string) ([]Entry, error) {
 		{"cline-pass/mimo-v2.5", "MiMo V2.5", "xiaomi", 131072, 8192},
 		{"cline-pass/qwen3.7-max", "Qwen 3.7 Max", "qwen", 131072, 8192},
 		{"cline-pass/qwen3.7-plus", "Qwen 3.7 Plus", "qwen", 131072, 8192},
+		{"cline-pass/poolside-laguna-m.1-free", "Poolside Laguna M.1 (Free)", "poolside", 262144, 32768},
 	}
 	var entries []Entry
 	for _, m := range models {
