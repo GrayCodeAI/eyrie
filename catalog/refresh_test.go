@@ -8,8 +8,8 @@ import (
 
 func TestRefreshResult_DiscoverReport(t *testing.T) {
 	t.Parallel()
-	def := testLegacyCatalogV1()
-	compiled, err := CompileCatalogV1(&def)
+	def := SeedCatalog()
+	compiled, err := CompileCatalog(&def)
 	if err != nil {
 		t.Fatalf("compile: %v", err)
 	}
@@ -41,8 +41,8 @@ func TestRefreshResult_DiscoverReport(t *testing.T) {
 
 func TestRefreshResult_DiscoverReport_NoLiveAPIs(t *testing.T) {
 	t.Parallel()
-	def := testLegacyCatalogV1()
-	compiled, err := CompileCatalogV1(&def)
+	def := SeedCatalog()
+	compiled, err := CompileCatalog(&def)
 	if err != nil {
 		t.Fatalf("compile: %v", err)
 	}

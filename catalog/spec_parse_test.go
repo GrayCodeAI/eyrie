@@ -6,19 +6,29 @@ import (
 	"time"
 )
 
-// --- ParseCatalogV1 tests ---
+// --- ParseCatalog tests ---
 
-func TestParseCatalogV1_V1Format(t *testing.T) {
-	c := testLegacyCatalogV1()
+func TestParseCatalog_V1Format(t *testing.T) {
+	c := SeedCatalog()
+	_ = c
 	data, err := json.Marshal(c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed, err := ParseCatalogV1(data)
-	if err != nil {
-		t.Fatalf("ParseCatalogV1 failed: %v", err)
+	// Debug: show offerings count
+	if len(c.Offerings) == 0 {
+		t.Log("DEBUG: SeedCatalog has 0 offerings")
+	} else {
+		t.Logf("DEBUG: SeedCatalog has %d offerings", len(c.Offerings))
 	}
-	if parsed.SchemaVersion != CatalogV1SchemaVersion {
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := ParseCatalog(data)
+	if err != nil {
+		t.Fatalf("ParseCatalog failed: %v", err)
+	}
+	if parsed.SchemaVersion != CatalogSchemaVersion {
 		t.Fatalf("schema_version = %q", parsed.SchemaVersion)
 	}
 	if len(parsed.Models) == 0 {
@@ -26,32 +36,26 @@ func TestParseCatalogV1_V1Format(t *testing.T) {
 	}
 }
 
-func TestParseCatalogV1_LegacyFormat(t *testing.T) {
-	legacy := testLegacyModelCatalog()
+func TestParseCatalog_LegacyFormatRejected(t *testing.T) {
+	legacy := testModelCatalog()
 	data, err := json.Marshal(legacy)
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed, err := ParseCatalogV1(data)
-	if err != nil {
-		t.Fatalf("ParseCatalogV1 legacy failed: %v", err)
-	}
-	if parsed.SchemaVersion != CatalogV1SchemaVersion {
-		t.Fatalf("schema_version = %q, want %q", parsed.SchemaVersion, CatalogV1SchemaVersion)
-	}
-	if len(parsed.Offerings) == 0 {
-		t.Fatal("expected offerings from legacy conversion")
+	_, err = ParseCatalog(data)
+	if err == nil {
+		t.Fatal("expected error for legacy ModelCatalog format")
 	}
 }
 
-func TestParseCatalogV1_InvalidJSON(t *testing.T) {
-	_, err := ParseCatalogV1([]byte(`not json`))
+func TestParseCatalog_InvalidJSON(t *testing.T) {
+	_, err := ParseCatalog([]byte(`not json`))
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
 	}
 }
 
-func TestParseCatalogV1_StrictV1RejectsUnknownFields(t *testing.T) {
+func TestParseCatalog_StrictV1RejectsUnknownFields(t *testing.T) {
 	data := []byte(`{
 		"schema_version": "model-catalog/v1",
 		"unknown_field": true,
@@ -63,56 +67,56 @@ func TestParseCatalogV1_StrictV1RejectsUnknownFields(t *testing.T) {
 		"models": {},
 		"offerings": []
 	}`)
-	_, err := ParseCatalogV1(data)
+	_, err := ParseCatalog(data)
 	if err == nil {
 		t.Fatal("expected error for unknown fields in v1 format")
 	}
 }
 
-// --- ValidateCatalogV1 tests ---
+// --- ValidateCatalog tests ---
 
-func TestValidateCatalogV1_NilCatalog(t *testing.T) {
-	if err := ValidateCatalogV1(nil); err == nil {
+func TestValidateCatalog_NilCatalog(t *testing.T) {
+	if err := ValidateCatalog(nil); err == nil {
 		t.Fatal("expected error for nil catalog")
 	}
 }
 
-func TestValidateCatalogV1_BadSchemaVersion(t *testing.T) {
-	c := testLegacyCatalogV1()
+func TestValidateCatalog_BadSchemaVersion(t *testing.T) {
+	c := SeedCatalog()
 	c.SchemaVersion = "wrong"
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for wrong schema_version")
 	}
 }
 
-func TestValidateCatalogV1_MissingGeneratedAt(t *testing.T) {
-	c := testLegacyCatalogV1()
+func TestValidateCatalog_MissingGeneratedAt(t *testing.T) {
+	c := SeedCatalog()
 	c.GeneratedAt = time.Time{}
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for zero generated_at")
 	}
 }
 
-func TestValidateCatalogV1_StaleAfterBeforeGeneratedAt(t *testing.T) {
-	c := testLegacyCatalogV1()
+func TestValidateCatalog_StaleAfterBeforeGeneratedAt(t *testing.T) {
+	c := SeedCatalog()
 	c.GeneratedAt = time.Now().UTC()
 	c.StaleAfter = c.GeneratedAt.Add(-time.Hour)
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error when stale_after < generated_at")
 	}
 }
 
-func TestValidateCatalogV1_BadProviderIDMismatch(t *testing.T) {
-	c := testLegacyCatalogV1()
-	c.Providers["bad"] = ProviderV1{ID: "mismatch", Name: "Bad"}
-	if err := ValidateCatalogV1(&c); err == nil {
+func TestValidateCatalog_BadProviderIDMismatch(t *testing.T) {
+	c := SeedCatalog()
+	c.Providers["bad"] = Provider{ID: "mismatch", Name: "Bad"}
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for provider ID mismatch")
 	}
 }
 
-func TestValidateCatalogV1_BadDeploymentProviderRef(t *testing.T) {
-	c := testLegacyCatalogV1()
-	c.Deployments["bad-dep"] = DeploymentV1{
+func TestValidateCatalog_BadDeploymentProviderRef(t *testing.T) {
+	c := SeedCatalog()
+	c.Deployments["bad-dep"] = Deployment{
 		ID:                  "bad-dep",
 		Name:                "Bad",
 		ProviderID:          "nonexistent",
@@ -120,14 +124,14 @@ func TestValidateCatalogV1_BadDeploymentProviderRef(t *testing.T) {
 		AdapterConstructor:  "openai",
 		NativeModelIDSource: NativeModelIDCatalogKnown,
 	}
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for bad provider reference in deployment")
 	}
 }
 
-func TestValidateCatalogV1_BadDeploymentProtocolRef(t *testing.T) {
-	c := testLegacyCatalogV1()
-	c.Deployments["bad-dep"] = DeploymentV1{
+func TestValidateCatalog_BadDeploymentProtocolRef(t *testing.T) {
+	c := SeedCatalog()
+	c.Deployments["bad-dep"] = Deployment{
 		ID:                  "bad-dep",
 		Name:                "Bad",
 		ProviderID:          "openai",
@@ -135,85 +139,85 @@ func TestValidateCatalogV1_BadDeploymentProtocolRef(t *testing.T) {
 		AdapterConstructor:  "openai",
 		NativeModelIDSource: NativeModelIDCatalogKnown,
 	}
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for bad api_protocol reference in deployment")
 	}
 }
 
-func TestValidateCatalogV1_BadModelProviderRef(t *testing.T) {
-	c := testLegacyCatalogV1()
-	c.Models["bad/model"] = ModelV1{
+func TestValidateCatalog_BadModelProviderRef(t *testing.T) {
+	c := SeedCatalog()
+	c.Models["bad/model"] = Model{
 		ID:         "bad/model",
 		ProviderID: "nonexistent",
 		Name:       "Bad Model",
 	}
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for bad provider reference in model")
 	}
 }
 
-func TestValidateCatalogV1_DuplicateOffering(t *testing.T) {
-	c := testLegacyCatalogV1()
+func TestValidateCatalog_DuplicateOffering(t *testing.T) {
+	c := SeedCatalog()
 	c.Offerings = append(c.Offerings, c.Offerings[0])
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for duplicate offering")
 	}
 }
 
-func TestValidateCatalogV1_OfferingBadModelRef(t *testing.T) {
-	c := testLegacyCatalogV1()
-	c.Offerings = append(c.Offerings, ModelOfferingV1{
+func TestValidateCatalog_OfferingBadModelRef(t *testing.T) {
+	c := SeedCatalog()
+	c.Offerings = append(c.Offerings, ModelOffering{
 		ID:               "anthropic-direct:fake",
 		CanonicalModelID: "nonexistent/model",
 		DeploymentID:     "anthropic-direct",
 		NativeModelID:    "fake",
-		Pricing:          PricingV1{Status: PricingUnknown},
+		Pricing:          Pricing{Status: PricingUnknown},
 	})
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for offering referencing unknown model")
 	}
 }
 
-func TestValidateCatalogV1_InvalidPricingStatus(t *testing.T) {
-	c := testLegacyCatalogV1()
-	c.Offerings[0].Pricing = PricingV1{Status: "invalid_status"}
-	if err := ValidateCatalogV1(&c); err == nil {
+func TestValidateCatalog_InvalidPricingStatus(t *testing.T) {
+	c := SeedCatalog()
+	c.Offerings[0].Pricing = Pricing{Status: "invalid_status"}
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for invalid pricing status")
 	}
 }
 
-func TestValidateCatalogV1_InvalidCapabilityState(t *testing.T) {
-	c := testLegacyCatalogV1()
-	c.Offerings[0].Capabilities = CapabilitySetV1{
+func TestValidateCatalog_InvalidCapabilityState(t *testing.T) {
+	c := SeedCatalog()
+	c.Offerings[0].Capabilities = CapabilitySet{
 		FunctionCalling: "invalid_state",
 	}
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected error for invalid capability state")
 	}
 }
 
-func TestValidateCatalogV1_ValidBootstrapCatalog(t *testing.T) {
-	c := BootstrapCatalogV1()
-	if err := ValidateCatalogV1(&c); err != nil {
+func TestValidateCatalog_ValidBootstrapCatalog(t *testing.T) {
+	c := BootstrapCatalog()
+	if err := ValidateCatalog(&c); err != nil {
 		t.Fatalf("bootstrap catalog should validate: %v", err)
 	}
 }
 
-// --- SplitOfferingIDV1 tests ---
+// --- SplitOfferingID tests ---
 
-func TestSplitOfferingIDV1_Valid(t *testing.T) {
-	dep, native, ok := SplitOfferingIDV1("anthropic-direct:claude-sonnet-4-6")
+func TestSplitOfferingID_Valid(t *testing.T) {
+	dep, native, ok := SplitOfferingID("anthropic-direct:claude-sonnet-4-6")
 	if !ok || dep != "anthropic-direct" || native != "claude-sonnet-4-6" {
 		t.Fatalf("got (%q, %q, %v)", dep, native, ok)
 	}
 }
 
-func TestSplitOfferingIDV1_Invalid(t *testing.T) {
+func TestSplitOfferingID_Invalid(t *testing.T) {
 	tests := []string{"", "nocolon", ":empty-left", "empty-right:"}
 	for _, id := range tests {
-		_, _, ok := SplitOfferingIDV1(id)
+		_, _, ok := SplitOfferingID(id)
 		if ok {
-			t.Errorf("SplitOfferingIDV1(%q) should return ok=false", id)
+			t.Errorf("SplitOfferingID(%q) should return ok=false", id)
 		}
 	}
 }
@@ -258,25 +262,6 @@ func TestValidNativeModelIDSource(t *testing.T) {
 	}
 }
 
-// --- canonicalModelID tests ---
-
-func TestCanonicalModelID(t *testing.T) {
-	tests := []struct {
-		provider, native, want string
-	}{
-		{"anthropic", "claude-sonnet-4-6", "anthropic/claude-sonnet-4-6"},
-		{"openai", "gpt-4o", "openai/gpt-4o"},
-		{"openrouter", "anthropic/claude-sonnet-4-6", "openrouter/anthropic/claude-sonnet-4-6"},
-		{"zai_payg", "zai/glm-5.1", "zai_payg/glm-5.1"},
-	}
-	for _, tt := range tests {
-		got := canonicalModelID(tt.provider, tt.native)
-		if got != tt.want {
-			t.Errorf("canonicalModelID(%q, %q) = %q, want %q", tt.provider, tt.native, got, tt.want)
-		}
-	}
-}
-
 // --- canonicalProviderID tests ---
 
 func TestCanonicalProviderID(t *testing.T) {
@@ -302,110 +287,15 @@ func TestCanonicalProviderID(t *testing.T) {
 	}
 }
 
-// --- CatalogV1FromLegacy additional tests ---
+// --- sanitizePricing tests ---
 
-func TestCatalogV1FromLegacy_ProducesValidCatalog(t *testing.T) {
-	legacy := testLegacyModelCatalog()
-	c := CatalogV1FromLegacy(legacy)
-	if err := ValidateCatalogV1(&c); err != nil {
-		t.Fatalf("CatalogV1FromLegacy produced invalid catalog: %v", err)
-	}
-}
-
-func TestCatalogV1FromLegacy_PreservesTimestamp(t *testing.T) {
-	legacy := testLegacyModelCatalog()
-	legacy.UpdatedAt = "2026-01-15T12:00:00Z"
-	c := CatalogV1FromLegacy(legacy)
-	ts, err := time.Parse(time.RFC3339, "2026-01-15T12:00:00Z")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !c.GeneratedAt.Equal(ts) {
-		t.Fatalf("generated_at = %v, want %v", c.GeneratedAt, ts)
-	}
-}
-
-func TestCatalogV1FromLegacy_SkipsEmptyNativeIDs(t *testing.T) {
-	legacy := testLegacyModelCatalog()
-	legacy.Providers["anthropic"] = append(
-		legacy.Providers["anthropic"],
-		ModelCatalogEntry{ID: "", DisplayName: "Empty"},
-		ModelCatalogEntry{ID: "  ", DisplayName: "Whitespace"},
-	)
-	c := CatalogV1FromLegacy(legacy)
-	for _, o := range c.Offerings {
-		if o.NativeModelID == "" || o.NativeModelID == "  " {
-			t.Fatalf("should skip empty native IDs, found %q", o.NativeModelID)
-		}
-	}
-}
-
-func TestCatalogV1FromLegacy_SkipsUnknownProviders(t *testing.T) {
-	legacy := testLegacyModelCatalog()
-	legacy.Providers["unknown_provider"] = []ModelCatalogEntry{
-		{ID: "some-model"},
-	}
-	c := CatalogV1FromLegacy(legacy)
-	for _, o := range c.Offerings {
-		if o.DeploymentID == "" {
-			t.Fatal("should skip unknown providers")
-		}
-	}
-}
-
-// --- pricingFromLegacy tests ---
-
-func TestPricingFromLegacy_KnownPricing(t *testing.T) {
-	entry := ModelCatalogEntry{InputPricePer1M: 3, OutputPricePer1M: 15}
-	now := time.Now().UTC()
-	p := pricingFromLegacy(entry, now, "test")
-	if p.Status != PricingKnown {
-		t.Fatalf("status = %q, want known", p.Status)
-	}
-	if p.RatesPer1M["input_tokens"] != 3 || p.RatesPer1M["output_tokens"] != 15 {
-		t.Fatalf("rates = %v", p.RatesPer1M)
-	}
-}
-
-func TestPricingFromLegacy_NegativePricing(t *testing.T) {
-	entry := ModelCatalogEntry{InputPricePer1M: -1, OutputPricePer1M: 0}
-	now := time.Now().UTC()
-	p := pricingFromLegacy(entry, now, "test")
-	if p.Status != PricingUnknown {
-		t.Fatalf("status = %q, want unknown", p.Status)
-	}
-}
-
-func TestPricingFromLegacy_ZeroPricing(t *testing.T) {
-	entry := ModelCatalogEntry{InputPricePer1M: 0, OutputPricePer1M: 0}
-	now := time.Now().UTC()
-	p := pricingFromLegacy(entry, now, "test")
-	if p.Status != PricingUnknown {
-		t.Fatalf("status = %q, want unknown", p.Status)
-	}
-	if p.RatesPer1M != nil {
-		t.Fatal("zero pricing should have nil rates")
-	}
-}
-
-func TestPricingFromLegacy_FreeModel(t *testing.T) {
-	entry := ModelCatalogEntry{ID: "model:free", InputPricePer1M: 0, OutputPricePer1M: 0}
-	now := time.Now().UTC()
-	p := pricingFromLegacy(entry, now, "test")
-	if p.Status != PricingFree {
-		t.Fatalf("status = %q, want free", p.Status)
-	}
-}
-
-// --- sanitizePricingV1 tests ---
-
-func TestSanitizePricingV1_DropsNegativeRates(t *testing.T) {
-	p := PricingV1{
+func TestSanitizePricing_DropsNegativeRates(t *testing.T) {
+	p := Pricing{
 		Status:     PricingKnown,
 		Currency:   "USD",
 		RatesPer1M: map[string]float64{"input_tokens": 3, "output_tokens": -1},
 	}
-	cleaned := sanitizePricingV1(p)
+	cleaned := sanitizePricing(p)
 	if _, ok := cleaned.RatesPer1M["output_tokens"]; ok {
 		t.Error("negative rate should be dropped")
 	}
@@ -414,13 +304,13 @@ func TestSanitizePricingV1_DropsNegativeRates(t *testing.T) {
 	}
 }
 
-func TestSanitizePricingV1_AllNegativeBecomesUnknown(t *testing.T) {
-	p := PricingV1{
+func TestSanitizePricing_AllNegativeBecomesUnknown(t *testing.T) {
+	p := Pricing{
 		Status:     PricingKnown,
 		Currency:   "USD",
 		RatesPer1M: map[string]float64{"input_tokens": -1, "output_tokens": -2},
 	}
-	cleaned := sanitizePricingV1(p)
+	cleaned := sanitizePricing(p)
 	if cleaned.Status != PricingUnknown {
 		t.Fatalf("status = %q, want unknown", cleaned.Status)
 	}
@@ -429,13 +319,13 @@ func TestSanitizePricingV1_AllNegativeBecomesUnknown(t *testing.T) {
 	}
 }
 
-func TestSanitizePricingV1_EmptyRatesMapReturnsUnchanged(t *testing.T) {
-	p := PricingV1{
+func TestSanitizePricing_EmptyRatesMapReturnsUnchanged(t *testing.T) {
+	p := Pricing{
 		Status:     PricingKnown,
 		Currency:   "USD",
 		RatesPer1M: map[string]float64{},
 	}
-	cleaned := sanitizePricingV1(p)
+	cleaned := sanitizePricing(p)
 	// Empty rates map returns early (len == 0) without modifying status
 	if cleaned.Status != PricingKnown {
 		t.Fatalf("status = %q, want known (empty map returns unchanged)", cleaned.Status)
@@ -457,13 +347,13 @@ func TestUniqueNonEmpty(t *testing.T) {
 	}
 }
 
-// --- CompileCatalogV1 tests ---
+// --- CompileCatalog tests ---
 
-func TestCompileCatalogV1_BuildsIndexes(t *testing.T) {
-	c := testLegacyCatalogV1()
-	compiled, err := CompileCatalogV1(&c)
+func TestCompileCatalog_BuildsIndexes(t *testing.T) {
+	c := SeedCatalog()
+	compiled, err := CompileCatalog(&c)
 	if err != nil {
-		t.Fatalf("CompileCatalogV1: %v", err)
+		t.Fatalf("CompileCatalog: %v", err)
 	}
 	if len(compiled.OfferingsByID) != len(c.Offerings) {
 		t.Fatalf("OfferingsByID len = %d, want %d", len(compiled.OfferingsByID), len(c.Offerings))
@@ -481,26 +371,26 @@ func TestCompileCatalogV1_BuildsIndexes(t *testing.T) {
 	}
 }
 
-func TestCompileCatalogV1_AppliesEnvFallbacks(t *testing.T) {
-	c := testLegacyCatalogV1()
+func TestCompileCatalog_AppliesEnvFallbacks(t *testing.T) {
+	c := SeedCatalog()
 	// Remove env fallbacks to test that compile adds them
 	for id, dep := range c.Deployments {
 		dep.EnvFallbacks = nil
 		c.Deployments[id] = dep
 	}
-	compiled, err := CompileCatalogV1(&c)
+	compiled, err := CompileCatalog(&c)
 	if err != nil {
-		t.Fatalf("CompileCatalogV1: %v", err)
+		t.Fatalf("CompileCatalog: %v", err)
 	}
 	anthDep := compiled.DeploymentsByID["anthropic-direct"]
 	if len(anthDep.EnvFallbacks) == 0 {
-		t.Error("CompileCatalogV1 should apply env fallbacks")
+		t.Error("CompileCatalog should apply env fallbacks")
 	}
 }
 
-func TestCompileCatalogV1_InvalidCatalogFails(t *testing.T) {
-	c := CatalogV1{} // missing required fields
-	_, err := CompileCatalogV1(&c)
+func TestCompileCatalog_InvalidCatalogFails(t *testing.T) {
+	c := Catalog{} // missing required fields
+	_, err := CompileCatalog(&c)
 	if err == nil {
 		t.Fatal("expected error for invalid catalog")
 	}
@@ -509,8 +399,8 @@ func TestCompileCatalogV1_InvalidCatalogFails(t *testing.T) {
 // --- CanonicalModelForAliasOrID tests ---
 
 func TestCanonicalModelForAliasOrID_ByDirectID(t *testing.T) {
-	c := testLegacyCatalogV1()
-	compiled, _ := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
 	canonical, ok := compiled.CanonicalModelForAliasOrID("anthropic/claude-sonnet-4-6")
 	if !ok || canonical != "anthropic/claude-sonnet-4-6" {
 		t.Fatalf("got (%q, %v)", canonical, ok)
@@ -518,8 +408,8 @@ func TestCanonicalModelForAliasOrID_ByDirectID(t *testing.T) {
 }
 
 func TestCanonicalModelForAliasOrID_ByAlias(t *testing.T) {
-	c := testLegacyCatalogV1()
-	compiled, _ := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
 	canonical, ok := compiled.CanonicalModelForAliasOrID("claude-sonnet-4-6")
 	if !ok || canonical != "anthropic/claude-sonnet-4-6" {
 		t.Fatalf("got (%q, %v)", canonical, ok)
@@ -527,8 +417,8 @@ func TestCanonicalModelForAliasOrID_ByAlias(t *testing.T) {
 }
 
 func TestCanonicalModelForAliasOrID_NotFound(t *testing.T) {
-	c := testLegacyCatalogV1()
-	compiled, _ := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
 	_, ok := compiled.CanonicalModelForAliasOrID("nonexistent-model")
 	if ok {
 		t.Fatal("expected not found")
@@ -536,7 +426,7 @@ func TestCanonicalModelForAliasOrID_NotFound(t *testing.T) {
 }
 
 func TestCanonicalModelForAliasOrID_NilCompiled(t *testing.T) {
-	var c *CompiledCatalogV1
+	var c *CompiledCatalog
 	_, ok := c.CanonicalModelForAliasOrID("anything")
 	if ok {
 		t.Fatal("nil compiled should return false")
@@ -546,8 +436,8 @@ func TestCanonicalModelForAliasOrID_NilCompiled(t *testing.T) {
 // --- OfferingForDeployment tests ---
 
 func TestOfferingForDeployment_Found(t *testing.T) {
-	c := testLegacyCatalogV1()
-	compiled, _ := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
 	offering, ok := compiled.OfferingForDeployment("anthropic/claude-sonnet-4-6", "anthropic-direct")
 	if !ok {
 		t.Fatal("expected offering")
@@ -558,8 +448,8 @@ func TestOfferingForDeployment_Found(t *testing.T) {
 }
 
 func TestOfferingForDeployment_NotFound(t *testing.T) {
-	c := testLegacyCatalogV1()
-	compiled, _ := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
 	_, ok := compiled.OfferingForDeployment("anthropic/claude-sonnet-4-6", "nonexistent")
 	if ok {
 		t.Fatal("expected not found")
@@ -579,8 +469,8 @@ func TestResolvedRemoteCatalogURL_Default(t *testing.T) {
 	// Clear env var if set
 	t.Setenv("EYRIE_MODEL_CATALOG_URL", "")
 	got := ResolvedRemoteCatalogURL("")
-	if got != DefaultCatalogV1URL {
-		t.Fatalf("got %q, want %q", got, DefaultCatalogV1URL)
+	if got != SeedCatalogURL {
+		t.Fatalf("got %q, want %q", got, SeedCatalogURL)
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 
 // RefreshResult summarizes a strict remote catalog refresh (eyrie published catalog).
 type RefreshResult struct {
-	Compiled   *CompiledCatalogV1
+	Compiled   *CompiledCatalog
 	CachePath  string
 	Source     string // remote, cache, embedded, remote+providers
 	RemoteURL  string
@@ -47,22 +47,22 @@ func CacheInfo(cachePath string) (exists bool, modTime time.Time, size int64, er
 	return true, info.ModTime(), info.Size(), nil
 }
 
-// RefreshCatalogV1 fetches the published catalog, validates it, and writes the cache.
-// Unlike LoadCatalogV1 with RefreshRemote, this fails when the remote fetch fails so
+// RefreshCatalog fetches the published catalog, validates it, and writes the cache.
+// Unlike LoadCatalog with RefreshRemote, this fails when the remote fetch fails so
 // callers never treat a stale cache as a successful refresh.
-func RefreshCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*RefreshResult, error) {
+func RefreshCatalog(ctx context.Context, opts LoadCatalogOptions) (*RefreshResult, error) {
 	if opts.CachePath == "" {
 		opts.CachePath = DefaultCachePath()
 	}
 	opts.RemoteURL = ResolvedRemoteCatalogURL(opts.RemoteURL)
-	remote, err := FetchRemoteCatalogV1(ctx, opts)
+	remote, err := FetchRemoteCatalog(ctx, opts)
 	if err != nil {
 		return nil, fmt.Errorf("catalog refresh: %w", err)
 	}
-	if err := WriteCatalogV1Cache(opts.CachePath, remote); err != nil {
+	if err := WriteCatalogCache(opts.CachePath, remote); err != nil {
 		return nil, fmt.Errorf("catalog refresh: write cache: %w", err)
 	}
-	compiled, err := CompileCatalogV1(remote)
+	compiled, err := CompileCatalog(remote)
 	if err != nil {
 		return nil, fmt.Errorf("catalog refresh: compile: %w", err)
 	}

@@ -252,7 +252,7 @@ func ParseCustomHeaders() map[string]string {
 }
 
 var (
-	cachedCatalog   *catalog.CompiledCatalogV1
+	cachedCatalog   *catalog.CompiledCatalog
 	catalogLoadOnce sync.Once
 )
 
@@ -335,7 +335,7 @@ func NewAudioMessageWithText(text, base64Data, format string) EyrieMessage {
 // ResolveDefaultModel resolves the default model for a provider from the catalog.
 func ResolveDefaultModel(provider string) string {
 	catalogLoadOnce.Do(func() {
-		cat, err := catalog.LoadCatalogV1(context.Background(), catalog.LoadCatalogV1Options{})
+		cat, err := catalog.LoadCatalog(context.Background(), catalog.LoadCatalogOptions{})
 		if err == nil {
 			cachedCatalog = cat
 		}

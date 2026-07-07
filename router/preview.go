@@ -16,7 +16,7 @@ type RoutingResolution struct {
 }
 
 // ResolveRouting previews routing stages without calling provider APIs.
-func ResolveRouting(requested string, compiled *catalog.CompiledCatalogV1, policy RoutingPolicy) RoutingResolution {
+func ResolveRouting(requested string, compiled *catalog.CompiledCatalog, policy RoutingPolicy) RoutingResolution {
 	res := RoutingResolution{
 		RequestedModel: requested,
 		Stages:         nil,
@@ -38,7 +38,7 @@ func ResolveRouting(requested string, compiled *catalog.CompiledCatalogV1, polic
 }
 
 // RoutingPreviewJSON returns indented JSON for CLI / config UI.
-func RoutingPreviewJSON(requested string, compiled *catalog.CompiledCatalogV1, policy RoutingPolicy) (string, error) {
+func RoutingPreviewJSON(requested string, compiled *catalog.CompiledCatalog, policy RoutingPolicy) (string, error) {
 	res := ResolveRouting(requested, compiled, policy)
 	data, err := json.MarshalIndent(res, "", "  ")
 	if err != nil {
@@ -47,7 +47,7 @@ func RoutingPreviewJSON(requested string, compiled *catalog.CompiledCatalogV1, p
 	return string(data), nil
 }
 
-func resolveCanonicalModelID(requested string, compiled *catalog.CompiledCatalogV1) string {
+func resolveCanonicalModelID(requested string, compiled *catalog.CompiledCatalog) string {
 	if compiled == nil {
 		if strings.Contains(requested, "/") {
 			return requested
@@ -63,7 +63,7 @@ func resolveCanonicalModelID(requested string, compiled *catalog.CompiledCatalog
 	return ""
 }
 
-func resolveRoutingStages(canonicalModelID string, compiled *catalog.CompiledCatalogV1, policy RoutingPolicy) ([]RoutingStage, string) {
+func resolveRoutingStages(canonicalModelID string, compiled *catalog.CompiledCatalog, policy RoutingPolicy) ([]RoutingStage, string) {
 	if stages, ok := policy.Models[canonicalModelID]; ok && len(stages) > 0 {
 		return cloneRoutingStages(stages), "models"
 	}
@@ -89,7 +89,7 @@ func resolveRoutingStages(canonicalModelID string, compiled *catalog.CompiledCat
 	return automaticPreviewStages(canonicalModelID, compiled), "automatic"
 }
 
-func automaticPreviewStages(canonicalModelID string, compiled *catalog.CompiledCatalogV1) []RoutingStage {
+func automaticPreviewStages(canonicalModelID string, compiled *catalog.CompiledCatalog) []RoutingStage {
 	if compiled == nil {
 		return nil
 	}

@@ -57,8 +57,8 @@ func TestBuildRoutingPolicyFromDeployments_CanopyWave(t *testing.T) {
 
 func TestSyncProviderConfigFromCatalog(t *testing.T) {
 	t.Parallel()
-	bootstrap := catalog.BootstrapCatalogV1()
-	compiled, err := catalog.CompileCatalogV1(&bootstrap)
+	bootstrap := catalog.BootstrapCatalog()
+	compiled, err := catalog.CompileCatalog(&bootstrap)
 	if err != nil {
 		t.Fatal(err)
 	}

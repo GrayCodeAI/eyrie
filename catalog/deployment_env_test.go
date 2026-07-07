@@ -73,8 +73,8 @@ func TestDefaultDeploymentEnvFallbacks_ZAIHasZAIAPIBase(t *testing.T) {
 
 func TestEnsureDeploymentEnvFallbacks(t *testing.T) {
 	t.Parallel()
-	c := &CatalogV1{
-		Deployments: map[string]DeploymentV1{
+	c := &Catalog{
+		Deployments: map[string]Deployment{
 			"anthropic-direct": {ID: "anthropic-direct"},
 			"unknown-dep":      {ID: "unknown-dep"},
 		},

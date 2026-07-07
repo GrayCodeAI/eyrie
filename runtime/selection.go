@@ -14,7 +14,7 @@ import (
 
 type selectionRuntimeState struct {
 	ctx                     context.Context
-	compiled                *catalog.CompiledCatalogV1
+	compiled                *catalog.CompiledCatalog
 	compiledLoaded          bool
 	discoveryEnv            map[string]string
 	discoveryEnvLoaded      bool
@@ -33,7 +33,7 @@ func newSelectionRuntimeState(ctx context.Context) *selectionRuntimeState {
 	}
 }
 
-func (s *selectionRuntimeState) compiledCatalog() *catalog.CompiledCatalogV1 {
+func (s *selectionRuntimeState) compiledCatalog() *catalog.CompiledCatalog {
 	if s == nil {
 		return nil
 	}
@@ -360,7 +360,7 @@ func providerConfiguredWithState(state *selectionRuntimeState, provider string) 
 	if !ok {
 		return false
 	}
-	var compiled *catalog.CompiledCatalogV1
+	var compiled *catalog.CompiledCatalog
 	var env map[string]string
 	if state != nil {
 		compiled = state.compiledCatalog()

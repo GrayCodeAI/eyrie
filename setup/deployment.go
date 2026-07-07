@@ -61,7 +61,7 @@ func UseDeploymentRouting(cfg *config.ProviderConfig) bool {
 func DeploymentProvider(ctx context.Context, cfg *config.ProviderConfig) (client.Provider, error) {
 	home, _ := os.UserHomeDir()
 	cachePath := filepath.Join(home, ".eyrie", "model_catalog.json")
-	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
 		CachePath:     cachePath,
 		RefreshRemote: strings.EqualFold(os.Getenv("EYRIE_MODEL_CATALOG_REFRESH"), "true"),
 	})

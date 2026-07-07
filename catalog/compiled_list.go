@@ -10,7 +10,7 @@ import (
 
 // ModelEntriesForProvider lists models from a compiled v1 catalog for one provider.
 // New models appear here automatically when the eyrie catalog is updated — hosts must not hardcode IDs.
-func ModelEntriesForProvider(compiled *CompiledCatalogV1, provider string) []ModelCatalogEntry {
+func ModelEntriesForProvider(compiled *CompiledCatalog, provider string) []ModelCatalogEntry {
 	if compiled == nil {
 		return nil
 	}
@@ -24,7 +24,7 @@ func ModelEntriesForProvider(compiled *CompiledCatalogV1, provider string) []Mod
 	return modelEntriesByProviderID(compiled, provider)
 }
 
-func modelEntriesByProviderID(compiled *CompiledCatalogV1, provider string) []ModelCatalogEntry {
+func modelEntriesByProviderID(compiled *CompiledCatalog, provider string) []ModelCatalogEntry {
 	seen := map[string]bool{}
 	var out []ModelCatalogEntry
 	ids := make([]string, 0, len(compiled.ModelsByID))
@@ -48,7 +48,7 @@ func modelEntriesByProviderID(compiled *CompiledCatalogV1, provider string) []Mo
 
 // CanonicalModelForProviderNative maps a picker native id to the canonical model for that provider's
 // deployment, without using global catalog aliases (e.g. mimo-v2.5-pro → xiaomi, not opencodego).
-func CanonicalModelForProviderNative(compiled *CompiledCatalogV1, providerID, modelID string) (string, bool) {
+func CanonicalModelForProviderNative(compiled *CompiledCatalog, providerID, modelID string) (string, bool) {
 	if compiled == nil {
 		return "", false
 	}
@@ -70,7 +70,7 @@ func CanonicalModelForProviderNative(compiled *CompiledCatalogV1, providerID, mo
 	return "", false
 }
 
-func modelEntriesForDeployment(compiled *CompiledCatalogV1, deploymentID string) []ModelCatalogEntry {
+func modelEntriesForDeployment(compiled *CompiledCatalog, deploymentID string) []ModelCatalogEntry {
 	if compiled == nil || deploymentID == "" {
 		return nil
 	}
@@ -95,7 +95,7 @@ func modelEntriesForDeployment(compiled *CompiledCatalogV1, deploymentID string)
 	return out
 }
 
-func modelEntryFromOffering(model ModelV1, offering ModelOfferingV1) ModelCatalogEntry {
+func modelEntryFromOffering(model Model, offering ModelOffering) ModelCatalogEntry {
 	id := strings.TrimSpace(model.ID)
 	if native := strings.TrimSpace(offering.NativeModelID); native != "" {
 		id = native
@@ -132,14 +132,14 @@ func descriptionFromLiveMetadata(raw json.RawMessage) string {
 	return strings.TrimSpace(meta.Description)
 }
 
-func modelOwnerFromOffering(offering ModelOfferingV1) string {
+func modelOwnerFromOffering(offering ModelOffering) string {
 	if o := ownerFromLiveMetadata(offering.LiveMetadata); o != "" {
 		return o
 	}
 	return ownerFromModelID(offering.NativeModelID)
 }
 
-func serverToolsFromOffering(offering ModelOfferingV1) []string {
+func serverToolsFromOffering(offering ModelOffering) []string {
 	if offering.Capabilities.ServerTools == nil {
 		return nil
 	}
@@ -153,10 +153,10 @@ func serverToolsFromOffering(offering ModelOfferingV1) []string {
 	return out
 }
 
-func firstOfferingForModel(compiled *CompiledCatalogV1, canonicalModelID string) ModelOfferingV1 {
+func firstOfferingForModel(compiled *CompiledCatalog, canonicalModelID string) ModelOffering {
 	offerings := compiled.OfferingsByCanonicalModel[canonicalModelID]
 	if len(offerings) == 0 {
-		return ModelOfferingV1{}
+		return ModelOffering{}
 	}
 	sort.SliceStable(offerings, func(i, j int) bool {
 		return offerings[i].DeploymentID < offerings[j].DeploymentID

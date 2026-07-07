@@ -90,7 +90,7 @@ func featureSetFromCatalog(modelOrProvider string) *FeatureSet {
 }
 
 // featureSetFromCapabilities converts a catalog CapabilitySetV1 to a client FeatureSet.
-func featureSetFromCapabilities(caps catalog.CapabilitySetV1) *FeatureSet {
+func featureSetFromCapabilities(caps catalog.CapabilitySet) *FeatureSet {
 	return &FeatureSet{
 		Thinking:         caps.ExplicitThinkingBudget == catalog.CapabilitySupported,
 		AdaptiveThinking: caps.AdaptiveThinking == catalog.CapabilitySupported,

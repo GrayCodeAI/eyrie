@@ -53,7 +53,7 @@ func DeploymentStatus(ctx context.Context, activeModel string) (StatusReport, er
 		report.CatalogModified = mod
 	}
 
-	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
 		CachePath: report.CatalogCache,
 	})
 	if err != nil {
@@ -118,7 +118,7 @@ func FormatStatus(report StatusReport) string {
 // RoutingPreview returns JSON describing effective routing for a model ID.
 func RoutingPreview(ctx context.Context, model string) (string, error) {
 	cfg := config.LoadProviderConfig("")
-	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
 		CachePath: catalog.DefaultCachePath(),
 	})
 	if err != nil {

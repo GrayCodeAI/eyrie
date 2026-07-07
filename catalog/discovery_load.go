@@ -3,18 +3,18 @@ package catalog
 import "context"
 
 // LoadCatalogForDiscovery returns the cached catalog or bootstrap wiring (no network).
-func LoadCatalogForDiscovery(ctx context.Context) (*CompiledCatalogV1, error) {
+func LoadCatalogForDiscovery(ctx context.Context) (*CompiledCatalog, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	compiled, err := LoadCatalogV1(ctx, LoadCatalogV1Options{
+	compiled, err := LoadCatalog(ctx, LoadCatalogOptions{
 		CachePath: DefaultCachePath(),
 	})
 	if err == nil && compiled != nil {
 		return compiled, nil
 	}
-	bootstrap := BootstrapCatalogV1()
-	return CompileCatalogV1(&bootstrap)
+	bootstrap := BootstrapCatalog()
+	return CompileCatalog(&bootstrap)
 }
 
 // DiscoveryEnvKeyNames returns env var names used for credential discovery from the catalog.

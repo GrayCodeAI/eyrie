@@ -14,8 +14,8 @@ import (
 
 func TestDiscoverRun_RemoteFailureUsesCacheFallback(t *testing.T) {
 	cachePath := filepath.Join(t.TempDir(), "model_catalog.json")
-	base := catalog.TestSeedCatalogV1()
-	if err := catalog.WriteCatalogV1Cache(cachePath, &base); err != nil {
+	base := catalog.SeedCatalog()
+	if err := catalog.WriteCatalogCache(cachePath, &base); err != nil {
 		t.Fatalf("seed cache: %v", err)
 	}
 
@@ -27,7 +27,7 @@ func TestDiscoverRun_RemoteFailureUsesCacheFallback(t *testing.T) {
 	t.Setenv("EYRIE_MODEL_CATALOG_URL", failServer.URL)
 
 	result, err := discover.Run(context.Background(), discover.Options{
-		LoadCatalogV1Options: catalog.LoadCatalogV1Options{
+		LoadCatalogOptions: catalog.LoadCatalogOptions{
 			CachePath:     cachePath,
 			RefreshRemote: true,
 			RemoteURL:     failServer.URL,
@@ -52,12 +52,12 @@ func TestDiscoverRun_RemoteFailureUsesCacheFallback(t *testing.T) {
 
 func TestDiscoverRun_ConcurrentCallsSerialized(t *testing.T) {
 	cachePath := filepath.Join(t.TempDir(), "model_catalog.json")
-	base := catalog.TestSeedCatalogV1()
-	if err := catalog.WriteCatalogV1Cache(cachePath, &base); err != nil {
+	base := catalog.SeedCatalog()
+	if err := catalog.WriteCatalogCache(cachePath, &base); err != nil {
 		t.Fatalf("seed cache: %v", err)
 	}
 	opts := discover.Options{
-		LoadCatalogV1Options: catalog.LoadCatalogV1Options{
+		LoadCatalogOptions: catalog.LoadCatalogOptions{
 			CachePath:     cachePath,
 			RefreshRemote: false,
 		},

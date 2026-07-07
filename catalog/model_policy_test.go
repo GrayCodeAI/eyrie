@@ -5,20 +5,20 @@ import (
 	"time"
 )
 
-func testPolicyCatalogV1(t *testing.T) *CompiledCatalogV1 {
+func testPolicyCatalog(t *testing.T) *CompiledCatalog {
 	t.Helper()
 	now := time.Now().UTC()
-	cat := &CatalogV1{
-		SchemaVersion: CatalogV1SchemaVersion,
+	cat := &Catalog{
+		SchemaVersion: CatalogSchemaVersion,
 		GeneratedAt:   now,
 		StaleAfter:    now.Add(time.Hour),
-		Providers: map[string]ProviderV1{
+		Providers: map[string]Provider{
 			"anthropic": {ID: "anthropic", Name: "Anthropic"},
 		},
-		APIProtocols: map[string]APIProtocolV1{
+		Protocols: map[string]Protocol{
 			"anthropic-messages": {ID: "anthropic-messages", Name: "Anthropic Messages"},
 		},
-		Deployments: map[string]DeploymentV1{
+		Deployments: map[string]Deployment{
 			"anthropic-direct": {
 				ID:                    "anthropic-direct",
 				Name:                  "Anthropic",
@@ -29,7 +29,7 @@ func testPolicyCatalogV1(t *testing.T) *CompiledCatalogV1 {
 				ModelMappingsRequired: false,
 			},
 		},
-		Models: map[string]ModelV1{
+		Models: map[string]Model{
 			"anthropic/claude-haiku": {
 				ID:         "anthropic/claude-haiku",
 				ProviderID: "anthropic",
@@ -49,7 +49,7 @@ func testPolicyCatalogV1(t *testing.T) *CompiledCatalogV1 {
 				Family:     "opus",
 			},
 		},
-		Offerings: []ModelOfferingV1{
+		Offerings: []ModelOffering{
 			testPolicyOffering("anthropic/claude-haiku", "claude-haiku", 0.25, 1),
 			testPolicyOffering("anthropic/claude-sonnet", "claude-sonnet", 3, 15),
 			testPolicyOffering("anthropic/claude-opus", "claude-opus", 15, 75),
@@ -60,20 +60,20 @@ func testPolicyCatalogV1(t *testing.T) *CompiledCatalogV1 {
 			"claude-opus":   "anthropic/claude-opus",
 		},
 	}
-	compiled, err := CompileCatalogV1(cat)
+	compiled, err := CompileCatalog(cat)
 	if err != nil {
-		t.Fatalf("CompileCatalogV1 failed: %v", err)
+		t.Fatalf("CompileCatalog failed: %v", err)
 	}
 	return compiled
 }
 
-func testPolicyOffering(canonicalModelID, nativeModelID string, input, output float64) ModelOfferingV1 {
-	return ModelOfferingV1{
+func testPolicyOffering(canonicalModelID, nativeModelID string, input, output float64) ModelOffering {
+	return ModelOffering{
 		ID:               "anthropic-direct:" + nativeModelID,
 		CanonicalModelID: canonicalModelID,
 		DeploymentID:     "anthropic-direct",
 		NativeModelID:    nativeModelID,
-		Pricing: PricingV1{
+		Pricing: Pricing{
 			Status:     PricingKnown,
 			Currency:   "USD",
 			RatesPer1M: map[string]float64{"input_tokens": input, "output_tokens": output},
@@ -81,9 +81,9 @@ func testPolicyOffering(canonicalModelID, nativeModelID string, input, output fl
 	}
 }
 
-func TestModelPolicyPreferredProviderModelV1(t *testing.T) {
+func TestModelPolicyPreferredProviderModel(t *testing.T) {
 	t.Parallel()
-	compiled := testPolicyCatalogV1(t)
+	compiled := testPolicyCatalog(t)
 
 	tests := []struct {
 		tier ModelTier
@@ -94,26 +94,26 @@ func TestModelPolicyPreferredProviderModelV1(t *testing.T) {
 		{TierOpus, "claude-opus"},
 	}
 	for _, tt := range tests {
-		got := PreferredProviderModelV1(compiled, "anthropic", tt.tier, "")
+		got := PreferredProviderModel(compiled, "anthropic", tt.tier, "")
 		if got != tt.want {
-			t.Fatalf("PreferredProviderModelV1(%s) = %q, want %q", tt.tier, got, tt.want)
+			t.Fatalf("PreferredProviderModel(%s) = %q, want %q", tt.tier, got, tt.want)
 		}
 	}
 }
 
-func TestModelPolicyPreferredModelsForTierV1(t *testing.T) {
+func TestModelPolicyPreferredModelsForTier(t *testing.T) {
 	t.Parallel()
-	compiled := testPolicyCatalogV1(t)
+	compiled := testPolicyCatalog(t)
 
-	got := PreferredModelsForTierV1(compiled, "anthropic", TierHaiku, 3)
+	got := PreferredModelsForTier(compiled, "anthropic", TierHaiku, 3)
 	if len(got) != 1 || got[0] != "claude-haiku" {
-		t.Fatalf("PreferredModelsForTierV1 = %v, want [claude-haiku]", got)
+		t.Fatalf("PreferredModelsForTier = %v, want [claude-haiku]", got)
 	}
 }
 
 func TestModelPolicyCostTierOf(t *testing.T) {
 	t.Parallel()
-	compiled := testPolicyCatalogV1(t)
+	compiled := testPolicyCatalog(t)
 
 	tests := []struct {
 		model string
@@ -134,7 +134,7 @@ func TestModelPolicyCostTierOf(t *testing.T) {
 
 func TestModelPolicyDefaultRolesV1(t *testing.T) {
 	t.Parallel()
-	compiled := testPolicyCatalogV1(t)
+	compiled := testPolicyCatalog(t)
 
 	roles := DefaultModelRolesV1(compiled, "claude-opus")
 	if roles.Planner != "claude-opus" || roles.Coder != "claude-opus" || roles.Reviewer != "claude-opus" {

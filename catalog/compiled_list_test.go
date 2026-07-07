@@ -5,11 +5,11 @@ import "testing"
 func TestModelEntriesForProvider_OpenRouterUsesOfferings(t *testing.T) {
 	t.Parallel()
 	raw := []byte(`{"id":"anthropic/claude-sonnet-4-6","architecture":{"modality":"text"}}`)
-	compiled := &CompiledCatalogV1{
-		ModelsByID: map[string]ModelV1{
+	compiled := &CompiledCatalog{
+		ModelsByID: map[string]Model{
 			"anthropic/claude-sonnet-4-6": {ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet", ProviderID: "anthropic"},
 		},
-		OfferingsByDeployment: map[string][]ModelOfferingV1{
+		OfferingsByDeployment: map[string][]ModelOffering{
 			"openrouter": {{
 				CanonicalModelID: "anthropic/claude-sonnet-4-6",
 				DeploymentID:     "openrouter",
@@ -30,11 +30,11 @@ func TestModelEntriesForProvider_OpenRouterUsesOfferings(t *testing.T) {
 func TestModelEntriesForProvider_CanopyWaveUsesDeploymentOfferings(t *testing.T) {
 	t.Parallel()
 	raw := []byte(`{"id":"moonshotai/kimi-k2.6","name":"Kimi K2.6","owned_by":"moonshotai"}`)
-	compiled := &CompiledCatalogV1{
-		ModelsByID: map[string]ModelV1{
+	compiled := &CompiledCatalog{
+		ModelsByID: map[string]Model{
 			"moonshotai/kimi-k2.6": {ID: "moonshotai/kimi-k2.6", Name: "Kimi K2.6", ProviderID: "moonshotai"},
 		},
-		OfferingsByDeployment: map[string][]ModelOfferingV1{
+		OfferingsByDeployment: map[string][]ModelOffering{
 			"canopywave": {{
 				CanonicalModelID: "moonshotai/kimi-k2.6",
 				DeploymentID:     "canopywave",
@@ -54,13 +54,13 @@ func TestModelEntriesForProvider_CanopyWaveUsesDeploymentOfferings(t *testing.T)
 
 func TestModelEntriesForProvider_GeminiUsesDirectDeploymentOfferings(t *testing.T) {
 	t.Parallel()
-	compiled := &CompiledCatalogV1{
-		ModelsByID: map[string]ModelV1{
+	compiled := &CompiledCatalog{
+		ModelsByID: map[string]Model{
 			"gemini-flash": {ID: "gemini-flash", Name: "Flash", ProviderID: "google"},
 			"gemini-pro":   {ID: "gemini-pro", Name: "Pro", ProviderID: "google"},
 			"other-model":  {ID: "other-model", Name: "Other", ProviderID: "google"},
 		},
-		OfferingsByDeployment: map[string][]ModelOfferingV1{
+		OfferingsByDeployment: map[string][]ModelOffering{
 			"gemini-direct": {
 				{CanonicalModelID: "gemini-flash", DeploymentID: "gemini-direct", NativeModelID: "gemini-flash"},
 				{CanonicalModelID: "gemini-pro", DeploymentID: "gemini-direct", NativeModelID: "gemini-pro"},
@@ -75,17 +75,17 @@ func TestModelEntriesForProvider_GeminiUsesDirectDeploymentOfferings(t *testing.
 
 func TestCanonicalModelForProviderNative_PrefersDeploymentOverGlobalAlias(t *testing.T) {
 	t.Parallel()
-	compiled := &CompiledCatalogV1{
-		Catalog: &CatalogV1{
+	compiled := &CompiledCatalog{
+		Catalog: &Catalog{
 			Aliases: map[string]string{
 				"mimo-v2.5-pro": "opencodego/mimo-v2.5-pro",
 			},
 		},
-		ModelsByID: map[string]ModelV1{
+		ModelsByID: map[string]Model{
 			"opencodego/mimo-v2.5-pro":             {ID: "opencodego/mimo-v2.5-pro", ProviderID: "opencodego"},
 			"xiaomi_mimo_token_plan/mimo-v2.5-pro": {ID: "xiaomi_mimo_token_plan/mimo-v2.5-pro", ProviderID: "xiaomi_mimo_token_plan"},
 		},
-		OfferingsByDeployment: map[string][]ModelOfferingV1{
+		OfferingsByDeployment: map[string][]ModelOffering{
 			"xiaomi_mimo_token_plan-direct": {{
 				CanonicalModelID: "xiaomi_mimo_token_plan/mimo-v2.5-pro",
 				DeploymentID:     "xiaomi_mimo_token_plan-direct",
@@ -101,12 +101,12 @@ func TestCanonicalModelForProviderNative_PrefersDeploymentOverGlobalAlias(t *tes
 
 func TestModelEntriesForProvider_AnthropicUsesDirectDeploymentOfferings(t *testing.T) {
 	t.Parallel()
-	compiled := &CompiledCatalogV1{
-		ModelsByID: map[string]ModelV1{
+	compiled := &CompiledCatalog{
+		ModelsByID: map[string]Model{
 			"anthropic/claude-sonnet-4-6": {ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet", ProviderID: "anthropic"},
 			"openai/gpt-4o":               {ID: "openai/gpt-4o", Name: "GPT-4o", ProviderID: "openai"},
 		},
-		OfferingsByDeployment: map[string][]ModelOfferingV1{
+		OfferingsByDeployment: map[string][]ModelOffering{
 			"anthropic-direct": {{
 				CanonicalModelID: "anthropic/claude-sonnet-4-6",
 				DeploymentID:     "anthropic-direct",

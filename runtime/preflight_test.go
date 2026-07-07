@@ -341,8 +341,8 @@ func TestPreflight_WithCatalogCache(t *testing.T) {
 
 	// Write a valid catalog cache
 	cachePath := filepath.Join(dir, "model_catalog.json")
-	c := catalog.TestSeedCatalogV1()
-	if err := catalog.WriteCatalogV1Cache(cachePath, &c); err != nil {
+	c := catalog.SeedCatalog()
+	if err := catalog.WriteCatalogCache(cachePath, &c); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("EYRIE_MODEL_CATALOG_PATH", cachePath)

@@ -13,7 +13,7 @@ func TestExportHawkCatalogFixture(t *testing.T) {
 	if os.Getenv("EXPORT_HAWK_FIXTURE") != "1" {
 		t.Skip("set EXPORT_HAWK_FIXTURE=1 to export") // TODO: https://github.com/GrayCodeAI/eyrie/issues/30
 	}
-	c := testLegacyCatalogV1()
+	c := SeedCatalog()
 	data, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		t.Fatal(err)
