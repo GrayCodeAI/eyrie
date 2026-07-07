@@ -578,3 +578,21 @@ func FetchDeepSeek(env map[string]string) ([]Entry, error) {
 	enrichFromOpenRouter(entries, "deepseek/")
 	return entries, nil
 }
+
+// FetchPoolside lists models from the Poolside OpenAI-compatible API.
+func FetchPoolside(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "POOLSIDE_BASE_URL", DefaultPoolsideBaseURL),
+		env["POOLSIDE_API_KEY"], "Bearer",
+	)
+}
+
+// FetchGroq lists models from the Groq OpenAI-compatible API.
+func FetchGroq(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "GROQ_BASE_URL", DefaultGroqBaseURL),
+		env["GROQ_API_KEY"], "Bearer",
+	)
+}

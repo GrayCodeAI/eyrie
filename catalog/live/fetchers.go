@@ -50,7 +50,11 @@ const (
 // FetchFunc lists models from a live provider API.
 type FetchFunc func(env map[string]string) ([]Entry, error)
 
-const DefaultDeepSeekBaseURL = "https://api.deepseek.com/v1"
+const (
+	DefaultDeepSeekBaseURL  = "https://api.deepseek.com/v1"
+	DefaultPoolsideBaseURL  = "https://inference.poolside.ai/v1"
+	DefaultGroqBaseURL      = "https://api.groq.com/openai/v1"
+)
 
 // Registry maps fetcher keys to implementations.
 var Registry = map[string]FetchFunc{
@@ -73,6 +77,8 @@ var Registry = map[string]FetchFunc{
 	"minimax_payg":           FetchMiniMaxPayg,
 	"ollama":                 FetchOllama,
 	"deepseek":               FetchDeepSeek,
+	"poolside":               FetchPoolside,
+	"groq":                   FetchGroq,
 }
 
 // Fetch runs a registered live fetcher.
