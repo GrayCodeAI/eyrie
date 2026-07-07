@@ -67,6 +67,10 @@ func SetProviderModel(cfg *ProviderConfig, provider, model string) {
 		cfg.OpenAIModel = model
 	case ProviderCanopyWave:
 		cfg.CanopyWaveModel = model
+	case ProviderPoolside:
+		cfg.PoolsideModel = model
+	case ProviderGroq:
+		cfg.GroqModel = model
 	case ProviderZAIPayg, ProviderZAICoding:
 		cfg.ZAIModel = model
 	case ProviderOpenRouter:

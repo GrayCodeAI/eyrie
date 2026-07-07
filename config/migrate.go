@@ -27,6 +27,8 @@ func EnsureDeploymentConfigV2(cfg *ProviderConfig) *ProviderConfig {
 		{ProviderZAIPayg, "zai_payg-direct"},
 		{ProviderZAICoding, "zai_coding-direct"},
 		{ProviderCanopyWave, "canopywave"},
+		{ProviderPoolside, "poolside"},
+		{ProviderGroq, "groq-direct"},
 		{ProviderOllama, "ollama-local"},
 		{ProviderOpenCodeGo, "opencodego"},
 		{ProviderKimi, "kimi-direct"},
@@ -67,6 +69,10 @@ func legacyDeploymentConfig(cfg *ProviderConfig, provider string) DeploymentConf
 		return DeploymentConfig{APIKey: cfg.OpenRouterAPIKey, BaseURL: cfg.OpenRouterBaseURL}
 	case ProviderCanopyWave:
 		return DeploymentConfig{APIKey: cfg.CanopyWaveAPIKey, BaseURL: cfg.CanopyWaveBaseURL}
+	case ProviderPoolside:
+		return DeploymentConfig{APIKey: cfg.PoolsideAPIKey, BaseURL: cfg.PoolsideBaseURL}
+	case ProviderGroq:
+		return DeploymentConfig{APIKey: cfg.GroqAPIKey, BaseURL: cfg.GroqBaseURL}
 	case ProviderZAIPayg:
 		return DeploymentConfig{APIKey: cfg.ZAIAPIKey, BaseURL: cfg.ZAIBaseURL}
 	case ProviderZAICoding:
@@ -161,6 +167,10 @@ func deploymentOwnerProviderID(deploymentID string) string {
 		return "openrouter"
 	case "canopywave":
 		return "canopywave"
+	case "poolside":
+		return "poolside"
+	case "groq-direct":
+		return "groq"
 	case "zai_payg-direct":
 		return "zai_payg"
 	case "zai_coding-direct":

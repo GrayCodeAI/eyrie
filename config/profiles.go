@@ -26,6 +26,7 @@ const (
 	ProviderMiniMaxTokenPlan    APIProvider = "minimax_token_plan"
 	ProviderMiniMaxPayg         APIProvider = "minimax_payg"
 	ProviderPoolside            APIProvider = "poolside"
+	ProviderGroq                APIProvider = "groq"
 )
 
 // RuntimeProviderProfile defines how a provider is detected and configured at runtime.
@@ -181,18 +182,25 @@ var (
 		APIKeys:      []APIKeyDef{{Env: "OLLAMA_API_KEY", Source: "ollama"}},
 	}
 	PoolsideRuntimeProfile = RuntimeProviderProfile{
-		Mode: "openai", DefaultBaseURL: "https://api.poolside.ai/v1",
+		Mode: "openai", DefaultBaseURL: DefaultPoolsideOpenAIBaseURL,
 		DetectionEnv: []string{"POOLSIDE_API_KEY"},
 		ModelEnv:     []string{"POOLSIDE_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{"POOLSIDE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "POOLSIDE_API_KEY", Source: "poolside"}},
+	}
+	GroqRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: "https://api.groq.com/openai/v1",
+		DetectionEnv: []string{"GROQ_API_KEY"},
+		ModelEnv:     []string{"GROQ_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"GROQ_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "GROQ_API_KEY", Source: "groq"}},
 	}
 )
 
 // APIProviderDetectionOrder is the priority order for provider detection.
 var APIProviderDetectionOrder = []APIProvider{
 	ProviderAnthropic, ProviderOpenRouter, ProviderGrok, ProviderGemini,
-	ProviderVertex, ProviderBedrock, ProviderZAICoding, ProviderZAIPayg, ProviderCanopyWave, ProviderDeepSeek, ProviderPoolside, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
+	ProviderVertex, ProviderBedrock, ProviderZAICoding, ProviderZAIPayg, ProviderCanopyWave, ProviderDeepSeek, ProviderPoolside, ProviderGroq, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
 	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderMiniMaxTokenPlan, ProviderMiniMaxPayg, ProviderOllama,
 }
 
@@ -204,6 +212,7 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 	ProviderCanopyWave:          CanopyWaveRuntimeProfile.ModelEnv,
 	ProviderDeepSeek:            DeepSeekRuntimeProfile.ModelEnv,
 	ProviderPoolside:            PoolsideRuntimeProfile.ModelEnv,
+	ProviderGroq:                GroqRuntimeProfile.ModelEnv,
 	ProviderZAIPayg:             ZAIPaygRuntimeProfile.ModelEnv,
 	ProviderZAICoding:           ZAICodingRuntimeProfile.ModelEnv,
 	ProviderOpenRouter:          OpenRouterRuntimeProfile.ModelEnv,
@@ -227,7 +236,7 @@ const (
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.
 var OpenAICompatibleRuntimeProfileOrder = []string{
-	"openrouter", "grok", "gemini", "anthropic", "zai_coding", "zai_payg", "canopywave", "deepseek", "poolside", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "minimax_token_plan", "minimax_payg",
+	"openrouter", "grok", "gemini", "anthropic", "zai_coding", "zai_payg", "canopywave", "deepseek", "poolside", "groq", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "minimax_token_plan", "minimax_payg",
 }
 
 // OpenAICompatibleRuntimeProfiles maps profile key to its runtime profile.
@@ -238,8 +247,9 @@ var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
 	"zai_payg":               ZAIPaygRuntimeProfile,
 	"zai_coding":             ZAICodingRuntimeProfile,
 	"canopywave":             CanopyWaveRuntimeProfile,
-	"deepseek":             DeepSeekRuntimeProfile,
-	"poolside":             PoolsideRuntimeProfile,
+	"deepseek":               DeepSeekRuntimeProfile,
+	"poolside":               PoolsideRuntimeProfile,
+	"groq":                   GroqRuntimeProfile,
 	"openai":                 OpenAIRuntimeProfile,
 	"openrouter":             OpenRouterRuntimeProfile,
 	"opencodego":             OpenCodeGoRuntimeProfile,
@@ -265,6 +275,7 @@ var RuntimeProviderProfiles = map[string]RuntimeProviderProfile{
 	"canopywave":             CanopyWaveRuntimeProfile,
 	"deepseek":               DeepSeekRuntimeProfile,
 	"poolside":               PoolsideRuntimeProfile,
+	"groq":                   GroqRuntimeProfile,
 	"opencodego":             OpenCodeGoRuntimeProfile,
 	"kimi":                   KimiRuntimeProfile,
 	"xiaomi_mimo_payg":       XiaomiPaygRuntimeProfile,

@@ -169,7 +169,23 @@ func providerSpecs() []ProviderSpec {
 			APIProtocolID: "openai-chat-completions", AdapterID: "canopywave", RuntimeProfileKey: "canopywave",
 		},
 		{
-			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 18, ChatPreference: 13,
+			ProviderID: "poolside", DisplayName: "Poolside", DeploymentID: "poolside", SortOrder: 18, ChatPreference: 20,
+			RequiresKey: true, CredentialEnv: "POOLSIDE_API_KEY",
+			BaseURLEnv: []string{"POOLSIDE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.poolside.ai/v1",
+			LiveFetcherKey: "poolside", LiveCatalogKey: "poolside",
+			APIProtocolID: "openai-chat-completions", AdapterID: "poolside", RuntimeProfileKey: "poolside",
+		},
+		{
+			ProviderID: "groq", DisplayName: "Groq", DeploymentID: "groq-direct", SortOrder: 19, ChatPreference: 21,
+			RequiresKey: true, CredentialEnv: "GROQ_API_KEY",
+			BaseURLEnv: []string{"GROQ_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.groq.com/openai/v1",
+			LiveFetcherKey: "groq", LiveCatalogKey: "groq",
+			APIProtocolID: "openai-chat-completions", AdapterID: "groq", RuntimeProfileKey: "groq",
+		},
+		{
+			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 20, ChatPreference: 13,
 			RequiresKey: true, CredentialEnv: "OPENCODEGO_API_KEY",
 			BaseURLEnv:     []string{"OPENCODEGO_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:      ProbeOpenAIModels,
@@ -180,7 +196,7 @@ func providerSpecs() []ProviderSpec {
 
 		// ── Local ─────────────────────────────────────────────────────────
 		{
-			ProviderID: "ollama", DisplayName: "Ollama", DeploymentID: "ollama-local", SortOrder: 19, ChatPreference: 19,
+			ProviderID: "ollama", DisplayName: "Ollama", DeploymentID: "ollama-local", SortOrder: 21, ChatPreference: 19,
 			RequiresKey: false, CredentialEnv: "OLLAMA_BASE_URL",
 			BaseURLEnv:     []string{"OLLAMA_BASE_URL"},
 			ProbeKind:      ProbeOllama,

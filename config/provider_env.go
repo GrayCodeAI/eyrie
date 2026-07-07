@@ -56,6 +56,9 @@ type ProviderConfig struct {
 	PoolsideAPIKey             string                      `json:"poolside_api_key,omitempty"`
 	PoolsideBaseURL            string                      `json:"poolside_base_url,omitempty"`
 	PoolsideModel              string                      `json:"poolside_model,omitempty"`
+	GroqAPIKey                 string                      `json:"groq_api_key,omitempty"`
+	GroqBaseURL                string                      `json:"groq_base_url,omitempty"`
+	GroqModel                  string                      `json:"groq_model,omitempty"`
 	MiniMaxModel               string                      `json:"minimax_model,omitempty"`
 	AnthropicModel             string                      `json:"anthropic_model,omitempty"`
 	OpenAIModel                string                      `json:"openai_model,omitempty"`
@@ -172,6 +175,11 @@ var providerFields = map[string]providerFieldMap{
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.PoolsideAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.PoolsideModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.PoolsideBaseURL },
+	},
+	ProviderGroq: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.GroqAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.GroqModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.GroqBaseURL },
 	},
 	ProviderGemini: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.GeminiAPIKey} },
@@ -581,12 +589,20 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		collectOpenAICompatibleProvider(env, "XAI", apiKey, m, base, overwrite)
 	case ProviderPoolside:
 		apiKey := AsNonEmptyString(config.PoolsideAPIKey)
-		base := firstNonEmpty(config.PoolsideBaseURL, "https://api.poolside.ai/v1")
+		base := firstNonEmpty(config.PoolsideBaseURL, DefaultPoolsideOpenAIBaseURL)
 		m := activeModel
 		if m == "" {
 			m = catalog.GetProviderDefaultModel("poolside", cat)
 		}
 		collectOpenAICompatibleProvider(env, "POOLSIDE", apiKey, m, base, overwrite)
+	case ProviderGroq:
+		apiKey := AsNonEmptyString(config.GroqAPIKey)
+		base := firstNonEmpty(config.GroqBaseURL, DefaultGroqOpenAIBaseURL)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("groq", cat)
+		}
+		collectOpenAICompatibleProvider(env, "GROQ", apiKey, m, base, overwrite)
 	case ProviderCanopyWave:
 		apiKey := AsNonEmptyString(config.CanopyWaveAPIKey)
 		base := firstNonEmpty(config.CanopyWaveBaseURL, DefaultCanopyWaveOpenAIBaseURL)
