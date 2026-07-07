@@ -34,7 +34,7 @@ const (
 	DefaultXiaomiOpenAIBaseURL     = "https://api.xiaomimimo.com/v1"
 	DefaultMiniMaxOpenAIBaseURL    = "https://api.minimax.io/v1"
 	DefaultGroqOpenAIBaseURL       = "https://api.groq.com/openai/v1"
-	DefaultPoolsideOpenAIBaseURL   = "https://api.poolside.ai/v1"
+	DefaultPoolsideOpenAIBaseURL   = "https://inference.poolside.ai/v1"
 	DefaultMiniMaxAnthropicBaseURL = "https://api.minimax.io/anthropic"
 )
 

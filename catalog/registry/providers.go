@@ -172,7 +172,7 @@ func providerSpecs() []ProviderSpec {
 			ProviderID: "poolside", DisplayName: "Poolside", DeploymentID: "poolside", SortOrder: 18, ChatPreference: 20,
 			RequiresKey: true, CredentialEnv: "POOLSIDE_API_KEY",
 			BaseURLEnv: []string{"POOLSIDE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
-			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.poolside.ai/v1",
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://inference.poolside.ai/v1",
 			LiveFetcherKey: "poolside", LiveCatalogKey: "poolside",
 			APIProtocolID: "openai-chat-completions", AdapterID: "poolside", RuntimeProfileKey: "poolside",
 		},
