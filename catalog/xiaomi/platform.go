@@ -14,6 +14,11 @@ import (
 // Inference GET {base}/models only returns id/object/owned_by.
 const DefaultPlatformModelsURL = "https://platform.xiaomimimo.com/api/v1/models"
 
+// maxPlatformResponseBytes caps how much of the platform catalog response is
+// read, so a malicious or misconfigured endpoint (including the env-overridable
+// XIAOMI_MIMO_PLATFORM_MODELS_URL) cannot exhaust memory via an unbounded body.
+const maxPlatformResponseBytes = 10 * 1024 * 1024 // 10 MiB
+
 var platformHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
 // PlatformModel is one row from the platform catalog API.
@@ -65,7 +70,7 @@ func FetchPlatformModelsIndex(ctx context.Context, catalogURL string) (map[strin
 		return nil, fmt.Errorf("xiaomi platform catalog: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxPlatformResponseBytes))
 	if err != nil {
 		return nil, err
 	}

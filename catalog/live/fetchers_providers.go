@@ -621,7 +621,7 @@ func FetchClinePass(env map[string]string) ([]Entry, error) {
 		{"cline-pass/mimo-v2.5-pro", "MiMo V2.5 Pro", "xiaomi", 131072, 8192, 1.74, 3.48},
 		{"cline-pass/mimo-v2.5", "MiMo V2.5", "xiaomi", 131072, 8192, 0.14, 0.28},
 		{"cline-pass/qwen3.7-max", "Qwen 3.7 Max", "qwen", 131072, 8192, 2.50, 7.50},
-		{"cline-pass/qwen3.7-plus", "Qwen 3.7 Plus", "qwen", 131072, 8192, 0.40, 1.60},
+		{"cline-pass/qwen3.7-plus", "Qwen 3.7 Plus", "qwen", 131072, 8192, 0.40, 1.28},
 		{"cline-pass/poolside-laguna-m.1-free", "Poolside Laguna M.1 (Free)", "poolside", 262144, 32768, 0, 0},
 	}
 	var entries []Entry
