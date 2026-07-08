@@ -174,7 +174,7 @@ func providerSpecs() []ProviderSpec {
 			BaseURLEnv: []string{"POOLSIDE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://inference.poolside.ai/v1",
 			LiveFetcherKey: "poolside", LiveCatalogKey: "poolside",
-			ProtocolID: "openai-chat-completions", AdapterID: "poolside", RuntimeProfileKey: "poolside",
+			APIProtocolID: "openai-chat-completions", AdapterID: "poolside", RuntimeProfileKey: "poolside",
 		},
 		{
 			ProviderID: "groq", DisplayName: "Groq", DeploymentID: "groq-direct", SortOrder: 19, ChatPreference: 21,
@@ -182,7 +182,11 @@ func providerSpecs() []ProviderSpec {
 			BaseURLEnv: []string{"GROQ_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.groq.com/openai/v1",
 			LiveFetcherKey: "groq", LiveCatalogKey: "groq",
+<<<<<<< HEAD
+			APIProtocolID: "openai-chat-completions", AdapterID: "groq", RuntimeProfileKey: "groq",
+=======
 			ProtocolID: "openai-chat-completions", AdapterID: "groq", RuntimeProfileKey: "groq",
+>>>>>>> origin/main
 		},
 		{
 			ProviderID: "clinepass", DisplayName: "ClinePass", DeploymentID: "clinepass", SortOrder: 20, ChatPreference: 22,
@@ -190,7 +194,11 @@ func providerSpecs() []ProviderSpec {
 			BaseURLEnv:     []string{"CLINE_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:      ProbeNone,
 			LiveFetcherKey: "clinepass", LiveCatalogKey: "clinepass",
+<<<<<<< HEAD
+			APIProtocolID: "openai-chat-completions", AdapterID: "clinepass", RuntimeProfileKey: "clinepass",
+=======
 			ProtocolID: "openai-chat-completions", AdapterID: "clinepass", RuntimeProfileKey: "clinepass",
+>>>>>>> origin/main
 		},
 		{
 			ProviderID: "opencodego", DisplayName: "OpenCode Go", DeploymentID: "opencodego", SortOrder: 21, ChatPreference: 13,
