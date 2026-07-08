@@ -8,8 +8,6 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
-
-
 // FetchLiveProviderCatalog discovers models from all registered live provider APIs
 // that have API keys available in env. Returns a catalog with enriched model listings
 // and a list of per-provider fetch statuses.
@@ -54,13 +52,13 @@ func FetchLiveProviderCatalog(env map[string]string) (Catalog, []LiveProviderEnr
 		deploymentID := spec.DeploymentID
 		if _, ok := cat.Deployments[deploymentID]; !ok {
 			cat.Deployments[deploymentID] = Deployment{
-				ID:                     deploymentID,
-				Name:                   providerID,
-				ProviderID:             providerID,
-				APIProtocolID:             "openai-chat-completions",
-				AdapterConstructor:     "openai",
-				NativeModelIDSource:    NativeModelIDDiscovered,
-				ModelMappingsRequired:  false,
+				ID:                    deploymentID,
+				Name:                  providerID,
+				ProviderID:            providerID,
+				APIProtocolID:         "openai-chat-completions",
+				AdapterConstructor:    "openai",
+				NativeModelIDSource:   NativeModelIDDiscovered,
+				ModelMappingsRequired: false,
 			}
 		}
 
@@ -92,7 +90,7 @@ func FetchLiveProviderCatalog(env map[string]string) (Catalog, []LiveProviderEnr
 				ID:            canonicalID,
 				ProviderID:    providerID,
 				Name:          name,
-				ContextWindow:  entry.ContextWindow,
+				ContextWindow: entry.ContextWindow,
 				MaxOutput:     entry.MaxOutput,
 			}
 			cat.Aliases[entryID] = canonicalID

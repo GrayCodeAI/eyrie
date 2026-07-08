@@ -25,7 +25,7 @@ func TestMergeCatalogWithPolicy_ReplacesDeploymentOfferings(t *testing.T) {
 	src.Offerings = append(src.Offerings, catalog.ModelOffering{
 		ID: "canopywave:moonshotai/kimi-k2.6", CanonicalModelID: "moonshotai/kimi-k2.6",
 		DeploymentID: "canopywave", NativeModelID: "moonshotai/kimi-k2.6",
-		Pricing:      catalog.Pricing{Status: catalog.PricingUnknown},
+		Pricing: catalog.Pricing{Status: catalog.PricingUnknown},
 	})
 	out := discover.MergeCatalogWithPolicy(&dst, &src, discover.MergePolicy{
 		PreferLive:                 true,

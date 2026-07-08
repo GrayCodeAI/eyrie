@@ -18,11 +18,11 @@ func BootstrapCatalog() Catalog {
 		GeneratedAt:   generatedAt,
 		StaleAfter:    generatedAt.Add(24 * time.Hour),
 		Providers:     defaultProviders(),
-		Protocols:  defaultProtocols(),
+		Protocols:     defaultProtocols(),
 		Deployments:   defaultDeployments(),
 		Models:        map[string]Model{},
 		Aliases:       map[string]string{},
-		Offerings:   nil,
+		Offerings:     nil,
 		Provenance:    &Provenance{Source: bootstrapSource, ObservedAt: generatedAt},
 	}
 	EnsureDeploymentEnvFallbacks(&c)

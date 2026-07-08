@@ -15,13 +15,13 @@ func deploymentsForProvider(cat *Catalog, providerID string) []string {
 
 // ModelID constants for well-known models used across tests.
 const (
-	ClaudeOpusV4_6    = "claude-opus-4-6"
-	ClaudeSonnetV4_6  = "claude-sonnet-4-6"
-	ClaudeHaikuV4_5   = "claude-haiku-4-5-20251001"
-	GPT_4o            = "gpt-4o"
-	GPT_4oMini        = "gpt-4o-mini"
-	Grokk_2           = "grok-2"
-	Glm51             = "glm-5.1"
+	ClaudeOpusV4_6   = "claude-opus-4-6"
+	ClaudeSonnetV4_6 = "claude-sonnet-4-6"
+	ClaudeHaikuV4_5  = "claude-haiku-4-5-20251001"
+	GPT_4o           = "gpt-4o"
+	GPT_4oMini       = "gpt-4o-mini"
+	Grokk_2          = "grok-2"
+	Glm51            = "glm-5.1"
 )
 
 // Fixture model lists — used exclusively by SeedCatalog to validate catalog
@@ -62,13 +62,13 @@ func SeedModelCatalog() ModelCatalog {
 	return ModelCatalog{
 		Source: "test",
 		Providers: map[string][]ModelCatalogEntry{
-			"anthropic":   seedAnthropicModels,
-			"openai":      seedOpenAIModels,
-			"grok":        seedGrokModels,
-			"gemini":      seedGeminiModels,
-			"openrouter":  seedOpenRouterModels,
-			"canopywave":  seedCanopyWaveModels,
-			"ollama":      nil,
+			"anthropic":  seedAnthropicModels,
+			"openai":     seedOpenAIModels,
+			"grok":       seedGrokModels,
+			"gemini":     seedGeminiModels,
+			"openrouter": seedOpenRouterModels,
+			"canopywave": seedCanopyWaveModels,
+			"ollama":     nil,
 			"opencodego": seedOpenCodeGoModels,
 		},
 	}
@@ -80,14 +80,14 @@ func seedCatalogFromDefault() Catalog {
 	now := time.Now().UTC()
 	cat := Catalog{
 		SchemaVersion: CatalogSchemaVersion,
-		GeneratedAt:  now,
-		StaleAfter:   now.Add(30 * 24 * time.Hour),
-		Providers:    defaultProviders(),
-		Protocols:    defaultProtocols(),
-		Deployments:  defaultDeployments(),
-		Models:       map[string]Model{},
-		Aliases:      map[string]string{},
-		Provenance:   &Provenance{Source: "test", ObservedAt: now},
+		GeneratedAt:   now,
+		StaleAfter:    now.Add(30 * 24 * time.Hour),
+		Providers:     defaultProviders(),
+		Protocols:     defaultProtocols(),
+		Deployments:   defaultDeployments(),
+		Models:        map[string]Model{},
+		Aliases:       map[string]string{},
+		Provenance:    &Provenance{Source: "test", ObservedAt: now},
 	}
 	EnsureDeploymentEnvFallbacks(&cat)
 	EnsureCredentialRegistryInCatalog(&cat)

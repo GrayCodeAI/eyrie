@@ -12,9 +12,15 @@ func TestParseCatalog_V1Format(t *testing.T) {
 	c := SeedCatalog()
 	_ = c
 	data, err := json.Marshal(c)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Debug: show offerings count
-	if len(c.Offerings) == 0 { t.Log("DEBUG: SeedCatalog has 0 offerings") } else { t.Logf("DEBUG: SeedCatalog has %d offerings", len(c.Offerings)) }
+	if len(c.Offerings) == 0 {
+		t.Log("DEBUG: SeedCatalog has 0 offerings")
+	} else {
+		t.Logf("DEBUG: SeedCatalog has %d offerings", len(c.Offerings))
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -280,9 +286,6 @@ func TestCanonicalProviderID(t *testing.T) {
 		}
 	}
 }
-
-
-
 
 // --- sanitizePricing tests ---
 

@@ -109,9 +109,9 @@ func TestProviderDisplayName(t *testing.T) {
 func TestEnsureCredentialRegistryInCatalog_AddsMissingProviders(t *testing.T) {
 	t.Parallel()
 	c := &Catalog{
-		Providers:    map[string]Provider{},
-		Deployments:  map[string]Deployment{},
-		Protocols: map[string]Protocol{},
+		Providers:   map[string]Provider{},
+		Deployments: map[string]Deployment{},
+		Protocols:   map[string]Protocol{},
 	}
 	EnsureCredentialRegistryInCatalog(c)
 	for _, spec := range registry.DefaultRegistry.All() {

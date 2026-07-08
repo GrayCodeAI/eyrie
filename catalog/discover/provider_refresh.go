@@ -78,13 +78,13 @@ func refreshProvider(ctx context.Context, providerID string, creds catalog.Crede
 	depID := spec.DeploymentID
 	if _, ok := cat.Deployments[depID]; !ok {
 		cat.Deployments[depID] = catalog.Deployment{
-			ID:                     depID,
-			Name:                   provID,
-			ProviderID:             provID,
-			APIProtocolID:          "openai-chat-completions",
-			AdapterConstructor:     "openai",
-			NativeModelIDSource:    catalog.NativeModelIDDiscovered,
-			ModelMappingsRequired:  false,
+			ID:                    depID,
+			Name:                  provID,
+			ProviderID:            provID,
+			APIProtocolID:         "openai-chat-completions",
+			AdapterConstructor:    "openai",
+			NativeModelIDSource:   catalog.NativeModelIDDiscovered,
+			ModelMappingsRequired: false,
 		}
 	}
 
@@ -110,7 +110,7 @@ func refreshProvider(ctx context.Context, providerID string, creds catalog.Crede
 			ID:            canonicalID,
 			ProviderID:    provID,
 			Name:          name,
-			ContextWindow:  entry.ContextWindow,
+			ContextWindow: entry.ContextWindow,
 			MaxOutput:     entry.MaxOutput,
 		}
 		cat.Aliases[entryID] = canonicalID

@@ -41,8 +41,6 @@ const (
 	NativeModelIDCatalogOrUser  NativeModelIDSource = "catalog_or_user_configured"
 )
 
-
-
 const (
 	CatalogSchemaVersion = "model-catalog/v1"
 	// SeedCatalogURL is the published model-catalog/v1 document.
@@ -55,47 +53,47 @@ const (
 // Catalog separates model ownership from the API protocol and deployment used
 // to call the model. It is intentionally data-only; adapters remain code.
 type Catalog struct {
-	SchemaVersion     string                    `json:"schema_version"`
-	GeneratedAt       time.Time                 `json:"generated_at"`
-	StaleAfter        time.Time                 `json:"stale_after"`
-	Providers         map[string]Provider       `json:"providers"`
-	Protocols         map[string]Protocol       `json:"api_protocols"`
-	Deployments       map[string]Deployment     `json:"deployments"`
-	Models            map[string]Model          `json:"models"`
-	Offerings         []ModelOffering           `json:"offerings"`
-	OfferingTemplates []ModelOfferingTemplate   `json:"offering_templates,omitempty"`
-	Aliases           map[string]string         `json:"aliases,omitempty"`
-	Provenance        *Provenance               `json:"provenance,omitempty"`
+	SchemaVersion     string                  `json:"schema_version"`
+	GeneratedAt       time.Time               `json:"generated_at"`
+	StaleAfter        time.Time               `json:"stale_after"`
+	Providers         map[string]Provider     `json:"providers"`
+	Protocols         map[string]Protocol     `json:"api_protocols"`
+	Deployments       map[string]Deployment   `json:"deployments"`
+	Models            map[string]Model        `json:"models"`
+	Offerings         []ModelOffering         `json:"offerings"`
+	OfferingTemplates []ModelOfferingTemplate `json:"offering_templates,omitempty"`
+	Aliases           map[string]string       `json:"aliases,omitempty"`
+	Provenance        *Provenance             `json:"provenance,omitempty"`
 }
 
 type Provider struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description,omitempty"`
-	HomepageURL string     `json:"homepage_url,omitempty"`
-	Aliases     []string   `json:"aliases,omitempty"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
+	HomepageURL string      `json:"homepage_url,omitempty"`
+	Aliases     []string    `json:"aliases,omitempty"`
 	Provenance  *Provenance `json:"provenance,omitempty"`
 }
 
 type Protocol struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description,omitempty"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
 	Provenance  *Provenance `json:"provenance,omitempty"`
 }
 
 type Deployment struct {
-	ID                     string            `json:"id"`
-	Name                   string            `json:"name"`
-	ProviderID             string            `json:"provider_id"`
-	APIProtocolID             string            `json:"api_protocol_id"`
-	AdapterConstructor     string            `json:"adapter_constructor"`
-	CredentialRequirements []Credential      `json:"credential_requirements,omitempty"`
-	EnvFallbacks           []EnvFallback     `json:"env_fallbacks,omitempty"`
-	NativeModelIDSource     NativeModelIDSource `json:"native_model_id_source"`
-	ModelMappingsRequired   bool              `json:"model_mappings_required,omitempty"`
-	Local                   bool              `json:"local,omitempty"`
-	Provenance              *Provenance       `json:"provenance,omitempty"`
+	ID                     string              `json:"id"`
+	Name                   string              `json:"name"`
+	ProviderID             string              `json:"provider_id"`
+	APIProtocolID          string              `json:"api_protocol_id"`
+	AdapterConstructor     string              `json:"adapter_constructor"`
+	CredentialRequirements []Credential        `json:"credential_requirements,omitempty"`
+	EnvFallbacks           []EnvFallback       `json:"env_fallbacks,omitempty"`
+	NativeModelIDSource    NativeModelIDSource `json:"native_model_id_source"`
+	ModelMappingsRequired  bool                `json:"model_mappings_required,omitempty"`
+	Local                  bool                `json:"local,omitempty"`
+	Provenance             *Provenance         `json:"provenance,omitempty"`
 }
 
 type Credential struct {
@@ -110,63 +108,63 @@ type EnvFallback struct {
 }
 
 type Model struct {
-	ID            string     `json:"id"`
-	ProviderID    string     `json:"provider_id"`
-	Name          string     `json:"name"`
-	Family        string     `json:"family,omitempty"`
-	ContextWindow int        `json:"context_window,omitempty"`
-	MaxOutput     int        `json:"max_output,omitempty"`
-	Aliases       []string   `json:"aliases,omitempty"`
+	ID            string      `json:"id"`
+	ProviderID    string      `json:"provider_id"`
+	Name          string      `json:"name"`
+	Family        string      `json:"family,omitempty"`
+	ContextWindow int         `json:"context_window,omitempty"`
+	MaxOutput     int         `json:"max_output,omitempty"`
+	Aliases       []string    `json:"aliases,omitempty"`
 	Provenance    *Provenance `json:"provenance,omitempty"`
 }
 
 type ModelOffering struct {
-	ID               string        `json:"id"`
-	CanonicalModelID string        `json:"canonical_model_id"`
-	DeploymentID     string        `json:"deployment_id"`
-	NativeModelID    string        `json:"native_model_id"`
-	Capabilities     CapabilitySet `json:"capabilities,omitempty"`
-	Pricing          Pricing       `json:"pricing"`
+	ID               string          `json:"id"`
+	CanonicalModelID string          `json:"canonical_model_id"`
+	DeploymentID     string          `json:"deployment_id"`
+	NativeModelID    string          `json:"native_model_id"`
+	Capabilities     CapabilitySet   `json:"capabilities,omitempty"`
+	Pricing          Pricing         `json:"pricing"`
 	LiveMetadata     json.RawMessage `json:"live_metadata,omitempty"`
-	Provenance       *Provenance    `json:"provenance,omitempty"`
+	Provenance       *Provenance     `json:"provenance,omitempty"`
 }
 
 type ModelOfferingTemplate struct {
-	ID                   string        `json:"id"`
-	CanonicalModelID     string        `json:"canonical_model_id"`
-	DeploymentID         string        `json:"deployment_id"`
-	NativeModelIDSource  NativeModelIDSource `json:"native_model_id_source"`
-	MappingRequired      bool          `json:"mapping_required"`
-	Capabilities        CapabilitySet  `json:"capabilities,omitempty"`
-	Pricing             Pricing        `json:"pricing"`
-	Provenance          *Provenance     `json:"provenance,omitempty"`
+	ID                  string              `json:"id"`
+	CanonicalModelID    string              `json:"canonical_model_id"`
+	DeploymentID        string              `json:"deployment_id"`
+	NativeModelIDSource NativeModelIDSource `json:"native_model_id_source"`
+	MappingRequired     bool                `json:"mapping_required"`
+	Capabilities        CapabilitySet       `json:"capabilities,omitempty"`
+	Pricing             Pricing             `json:"pricing"`
+	Provenance          *Provenance         `json:"provenance,omitempty"`
 }
 
 type CapabilitySet struct {
 	ServerTools            map[string]CapabilityState `json:"server_tools,omitempty"`
-	FunctionCalling        CapabilityState             `json:"function_calling,omitempty"`
-	ExplicitThinkingBudget CapabilityState             `json:"explicit_thinking_budget,omitempty"`
-	AdaptiveThinking       CapabilityState             `json:"adaptive_thinking,omitempty"`
-	Effort                 CapabilityState             `json:"effort,omitempty"`
-	StructuredOutput       CapabilityState             `json:"structured_output,omitempty"`
-	CodeExecution          CapabilityState             `json:"code_execution,omitempty"`
-	Citations              CapabilityState             `json:"citations,omitempty"`
-	PDFInput               CapabilityState             `json:"pdf_input,omitempty"`
-	ImageInput             CapabilityState             `json:"image_input,omitempty"`
-	MaxInputTokens         int                         `json:"max_input_tokens,omitempty"`
-	MaxOutputTokens        int                         `json:"max_output_tokens,omitempty"`
-	ThinkingTypes          []string                    `json:"thinking_types,omitempty"`
-	EffortLevels           []string                    `json:"effort_levels,omitempty"`
+	FunctionCalling        CapabilityState            `json:"function_calling,omitempty"`
+	ExplicitThinkingBudget CapabilityState            `json:"explicit_thinking_budget,omitempty"`
+	AdaptiveThinking       CapabilityState            `json:"adaptive_thinking,omitempty"`
+	Effort                 CapabilityState            `json:"effort,omitempty"`
+	StructuredOutput       CapabilityState            `json:"structured_output,omitempty"`
+	CodeExecution          CapabilityState            `json:"code_execution,omitempty"`
+	Citations              CapabilityState            `json:"citations,omitempty"`
+	PDFInput               CapabilityState            `json:"pdf_input,omitempty"`
+	ImageInput             CapabilityState            `json:"image_input,omitempty"`
+	MaxInputTokens         int                        `json:"max_input_tokens,omitempty"`
+	MaxOutputTokens        int                        `json:"max_output_tokens,omitempty"`
+	ThinkingTypes          []string                   `json:"thinking_types,omitempty"`
+	EffortLevels           []string                   `json:"effort_levels,omitempty"`
 }
 
 type Pricing struct {
-	Status            PricingStatus     `json:"status"`
-	Currency          string            `json:"currency,omitempty"`
-	EffectiveAt       time.Time         `json:"effective_at,omitempty"`
+	Status            PricingStatus      `json:"status"`
+	Currency          string             `json:"currency,omitempty"`
+	EffectiveAt       time.Time          `json:"effective_at,omitempty"`
 	RatesPer1M        map[string]float64 `json:"rates_per_1m,omitempty"`
-	MissingDimensions []string          `json:"missing_dimensions,omitempty"`
-	Notes             []string          `json:"notes,omitempty"`
-	Source            string            `json:"source,omitempty"`
+	MissingDimensions []string           `json:"missing_dimensions,omitempty"`
+	Notes             []string           `json:"notes,omitempty"`
+	Source            string             `json:"source,omitempty"`
 }
 
 // CapabilitySetFromEntry builds a CapabilitySet from a live entry's features.

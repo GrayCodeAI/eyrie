@@ -608,8 +608,8 @@ func FetchClinePass(env map[string]string) ([]Entry, error) {
 	}
 	now := time.Now().Unix()
 	models := []struct {
-		id, name, owner string
-		ctx, maxOut     int
+		id, name, owner   string
+		ctx, maxOut       int
 		inPrice, outPrice float64 // per 1M tokens (ClinePass reference pricing), 0 = free
 	}{
 		{"cline-pass/deepseek-v4-pro", "DeepSeek V4 Pro", "deepseek", 131072, 8192, 1.74, 3.48},
