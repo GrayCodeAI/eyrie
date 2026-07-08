@@ -557,7 +557,7 @@ func LoadValidCatalogCache(cachePath string) (*CompiledCatalog, bool) {
 	if cachePath == "" {
 		return nil, false
 	}
-	data, err := os.ReadFile(cachePath)
+	data, err := os.ReadFile(cachePath) // #nosec G304 -- cachePath is an operator-supplied local cache file path, not untrusted input
 	if err != nil {
 		return nil, false
 	}
@@ -641,7 +641,7 @@ func WriteCatalogCache(cachePath string, c *Catalog) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o750); err != nil {
 		return err
 	}
 	tmpPath := cachePath + ".tmp"

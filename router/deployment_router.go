@@ -571,7 +571,7 @@ func selectDeploymentChoice(choices []DeploymentChoice) DeploymentChoice {
 	if total <= 0 {
 		return choices[0]
 	}
-	n := rand.IntN(total)
+	n := rand.IntN(total) // #nosec G404 -- non-cryptographic weighted load-balancing choice, not a security decision
 	for _, choice := range choices {
 		n -= choice.Weight
 		if n < 0 {

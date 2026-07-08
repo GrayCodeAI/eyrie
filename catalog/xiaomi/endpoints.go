@@ -26,19 +26,19 @@ const (
 const (
 	PayAsYouGoOpenAIBase      = "https://api.xiaomimimo.com/v1"
 	PayAsYouGoAnthropicBase   = "https://api.xiaomimimo.com/anthropic"
-	TokenPlanCNOpenAIBase     = "https://token-plan-cn.xiaomimimo.com/v1"
-	TokenPlanCNAnthropicBase  = "https://token-plan-cn.xiaomimimo.com/anthropic"
-	TokenPlanSGPOpenAIBase    = "https://token-plan-sgp.xiaomimimo.com/v1"
-	TokenPlanSGPAnthropicBase = "https://token-plan-sgp.xiaomimimo.com/anthropic"
-	TokenPlanAMSOpenAIBase    = "https://token-plan-ams.xiaomimimo.com/v1"
-	TokenPlanAMSAnthropicBase = "https://token-plan-ams.xiaomimimo.com/anthropic"
+	TokenPlanCNOpenAIBase     = "https://token-plan-cn.xiaomimimo.com/v1"         // #nosec G101 -- public API base URL, not a secret value
+	TokenPlanCNAnthropicBase  = "https://token-plan-cn.xiaomimimo.com/anthropic"  // #nosec G101 -- public API base URL, not a secret value
+	TokenPlanSGPOpenAIBase    = "https://token-plan-sgp.xiaomimimo.com/v1"        // #nosec G101 -- public API base URL, not a secret value
+	TokenPlanSGPAnthropicBase = "https://token-plan-sgp.xiaomimimo.com/anthropic" // #nosec G101 -- public API base URL, not a secret value
+	TokenPlanAMSOpenAIBase    = "https://token-plan-ams.xiaomimimo.com/v1"        // #nosec G101 -- public API base URL, not a secret value
+	TokenPlanAMSAnthropicBase = "https://token-plan-ams.xiaomimimo.com/anthropic" // #nosec G101 -- public API base URL, not a secret value
 )
 
 // ProviderPayAsYouGo is the registry / setup gateway id for pay-as-you-go.
 const ProviderPayAsYouGo = "xiaomi_mimo_payg"
 
 // ProviderTokenPlan is the registry / setup gateway id for Token Plan.
-const ProviderTokenPlan = "xiaomi_mimo_token_plan"
+const ProviderTokenPlan = "xiaomi_mimo_token_plan" // #nosec G101 -- provider id string, not a secret value
 
 // NormalizeRegion parses a region id (cn, sgp, ams).
 func NormalizeRegion(region string) (Region, error) {

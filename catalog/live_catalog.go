@@ -2,13 +2,9 @@ package catalog
 
 import (
 	"sort"
-	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
-
-// liveStaleDuration is how long a cache remains fresh after live provider APIs were merged.
-const liveStaleDuration = 24 * time.Hour
 
 // IsLiveOnlyProvider reports whether a provider uses live API discovery only.
 // All providers are now fully dynamic.

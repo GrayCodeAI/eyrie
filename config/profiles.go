@@ -22,7 +22,7 @@ const (
 	ProviderOpenCodeGo          APIProvider = "opencodego"
 	ProviderKimi                APIProvider = "kimi"
 	ProviderXiaomiMimoPayg      APIProvider = "xiaomi_mimo_payg"
-	ProviderXiaomiMimoTokenPlan APIProvider = "xiaomi_mimo_token_plan"
+	ProviderXiaomiMimoTokenPlan APIProvider = "xiaomi_mimo_token_plan" // #nosec G101 -- provider id string, not a secret value
 	ProviderMiniMaxTokenPlan    APIProvider = "minimax_token_plan"
 	ProviderMiniMaxPayg         APIProvider = "minimax_payg"
 	ProviderPoolside            APIProvider = "poolside"

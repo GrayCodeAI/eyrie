@@ -130,7 +130,7 @@ func legacyHawkDotEnvPath() string {
 }
 
 func readLegacyEnvFile(path string) (map[string]string, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is built from os.UserHomeDir() in legacyHawkDotEnvPath, not untrusted input
 	if err != nil {
 		return nil, err
 	}

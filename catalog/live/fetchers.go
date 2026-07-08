@@ -54,7 +54,7 @@ const (
 	DefaultDeepSeekBaseURL  = "https://api.deepseek.com/v1"
 	DefaultPoolsideBaseURL  = "https://inference.poolside.ai/v1"
 	DefaultGroqBaseURL      = "https://api.groq.com/openai/v1"
-	DefaultClinePassBaseURL = "https://api.cline.bot/api/v1"
+	DefaultClinePassBaseURL = "https://api.cline.bot/api/v1" // #nosec G101 -- public API base URL, not a secret value
 )
 
 // Registry maps fetcher keys to implementations.

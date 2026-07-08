@@ -32,11 +32,11 @@ const (
 
 	// AttrGenAIUsageInputTokens is the number of prompt/input tokens consumed.
 	// OTel: gen_ai.usage.input_tokens.
-	AttrGenAIUsageInputTokens = "gen_ai.usage.input_tokens"
+	AttrGenAIUsageInputTokens = "gen_ai.usage.input_tokens" // #nosec G101 -- OTel semconv attribute key string, not a secret value
 
 	// AttrGenAIUsageOutputTokens is the number of completion/output tokens
 	// generated. OTel: gen_ai.usage.output_tokens.
-	AttrGenAIUsageOutputTokens = "gen_ai.usage.output_tokens"
+	AttrGenAIUsageOutputTokens = "gen_ai.usage.output_tokens" // #nosec G101 -- OTel semconv attribute key string, not a secret value
 
 	// AttrGenAIOperationName names the GenAI operation (e.g. "chat", "embeddings",
 	// "tool_use"). OTel: gen_ai.operation.name.

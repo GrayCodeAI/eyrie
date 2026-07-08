@@ -5,11 +5,11 @@ import (
 )
 
 const (
-	EnvXiaomiPaygAPIKey       = "XIAOMI_MIMO_PAYG_API_KEY"
-	EnvXiaomiTokenPlanAPIKey  = "XIAOMI_MIMO_TOKEN_PLAN_API_KEY"
+	EnvXiaomiPaygAPIKey       = "XIAOMI_MIMO_PAYG_API_KEY"       // #nosec G101 -- environment variable name string, not a secret value
+	EnvXiaomiTokenPlanAPIKey  = "XIAOMI_MIMO_TOKEN_PLAN_API_KEY" // #nosec G101 -- environment variable name string, not a secret value
 	EnvXiaomiPaygBaseURL      = "XIAOMI_MIMO_PAYG_BASE_URL"
-	EnvXiaomiTokenPlanBaseURL = "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL"
-	EnvXiaomiTokenPlanRegion  = "XIAOMI_MIMO_TOKEN_PLAN_REGION"
+	EnvXiaomiTokenPlanBaseURL = "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL" // #nosec G101 -- environment variable name string, not a secret value
+	EnvXiaomiTokenPlanRegion  = "XIAOMI_MIMO_TOKEN_PLAN_REGION"   // #nosec G101 -- environment variable name string, not a secret value
 )
 
 // XiaomiTokenPlanRegionFromConfig reads persisted Token Plan cluster from provider.json.

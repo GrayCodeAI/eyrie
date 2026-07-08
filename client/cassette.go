@@ -42,7 +42,7 @@ type RecordedResponse struct {
 
 // LoadCassette reads a cassette from a JSON file at path.
 func LoadCassette(path string) (*Cassette, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is an operator-supplied local cassette file, not untrusted input
 	if err != nil {
 		return nil, fmt.Errorf("cassette: failed to read %s: %w", path, err)
 	}
@@ -61,7 +61,7 @@ func SaveCassette(c *Cassette, path string) error {
 	}
 
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("cassette: failed to create directory %s: %w", dir, err)
 	}
 
