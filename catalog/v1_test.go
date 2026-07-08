@@ -11,12 +11,12 @@ import (
 	"time"
 )
 
-func TestCatalogV1FromLegacyCompiles(t *testing.T) {
+func TestCatalogFromLegacyCompiles(t *testing.T) {
 	t.Parallel()
-	c := testLegacyCatalogV1()
-	compiled, err := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, err := CompileCatalog(&c)
 	if err != nil {
-		t.Fatalf("CompileCatalogV1 failed: %v", err)
+		t.Fatalf("CompileCatalog failed: %v", err)
 	}
 	if compiled.ModelsByID["anthropic/claude-sonnet-4-6"].ID == "" {
 		t.Fatal("expected canonical anthropic model")
@@ -33,59 +33,28 @@ func TestCatalogV1FromLegacyCompiles(t *testing.T) {
 	}
 }
 
-func TestCatalogV1FromLegacyZAIDirectModels(t *testing.T) {
+func TestValidateCatalogRejectsBadReferences(t *testing.T) {
 	t.Parallel()
-	legacy := testLegacyModelCatalog()
-	legacy.Providers["zai_payg"] = []ModelCatalogEntry{{ID: "glm-5.1", DisplayName: "GLM-5.1"}}
-	c := CatalogV1FromLegacy(legacy)
-	compiled, err := CompileCatalogV1(&c)
-	if err != nil {
-		t.Fatalf("CompileCatalogV1 failed: %v", err)
-	}
-	if _, ok := compiled.OfferingForDeployment("zai_payg/glm-5.1", "zai_payg-direct"); !ok {
-		t.Fatal("expected zai_payg-direct offering on zai_payg/glm-5.1")
-	}
-}
-
-func TestCatalogV1FromLegacyCanopyWaveNamespacedModels(t *testing.T) {
-	t.Parallel()
-	legacy := testLegacyModelCatalog()
-	legacy.Providers["canopywave"] = append(
-		legacy.Providers["canopywave"],
-		ModelCatalogEntry{ID: "moonshotai/kimi-k2.6", DisplayName: "Kimi K2.6"},
-	)
-	c := CatalogV1FromLegacy(legacy)
-	compiled, err := CompileCatalogV1(&c)
-	if err != nil {
-		t.Fatalf("CompileCatalogV1 failed: %v", err)
-	}
-	if _, ok := compiled.OfferingForDeployment("moonshotai/kimi-k2.6", "canopywave"); !ok {
-		t.Fatal("expected canopywave offering on moonshotai/kimi-k2.6")
-	}
-}
-
-func TestValidateCatalogV1RejectsBadReferences(t *testing.T) {
-	t.Parallel()
-	c := testLegacyCatalogV1()
-	c.Offerings = append(c.Offerings, ModelOfferingV1{
+	c := SeedCatalog()
+	c.Offerings = append(c.Offerings, ModelOffering{
 		ID:               "missing:model",
 		CanonicalModelID: "anthropic/claude-sonnet-4-6",
 		DeploymentID:     "missing",
 		NativeModelID:    "model",
-		Pricing:          PricingV1{Status: PricingUnknown},
+		Pricing:          Pricing{Status: PricingUnknown},
 	})
-	if err := ValidateCatalogV1(&c); err == nil {
+	if err := ValidateCatalog(&c); err == nil {
 		t.Fatal("expected validation failure")
 	}
 }
 
-func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
+func TestLoadCatalogUsesValidCacheBeforeRemote(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	cachePath := filepath.Join(dir, "catalog.json")
-	c := testLegacyCatalogV1()
+	c := SeedCatalog()
 	c.SourceForTest("cache")
-	if err := WriteCatalogV1Cache(cachePath, &c); err != nil {
+	if err := WriteCatalogCache(cachePath, &c); err != nil {
 		t.Fatalf("write cache: %v", err)
 	}
 	calls := 0
@@ -94,12 +63,12 @@ func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer srv.Close()
-	compiled, err := LoadCatalogV1(context.Background(), LoadCatalogV1Options{
+	compiled, err := LoadCatalog(context.Background(), LoadCatalogOptions{
 		CachePath: cachePath,
 		RemoteURL: srv.URL,
 	})
 	if err != nil {
-		t.Fatalf("LoadCatalogV1 failed: %v", err)
+		t.Fatalf("LoadCatalog failed: %v", err)
 	}
 	if compiled.Catalog.Provenance == nil || compiled.Catalog.Provenance.Source != "cache" {
 		t.Fatalf("expected cached catalog, got %#v", compiled.Catalog.Provenance)
@@ -109,16 +78,16 @@ func TestLoadCatalogV1UsesValidCacheBeforeRemote(t *testing.T) {
 	}
 }
 
-func TestLoadCatalogV1RefreshRemoteOverridesValidCache(t *testing.T) {
+func TestLoadCatalogRefreshRemoteOverridesValidCache(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	cachePath := filepath.Join(dir, "catalog.json")
-	cached := testLegacyCatalogV1()
+	cached := SeedCatalog()
 	cached.SourceForTest("cache")
-	if err := WriteCatalogV1Cache(cachePath, &cached); err != nil {
+	if err := WriteCatalogCache(cachePath, &cached); err != nil {
 		t.Fatalf("write cache: %v", err)
 	}
-	remote := testLegacyCatalogV1()
+	remote := SeedCatalog()
 	remote.SourceForTest("remote")
 	data, err := json.Marshal(remote)
 	if err != nil {
@@ -131,13 +100,13 @@ func TestLoadCatalogV1RefreshRemoteOverridesValidCache(t *testing.T) {
 		_, _ = w.Write(data)
 	}))
 	defer srv.Close()
-	compiled, err := LoadCatalogV1(context.Background(), LoadCatalogV1Options{
+	compiled, err := LoadCatalog(context.Background(), LoadCatalogOptions{
 		CachePath:     cachePath,
 		RemoteURL:     srv.URL,
 		RefreshRemote: true,
 	})
 	if err != nil {
-		t.Fatalf("LoadCatalogV1 failed: %v", err)
+		t.Fatalf("LoadCatalog failed: %v", err)
 	}
 	if compiled.Catalog.Provenance == nil || compiled.Catalog.Provenance.Source != "remote" {
 		t.Fatalf("expected remote catalog, got %#v", compiled.Catalog.Provenance)
@@ -147,7 +116,7 @@ func TestLoadCatalogV1RefreshRemoteOverridesValidCache(t *testing.T) {
 	}
 }
 
-func TestLoadCatalogV1RejectsInvalidRemote(t *testing.T) {
+func TestLoadCatalogRejectsInvalidRemote(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	cachePath := filepath.Join(dir, "missing.json")
@@ -155,7 +124,7 @@ func TestLoadCatalogV1RejectsInvalidRemote(t *testing.T) {
 		_, _ = w.Write([]byte(`{"schema_version":"model-catalog/v1"}`))
 	}))
 	defer srv.Close()
-	_, err := LoadCatalogV1(context.Background(), LoadCatalogV1Options{
+	_, err := LoadCatalog(context.Background(), LoadCatalogOptions{
 		CachePath:     cachePath,
 		RemoteURL:     srv.URL,
 		RefreshRemote: true,
@@ -168,9 +137,9 @@ func TestLoadCatalogV1RejectsInvalidRemote(t *testing.T) {
 	}
 }
 
-func TestFetchRemoteCatalogV1StrictValidation(t *testing.T) {
+func TestFetchRemoteCatalogStrictValidation(t *testing.T) {
 	t.Parallel()
-	c := testLegacyCatalogV1()
+	c := SeedCatalog()
 	c.GeneratedAt = time.Now().UTC()
 	c.StaleAfter = c.GeneratedAt.Add(time.Hour)
 	data, err := json.Marshal(c)
@@ -182,18 +151,18 @@ func TestFetchRemoteCatalogV1StrictValidation(t *testing.T) {
 		_, _ = w.Write(data)
 	}))
 	defer srv.Close()
-	fetched, err := FetchRemoteCatalogV1(context.Background(), LoadCatalogV1Options{RemoteURL: srv.URL})
+	fetched, err := FetchRemoteCatalog(context.Background(), LoadCatalogOptions{RemoteURL: srv.URL})
 	if err != nil {
-		t.Fatalf("FetchRemoteCatalogV1 failed: %v", err)
+		t.Fatalf("FetchRemoteCatalog failed: %v", err)
 	}
-	if fetched.SchemaVersion != CatalogV1SchemaVersion {
+	if fetched.SchemaVersion != CatalogSchemaVersion {
 		t.Fatalf("schema version = %q", fetched.SchemaVersion)
 	}
 }
 
-func (c *CatalogV1) SourceForTest(source string) {
+func (c *Catalog) SourceForTest(source string) {
 	if c.Provenance == nil {
-		c.Provenance = &CatalogProvenanceV1{}
+		c.Provenance = &Provenance{}
 	}
 	c.Provenance.Source = source
 }

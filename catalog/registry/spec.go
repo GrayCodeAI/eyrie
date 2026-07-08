@@ -38,7 +38,7 @@ type ProviderSpec struct {
 	ProbeBaseURL           string
 	LiveFetcherKey         string // key in catalog/live registry
 	LiveCatalogKey         string // legacy provider key in ModelCatalog.Providers map
-	APIProtocolID          string
+	ProtocolID             string
 	AdapterID              string
 	RuntimeProfileKey      string
 	DirectFallbacks        []string

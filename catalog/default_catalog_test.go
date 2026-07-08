@@ -1,24 +1,25 @@
 package catalog
 
 import (
+	"strings"
 	"testing"
 )
 
-func TestDefaultCatalogV1_ReturnsBootstrap(t *testing.T) {
+func TestSeedCatalog_ReturnsCatalog(t *testing.T) {
 	t.Parallel()
-	c := DefaultCatalogV1()
-	if c.SchemaVersion != CatalogV1SchemaVersion {
+	c := SeedCatalog()
+	if c.SchemaVersion != CatalogSchemaVersion {
 		t.Fatalf("schema_version = %q", c.SchemaVersion)
 	}
-	if c.Provenance == nil || c.Provenance.Source != bootstrapSource {
-		t.Fatalf("provenance source = %v, want %q", c.Provenance, bootstrapSource)
+	if c.Provenance == nil || c.Provenance.Source != "test" {
+		t.Fatalf("provenance source = %v, want test", c.Provenance)
 	}
 }
 
-func TestDefaultCatalogV1_HasProviders(t *testing.T) {
+func TestSeedCatalog_HasProviders(t *testing.T) {
 	t.Parallel()
-	c := DefaultCatalogV1()
-	expected := []string{"anthropic", "openai", "google", "xai", "openrouter", "ollama"}
+	c := SeedCatalog()
+	expected := []string{"anthropic", "openai", "google", "xai", "openrouter", "ollama", "opencodego", "canopywave"}
 	for _, id := range expected {
 		if c.Providers[id].ID == "" {
 			t.Errorf("missing provider %q in default catalog", id)
@@ -26,12 +27,13 @@ func TestDefaultCatalogV1_HasProviders(t *testing.T) {
 	}
 }
 
-func TestDefaultCatalogV1_HasDeployments(t *testing.T) {
+func TestSeedCatalog_HasDeployments(t *testing.T) {
 	t.Parallel()
-	c := DefaultCatalogV1()
+	c := SeedCatalog()
 	expected := []string{
-		"anthropic-direct", "openai-direct", "gemini-direct",
+		"anthropic-direct", "openai-direct",
 		"grok-direct", "openrouter", "ollama-local",
+		"opencodego", "canopywave",
 	}
 	for _, id := range expected {
 		if c.Deployments[id].ID == "" {
@@ -40,114 +42,91 @@ func TestDefaultCatalogV1_HasDeployments(t *testing.T) {
 	}
 }
 
-func TestDefaultCatalogV1_HasAPIProtocols(t *testing.T) {
+func TestSeedCatalog_HasModels(t *testing.T) {
 	t.Parallel()
-	c := DefaultCatalogV1()
-	expected := []string{"anthropic-messages", "openai-chat-completions", "gemini-generate-content"}
-	for _, id := range expected {
-		if c.APIProtocols[id].ID == "" {
-			t.Errorf("missing api_protocol %q in default catalog", id)
-		}
+	c := SeedCatalog()
+	if len(c.Models) == 0 {
+		t.Fatal("seed catalog should have models")
 	}
 }
 
-func TestDefaultCatalogV1_NoModels(t *testing.T) {
+func TestSeedCatalog_DeploymentsReferenceProviders(t *testing.T) {
 	t.Parallel()
-	c := DefaultCatalogV1()
-	if len(c.Models) != 0 {
-		t.Fatalf("bootstrap catalog should have no models, got %d", len(c.Models))
-	}
-	if len(c.Offerings) != 0 {
-		t.Fatalf("bootstrap catalog should have no offerings, got %d", len(c.Offerings))
-	}
-}
-
-func TestDefaultCatalogV1_DeploymentsReferenceProviders(t *testing.T) {
-	t.Parallel()
-	c := DefaultCatalogV1()
+	c := SeedCatalog()
 	for id, dep := range c.Deployments {
 		if c.Providers[dep.ProviderID].ID == "" {
 			t.Errorf("deployment %q references unknown provider %q", id, dep.ProviderID)
 		}
-		if c.APIProtocols[dep.APIProtocolID].ID == "" {
-			t.Errorf("deployment %q references unknown api_protocol %q", id, dep.APIProtocolID)
+		if c.Protocols[dep.APIProtocolID].ID == "" {
+			t.Errorf("deployment %q references unknown protocol %q", id, dep.APIProtocolID)
 		}
 	}
 }
 
-func TestDefaultCatalogV1_Validates(t *testing.T) {
+func TestSeedCatalog_Validates(t *testing.T) {
 	t.Parallel()
-	c := DefaultCatalogV1()
-	if err := ValidateCatalogV1(&c); err != nil {
-		t.Fatalf("default catalog should validate: %v", err)
+	c := SeedCatalog()
+	if err := ValidateCatalog(&c); err != nil {
+		t.Fatalf("seed catalog should validate: %v", err)
 	}
 }
 
-func TestDefaultCatalogV1_Compiles(t *testing.T) {
+func TestSeedCatalog_Compiles(t *testing.T) {
 	t.Parallel()
-	c := DefaultCatalogV1()
-	compiled, err := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, err := CompileCatalog(&c)
 	if err != nil {
-		t.Fatalf("default catalog should compile: %v", err)
+		t.Fatalf("seed catalog should compile: %v", err)
 	}
 	if compiled == nil {
 		t.Fatal("compiled should not be nil")
 	}
 }
 
-func TestIsBootstrapCatalog(t *testing.T) {
+func TestSeedCatalog_NoDuplicateOfferings(t *testing.T) {
 	t.Parallel()
-	bootstrap := BootstrapCatalogV1()
-	if !IsBootstrapCatalog(&bootstrap) {
-		t.Error("BootstrapCatalogV1 should be identified as bootstrap")
-	}
-
-	legacy := testLegacyCatalogV1()
-	if IsBootstrapCatalog(&legacy) {
-		t.Error("legacy-sourced catalog should not be bootstrap")
-	}
-
-	if IsBootstrapCatalog(nil) {
-		t.Error("nil should not be bootstrap")
+	c := SeedCatalog()
+	seen := map[string]bool{}
+	for _, o := range c.Offerings {
+		if seen[o.ID] {
+			t.Fatalf("duplicate offering %q", o.ID)
+		}
+		seen[o.ID] = true
 	}
 }
 
-func TestBootstrapCatalogV1_HasEnvFallbacks(t *testing.T) {
+func TestBootstrapCatalog_HasEnvFallbacks(t *testing.T) {
 	t.Parallel()
-	c := BootstrapCatalogV1()
-	anthDep, ok := c.Deployments["anthropic-direct"]
-	if !ok {
-		t.Fatal("missing anthropic-direct")
-	}
-	if len(anthDep.EnvFallbacks) == 0 {
-		t.Error("bootstrap anthropic-direct should have env fallbacks")
-	}
-}
-
-func TestBootstrapCatalogV1_HasCredentialProviders(t *testing.T) {
-	t.Parallel()
-	c := BootstrapCatalogV1()
-	// Ollama is local, should not require key
-	ollamaDep, ok := c.Deployments["ollama-local"]
-	if !ok {
-		t.Fatal("missing ollama-local")
-	}
-	if ollamaDep.Local != true {
-		t.Error("ollama-local should be marked local")
-	}
-
-	// Anthropic requires key
-	anthDep, ok := c.Deployments["anthropic-direct"]
-	if !ok {
-		t.Fatal("missing anthropic-direct")
-	}
-	hasAPIKey := false
-	for _, fb := range anthDep.EnvFallbacks {
-		if fb.Field == "api_key" {
-			hasAPIKey = true
+	c := SeedCatalog()
+	for id, dep := range c.Deployments {
+		if len(dep.EnvFallbacks) > 0 {
+			continue
+		}
+		if dep.AdapterConstructor == "" {
+			continue
+		}
+		if dep.ModelMappingsRequired {
+			continue
+		}
+		if dep.NativeModelIDSource == NativeModelIDUserConfigured {
+			continue
+		}
+		if strings.HasSuffix(id, "-direct") || id == "openrouter" || id == "canopywave" || id == "opencodego" || id == "ollama-local" {
+			if len(dep.EnvFallbacks) == 0 {
+				t.Errorf("deployment %q should have env fallbacks", id)
+			}
 		}
 	}
-	if !hasAPIKey {
-		t.Error("anthropic-direct should have api_key in env fallbacks")
+}
+
+func TestIsBootstrapCatalog(t *testing.T) {
+	t.Parallel()
+	// SeedCatalog is NOT bootstrap (it's a full catalog)
+	c := SeedCatalog()
+	if IsBootstrapCatalog(&c) {
+		t.Error("SeedCatalog should not be bootstrap")
+	}
+	if IsBootstrapCatalog(nil) {
+		t.Error("nil should not be bootstrap")
 	}
 }

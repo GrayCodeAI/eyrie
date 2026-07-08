@@ -67,7 +67,7 @@ func normalizeImageSource(src string) (mediaType, data string, isBase64 bool, er
 			// Not a path with a known image extension → assume raw base64.
 			return "", src, false, nil
 		}
-		raw, readErr := os.ReadFile(src)
+		raw, readErr := os.ReadFile(src) // #nosec G304 -- src is a caller-supplied local image path, an intentional API input, not untrusted request data
 		if readErr != nil {
 			return "", "", false, fmt.Errorf("eyrie: reading image file %q: %w", src, readErr)
 		}

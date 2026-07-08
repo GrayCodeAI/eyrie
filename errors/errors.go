@@ -10,11 +10,11 @@ const (
 	APIErrorMessagePrefix                  = "API Error"
 	PromptTooLongErrorMessage              = "Prompt is too long"
 	CreditBalanceTooLowErrorMessage        = "Credit balance is too low"
-	InvalidAPIKeyErrorMessage              = "Not logged in · Please run /login"
-	InvalidAPIKeyErrorMessageExternal      = "Invalid API key · Please check your credentials"
+	InvalidAPIKeyErrorMessage              = "Not logged in · Please run /login"               // #nosec G101 -- static error message text, not a secret value
+	InvalidAPIKeyErrorMessageExternal      = "Invalid API key · Please check your credentials" // #nosec G101 -- static error message text, not a secret value
 	OrgDisabledErrorMessageEnvKeyWithOAuth = "Organization disabled"
 	OrgDisabledErrorMessageEnvKey          = "Organization disabled"
-	TokenRevokedErrorMessage               = "Token has been revoked"
+	TokenRevokedErrorMessage               = "Token has been revoked" // #nosec G101 -- static error message text, not a secret value
 	CCRAuthErrorMessage                    = "Authentication error"
 	Repeated529ErrorMessage                = "Repeated 529 Overloaded errors"
 	CustomOffSwitchMessage                 = "Service temporarily disabled"

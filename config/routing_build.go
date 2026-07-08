@@ -120,6 +120,45 @@ func openRouterFallbackStage() []RoutingStage {
 	}}
 }
 
+func deploymentOwnerProviderID(deploymentID string) string {
+	switch deploymentID {
+	case "anthropic-direct", "anthropic-bedrock", "anthropic-vertex":
+		return "anthropic"
+	case "openai-direct", "openai-azure":
+		return "openai"
+	case "gemini-direct", "gemini-vertex":
+		return "google"
+	case "grok-direct":
+		return "xai"
+	case "openrouter":
+		return "openrouter"
+	case "canopywave":
+		return "canopywave"
+	case "poolside":
+		return "poolside"
+	case "groq-direct":
+		return "groq"
+	case "clinepass":
+		return "clinepass"
+	case "zai_payg-direct":
+		return "zai_payg"
+	case "zai_coding-direct":
+		return "zai_coding"
+	case "ollama-local":
+		return "ollama"
+	case "opencodego":
+		return "opencodego"
+	case "kimi-direct":
+		return "kimi"
+	case "xiaomi_mimo_payg-direct", "xiaomi_mimo-direct":
+		return "xiaomi_mimo_payg"
+	case "xiaomi_mimo_token_plan-direct":
+		return "xiaomi_mimo_token_plan"
+	default:
+		return ""
+	}
+}
+
 func singleDeploymentStages(deploymentID string, retries int) []RoutingStage {
 	if retries <= 0 {
 		retries = 1

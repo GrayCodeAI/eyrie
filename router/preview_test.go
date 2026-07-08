@@ -8,8 +8,8 @@ import (
 
 func TestResolveRoutingModelOverride(t *testing.T) {
 	t.Parallel()
-	c := catalog.DefaultCatalogV1()
-	compiled, err := catalog.CompileCatalogV1(&c)
+	c := catalog.SeedCatalog()
+	compiled, err := catalog.CompileCatalog(&c)
 	if err != nil {
 		t.Fatalf("compile: %v", err)
 	}
@@ -37,8 +37,8 @@ func TestResolveRoutingModelOverride(t *testing.T) {
 
 func TestResolveRoutingProviderFallback(t *testing.T) {
 	t.Parallel()
-	c := catalog.DefaultCatalogV1()
-	compiled, err := catalog.CompileCatalogV1(&c)
+	c := catalog.SeedCatalog()
+	compiled, err := catalog.CompileCatalog(&c)
 	if err != nil {
 		t.Fatalf("compile: %v", err)
 	}

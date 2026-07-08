@@ -22,9 +22,9 @@ func TestIsLiveOnlyProvider(t *testing.T) {
 
 func TestFirstModelForProvider(t *testing.T) {
 	t.Parallel()
-	c := catalog.TestSeedCatalogV1()
-	c.Models["zai_payg/glm-5.1"] = catalog.ModelV1{ID: "zai_payg/glm-5.1", ProviderID: "zai_payg", Name: "GLM-5.1"}
-	compiled, err := catalog.CompileCatalogV1(&c)
+	c := catalog.SeedCatalog()
+	c.Models["zai_payg/glm-5.1"] = catalog.Model{ID: "zai_payg/glm-5.1", ProviderID: "zai_payg", Name: "GLM-5.1"}
+	compiled, err := catalog.CompileCatalog(&c)
 	if err != nil {
 		t.Fatal(err)
 	}

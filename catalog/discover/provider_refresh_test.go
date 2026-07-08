@@ -24,8 +24,8 @@ func TestRefreshProvider_MergesLiveModelsIntoCache(t *testing.T) {
 	defer srv.Close()
 
 	cachePath := filepath.Join(t.TempDir(), "model_catalog.json")
-	base := catalog.TestSeedCatalogV1()
-	if err := catalog.WriteCatalogV1Cache(cachePath, &base); err != nil {
+	base := catalog.SeedCatalog()
+	if err := catalog.WriteCatalogCache(cachePath, &base); err != nil {
 		t.Fatal(err)
 	}
 

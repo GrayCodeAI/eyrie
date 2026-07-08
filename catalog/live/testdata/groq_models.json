@@ -1,0 +1,23 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "llama-3.3-70b-versatile",
+      "object": "model",
+      "created": 1730000000,
+      "owned_by": "meta-llama"
+    },
+    {
+      "id": "mixtral-8x7b-32768",
+      "object": "model",
+      "created": 1730000001,
+      "owned_by": "mistralai"
+    },
+    {
+      "id": "deepseek-r1-distill-llama-70b",
+      "object": "model",
+      "created": 1730000002,
+      "owned_by": "deepseek"
+    }
+  ]
+}

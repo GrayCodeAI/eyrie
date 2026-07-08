@@ -4,8 +4,8 @@ import "testing"
 
 func TestPrimaryAPIKeyEnvForProvider(t *testing.T) {
 	t.Parallel()
-	bootstrap := BootstrapCatalogV1()
-	compiled, err := CompileCatalogV1(&bootstrap)
+	bootstrap := BootstrapCatalog()
+	compiled, err := CompileCatalog(&bootstrap)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,8 +28,8 @@ func TestPrimaryAPIKeyEnvForProvider(t *testing.T) {
 
 func TestCredentialStatusForProvider_OllamaLocal(t *testing.T) {
 	t.Parallel()
-	bootstrap := BootstrapCatalogV1()
-	compiled, err := CompileCatalogV1(&bootstrap)
+	bootstrap := BootstrapCatalog()
+	compiled, err := CompileCatalog(&bootstrap)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,8 +42,8 @@ func TestCredentialStatusForProvider_OllamaLocal(t *testing.T) {
 
 func TestProviderIDsFromCompiled_Bootstrap(t *testing.T) {
 	t.Parallel()
-	bootstrap := BootstrapCatalogV1()
-	compiled, err := CompileCatalogV1(&bootstrap)
+	bootstrap := BootstrapCatalog()
+	compiled, err := CompileCatalog(&bootstrap)
 	if err != nil {
 		t.Fatal(err)
 	}

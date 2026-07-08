@@ -2,13 +2,9 @@ package catalog
 
 import (
 	"sort"
-	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
-
-// LiveCatalogStaleDuration is how long a cache remains fresh after live provider APIs were merged.
-const LiveCatalogStaleDuration = 24 * time.Hour
 
 // IsLiveOnlyProvider reports whether a provider uses live API discovery only.
 // All providers are now fully dynamic.
@@ -27,7 +23,7 @@ func DeploymentIDForLiveCatalogKey(catalogKey string) string {
 }
 
 // FirstModelForProvider returns the first canonical model ID for a provider from compiled catalog.
-func FirstModelForProvider(compiled *CompiledCatalogV1, providerID string) string {
+func FirstModelForProvider(compiled *CompiledCatalog, providerID string) string {
 	if compiled == nil {
 		return ""
 	}

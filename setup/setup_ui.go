@@ -29,7 +29,7 @@ type SetupUI struct {
 
 // BuildSetupUI lists models per provider from the compiled catalog.
 // If providerFilter is non-empty, only that provider is included.
-func BuildSetupUI(compiled *catalog.CompiledCatalogV1, providerFilter string) *SetupUI {
+func BuildSetupUI(compiled *catalog.CompiledCatalog, providerFilter string) *SetupUI {
 	if compiled == nil {
 		return &SetupUI{}
 	}
@@ -78,7 +78,7 @@ func displayNameForProvider(pid string) string {
 	}
 }
 
-func modelsForProvider(compiled *catalog.CompiledCatalogV1, providerID string) []ModelUI {
+func modelsForProvider(compiled *catalog.CompiledCatalog, providerID string) []ModelUI {
 	var ids []string
 	for id, model := range compiled.ModelsByID {
 		if catalog.CanonicalProviderID(model.ProviderID) == providerID {
@@ -105,7 +105,7 @@ func modelsForProvider(compiled *catalog.CompiledCatalogV1, providerID string) [
 	return out
 }
 
-func modelProvenanceSource(model catalog.ModelV1) string {
+func modelProvenanceSource(model catalog.Model) string {
 	if model.Provenance == nil || model.Provenance.Source == "" {
 		return ""
 	}
@@ -113,7 +113,7 @@ func modelProvenanceSource(model catalog.ModelV1) string {
 }
 
 // ProviderIDForDeployment resolves catalog provider id for a deployment id.
-func ProviderIDForDeployment(compiled *catalog.CompiledCatalogV1, deploymentID string) string {
+func ProviderIDForDeployment(compiled *catalog.CompiledCatalog, deploymentID string) string {
 	if compiled == nil || compiled.DeploymentsByID == nil {
 		return ""
 	}

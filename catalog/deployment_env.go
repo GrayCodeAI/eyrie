@@ -7,7 +7,7 @@ import (
 // extraDeploymentEnvFallbacks are env fallbacks for deployments that have no
 // corresponding ProviderSpec (proxy/gateway deployments like Bedrock, Vertex, Azure).
 // All provider-spec-derived deployments come from registry.DeploymentEnvFallbacks.
-var extraDeploymentEnvFallbacks = map[string][]EnvFallbackV1{
+var extraDeploymentEnvFallbacks = map[string][]EnvFallback{
 	"anthropic-bedrock": {
 		{Field: "access_key_id", Env: []string{"AWS_ACCESS_KEY_ID"}},
 		{Field: "secret_access_key", Env: []string{"AWS_SECRET_ACCESS_KEY"}},
@@ -32,12 +32,12 @@ var extraDeploymentEnvFallbacks = map[string][]EnvFallbackV1{
 }
 
 // DefaultDeploymentEnvFallbacks seeds env_fallbacks per deployment until the published catalog includes them.
-var DefaultDeploymentEnvFallbacks = func() map[string][]EnvFallbackV1 {
-	result := make(map[string][]EnvFallbackV1, len(registry.DeploymentEnvFallbacks())+len(extraDeploymentEnvFallbacks))
+var DefaultDeploymentEnvFallbacks = func() map[string][]EnvFallback {
+	result := make(map[string][]EnvFallback, len(registry.DeploymentEnvFallbacks())+len(extraDeploymentEnvFallbacks))
 	for id, fbs := range registry.DeploymentEnvFallbacks() {
-		var converted []EnvFallbackV1
+		var converted []EnvFallback
 		for _, fb := range fbs {
-			converted = append(converted, EnvFallbackV1{Field: fb.Field, Env: fb.Env})
+			converted = append(converted, EnvFallback{Field: fb.Field, Env: fb.Env})
 		}
 		result[id] = converted
 	}
@@ -51,7 +51,7 @@ var DefaultDeploymentEnvFallbacks = func() map[string][]EnvFallbackV1 {
 
 // EnsureDeploymentEnvFallbacks fills missing env_fallbacks from the embedded seed.
 // Published catalogs with env_fallbacks set are left unchanged.
-func EnsureDeploymentEnvFallbacks(c *CatalogV1) {
+func EnsureDeploymentEnvFallbacks(c *Catalog) {
 	if c == nil || c.Deployments == nil {
 		return
 	}
@@ -68,7 +68,7 @@ func EnsureDeploymentEnvFallbacks(c *CatalogV1) {
 
 // DiscoveryEnvKeysFromCatalog returns env var names needed for catalog discovery
 // (API keys, base URLs) from deployment env_fallbacks in the compiled catalog.
-func DiscoveryEnvKeysFromCatalog(compiled *CompiledCatalogV1) []string {
+func DiscoveryEnvKeysFromCatalog(compiled *CompiledCatalog) []string {
 	if compiled == nil || compiled.Catalog == nil {
 		return nil
 	}

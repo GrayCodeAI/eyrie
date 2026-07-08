@@ -59,10 +59,9 @@ func UseDeploymentRouting(cfg *config.ProviderConfig) bool {
 
 // DeploymentProvider builds a catalog-aware router over configured deployments.
 func DeploymentProvider(ctx context.Context, cfg *config.ProviderConfig) (client.Provider, error) {
-	cfg = config.EnsureDeploymentConfigV2(cfg)
 	home, _ := os.UserHomeDir()
 	cachePath := filepath.Join(home, ".eyrie", "model_catalog.json")
-	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
 		CachePath:     cachePath,
 		RefreshRemote: strings.EqualFold(os.Getenv("EYRIE_MODEL_CATALOG_REFRESH"), "true"),
 	})
@@ -221,6 +220,24 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 		openBase := FirstNonEmpty(deployment.BaseURL, "https://api.deepseek.com/v1")
 		anthropicBase := "https://api.deepseek.com/anthropic"
 		return client.NewDeepSeekClient(apiKey, openBase, anthropicBase, &client.DeepSeekCompat), true
+	case "poolside":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("POOLSIDE_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultPoolsideOpenAIBaseURL), &client.PoolsideCompat), true
+	case "groq-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("GROQ_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultGroqOpenAIBaseURL), &client.GroqCompat), true
+	case "clinepass":
+		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("CLINE_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultClinePassOpenAIBaseURL), &client.ClinePassCompat), true
 	case "zai_payg-direct":
 		return newZAIDeploymentClient(deployment, "zai_payg", "ZAI_API_KEY", storeSecret)
 	case "zai_coding-direct":
@@ -354,8 +371,12 @@ func DefaultDeploymentForProvider(provider string) string {
 		return "openrouter"
 	case config.ProviderCanopyWave:
 		return "canopywave"
+	case config.ProviderPoolside:
+		return "poolside"
 	case config.ProviderDeepSeek:
 		return "deepseek-direct"
+	case config.ProviderGroq:
+		return "groq-direct"
 	case config.ProviderZAIPayg:
 		return "zai_payg-direct"
 	case config.ProviderZAICoding:
@@ -397,8 +418,12 @@ func LegacyDeploymentConfig(cfg *config.ProviderConfig, provider string) config.
 		return config.DeploymentConfig{APIKey: cfg.OpenRouterAPIKey, BaseURL: cfg.OpenRouterBaseURL}
 	case config.ProviderCanopyWave:
 		return config.DeploymentConfig{APIKey: cfg.CanopyWaveAPIKey, BaseURL: cfg.CanopyWaveBaseURL}
+	case config.ProviderPoolside:
+		return config.DeploymentConfig{APIKey: cfg.PoolsideAPIKey, BaseURL: cfg.PoolsideBaseURL}
 	case config.ProviderDeepSeek:
 		return config.DeploymentConfig{APIKey: cfg.DeepSeekAPIKey, BaseURL: cfg.DeepSeekBaseURL}
+	case config.ProviderGroq:
+		return config.DeploymentConfig{APIKey: cfg.GroqAPIKey, BaseURL: cfg.GroqBaseURL}
 	case config.ProviderZAIPayg:
 		return config.DeploymentConfig{APIKey: cfg.ZAIAPIKey, BaseURL: cfg.ZAIBaseURL}
 	case config.ProviderZAICoding:

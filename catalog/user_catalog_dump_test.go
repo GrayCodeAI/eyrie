@@ -20,7 +20,7 @@ func TestUserCatalog_GatewayCountsMatchDeploymentOfferings(t *testing.T) {
 	if _, err := os.Stat(path); err != nil {
 		t.Skip("no user catalog") // TODO: https://github.com/GrayCodeAI/eyrie/issues/31
 	}
-	compiled, err := catalog.LoadCatalogV1(context.Background(), catalog.LoadCatalogV1Options{
+	compiled, err := catalog.LoadCatalog(context.Background(), catalog.LoadCatalogOptions{
 		CachePath:    path,
 		RequireCache: true,
 	})

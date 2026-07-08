@@ -11,11 +11,11 @@ import (
 func TestFetchLiveProviderCatalog_SkipsProvidersWithoutCredentials(t *testing.T) {
 	t.Parallel()
 	cat, enrichment := catalog.FetchLiveProviderCatalog(map[string]string{})
-	if len(cat.Providers) != 0 {
-		t.Fatalf("expected no providers without creds, got %d", len(cat.Providers))
+	if len(cat.Models) == 0 {
+		t.Fatal("expected seed models in catalog")
 	}
 	if len(enrichment) != len(registry.All()) {
-		t.Fatalf("expected skipped status for all %d providers, got %d", len(registry.All()), len(enrichment))
+		t.Fatalf("expected enrichment for all %d providers, got %d", len(registry.All()), len(enrichment))
 	}
 	for _, item := range enrichment {
 		if !strings.HasPrefix(item.Error, "skipped") {

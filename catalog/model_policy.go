@@ -37,8 +37,8 @@ type ModelRoleAssignments struct {
 	Commit   string `json:"commit,omitempty"`
 }
 
-// ProviderDefaultModelV1 returns the provider's first catalog model.
-func ProviderDefaultModelV1(compiled *CompiledCatalogV1, provider, fallback string) string {
+// ProviderDefaultModel returns the provider's first catalog model.
+func ProviderDefaultModel(compiled *CompiledCatalog, provider, fallback string) string {
 	models := ModelEntriesForProvider(compiled, provider)
 	if len(models) == 0 {
 		return fallback
@@ -49,21 +49,21 @@ func ProviderDefaultModelV1(compiled *CompiledCatalogV1, provider, fallback stri
 	return fallback
 }
 
-// PreferredProviderModelV1 returns the preferred model for provider and tier.
-func PreferredProviderModelV1(compiled *CompiledCatalogV1, provider string, tier ModelTier, fallback string) string {
+// PreferredProviderModel returns the preferred model for provider and tier.
+func PreferredProviderModel(compiled *CompiledCatalog, provider string, tier ModelTier, fallback string) string {
 	switch tier {
 	case TierHaiku:
-		return CheapestModelForProviderV1(compiled, provider, fallback)
+		return CheapestModelForProvider(compiled, provider, fallback)
 	case TierOpus:
-		return MostExpensiveModelForProviderV1(compiled, provider, fallback)
+		return MostExpensiveModelForProvider(compiled, provider, fallback)
 	default:
-		return middleModelForProviderV1(compiled, provider, fallback)
+		return middleModelForProvider(compiled, provider, fallback)
 	}
 }
 
-// PreferredModelsForTierV1 returns unique preferred models for a tier, starting
+// PreferredModelsForTier returns unique preferred models for a tier, starting
 // with primaryProvider and then following the registry chat preference order.
-func PreferredModelsForTierV1(compiled *CompiledCatalogV1, primaryProvider string, tier ModelTier, limit int) []string {
+func PreferredModelsForTier(compiled *CompiledCatalog, primaryProvider string, tier ModelTier, limit int) []string {
 	seenProviders := map[string]bool{}
 	seenModels := map[string]bool{}
 	providers := make([]string, 0, len(registry.ChatProviderPreferenceOrder())+1)
@@ -71,7 +71,7 @@ func PreferredModelsForTierV1(compiled *CompiledCatalogV1, primaryProvider strin
 		providers = append(providers, primary)
 	}
 	providers = append(providers, registry.ChatProviderPreferenceOrder()...)
-	providers = append(providers, AllModelProvidersV1(compiled)...)
+	providers = append(providers, AllModelProviders(compiled)...)
 
 	models := make([]string, 0, len(providers))
 	for _, provider := range providers {
@@ -80,7 +80,7 @@ func PreferredModelsForTierV1(compiled *CompiledCatalogV1, primaryProvider strin
 			continue
 		}
 		seenProviders[provider] = true
-		model := PreferredProviderModelV1(compiled, provider, tier, "")
+		model := PreferredProviderModel(compiled, provider, tier, "")
 		if model == "" || seenModels[model] {
 			continue
 		}
@@ -93,8 +93,8 @@ func PreferredModelsForTierV1(compiled *CompiledCatalogV1, primaryProvider strin
 	return models
 }
 
-// CheapestModelForProviderV1 returns the lowest known input-priced model for a provider.
-func CheapestModelForProviderV1(compiled *CompiledCatalogV1, provider, fallback string) string {
+// CheapestModelForProvider returns the lowest known input-priced model for a provider.
+func CheapestModelForProvider(compiled *CompiledCatalog, provider, fallback string) string {
 	models := ModelEntriesForProvider(compiled, provider)
 	if len(models) == 0 {
 		return fallback
@@ -119,8 +119,8 @@ func CheapestModelForProviderV1(compiled *CompiledCatalogV1, provider, fallback 
 	return fallback
 }
 
-// MostExpensiveModelForProviderV1 returns the highest known input-priced model for a provider.
-func MostExpensiveModelForProviderV1(compiled *CompiledCatalogV1, provider, fallback string) string {
+// MostExpensiveModelForProvider returns the highest known input-priced model for a provider.
+func MostExpensiveModelForProvider(compiled *CompiledCatalog, provider, fallback string) string {
 	models := ModelEntriesForProvider(compiled, provider)
 	if len(models) == 0 {
 		return fallback
@@ -141,7 +141,7 @@ func MostExpensiveModelForProviderV1(compiled *CompiledCatalogV1, provider, fall
 }
 
 // ModelCostTierOf resolves a model's cost tier from catalog family and pricing data.
-func ModelCostTierOf(compiled *CompiledCatalogV1, modelName string) ModelCostTier {
+func ModelCostTierOf(compiled *CompiledCatalog, modelName string) ModelCostTier {
 	if tier, ok := costTierFromCatalogFamily(compiled, modelName); ok {
 		return mapModelTierToCostTier(tier)
 	}
@@ -151,8 +151,8 @@ func ModelCostTierOf(compiled *CompiledCatalogV1, modelName string) ModelCostTie
 	return costTierFromModelName(modelName)
 }
 
-// ProviderForModelV1 returns the canonical owner provider for modelName.
-func ProviderForModelV1(compiled *CompiledCatalogV1, modelName string) string {
+// ProviderForModel returns the canonical owner provider for modelName.
+func ProviderForModel(compiled *CompiledCatalog, modelName string) string {
 	if compiled == nil {
 		return ""
 	}
@@ -164,8 +164,8 @@ func ProviderForModelV1(compiled *CompiledCatalogV1, modelName string) string {
 	return CanonicalProviderID(model.ProviderID)
 }
 
-// AllModelProvidersV1 lists canonical model owner providers in the catalog.
-func AllModelProvidersV1(compiled *CompiledCatalogV1) []string {
+// AllModelProviders lists canonical model owner providers in the catalog.
+func AllModelProviders(compiled *CompiledCatalog) []string {
 	if compiled == nil {
 		return nil
 	}
@@ -185,11 +185,11 @@ func AllModelProvidersV1(compiled *CompiledCatalogV1) []string {
 
 // DefaultModelRolesV1 uses the primary model for interactive roles and the cheapest
 // same-provider model for commit/summarization work when catalog data is available.
-func DefaultModelRolesV1(compiled *CompiledCatalogV1, primaryModel string) ModelRoleAssignments {
+func DefaultModelRolesV1(compiled *CompiledCatalog, primaryModel string) ModelRoleAssignments {
 	primaryModel = strings.TrimSpace(primaryModel)
 	commit := primaryModel
-	if provider := ProviderForModelV1(compiled, primaryModel); provider != "" {
-		commit = CheapestModelForProviderV1(compiled, provider, primaryModel)
+	if provider := ProviderForModel(compiled, primaryModel); provider != "" {
+		commit = CheapestModelForProvider(compiled, provider, primaryModel)
 	}
 	return ModelRoleAssignments{
 		Planner:  primaryModel,
@@ -200,7 +200,7 @@ func DefaultModelRolesV1(compiled *CompiledCatalogV1, primaryModel string) Model
 }
 
 // ModelForRoleV1 resolves a role assignment with coder then catalog fallback.
-func ModelForRoleV1(compiled *CompiledCatalogV1, roles ModelRoleAssignments, role ModelRole) string {
+func ModelForRoleV1(compiled *CompiledCatalog, roles ModelRoleAssignments, role ModelRole) string {
 	var model string
 	switch role {
 	case ModelRolePlanner:
@@ -218,25 +218,25 @@ func ModelForRoleV1(compiled *CompiledCatalogV1, roles ModelRoleAssignments, rol
 	if strings.TrimSpace(roles.Coder) != "" {
 		return roles.Coder
 	}
-	return PrimaryModelV1(compiled)
+	return PrimaryModel(compiled)
 }
 
-// PrimaryModelV1 returns a stable best-effort model from chat-preferred providers.
-func PrimaryModelV1(compiled *CompiledCatalogV1) string {
+// PrimaryModel returns a stable best-effort model from chat-preferred providers.
+func PrimaryModel(compiled *CompiledCatalog) string {
 	for _, provider := range registry.ChatProviderPreferenceOrder() {
-		if model := ProviderDefaultModelV1(compiled, provider, ""); model != "" {
+		if model := ProviderDefaultModel(compiled, provider, ""); model != "" {
 			return model
 		}
 	}
-	for _, provider := range AllModelProvidersV1(compiled) {
-		if model := ProviderDefaultModelV1(compiled, provider, ""); model != "" {
+	for _, provider := range AllModelProviders(compiled) {
+		if model := ProviderDefaultModel(compiled, provider, ""); model != "" {
 			return model
 		}
 	}
 	return ""
 }
 
-func middleModelForProviderV1(compiled *CompiledCatalogV1, provider, fallback string) string {
+func middleModelForProvider(compiled *CompiledCatalog, provider, fallback string) string {
 	models := ModelEntriesForProvider(compiled, provider)
 	if len(models) == 0 {
 		return fallback
@@ -248,7 +248,7 @@ func middleModelForProviderV1(compiled *CompiledCatalogV1, provider, fallback st
 		}
 	}
 	if len(priced) == 0 {
-		return ProviderDefaultModelV1(compiled, provider, fallback)
+		return ProviderDefaultModel(compiled, provider, fallback)
 	}
 	sort.SliceStable(priced, func(i, j int) bool {
 		if priced[i].InputPricePer1M == priced[j].InputPricePer1M {
@@ -259,7 +259,7 @@ func middleModelForProviderV1(compiled *CompiledCatalogV1, provider, fallback st
 	return priced[len(priced)/2].ID
 }
 
-func costTierFromCatalogFamily(compiled *CompiledCatalogV1, modelName string) (ModelTier, bool) {
+func costTierFromCatalogFamily(compiled *CompiledCatalog, modelName string) (ModelTier, bool) {
 	if compiled == nil {
 		return "", false
 	}
@@ -283,7 +283,7 @@ func costTierFromCatalogFamily(compiled *CompiledCatalogV1, modelName string) (M
 	}
 }
 
-func costTierFromCatalogPricing(compiled *CompiledCatalogV1, modelName string) (ModelCostTier, bool) {
+func costTierFromCatalogPricing(compiled *CompiledCatalog, modelName string) (ModelCostTier, bool) {
 	if compiled == nil {
 		return 0, false
 	}
