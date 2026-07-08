@@ -26,8 +26,8 @@ func TestModelIDs(t *testing.T) {
 		{
 			name: "empty catalog",
 			runtime: &Runtime{
-				Catalog: &catalog.CompiledCatalogV1{
-					ModelsByID: map[string]catalog.ModelV1{},
+				Catalog: &catalog.CompiledCatalog{
+					ModelsByID: map[string]catalog.Model{},
 				},
 			},
 			wantNil: false,
@@ -585,7 +585,7 @@ func TestConfiguredDeploymentIDsForProvider_NilCompiled(t *testing.T) {
 }
 
 func TestConfiguredDeploymentIDsForProvider_NilCatalog(t *testing.T) {
-	ids := configuredDeploymentIDsForProvider(&catalog.CompiledCatalogV1{}, "anthropic")
+	ids := configuredDeploymentIDsForProvider(&catalog.CompiledCatalog{}, "anthropic")
 	if len(ids) != 0 {
 		t.Fatalf("expected 0 IDs, got %d", len(ids))
 	}
@@ -650,7 +650,7 @@ func TestListProviderSetupOptions(t *testing.T) {
 
 // --- helpers ---
 
-func mustCompileTestCatalog(t *testing.T) *catalog.CompiledCatalogV1 {
+func mustCompileTestCatalog(t *testing.T) *catalog.CompiledCatalog {
 	t.Helper()
 	compiled, err := catalog.CompileTestCatalog()
 	if err != nil {

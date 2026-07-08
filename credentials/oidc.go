@@ -36,7 +36,7 @@ const (
 const (
 	defaultSTSAWSURL            = "https://sts.amazonaws.com/"
 	defaultSTSGCPURL            = "https://sts.googleapis.com/v1/token"
-	defaultIAMCredentialsHost   = "https://iamcredentials.googleapis.com"
+	defaultIAMCredentialsHost   = "https://iamcredentials.googleapis.com" // #nosec G101 -- public STS endpoint URL, not a secret value
 	awsAssumeRoleWebIdentityVer = "2011-06-15"
 )
 

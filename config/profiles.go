@@ -22,9 +22,12 @@ const (
 	ProviderOpenCodeGo          APIProvider = "opencodego"
 	ProviderKimi                APIProvider = "kimi"
 	ProviderXiaomiMimoPayg      APIProvider = "xiaomi_mimo_payg"
-	ProviderXiaomiMimoTokenPlan APIProvider = "xiaomi_mimo_token_plan"
+	ProviderXiaomiMimoTokenPlan APIProvider = "xiaomi_mimo_token_plan" // #nosec G101 -- provider id string, not a secret value
 	ProviderMiniMaxTokenPlan    APIProvider = "minimax_token_plan"
 	ProviderMiniMaxPayg         APIProvider = "minimax_payg"
+	ProviderPoolside            APIProvider = "poolside"
+	ProviderGroq                APIProvider = "groq"
+	ProviderClinePass           APIProvider = "clinepass"
 )
 
 // RuntimeProviderProfile defines how a provider is detected and configured at runtime.
@@ -179,12 +182,33 @@ var (
 		BaseURLEnv:   []string{"OLLAMA_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "OLLAMA_API_KEY", Source: "ollama"}},
 	}
+	PoolsideRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultPoolsideOpenAIBaseURL,
+		DetectionEnv: []string{"POOLSIDE_API_KEY"},
+		ModelEnv:     []string{"POOLSIDE_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"POOLSIDE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "POOLSIDE_API_KEY", Source: "poolside"}},
+	}
+	GroqRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: "https://api.groq.com/openai/v1",
+		DetectionEnv: []string{"GROQ_API_KEY"},
+		ModelEnv:     []string{"GROQ_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"GROQ_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "GROQ_API_KEY", Source: "groq"}},
+	}
+	ClinePassRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultClinePassOpenAIBaseURL,
+		DetectionEnv: []string{"CLINE_API_KEY"},
+		ModelEnv:     []string{"CLINE_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"CLINE_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		APIKeys:      []APIKeyDef{{Env: "CLINE_API_KEY", Source: "clinepass"}},
+	}
 )
 
 // APIProviderDetectionOrder is the priority order for provider detection.
 var APIProviderDetectionOrder = []APIProvider{
 	ProviderAnthropic, ProviderOpenRouter, ProviderGrok, ProviderGemini,
-	ProviderVertex, ProviderBedrock, ProviderZAICoding, ProviderZAIPayg, ProviderCanopyWave, ProviderDeepSeek, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
+	ProviderVertex, ProviderBedrock, ProviderZAICoding, ProviderZAIPayg, ProviderCanopyWave, ProviderDeepSeek, ProviderPoolside, ProviderGroq, ProviderClinePass, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
 	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderMiniMaxTokenPlan, ProviderMiniMaxPayg, ProviderOllama,
 }
 
@@ -195,6 +219,9 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 	ProviderAzure:               AzureRuntimeProfile.ModelEnv,
 	ProviderCanopyWave:          CanopyWaveRuntimeProfile.ModelEnv,
 	ProviderDeepSeek:            DeepSeekRuntimeProfile.ModelEnv,
+	ProviderPoolside:            PoolsideRuntimeProfile.ModelEnv,
+	ProviderGroq:                GroqRuntimeProfile.ModelEnv,
+	ProviderClinePass:           ClinePassRuntimeProfile.ModelEnv,
 	ProviderZAIPayg:             ZAIPaygRuntimeProfile.ModelEnv,
 	ProviderZAICoding:           ZAICodingRuntimeProfile.ModelEnv,
 	ProviderOpenRouter:          OpenRouterRuntimeProfile.ModelEnv,
@@ -218,7 +245,7 @@ const (
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.
 var OpenAICompatibleRuntimeProfileOrder = []string{
-	"openrouter", "grok", "gemini", "anthropic", "zai_coding", "zai_payg", "canopywave", "deepseek", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "minimax_token_plan", "minimax_payg",
+	"openrouter", "grok", "gemini", "anthropic", "zai_coding", "zai_payg", "canopywave", "deepseek", "poolside", "groq", "clinepass", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "minimax_token_plan", "minimax_payg",
 }
 
 // OpenAICompatibleRuntimeProfiles maps profile key to its runtime profile.
@@ -230,6 +257,9 @@ var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
 	"zai_coding":             ZAICodingRuntimeProfile,
 	"canopywave":             CanopyWaveRuntimeProfile,
 	"deepseek":               DeepSeekRuntimeProfile,
+	"poolside":               PoolsideRuntimeProfile,
+	"groq":                   GroqRuntimeProfile,
+	"clinepass":              ClinePassRuntimeProfile,
 	"openai":                 OpenAIRuntimeProfile,
 	"openrouter":             OpenRouterRuntimeProfile,
 	"opencodego":             OpenCodeGoRuntimeProfile,
@@ -254,6 +284,9 @@ var RuntimeProviderProfiles = map[string]RuntimeProviderProfile{
 	"zai_coding":             ZAICodingRuntimeProfile,
 	"canopywave":             CanopyWaveRuntimeProfile,
 	"deepseek":               DeepSeekRuntimeProfile,
+	"poolside":               PoolsideRuntimeProfile,
+	"groq":                   GroqRuntimeProfile,
+	"clinepass":              ClinePassRuntimeProfile,
 	"opencodego":             OpenCodeGoRuntimeProfile,
 	"kimi":                   KimiRuntimeProfile,
 	"xiaomi_mimo_payg":       XiaomiPaygRuntimeProfile,

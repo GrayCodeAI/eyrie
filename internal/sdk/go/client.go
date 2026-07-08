@@ -110,7 +110,7 @@ func (c *Client) StreamPrompt(ctx context.Context, req PromptRequest) (<-chan St
 	}
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, &APIError{StatusCode: resp.StatusCode, Path: "/prompt", Method: "POST", Body: string(body)}
 	}
 	go func() {
@@ -171,7 +171,7 @@ func (c *Client) StreamPromptFrom(ctx context.Context, nodeID string, req Prompt
 	}
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, &APIError{StatusCode: resp.StatusCode, Path: path, Method: "POST", Body: string(body)}
 	}
 	go func() {

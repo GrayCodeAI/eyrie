@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-func TestSanitizePricingV1_negativeInputRemoved(t *testing.T) {
+func TestSanitizePricing_negativeInputRemoved(t *testing.T) {
 	t.Parallel()
-	p := sanitizePricingV1(PricingV1{
+	p := sanitizePricing(Pricing{
 		Status:     PricingKnown,
 		Currency:   "USD",
 		RatesPer1M: map[string]float64{"input_tokens": -1, "output_tokens": 2},
@@ -26,7 +26,7 @@ func TestPricingFromLegacy_negativeBecomesUnknown(t *testing.T) {
 		ID:               "openrouter/auto",
 		InputPricePer1M:  -5,
 		OutputPricePer1M: 1,
-	}, time.Now().UTC(), "test")
+	}, time.Now().UTC())
 	if p.Status != PricingUnknown {
 		t.Fatalf("status = %q, want unknown", p.Status)
 	}

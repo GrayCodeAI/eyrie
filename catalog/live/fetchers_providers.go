@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
@@ -576,5 +577,64 @@ func FetchDeepSeek(env map[string]string) ([]Entry, error) {
 		return nil, err
 	}
 	enrichFromOpenRouter(entries, "deepseek/")
+	return entries, nil
+}
+
+// FetchPoolside lists models from the Poolside OpenAI-compatible API.
+func FetchPoolside(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "POOLSIDE_BASE_URL", DefaultPoolsideBaseURL),
+		env["POOLSIDE_API_KEY"], "Bearer",
+	)
+}
+
+// FetchGroq lists models from the Groq OpenAI-compatible API.
+func FetchGroq(env map[string]string) ([]Entry, error) {
+	return fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "GROQ_BASE_URL", DefaultGroqBaseURL),
+		env["GROQ_API_KEY"], "Bearer",
+	)
+}
+
+// FetchClinePass returns a curated list of known ClinePass models.
+// ClinePass does not expose a GET /models endpoint, so we return a
+// static list based on official documentation at docs.cline.bot.
+func FetchClinePass(env map[string]string) ([]Entry, error) {
+	apiKey := strings.TrimSpace(env["CLINE_API_KEY"])
+	if apiKey == "" {
+		return nil, nil
+	}
+	now := time.Now().Unix()
+	models := []struct {
+		id, name, owner   string
+		ctx, maxOut       int
+		inPrice, outPrice float64 // per 1M tokens (ClinePass reference pricing), 0 = free
+	}{
+		{"cline-pass/deepseek-v4-pro", "DeepSeek V4 Pro", "deepseek", 131072, 8192, 1.74, 3.48},
+		{"cline-pass/deepseek-v4-flash", "DeepSeek V4 Flash", "deepseek", 131072, 8192, 0.14, 0.28},
+		{"cline-pass/glm-5.2", "GLM 5.2", "zhipu", 131072, 8192, 1.40, 4.40},
+		{"cline-pass/kimi-k2.7-code", "Kimi K2.7 Code", "moonshot", 131072, 8192, 0.95, 4.00},
+		{"cline-pass/kimi-k2.6", "Kimi K2.6", "moonshot", 131072, 8192, 0.95, 4.00},
+		{"cline-pass/minimax-m3", "MiniMax M3", "minimax", 131072, 8192, 0.30, 1.20},
+		{"cline-pass/mimo-v2.5-pro", "MiMo V2.5 Pro", "xiaomi", 131072, 8192, 1.74, 3.48},
+		{"cline-pass/mimo-v2.5", "MiMo V2.5", "xiaomi", 131072, 8192, 0.14, 0.28},
+		{"cline-pass/qwen3.7-max", "Qwen 3.7 Max", "qwen", 131072, 8192, 2.50, 7.50},
+		{"cline-pass/qwen3.7-plus", "Qwen 3.7 Plus", "qwen", 131072, 8192, 0.40, 1.60},
+		{"cline-pass/poolside-laguna-m.1-free", "Poolside Laguna M.1 (Free)", "poolside", 262144, 32768, 0, 0},
+	}
+	var entries []Entry
+	for _, m := range models {
+		entry, _ := entryFromOpenAICompatJSON(json.RawMessage(fmt.Sprintf(
+			`{"id":%q,"name":%q,"owned_by":%q,"context_length":%d,"max_completion_tokens":%d,"created":%d}`,
+			m.id, m.name, m.owner, m.ctx, m.maxOut, now,
+		)))
+		if entry.ID != "" {
+			entry.InputPricePer1M = m.inPrice
+			entry.OutputPricePer1M = m.outPrice
+			entries = append(entries, entry)
+		}
+	}
 	return entries, nil
 }

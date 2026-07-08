@@ -62,7 +62,7 @@ type JSONLFileSink struct {
 // writes and returns a sink that writes to it. The caller owns the sink and
 // should call Close when done.
 func NewJSONLFileSink(path string) (*JSONLFileSink, error) {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600) // #nosec G304 -- path is an operator-supplied audit log destination, not derived from untrusted request input
 	if err != nil {
 		return nil, err
 	}

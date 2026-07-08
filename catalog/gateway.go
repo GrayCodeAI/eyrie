@@ -17,7 +17,7 @@ func IsSetupGateway(providerID string) bool {
 }
 
 // GatewayForModel returns the setup gateway that serves a model (e.g. openrouter for openrouter/auto).
-func GatewayForModel(compiled *CompiledCatalogV1, modelID string) string {
+func GatewayForModel(compiled *CompiledCatalog, modelID string) string {
 	modelID = strings.TrimSpace(modelID)
 	if modelID == "" {
 		return ""

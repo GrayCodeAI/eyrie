@@ -11,17 +11,8 @@ import (
 	"sort"
 	"strings"
 	"time"
-)
 
-// Default catalog construction, legacy conversion, and sanitization helpers
-// live in v1_defaults.go.
-
-const (
-	CatalogV1SchemaVersion = "model-catalog/v1"
-	// DefaultCatalogV1URL is the published model-catalog/v1 document.
-	// Override with EYRIE_MODEL_CATALOG_URL or LoadCatalogV1Options.RemoteURL.
-	DefaultCatalogV1URL = "https://langdag.com/model-catalog/v1/catalog.json"
-	EnvModelCatalogURL  = "EYRIE_MODEL_CATALOG_URL"
+	"github.com/GrayCodeAI/eyrie/catalog/live"
 )
 
 type CapabilityState string
@@ -50,97 +41,106 @@ const (
 	NativeModelIDCatalogOrUser  NativeModelIDSource = "catalog_or_user_configured"
 )
 
-// CatalogV1 separates model ownership from the API protocol and deployment used
+const (
+	CatalogSchemaVersion = "model-catalog/v1"
+	// SeedCatalogURL is the published model-catalog/v1 document.
+	SeedCatalogURL = "https://langdag.com/model-catalog/v1/catalog.json"
+	EnvCatalogURL  = "EYRIE_MODEL_CATALOG_URL"
+	// LiveStaleDuration is how long a cache remains fresh after live provider APIs were merged.
+	LiveStaleDuration = 24 * time.Hour
+)
+
+// Catalog separates model ownership from the API protocol and deployment used
 // to call the model. It is intentionally data-only; adapters remain code.
-type CatalogV1 struct {
-	SchemaVersion     string                    `json:"schema_version"`
-	GeneratedAt       time.Time                 `json:"generated_at"`
-	StaleAfter        time.Time                 `json:"stale_after"`
-	Providers         map[string]ProviderV1     `json:"providers"`
-	APIProtocols      map[string]APIProtocolV1  `json:"api_protocols"`
-	Deployments       map[string]DeploymentV1   `json:"deployments"`
-	Models            map[string]ModelV1        `json:"models"`
-	Offerings         []ModelOfferingV1         `json:"offerings"`
-	OfferingTemplates []ModelOfferingTemplateV1 `json:"offering_templates,omitempty"`
-	Aliases           map[string]string         `json:"aliases,omitempty"`
-	Provenance        *CatalogProvenanceV1      `json:"provenance,omitempty"`
+type Catalog struct {
+	SchemaVersion     string                  `json:"schema_version"`
+	GeneratedAt       time.Time               `json:"generated_at"`
+	StaleAfter        time.Time               `json:"stale_after"`
+	Providers         map[string]Provider     `json:"providers"`
+	Protocols         map[string]Protocol     `json:"api_protocols"`
+	Deployments       map[string]Deployment   `json:"deployments"`
+	Models            map[string]Model        `json:"models"`
+	Offerings         []ModelOffering         `json:"offerings"`
+	OfferingTemplates []ModelOfferingTemplate `json:"offering_templates,omitempty"`
+	Aliases           map[string]string       `json:"aliases,omitempty"`
+	Provenance        *Provenance             `json:"provenance,omitempty"`
 }
 
-type ProviderV1 struct {
-	ID          string               `json:"id"`
-	Name        string               `json:"name"`
-	Description string               `json:"description,omitempty"`
-	HomepageURL string               `json:"homepage_url,omitempty"`
-	Aliases     []string             `json:"aliases,omitempty"`
-	Provenance  *CatalogProvenanceV1 `json:"provenance,omitempty"`
+type Provider struct {
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
+	HomepageURL string      `json:"homepage_url,omitempty"`
+	Aliases     []string    `json:"aliases,omitempty"`
+	Provenance  *Provenance `json:"provenance,omitempty"`
 }
 
-type APIProtocolV1 struct {
-	ID          string               `json:"id"`
-	Name        string               `json:"name"`
-	Description string               `json:"description,omitempty"`
-	Provenance  *CatalogProvenanceV1 `json:"provenance,omitempty"`
+type Protocol struct {
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
+	Provenance  *Provenance `json:"provenance,omitempty"`
 }
 
-type DeploymentV1 struct {
-	ID                     string               `json:"id"`
-	Name                   string               `json:"name"`
-	ProviderID             string               `json:"provider_id"`
-	APIProtocolID          string               `json:"api_protocol_id"`
-	AdapterConstructor     string               `json:"adapter_constructor"`
-	CredentialRequirements []CredentialV1       `json:"credential_requirements,omitempty"`
-	EnvFallbacks           []EnvFallbackV1      `json:"env_fallbacks,omitempty"`
-	NativeModelIDSource    NativeModelIDSource  `json:"native_model_id_source"`
-	ModelMappingsRequired  bool                 `json:"model_mappings_required,omitempty"`
-	Local                  bool                 `json:"local,omitempty"`
-	Provenance             *CatalogProvenanceV1 `json:"provenance,omitempty"`
+type Deployment struct {
+	ID                     string              `json:"id"`
+	Name                   string              `json:"name"`
+	ProviderID             string              `json:"provider_id"`
+	APIProtocolID          string              `json:"api_protocol_id"`
+	AdapterConstructor     string              `json:"adapter_constructor"`
+	CredentialRequirements []Credential        `json:"credential_requirements,omitempty"`
+	EnvFallbacks           []EnvFallback       `json:"env_fallbacks,omitempty"`
+	NativeModelIDSource    NativeModelIDSource `json:"native_model_id_source"`
+	ModelMappingsRequired  bool                `json:"model_mappings_required,omitempty"`
+	Local                  bool                `json:"local,omitempty"`
+	Provenance             *Provenance         `json:"provenance,omitempty"`
 }
 
-type CredentialV1 struct {
+type Credential struct {
 	Field    string `json:"field"`
 	Secret   bool   `json:"secret,omitempty"`
 	Required bool   `json:"required,omitempty"`
 }
 
-type EnvFallbackV1 struct {
+type EnvFallback struct {
 	Field string   `json:"field"`
 	Env   []string `json:"env"`
 }
 
-type ModelV1 struct {
-	ID            string               `json:"id"`
-	ProviderID    string               `json:"provider_id"`
-	Name          string               `json:"name"`
-	Family        string               `json:"family,omitempty"`
-	ContextWindow int                  `json:"context_window,omitempty"`
-	MaxOutput     int                  `json:"max_output,omitempty"`
-	Aliases       []string             `json:"aliases,omitempty"`
-	Provenance    *CatalogProvenanceV1 `json:"provenance,omitempty"`
+type Model struct {
+	ID            string      `json:"id"`
+	ProviderID    string      `json:"provider_id"`
+	Name          string      `json:"name"`
+	Family        string      `json:"family,omitempty"`
+	ContextWindow int         `json:"context_window,omitempty"`
+	MaxOutput     int         `json:"max_output,omitempty"`
+	Aliases       []string    `json:"aliases,omitempty"`
+	Provenance    *Provenance `json:"provenance,omitempty"`
 }
 
-type ModelOfferingV1 struct {
-	ID               string               `json:"id"`
-	CanonicalModelID string               `json:"canonical_model_id"`
-	DeploymentID     string               `json:"deployment_id"`
-	NativeModelID    string               `json:"native_model_id"`
-	Capabilities     CapabilitySetV1      `json:"capabilities,omitempty"`
-	Pricing          PricingV1            `json:"pricing"`
-	LiveMetadata     json.RawMessage      `json:"live_metadata,omitempty"`
-	Provenance       *CatalogProvenanceV1 `json:"provenance,omitempty"`
+type ModelOffering struct {
+	ID               string          `json:"id"`
+	CanonicalModelID string          `json:"canonical_model_id"`
+	DeploymentID     string          `json:"deployment_id"`
+	NativeModelID    string          `json:"native_model_id"`
+	Capabilities     CapabilitySet   `json:"capabilities,omitempty"`
+	Pricing          Pricing         `json:"pricing"`
+	LiveMetadata     json.RawMessage `json:"live_metadata,omitempty"`
+	Provenance       *Provenance     `json:"provenance,omitempty"`
 }
 
-type ModelOfferingTemplateV1 struct {
-	ID                  string               `json:"id"`
-	CanonicalModelID    string               `json:"canonical_model_id"`
-	DeploymentID        string               `json:"deployment_id"`
-	NativeModelIDSource NativeModelIDSource  `json:"native_model_id_source"`
-	MappingRequired     bool                 `json:"mapping_required"`
-	Capabilities        CapabilitySetV1      `json:"capabilities,omitempty"`
-	Pricing             PricingV1            `json:"pricing"`
-	Provenance          *CatalogProvenanceV1 `json:"provenance,omitempty"`
+type ModelOfferingTemplate struct {
+	ID                  string              `json:"id"`
+	CanonicalModelID    string              `json:"canonical_model_id"`
+	DeploymentID        string              `json:"deployment_id"`
+	NativeModelIDSource NativeModelIDSource `json:"native_model_id_source"`
+	MappingRequired     bool                `json:"mapping_required"`
+	Capabilities        CapabilitySet       `json:"capabilities,omitempty"`
+	Pricing             Pricing             `json:"pricing"`
+	Provenance          *Provenance         `json:"provenance,omitempty"`
 }
 
-type CapabilitySetV1 struct {
+type CapabilitySet struct {
 	ServerTools            map[string]CapabilityState `json:"server_tools,omitempty"`
 	FunctionCalling        CapabilityState            `json:"function_calling,omitempty"`
 	ExplicitThinkingBudget CapabilityState            `json:"explicit_thinking_budget,omitempty"`
@@ -157,7 +157,7 @@ type CapabilitySetV1 struct {
 	EffortLevels           []string                   `json:"effort_levels,omitempty"`
 }
 
-type PricingV1 struct {
+type Pricing struct {
 	Status            PricingStatus      `json:"status"`
 	Currency          string             `json:"currency,omitempty"`
 	EffectiveAt       time.Time          `json:"effective_at,omitempty"`
@@ -167,38 +167,86 @@ type PricingV1 struct {
 	Source            string             `json:"source,omitempty"`
 }
 
-type CatalogProvenanceV1 struct {
+// CapabilitySetFromEntry builds a CapabilitySet from a live entry's features.
+func CapabilitySetFromEntry(e live.Entry) CapabilitySet {
+	set := CapabilitySet{ServerTools: map[string]CapabilityState{}}
+	for _, feat := range e.Features {
+		switch feat {
+		case "web_search":
+			set.ServerTools[feat] = CapabilitySupported
+		case "image_generation":
+			set.ServerTools[feat] = CapabilitySupported
+		case "code_interpreter":
+			set.ServerTools[feat] = CapabilitySupported
+		case "function_calling":
+			set.FunctionCalling = CapabilitySupported
+		}
+	}
+	if len(set.ServerTools) == 0 && len(e.Features) > 0 {
+		for _, feat := range e.Features {
+			set.ServerTools[feat] = CapabilitySupported
+		}
+	}
+	if e.MaxOutput > 0 {
+		set.MaxOutputTokens = e.MaxOutput
+	}
+	if e.StructuredOutput {
+		set.StructuredOutput = CapabilitySupported
+	}
+	if e.CodeExecution {
+		set.CodeExecution = CapabilitySupported
+	}
+	return set
+}
+
+// PricingFromEntry builds a Pricing from a live entry's per-token rates.
+func PricingFromEntry(e live.Entry) Pricing {
+	in := e.InputPricePer1M
+	out := e.OutputPricePer1M
+	if in < 0 || out < 0 {
+		return Pricing{Status: PricingUnknown, Currency: "USD", Source: "live"}
+	}
+	pricing := Pricing{
+		Status:     PricingKnown,
+		Currency:   "USD",
+		Source:     "live",
+		RatesPer1M: map[string]float64{"input_tokens": in, "output_tokens": out},
+	}
+	if in == 0 && out == 0 {
+		pricing.Status = PricingFree
+	}
+	return pricing
+}
+
+type Provenance struct {
 	Source     string    `json:"source"`
 	SourceURL  string    `json:"source_url,omitempty"`
 	ObservedAt time.Time `json:"observed_at,omitempty"`
 }
 
-type CatalogDiagnosticV1 struct {
+type CatalogDiagnostic struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-type CompiledCatalogV1 struct {
-	Catalog                   *CatalogV1
-	ProvidersByID             map[string]ProviderV1
-	APIProtocolsByID          map[string]APIProtocolV1
-	DeploymentsByID           map[string]DeploymentV1
-	ModelsByID                map[string]ModelV1
-	OfferingsByID             map[string]ModelOfferingV1
-	OfferingsByCanonicalModel map[string][]ModelOfferingV1
-	OfferingsByDeployment     map[string][]ModelOfferingV1
-	TemplatesByCanonicalModel map[string][]ModelOfferingTemplateV1
-	Diagnostics               []CatalogDiagnosticV1
+type CompiledCatalog struct {
+	Catalog                   *Catalog
+	ProvidersByID             map[string]Provider
+	ProtocolsByID             map[string]Protocol
+	DeploymentsByID           map[string]Deployment
+	ModelsByID                map[string]Model
+	OfferingsByID             map[string]ModelOffering
+	OfferingsByCanonicalModel map[string][]ModelOffering
+	OfferingsByDeployment     map[string][]ModelOffering
+	TemplatesByCanonicalModel map[string][]ModelOfferingTemplate
+	Diagnostics               []CatalogDiagnostic
 }
 
 // CapabilitiesForModel returns the capability set for a model on a deployment.
-// If deploymentID is empty, returns capabilities from the first offering found.
-// Returns empty CapabilitySetV1 if the model is not in the catalog.
-func (c *CompiledCatalogV1) CapabilitiesForModel(modelID, deploymentID string) CapabilitySetV1 {
+func (c *CompiledCatalog) CapabilitiesForModel(modelID, deploymentID string) CapabilitySet {
 	if c == nil {
-		return CapabilitySetV1{}
+		return CapabilitySet{}
 	}
-	// Try by canonical model ID
 	if offerings, ok := c.OfferingsByCanonicalModel[modelID]; ok {
 		for _, offering := range offerings {
 			if deploymentID == "" || offering.DeploymentID == deploymentID {
@@ -206,7 +254,6 @@ func (c *CompiledCatalogV1) CapabilitiesForModel(modelID, deploymentID string) C
 			}
 		}
 	}
-	// Try by native model ID across all deployments
 	for _, offerings := range c.OfferingsByDeployment {
 		for _, offering := range offerings {
 			if offering.NativeModelID == modelID {
@@ -214,125 +261,122 @@ func (c *CompiledCatalogV1) CapabilitiesForModel(modelID, deploymentID string) C
 			}
 		}
 	}
-	return CapabilitySetV1{}
+	return CapabilitySet{}
 }
 
-type LoadCatalogV1Options struct {
-	CachePath     string
-	RemoteURL     string
-	RefreshRemote bool
-	// RequireCache fails when no valid cache file exists (production hawk/eyrie path).
-	RequireCache bool
-	HTTPClient   *http.Client
-	Timeout      time.Duration
-}
-
-// DefaultCatalogV1 returns the bootstrap catalog (deployments only, no models).
-func DefaultCatalogV1() CatalogV1 {
-	return BootstrapCatalogV1()
-}
-
-func CatalogV1FromLegacy(legacy ModelCatalog) CatalogV1 {
-	generatedAt := time.Now().UTC().Truncate(time.Second)
-	if ts, err := time.Parse(time.RFC3339, legacy.UpdatedAt); err == nil {
-		generatedAt = ts
+func (c *CompiledCatalog) CanonicalModelForAliasOrID(value string) (string, bool) {
+	if c == nil || value == "" {
+		return "", false
 	}
-	c := CatalogV1{
-		SchemaVersion: CatalogV1SchemaVersion,
-		GeneratedAt:   generatedAt,
-		StaleAfter:    generatedAt.Add(30 * 24 * time.Hour),
-		Providers:     defaultProvidersV1(),
-		APIProtocols:  defaultAPIProtocolsV1(),
-		Deployments:   defaultDeploymentsV1(),
-		Models:        map[string]ModelV1{},
-		Aliases:       map[string]string{},
-		Provenance:    &CatalogProvenanceV1{Source: legacy.Source, ObservedAt: generatedAt},
+	if c.ModelsByID[value].ID != "" {
+		return value, true
 	}
-	for legacyProvider, entries := range legacy.Providers {
-		deploymentID, ownerProviderID := legacyDeploymentAndOwner(legacyProvider)
-		if deploymentID == "" {
-			continue
-		}
-		for _, entry := range entries {
-			nativeID := strings.TrimSpace(entry.ID)
-			if nativeID == "" {
-				continue
+	if target := c.Catalog.Aliases[value]; c.ModelsByID[target].ID != "" {
+		return target, true
+	}
+	for _, model := range c.ModelsByID {
+		for _, alias := range model.Aliases {
+			if alias == value {
+				return model.ID, true
 			}
-			modelProviderID := ownerProviderID
-			if deploymentID == "openrouter" || deploymentID == "canopywave" {
-				if owner, _, ok := strings.Cut(nativeID, "/"); ok && owner != "" {
-					modelProviderID = canonicalProviderID(owner)
-					if c.Providers[modelProviderID].ID == "" {
-						c.Providers[modelProviderID] = ProviderV1{ID: modelProviderID, Name: modelProviderID}
-					}
-				}
-			}
-			canonicalID := canonicalModelID(modelProviderID, nativeID)
-			if c.Models[canonicalID].ID == "" {
-				name := entry.DisplayName
-				if name == "" {
-					name = nativeID
-				}
-				c.Models[canonicalID] = ModelV1{
-					ID:            canonicalID,
-					ProviderID:    modelProviderID,
-					Name:          name,
-					ContextWindow: entry.ContextWindow,
-					MaxOutput:     entry.MaxOutput,
-					Aliases:       uniqueNonEmpty(nativeID, entry.DisplayName),
-				}
-			}
-			if c.Aliases[nativeID] == "" {
-				c.Aliases[nativeID] = canonicalID
-			}
-			c.Offerings = append(c.Offerings, ModelOfferingV1{
-				ID:               deploymentID + ":" + nativeID,
-				CanonicalModelID: canonicalID,
-				DeploymentID:     deploymentID,
-				NativeModelID:    nativeID,
-				Capabilities:     capabilitySetFromLegacy(entry),
-				Pricing:          pricingFromLegacy(entry, generatedAt, legacy.Source),
-				LiveMetadata:     entry.LiveMetadata,
-			})
 		}
 	}
-	c.Offerings = appendDerivedDeploymentOfferings(c.Offerings)
-	c.OfferingTemplates = defaultOfferingTemplatesV1(generatedAt)
-	return c
+	return "", false
 }
 
-func ParseCatalogV1(data []byte) (*CatalogV1, error) {
+func (c *CompiledCatalog) OfferingForDeployment(canonicalModelID, deploymentID string) (ModelOffering, bool) {
+	if c == nil {
+		return ModelOffering{}, false
+	}
+	for _, offering := range c.OfferingsByCanonicalModel[canonicalModelID] {
+		if offering.DeploymentID == deploymentID {
+			return offering, true
+		}
+	}
+	return ModelOffering{}, false
+}
+
+func (c *CompiledCatalog) FirstModelForProvider(providerID string) (string, bool) {
+	if c == nil {
+		return "", false
+	}
+	providerID = canonicalProviderID(providerID)
+	for modelID, model := range c.ModelsByID {
+		if canonicalProviderID(model.ProviderID) == providerID && model.Name != "" {
+			return modelID, true
+		}
+	}
+	return "", false
+}
+
+// ModelIDsForProvider returns all model IDs for a given provider, sorted.
+func (c *CompiledCatalog) ModelIDsForProvider(providerID string) []string {
+	if c == nil {
+		return nil
+	}
+	providerID = canonicalProviderID(providerID)
+	var ids []string
+	seen := map[string]bool{}
+	for modelID, model := range c.ModelsByID {
+		if canonicalProviderID(model.ProviderID) == providerID && model.Name != "" && !seen[modelID] {
+			ids = append(ids, modelID)
+			seen[modelID] = true
+		}
+	}
+	sort.Strings(ids)
+	return ids
+}
+
+func (c *CompiledCatalog) ProviderNames() []string {
+	if c == nil {
+		return nil
+	}
+	var names []string
+	seen := map[string]bool{}
+	for _, p := range c.ProvidersByID {
+		if p.Name != "" && !seen[p.ID] {
+			names = append(names, p.ID)
+			seen[p.ID] = true
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+func SplitOfferingID(id string) (deploymentID, nativeModelID string, ok bool) {
+	left, right, found := strings.Cut(id, ":")
+	return left, right, found && left != "" && right != ""
+}
+
+// --- Catalog helpers ---
+
+func ParseCatalog(data []byte) (*Catalog, error) {
 	var envelope struct {
 		SchemaVersion string `json:"schema_version"`
 	}
 	if err := json.Unmarshal(data, &envelope); err != nil {
-		return nil, fmt.Errorf("catalog v1: decode envelope: %w", err)
+		return nil, fmt.Errorf("catalog: decode envelope: %w", err)
 	}
 	if envelope.SchemaVersion == "" {
-		var legacy ModelCatalog
-		if err := json.Unmarshal(data, &legacy); err != nil {
-			return nil, fmt.Errorf("catalog v1: decode legacy catalog: %w", err)
-		}
-		c := CatalogV1FromLegacy(legacy)
-		return &c, ValidateCatalogV1(&c)
+		return nil, fmt.Errorf("catalog: legacy format is no longer supported")
 	}
-	var c CatalogV1
+	var c Catalog
 	dec := json.NewDecoder(strings.NewReader(string(data)))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&c); err != nil {
-		return nil, fmt.Errorf("catalog v1: decode: %w", err)
+		return nil, fmt.Errorf("catalog: decode: %w", err)
 	}
-	return &c, ValidateCatalogV1(&c)
+	return &c, ValidateCatalog(&c)
 }
 
-func ValidateCatalogV1(c *CatalogV1) error {
+func ValidateCatalog(c *Catalog) error {
 	var problems []string
 	add := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
 	if c == nil {
-		return fmt.Errorf("catalog v1: nil catalog")
+		return fmt.Errorf("catalog: nil catalog")
 	}
-	if c.SchemaVersion != CatalogV1SchemaVersion {
-		add("schema_version must be %q", CatalogV1SchemaVersion)
+	if c.SchemaVersion != CatalogSchemaVersion {
+		add("schema_version must be %q", CatalogSchemaVersion)
 	}
 	if c.GeneratedAt.IsZero() {
 		add("generated_at is required")
@@ -345,7 +389,7 @@ func ValidateCatalogV1(c *CatalogV1) error {
 	if len(c.Providers) == 0 {
 		add("providers is required")
 	}
-	if len(c.APIProtocols) == 0 {
+	if len(c.Protocols) == 0 {
 		add("api_protocols is required")
 	}
 	if len(c.Deployments) == 0 {
@@ -362,7 +406,7 @@ func ValidateCatalogV1(c *CatalogV1) error {
 			add("provider %q must have matching non-empty id and name", id)
 		}
 	}
-	for id, protocol := range c.APIProtocols {
+	for id, protocol := range c.Protocols {
 		if id == "" || protocol.ID != id || protocol.Name == "" {
 			add("api_protocol %q must have matching non-empty id and name", id)
 		}
@@ -374,7 +418,7 @@ func ValidateCatalogV1(c *CatalogV1) error {
 		if c.Providers[deployment.ProviderID].ID == "" {
 			add("deployment %q references unknown provider %q", id, deployment.ProviderID)
 		}
-		if c.APIProtocols[deployment.APIProtocolID].ID == "" {
+		if c.Protocols[deployment.APIProtocolID].ID == "" {
 			add("deployment %q references unknown api_protocol %q", id, deployment.APIProtocolID)
 		}
 		if deployment.AdapterConstructor == "" {
@@ -406,7 +450,7 @@ func ValidateCatalogV1(c *CatalogV1) error {
 			continue
 		}
 		seenOfferings[offering.ID] = true
-		deploymentID, nativeID, ok := SplitOfferingIDV1(offering.ID)
+		deploymentID, nativeID, ok := SplitOfferingID(offering.ID)
 		if !ok || deploymentID != offering.DeploymentID || nativeID != offering.NativeModelID {
 			add("offering %q must be deployment_id:native_model_id", offering.ID)
 		}
@@ -441,30 +485,30 @@ func ValidateCatalogV1(c *CatalogV1) error {
 	}
 	if len(problems) > 0 {
 		sort.Strings(problems)
-		return fmt.Errorf("catalog v1 validation failed: %s", strings.Join(problems, "; "))
+		return fmt.Errorf("catalog validation failed: %s", strings.Join(problems, "; "))
 	}
 	return nil
 }
 
-func CompileCatalogV1(c *CatalogV1) (*CompiledCatalogV1, error) {
+func CompileCatalog(c *Catalog) (*CompiledCatalog, error) {
 	EnsureDeploymentEnvFallbacks(c)
-	SanitizeCatalogV1Pricing(c)
-	if err := ValidateCatalogV1(c); err != nil {
+	SanitizePricing(c)
+	if err := ValidateCatalog(c); err != nil {
 		return nil, err
 	}
-	compiled := &CompiledCatalogV1{
+	compiled := &CompiledCatalog{
 		Catalog:                   c,
 		ProvidersByID:             cloneMap(c.Providers),
-		APIProtocolsByID:          cloneMap(c.APIProtocols),
+		ProtocolsByID:             cloneMap(c.Protocols),
 		DeploymentsByID:           cloneMap(c.Deployments),
 		ModelsByID:                cloneMap(c.Models),
-		OfferingsByID:             map[string]ModelOfferingV1{},
-		OfferingsByCanonicalModel: map[string][]ModelOfferingV1{},
-		OfferingsByDeployment:     map[string][]ModelOfferingV1{},
-		TemplatesByCanonicalModel: map[string][]ModelOfferingTemplateV1{},
+		OfferingsByID:             map[string]ModelOffering{},
+		OfferingsByCanonicalModel: map[string][]ModelOffering{},
+		OfferingsByDeployment:     map[string][]ModelOffering{},
+		TemplatesByCanonicalModel: map[string][]ModelOfferingTemplate{},
 	}
 	if time.Now().UTC().After(c.StaleAfter) {
-		compiled.Diagnostics = append(compiled.Diagnostics, CatalogDiagnosticV1{Code: "stale_catalog", Message: "catalog is stale"})
+		compiled.Diagnostics = append(compiled.Diagnostics, CatalogDiagnostic{Code: "stale_catalog", Message: "catalog is stale"})
 	}
 	for _, offering := range c.Offerings {
 		compiled.OfferingsByID[offering.ID] = offering
@@ -477,77 +521,82 @@ func CompileCatalogV1(c *CatalogV1) (*CompiledCatalogV1, error) {
 	return compiled, nil
 }
 
-func LoadCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CompiledCatalogV1, error) {
+func LoadCatalog(ctx context.Context, opts LoadCatalogOptions) (*CompiledCatalog, error) {
 	if opts.CachePath == "" {
 		opts.CachePath = DefaultCachePath()
 	}
 	if opts.RefreshRemote {
-		remote, err := FetchRemoteCatalogV1(ctx, opts)
+		remote, err := FetchRemoteCatalog(ctx, opts)
 		if err != nil {
 			return nil, fmt.Errorf("catalog remote: %w", err)
 		}
 		if opts.CachePath != "" {
-			_ = WriteCatalogV1Cache(opts.CachePath, remote)
+			_ = WriteCatalogCache(opts.CachePath, remote)
 		}
-		return CompileCatalogV1(remote)
+		return CompileCatalog(remote)
 	}
-	if compiled, ok := loadValidCatalogCache(opts.CachePath); ok {
+	if compiled, ok := LoadValidCatalogCache(opts.CachePath); ok {
 		return compiled, nil
 	}
 	if opts.RequireCache {
 		return nil, fmt.Errorf("%w (%s missing or invalid; run: hawk models refresh)", ErrCatalogCacheRequired, opts.CachePath)
 	}
-	bootstrap := BootstrapCatalogV1()
-	compiled, err := CompileCatalogV1(&bootstrap)
+	bootstrap := BootstrapCatalog()
+	compiled, err := CompileCatalog(&bootstrap)
 	if err != nil {
 		return nil, err
 	}
-	compiled.Diagnostics = append(compiled.Diagnostics, CatalogDiagnosticV1{
+	compiled.Diagnostics = append(compiled.Diagnostics, CatalogDiagnostic{
 		Code:    "bootstrap_only",
 		Message: "no model catalog cache; run hawk models refresh or eyrie catalog discover",
 	})
 	return compiled, nil
 }
 
-func loadValidCatalogCache(cachePath string) (*CompiledCatalogV1, bool) {
-	return LoadValidCatalogCache(cachePath)
-}
-
-// LoadValidCatalogCache reads and compiles a non-bootstrap catalog cache from disk.
-func LoadValidCatalogCache(cachePath string) (*CompiledCatalogV1, bool) {
+func LoadValidCatalogCache(cachePath string) (*CompiledCatalog, bool) {
 	if cachePath == "" {
 		return nil, false
 	}
-	data, err := os.ReadFile(cachePath)
+	data, err := os.ReadFile(cachePath) // #nosec G304 -- cachePath is an operator-supplied local cache file path, not untrusted input
 	if err != nil {
 		return nil, false
 	}
-	c, err := ParseCatalogV1(data)
+	c, err := ParseCatalog(data)
 	if err != nil {
 		return nil, false
 	}
 	if IsBootstrapCatalog(c) || len(c.Models) == 0 {
 		return nil, false
 	}
-	compiled, err := CompileCatalogV1(c)
+	compiled, err := CompileCatalog(c)
 	if err != nil {
 		return nil, false
 	}
 	return compiled, true
 }
 
-// ResolvedRemoteCatalogURL returns explicit URL, else EYRIE_MODEL_CATALOG_URL, else DefaultCatalogV1URL.
+// --- Remote catalog ---
+
+type LoadCatalogOptions struct {
+	CachePath     string
+	RemoteURL     string
+	RefreshRemote bool
+	RequireCache  bool
+	HTTPClient    *http.Client
+	Timeout       time.Duration
+}
+
 func ResolvedRemoteCatalogURL(explicit string) string {
 	if u := strings.TrimSpace(explicit); u != "" {
 		return u
 	}
-	if u := strings.TrimSpace(os.Getenv(EnvModelCatalogURL)); u != "" {
+	if u := strings.TrimSpace(os.Getenv(EnvCatalogURL)); u != "" {
 		return u
 	}
-	return DefaultCatalogV1URL
+	return SeedCatalogURL
 }
 
-func FetchRemoteCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*CatalogV1, error) {
+func FetchRemoteCatalog(ctx context.Context, opts LoadCatalogOptions) (*Catalog, error) {
 	url := ResolvedRemoteCatalogURL(opts.RemoteURL)
 	timeout := opts.Timeout
 	if timeout == 0 {
@@ -564,77 +613,40 @@ func FetchRemoteCatalogV1(ctx context.Context, opts LoadCatalogV1Options) (*Cata
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+	req.Header.Set("User-Agent", "eyrie/1.0")
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("catalog v1: remote returned HTTP %d", resp.StatusCode)
+		return nil, fmt.Errorf("catalog: remote returned HTTP %d", resp.StatusCode)
 	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024)) // 10 MiB max
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
 	if err != nil {
 		return nil, err
 	}
-	return ParseCatalogV1(body)
+	return ParseCatalog(body)
 }
 
-func WriteCatalogV1Cache(cachePath string, c *CatalogV1) error {
+func WriteCatalogCache(cachePath string, c *Catalog) error {
 	if cachePath == "" {
 		return nil
 	}
-	SanitizeCatalogV1Pricing(c)
-	if err := ValidateCatalogV1(c); err != nil {
+	SanitizePricing(c)
+	if err := ValidateCatalog(c); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o750); err != nil {
 		return err
 	}
 	tmpPath := cachePath + ".tmp"
-	if err := os.WriteFile(tmpPath, append(data, '\n'), 0o600); err != nil {
+	if err := os.WriteFile(tmpPath, append(data, 0x0a), 0o600); err != nil {
 		return err
 	}
 	return os.Rename(tmpPath, cachePath)
-}
-
-func (c *CompiledCatalogV1) CanonicalModelForAliasOrID(value string) (string, bool) {
-	if c == nil || value == "" {
-		return "", false
-	}
-	if c.ModelsByID[value].ID != "" {
-		return value, true
-	}
-	if target := c.Catalog.Aliases[value]; c.ModelsByID[target].ID != "" {
-		return target, true
-	}
-	for _, model := range c.ModelsByID {
-		for _, alias := range model.Aliases {
-			if alias == value {
-				return model.ID, true
-			}
-		}
-	}
-	return "", false
-}
-
-func (c *CompiledCatalogV1) OfferingForDeployment(canonicalModelID, deploymentID string) (ModelOfferingV1, bool) {
-	if c == nil {
-		return ModelOfferingV1{}, false
-	}
-	for _, offering := range c.OfferingsByCanonicalModel[canonicalModelID] {
-		if offering.DeploymentID == deploymentID {
-			return offering, true
-		}
-	}
-	return ModelOfferingV1{}, false
-}
-
-func SplitOfferingIDV1(id string) (deploymentID, nativeModelID string, ok bool) {
-	left, right, found := strings.Cut(id, ":")
-	return left, right, found && left != "" && right != ""
 }

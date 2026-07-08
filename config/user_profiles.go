@@ -52,14 +52,14 @@ func LoadProfiles() ([]ProviderProfile, error) {
 // SaveProfiles persists provider profiles.
 func SaveProfiles(profiles []ProviderProfile) error {
 	dir := filepath.Dir(ProfilesPath())
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("create profiles directory: %w", err)
 	}
 	data, err := json.MarshalIndent(profiles, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal profiles: %w", err)
 	}
-	return os.WriteFile(ProfilesPath(), data, 0o644)
+	return os.WriteFile(ProfilesPath(), data, 0o600)
 }
 
 // FindProfile returns a profile by name (case-insensitive).

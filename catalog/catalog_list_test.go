@@ -89,18 +89,18 @@ func TestServerToolsFromOffering(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		offering ModelOfferingV1
+		offering ModelOffering
 		want     []string
 	}{
 		{
 			name:     "nil_server_tools",
-			offering: ModelOfferingV1{},
+			offering: ModelOffering{},
 			want:     nil,
 		},
 		{
 			name: "supported_tool",
-			offering: ModelOfferingV1{
-				Capabilities: CapabilitySetV1{
+			offering: ModelOffering{
+				Capabilities: CapabilitySet{
 					ServerTools: map[string]CapabilityState{"web_search": CapabilitySupported},
 				},
 			},
@@ -108,8 +108,8 @@ func TestServerToolsFromOffering(t *testing.T) {
 		},
 		{
 			name: "unsupported_tool_filtered",
-			offering: ModelOfferingV1{
-				Capabilities: CapabilitySetV1{
+			offering: ModelOffering{
+				Capabilities: CapabilitySet{
 					ServerTools: map[string]CapabilityState{"web_search": CapabilityUnsupported},
 				},
 			},
@@ -117,8 +117,8 @@ func TestServerToolsFromOffering(t *testing.T) {
 		},
 		{
 			name: "mixed_tools",
-			offering: ModelOfferingV1{
-				Capabilities: CapabilitySetV1{
+			offering: ModelOffering{
+				Capabilities: CapabilitySet{
 					ServerTools: map[string]CapabilityState{
 						"web_search":  CapabilitySupported,
 						"code_interp": CapabilityUnsupported,
@@ -130,8 +130,8 @@ func TestServerToolsFromOffering(t *testing.T) {
 		},
 		{
 			name: "empty_tool_name_filtered",
-			offering: ModelOfferingV1{
-				Capabilities: CapabilitySetV1{
+			offering: ModelOffering{
+				Capabilities: CapabilitySet{
 					ServerTools: map[string]CapabilityState{
 						"":           CapabilitySupported,
 						"web_search": CapabilitySupported,
@@ -162,8 +162,8 @@ func TestModelEntryFromOffering(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name         string
-		model        ModelV1
-		offering     ModelOfferingV1
+		model        Model
+		offering     ModelOffering
 		wantID       string
 		wantContext  int
 		wantMaxOut   int
@@ -172,28 +172,28 @@ func TestModelEntryFromOffering(t *testing.T) {
 	}{
 		{
 			name:  "uses_native_model_id",
-			model: ModelV1{ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet 4.6", ContextWindow: 200000, MaxOutput: 32000},
-			offering: ModelOfferingV1{
+			model: Model{ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet 4.6", ContextWindow: 200000, MaxOutput: 32000},
+			offering: ModelOffering{
 				NativeModelID: "claude-sonnet-4-6",
-				Pricing:       PricingV1{RatesPer1M: map[string]float64{"input_tokens": 3, "output_tokens": 15}},
+				Pricing:       Pricing{RatesPer1M: map[string]float64{"input_tokens": 3, "output_tokens": 15}},
 			},
 			wantID: "claude-sonnet-4-6", wantContext: 200000, wantMaxOut: 32000, wantInPrice: 3, wantOutPrice: 15,
 		},
 		{
 			name:  "empty_native_falls_back_to_model_id",
-			model: ModelV1{ID: "openai/gpt-4o", Name: "GPT-4o"},
-			offering: ModelOfferingV1{
+			model: Model{ID: "openai/gpt-4o", Name: "GPT-4o"},
+			offering: ModelOffering{
 				NativeModelID: "",
-				Pricing:       PricingV1{Status: PricingUnknown},
+				Pricing:       Pricing{Status: PricingUnknown},
 			},
 			wantID: "openai/gpt-4o",
 		},
 		{
 			name:  "nil_rates_zeroes_prices",
-			model: ModelV1{ID: "x/model", Name: "Model"},
-			offering: ModelOfferingV1{
+			model: Model{ID: "x/model", Name: "Model"},
+			offering: ModelOffering{
 				NativeModelID: "model",
-				Pricing:       PricingV1{Status: PricingUnknown},
+				Pricing:       Pricing{Status: PricingUnknown},
 			},
 			wantID: "model", wantInPrice: 0, wantOutPrice: 0,
 		},
@@ -232,8 +232,8 @@ func TestModelEntriesForProvider_NilCompiled(t *testing.T) {
 
 func TestModelEntriesForProvider_EmptyProvider(t *testing.T) {
 	t.Parallel()
-	compiled := &CompiledCatalogV1{
-		ModelsByID: map[string]ModelV1{
+	compiled := &CompiledCatalog{
+		ModelsByID: map[string]Model{
 			"anthropic/claude-sonnet-4-6": {ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet", ProviderID: "anthropic"},
 		},
 	}
@@ -245,11 +245,11 @@ func TestModelEntriesForProvider_EmptyProvider(t *testing.T) {
 
 func TestModelEntriesForProvider_DeduplicatesByNativeID(t *testing.T) {
 	t.Parallel()
-	compiled := &CompiledCatalogV1{
-		ModelsByID: map[string]ModelV1{
+	compiled := &CompiledCatalog{
+		ModelsByID: map[string]Model{
 			"anthropic/claude-sonnet-4-6": {ID: "anthropic/claude-sonnet-4-6", Name: "Sonnet", ProviderID: "anthropic"},
 		},
-		OfferingsByDeployment: map[string][]ModelOfferingV1{
+		OfferingsByDeployment: map[string][]ModelOffering{
 			"anthropic-direct": {
 				{CanonicalModelID: "anthropic/claude-sonnet-4-6", DeploymentID: "anthropic-direct", NativeModelID: "claude-sonnet-4-6"},
 			},
@@ -267,7 +267,7 @@ func TestDiscoveryEnvKeysFromCatalog(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		compiled *CompiledCatalogV1
+		compiled *CompiledCatalog
 		wantNil  bool
 	}{
 		{
@@ -277,7 +277,7 @@ func TestDiscoveryEnvKeysFromCatalog(t *testing.T) {
 		},
 		{
 			name:     "nil_catalog",
-			compiled: &CompiledCatalogV1{},
+			compiled: &CompiledCatalog{},
 			wantNil:  true,
 		},
 	}
@@ -293,8 +293,8 @@ func TestDiscoveryEnvKeysFromCatalog(t *testing.T) {
 
 func TestDiscoveryEnvKeysFromCatalog_ReturnsUniqueKeys(t *testing.T) {
 	t.Parallel()
-	c := testLegacyCatalogV1()
-	compiled, err := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, err := CompileCatalog(&c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,8 +318,8 @@ func TestDiscoveryEnvKeysFromCatalog_ReturnsUniqueKeys(t *testing.T) {
 
 func TestAPIKeyEnvsForProvider(t *testing.T) {
 	t.Parallel()
-	c := testLegacyCatalogV1()
-	compiled, err := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, err := CompileCatalog(&c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -378,8 +378,8 @@ func TestPrimaryAPIKeyEnvForDeployment(t *testing.T) {
 
 func TestPrimaryAPIKeyEnvForDeployment_WithCompiled(t *testing.T) {
 	t.Parallel()
-	c := testLegacyCatalogV1()
-	compiled, err := CompileCatalogV1(&c)
+	c := SeedCatalog()
+	compiled, err := CompileCatalog(&c)
 	if err != nil {
 		t.Fatal(err)
 	}

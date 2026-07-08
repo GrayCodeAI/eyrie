@@ -38,7 +38,7 @@ import (
 
 // Runtime is a loaded eyrie control plane: catalog cache + routing + env-backed credentials.
 type Runtime struct {
-	Catalog      *catalog.CompiledCatalogV1
+	Catalog      *catalog.CompiledCatalog
 	Provider     *config.ProviderConfig
 	ProviderPath string
 }
@@ -88,9 +88,6 @@ func Load(ctx context.Context) (*Runtime, error) {
 		return nil, err
 	}
 	cfg := config.LoadProviderConfig("")
-	if cfg != nil {
-		cfg = config.EnsureDeploymentConfigV2(cfg)
-	}
 	return &Runtime{
 		Catalog:      compiled,
 		Provider:     cfg,
@@ -209,8 +206,8 @@ type DeploymentRow struct {
 func (r *Runtime) CredentialTargets() []CredentialTarget {
 	compiled := r.Catalog
 	if compiled == nil {
-		bootstrap := catalog.BootstrapCatalogV1()
-		c, err := catalog.CompileCatalogV1(&bootstrap)
+		bootstrap := catalog.BootstrapCatalog()
+		c, err := catalog.CompileCatalog(&bootstrap)
 		if err != nil {
 			return nil
 		}
@@ -248,7 +245,7 @@ type CredentialTarget struct {
 	Set          bool
 }
 
-func configuredDeploymentIDsForProvider(compiled *catalog.CompiledCatalogV1, providerID string) []string {
+func configuredDeploymentIDsForProvider(compiled *catalog.CompiledCatalog, providerID string) []string {
 	if compiled == nil || compiled.Catalog == nil {
 		return nil
 	}

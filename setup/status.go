@@ -33,7 +33,6 @@ type StatusReport struct {
 // DeploymentStatus builds a status report for CLI and agent diagnostics.
 func DeploymentStatus(ctx context.Context, activeModel string) (StatusReport, error) {
 	cfg := config.LoadProviderConfig("")
-	cfg = config.EnsureDeploymentConfigV2(cfg)
 	report := StatusReport{
 		ProviderConfig: config.GetProviderConfigPath(),
 		ActiveModel:    strings.TrimSpace(activeModel),
@@ -54,7 +53,7 @@ func DeploymentStatus(ctx context.Context, activeModel string) (StatusReport, er
 		report.CatalogModified = mod
 	}
 
-	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
 		CachePath: report.CatalogCache,
 	})
 	if err != nil {
@@ -119,8 +118,7 @@ func FormatStatus(report StatusReport) string {
 // RoutingPreview returns JSON describing effective routing for a model ID.
 func RoutingPreview(ctx context.Context, model string) (string, error) {
 	cfg := config.LoadProviderConfig("")
-	cfg = config.EnsureDeploymentConfigV2(cfg)
-	compiled, err := catalog.LoadCatalogV1(ctx, catalog.LoadCatalogV1Options{
+	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
 		CachePath: catalog.DefaultCachePath(),
 	})
 	if err != nil {

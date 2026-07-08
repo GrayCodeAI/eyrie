@@ -45,14 +45,14 @@ func LoadAgentRouting() (*AgentRoutingConfig, error) {
 // SaveAgentRouting persists the agent routing config.
 func SaveAgentRouting(cfg *AgentRoutingConfig) error {
 	dir := filepath.Dir(AgentRoutingPath())
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("create config directory: %w", err)
 	}
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal agent routing: %w", err)
 	}
-	return os.WriteFile(AgentRoutingPath(), data, 0o644)
+	return os.WriteFile(AgentRoutingPath(), data, 0o600)
 }
 
 // DefaultAgentRouting returns the default routing config.

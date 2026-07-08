@@ -2,13 +2,12 @@ package config
 
 import (
 	"sort"
-	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
 // DeploymentConfigFromEnv builds deployment credentials from catalog env_fallbacks and env values.
-func DeploymentConfigFromEnv(dep catalog.DeploymentV1, env map[string]string) DeploymentConfig {
+func DeploymentConfigFromEnv(dep catalog.Deployment, env map[string]string) DeploymentConfig {
 	var dc DeploymentConfig
 	for _, fb := range dep.EnvFallbacks {
 		val := firstEnvFromMap(env, fb.Env)
@@ -39,10 +38,10 @@ func DeploymentConfigFromEnv(dep catalog.DeploymentV1, env map[string]string) De
 }
 
 // DeploymentConfigured reports whether env supplies enough credentials for this deployment.
-func DeploymentConfigured(deploymentID string, dep catalog.DeploymentV1, dc DeploymentConfig) bool {
+func DeploymentConfigured(deploymentID string, dep catalog.Deployment, dc DeploymentConfig) bool {
 	switch deploymentID {
 	case "ollama-local":
-		return strings.TrimSpace(dc.BaseURL) != ""
+		return dc.BaseURL != ""
 	default:
 		return deploymentHasLiveCredentials(deploymentID, dc)
 	}
@@ -51,19 +50,19 @@ func DeploymentConfigured(deploymentID string, dep catalog.DeploymentV1, dc Depl
 func deploymentHasLiveCredentials(deploymentID string, dc DeploymentConfig) bool {
 	switch deploymentID {
 	case "anthropic-bedrock":
-		return strings.TrimSpace(dc.AccessKeyID) != "" && strings.TrimSpace(dc.SecretAccessKey) != ""
+		return dc.AccessKeyID != "" && dc.SecretAccessKey != ""
 	case "anthropic-vertex", "gemini-vertex":
-		return strings.TrimSpace(dc.ProjectID) != "" && strings.TrimSpace(dc.Region) != "" &&
-			(strings.TrimSpace(dc.Token) != "" || strings.TrimSpace(dc.APIKey) != "")
+		return dc.ProjectID != "" && dc.Region != "" &&
+			(dc.Token != "" || dc.APIKey != "")
 	default:
-		return strings.TrimSpace(dc.APIKey) != "" || strings.TrimSpace(dc.Token) != "" ||
-			strings.TrimSpace(dc.AccessKeyID) != ""
+		return dc.APIKey != "" || dc.Token != "" ||
+			dc.AccessKeyID != ""
 	}
 }
 
 func firstEnvFromMap(env map[string]string, keys []string) string {
 	for _, k := range keys {
-		if v := strings.TrimSpace(env[k]); v != "" {
+		if v := env[k]; v != "" {
 			return v
 		}
 	}
@@ -71,7 +70,7 @@ func firstEnvFromMap(env map[string]string, keys []string) string {
 }
 
 // SyncProviderConfigFromCatalog merges catalog + env into provider.json deployments and routing.
-func SyncProviderConfigFromCatalog(compiled *catalog.CompiledCatalogV1, env map[string]string) *ProviderConfig {
+func SyncProviderConfigFromCatalog(compiled *catalog.CompiledCatalog, env map[string]string) *ProviderConfig {
 	cfg := LoadProviderConfig("")
 	if cfg == nil {
 		cfg = &ProviderConfig{}

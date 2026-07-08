@@ -110,7 +110,7 @@ func (s *strategyState) recordUsage(name string, tokens int64) {
 func (s *strategyState) selectIndex(strategy Strategy, entries []RouteEntry, totalWeight int) int {
 	switch strategy {
 	case StrategySimpleShuffle:
-		return rand.IntN(len(entries))
+		return rand.IntN(len(entries)) // #nosec G404 -- non-cryptographic shuffle-strategy choice, not a security decision
 
 	case StrategyLeastBusy:
 		best, bestVal := 0, int64(math.MaxInt64)
@@ -173,7 +173,7 @@ func weightedIndex(entries []RouteEntry, totalWeight int) int {
 	if totalWeight == 0 {
 		return 0
 	}
-	n := rand.IntN(totalWeight)
+	n := rand.IntN(totalWeight) // #nosec G404 -- non-cryptographic weighted load-balancing choice, not a security decision
 	cumulative := 0
 	for i, e := range entries {
 		cumulative += e.Weight

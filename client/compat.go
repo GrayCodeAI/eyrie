@@ -56,6 +56,15 @@ var (
 		ThinkingFormat:           "openrouter",
 		StripReasoningFromInput:  true,
 	}
+	PoolsideCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
+	GroqCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
+	ClinePassCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
 	KimiCompat = OpenAICompatConfig{
 		MaxTokensField:    "max_tokens",
 		SupportsCacheRole: true,
@@ -109,6 +118,18 @@ func init() {
 	if p, ok := OpenAICompatibleProviders["canopywave"]; ok {
 		p.Compat = &CanopyWaveCompat
 		OpenAICompatibleProviders["canopywave"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["poolside"]; ok {
+		p.Compat = &PoolsideCompat
+		OpenAICompatibleProviders["poolside"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["groq"]; ok {
+		p.Compat = &GroqCompat
+		OpenAICompatibleProviders["groq"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["clinepass"]; ok {
+		p.Compat = &ClinePassCompat
+		OpenAICompatibleProviders["clinepass"] = p
 	}
 	if p, ok := OpenAICompatibleProviders["ollama"]; ok {
 		p.Compat = &OllamaCompat

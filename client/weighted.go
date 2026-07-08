@@ -89,7 +89,7 @@ func NewWeightedProvider(configs []WeightedProviderConfig) (*WeightedProvider, e
 
 	return &WeightedProvider{
 		configs: normalized,
-		rng:     randv2.New(randv2.NewPCG(s1, s2)),
+		rng:     randv2.New(randv2.NewPCG(s1, s2)), // #nosec G404 -- non-cryptographic weighted provider selection, not a security decision
 		stats:   stats,
 	}, nil
 }

@@ -20,13 +20,15 @@ func TestLiveEntriesToCatalog_PreservesFullJSONInOffering(t *testing.T) {
 	if string(entries[0].LiveMetadata) != string(raw) {
 		t.Fatalf("metadata = %s", entries[0].LiveMetadata)
 	}
-	c := catalog.CatalogV1FromLegacy(catalog.ModelCatalog{
-		Source: "test",
-		Providers: map[string][]catalog.ModelCatalogEntry{
-			"canopywave": entries,
+	c := &catalog.Catalog{
+		Models: map[string]catalog.Model{
+			"canopywave/moonshotai-kimi-k2.6": {ID: "canopywave/moonshotai-kimi-k2.6", ProviderID: "canopywave", Name: "Kimi K2.6"},
 		},
-	})
-	var offering catalog.ModelOfferingV1
+		Offerings: []catalog.ModelOffering{
+			{ID: "canopywave:moonshotai/kimi-k2.6", CanonicalModelID: "canopywave/moonshotai-kimi-k2.6", DeploymentID: "canopywave", NativeModelID: "moonshotai/kimi-k2.6", LiveMetadata: raw},
+		},
+	}
+	var offering catalog.ModelOffering
 	for _, o := range c.Offerings {
 		if o.DeploymentID == "canopywave" && o.NativeModelID == "moonshotai/kimi-k2.6" {
 			offering = o

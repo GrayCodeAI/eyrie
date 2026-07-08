@@ -6,13 +6,37 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
-	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	eyriecfg "github.com/GrayCodeAI/eyrie/config"
 )
 
+func appendSourceSuffix(source, suffix string) string {
+	if source == "embedded" || source == catalog.BootstrapSource() || source == "cache-fallback" {
+		if source == "cache-fallback" {
+			return "cache-fallback+" + suffix
+		}
+		return suffix
+	}
+	return source + "+" + suffix
+}
+
+// liveDeploymentIDs returns the set of deployment IDs referenced by
+// the offerings in a live-discovered catalog, so the caller can
+// replace them in the base catalog.
+func liveDeploymentIDs(v1Catalog catalog.Catalog) []string {
+	var ids []string
+	seen := map[string]bool{}
+	for _, o := range v1Catalog.Offerings {
+		if o.DeploymentID != "" && !seen[o.DeploymentID] {
+			seen[o.DeploymentID] = true
+			ids = append(ids, o.DeploymentID)
+		}
+	}
+	return ids
+}
+
 // Options configures catalog discovery: published catalog + live provider APIs via API keys.
 type Options struct {
-	catalog.LoadCatalogV1Options
+	catalog.LoadCatalogOptions
 	Credentials catalog.Credentials
 }
 
@@ -30,22 +54,22 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 		opts.CachePath = catalog.DefaultCachePath()
 	}
 
-	var base *catalog.CatalogV1
+	var base *catalog.Catalog
 	source := "embedded"
 	refreshed := false
 	remoteRefreshed := false
 	var liveProviders []catalog.LiveProviderEnrichment
 
 	if opts.RefreshRemote {
-		loadOpts := opts.LoadCatalogV1Options
+		loadOpts := opts.LoadCatalogOptions
 		loadOpts.RemoteURL = catalog.ResolvedRemoteCatalogURL(opts.RemoteURL)
-		remote, err := catalog.FetchRemoteCatalogV1(ctx, loadOpts)
+		remote, err := catalog.FetchRemoteCatalog(ctx, loadOpts)
 		if err != nil {
 			if compiled, ok := catalog.LoadValidCatalogCache(opts.CachePath); ok && compiled.Catalog != nil {
 				base = compiled.Catalog
 				source = "cache-fallback"
 			} else {
-				bootstrap := catalog.BootstrapCatalogV1()
+				bootstrap := catalog.BootstrapCatalog()
 				base = &bootstrap
 				source = catalog.BootstrapSource()
 			}
@@ -57,7 +81,7 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 			opts.RemoteURL = loadOpts.RemoteURL
 		}
 	} else {
-		compiled, err := catalog.LoadCatalogV1(ctx, opts.LoadCatalogV1Options)
+		compiled, err := catalog.LoadCatalog(ctx, opts.LoadCatalogOptions)
 		if err != nil {
 			return nil, fmt.Errorf("catalog discover: load: %w", err)
 		}
@@ -68,7 +92,7 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 	}
 
 	if base == nil {
-		bootstrap := catalog.BootstrapCatalogV1()
+		bootstrap := catalog.BootstrapCatalog()
 		base = &bootstrap
 		source = catalog.BootstrapSource()
 	}
@@ -80,51 +104,28 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 		env = eyriecfg.DiscoveryCredentials(ctx).Env()
 	}
 	if len(env) > 0 {
-		legacy, enrichment := catalog.FetchLiveProviderCatalog(env)
+		v1Catalog, enrichment := catalog.FetchLiveProviderCatalog(env)
 		liveProviders = enrichment
-		if len(legacy.Providers) > 0 {
-			enriched := catalog.CatalogV1FromLegacy(legacy)
-			var replaceDeps []string
-			var preferProviders []string
-			for _, item := range enrichment {
-				if item.Error != "" || item.ModelCount <= 0 {
-					continue
-				}
-				if dep := catalog.DeploymentIDForLiveCatalogKey(item.Provider); dep != "" {
-					replaceDeps = append(replaceDeps, dep)
-				}
-				if spec, ok := registry.SpecForLiveFetcher(item.Provider); ok {
-					preferProviders = append(preferProviders, catalog.CanonicalProviderID(spec.ProviderID))
-				}
-			}
-			base = MergeCatalogV1WithPolicy(base, &enriched, MergePolicy{
-				PreferLive:                 len(preferProviders) > 0,
-				PreferLiveProviders:        preferProviders,
-				ReplaceDeploymentOfferings: replaceDeps,
+		if len(v1Catalog.Models) > 0 {
+			base = MergeCatalogWithPolicy(base, &v1Catalog, MergePolicy{
+				PreferLive:                 true,
+				ReplaceDeploymentOfferings: liveDeploymentIDs(v1Catalog),
 			})
 			now := time.Now().UTC().Truncate(time.Second)
 			base.GeneratedAt = now
-			base.StaleAfter = now.Add(catalog.LiveCatalogStaleDuration)
+			base.StaleAfter = now.Add(catalog.LiveStaleDuration)
 			if base.Provenance == nil {
-				base.Provenance = &catalog.CatalogProvenanceV1{}
+				base.Provenance = &catalog.Provenance{}
 			}
 			base.Provenance.ObservedAt = now
-		}
-		if source == "embedded" || source == catalog.BootstrapSource() || source == "cache-fallback" {
-			if source == "cache-fallback" {
-				source = "cache-fallback+providers"
-			} else {
-				source = "providers"
-			}
-		} else {
-			source += "+providers"
+			source = appendSourceSuffix(source, "providers")
 		}
 	}
 
-	if err := catalog.WriteCatalogV1Cache(opts.CachePath, base); err != nil {
+	if err := catalog.WriteCatalogCache(opts.CachePath, base); err != nil {
 		return nil, fmt.Errorf("catalog discover: write cache: %w", err)
 	}
-	compiled, err := catalog.CompileCatalogV1(base)
+	compiled, err := catalog.CompileCatalog(base)
 	if err != nil {
 		return nil, fmt.Errorf("catalog discover: compile: %w", err)
 	}

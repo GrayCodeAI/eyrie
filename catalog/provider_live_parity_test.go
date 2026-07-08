@@ -11,8 +11,8 @@ import (
 func TestAllProviders_LiveFetchParity(t *testing.T) {
 	t.Parallel()
 	specs := registry.All()
-	if len(specs) != 19 {
-		t.Fatalf("expected 19 providers, got %d", len(specs))
+	if len(specs) != 22 {
+		t.Fatalf("expected 22 providers, got %d", len(specs))
 	}
 	for _, spec := range specs {
 		t.Run(spec.ProviderID, func(t *testing.T) {
@@ -47,7 +47,7 @@ func TestAllProviders_AllReturnEmptyWithoutCatalog(t *testing.T) {
 
 func TestAllProviders_FirstModelFromCompiledCache(t *testing.T) {
 	t.Parallel()
-	base := catalog.TestSeedCatalogV1()
+	base := catalog.SeedCatalog()
 	for _, spec := range registry.All() {
 		native := "live-" + spec.ProviderID + "-model"
 		owner := catalog.CanonicalProviderID(spec.ProviderID)
@@ -65,13 +65,13 @@ func TestAllProviders_FirstModelFromCompiledCache(t *testing.T) {
 		}
 		// Ensure provider exists in catalog
 		if _, ok := base.Providers[owner]; !ok {
-			base.Providers[owner] = catalog.ProviderV1{ID: owner, Name: owner}
+			base.Providers[owner] = catalog.Provider{ID: owner, Name: owner}
 		}
-		base.Models[canonical] = catalog.ModelV1{
+		base.Models[canonical] = catalog.Model{
 			ID: canonical, ProviderID: owner, Name: native,
 		}
 	}
-	compiled, err := catalog.CompileCatalogV1(&base)
+	compiled, err := catalog.CompileCatalog(&base)
 	if err != nil {
 		t.Fatal(err)
 	}

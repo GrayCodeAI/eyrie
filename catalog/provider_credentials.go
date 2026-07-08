@@ -3,7 +3,7 @@ package catalog
 import "strings"
 
 // ProviderIDsFromCompiled lists provider IDs from catalog providers and deployments.
-func ProviderIDsFromCompiled(compiled *CompiledCatalogV1) []string {
+func ProviderIDsFromCompiled(compiled *CompiledCatalog) []string {
 	if compiled == nil || compiled.Catalog == nil {
 		return nil
 	}
@@ -27,7 +27,7 @@ func ProviderIDsFromCompiled(compiled *CompiledCatalogV1) []string {
 }
 
 // PrimaryAPIKeyEnvForProvider returns the preferred API key env var for a provider.
-func PrimaryAPIKeyEnvForProvider(compiled *CompiledCatalogV1, providerID string) string {
+func PrimaryAPIKeyEnvForProvider(compiled *CompiledCatalog, providerID string) string {
 	providerID = canonicalProviderID(providerID)
 	if providerID == "" || compiled == nil || compiled.Catalog == nil {
 		return ""
@@ -49,7 +49,7 @@ func PrimaryAPIKeyEnvForProvider(compiled *CompiledCatalogV1, providerID string)
 	return ""
 }
 
-func apiKeyEnvFromDeployment(dep DeploymentV1) string {
+func apiKeyEnvFromDeployment(dep Deployment) string {
 	for _, fb := range dep.EnvFallbacks {
 		if fb.Field == "api_key" && len(fb.Env) > 0 {
 			return fb.Env[0]
@@ -60,7 +60,7 @@ func apiKeyEnvFromDeployment(dep DeploymentV1) string {
 
 // CredentialStatusForProvider reports whether a provider needs an API key (local vs required).
 // For set/empty status use hawk config.EnvKeyStatus or credentials.HasSecret — catalog does not read env.
-func CredentialStatusForProvider(compiled *CompiledCatalogV1, providerID string) string {
+func CredentialStatusForProvider(compiled *CompiledCatalog, providerID string) string {
 	providerID = canonicalProviderID(providerID)
 	if providerID == "" {
 		return "empty"
@@ -73,12 +73,12 @@ func CredentialStatusForProvider(compiled *CompiledCatalogV1, providerID string)
 }
 
 // APIKeyEnvsForProvider lists API key env var names for a provider from deployment env_fallbacks.
-func APIKeyEnvsForProvider(compiled *CompiledCatalogV1, providerID string) []string {
+func APIKeyEnvsForProvider(compiled *CompiledCatalog, providerID string) []string {
 	return apiKeyEnvsForProvider(compiled, canonicalProviderID(providerID))
 }
 
 // PrimaryAPIKeyEnvForDeployment returns the primary API key env var for a deployment ID.
-func PrimaryAPIKeyEnvForDeployment(compiled *CompiledCatalogV1, deploymentID string) string {
+func PrimaryAPIKeyEnvForDeployment(compiled *CompiledCatalog, deploymentID string) string {
 	if compiled != nil && compiled.Catalog != nil {
 		if dep, ok := compiled.Catalog.Deployments[deploymentID]; ok {
 			if env := apiKeyEnvFromDeployment(dep); env != "" {
@@ -94,7 +94,7 @@ func PrimaryAPIKeyEnvForDeployment(compiled *CompiledCatalogV1, deploymentID str
 	return ""
 }
 
-func apiKeyEnvsForProvider(compiled *CompiledCatalogV1, providerID string) []string {
+func apiKeyEnvsForProvider(compiled *CompiledCatalog, providerID string) []string {
 	if compiled == nil || compiled.Catalog == nil {
 		return nil
 	}
