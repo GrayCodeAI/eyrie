@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestSeedCatalog(t *testing.T) {
+func TestCatalogFromLegacyCompiles(t *testing.T) {
 	t.Parallel()
 	c := SeedCatalog()
 	compiled, err := CompileCatalog(&c)

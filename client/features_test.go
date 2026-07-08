@@ -6,8 +6,11 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
+// Tests below that read or write the package-level cachedCatalog run
+// sequentially (no t.Parallel()): they mutate shared state via save/restore,
+// which races under the parallel test runner.
+
 func TestFeatureDefaultProviders_NoCatalog(t *testing.T) {
-	t.Parallel()
 	orig := cachedCatalog
 	defer func() { cachedCatalog = orig }()
 	cachedCatalog = nil
@@ -31,7 +34,6 @@ func TestFeatureDefaultProviders_NoCatalog(t *testing.T) {
 }
 
 func TestFeatureSupportsFeatureChecks_NoCatalog(t *testing.T) {
-	t.Parallel()
 	orig := cachedCatalog
 	defer func() { cachedCatalog = orig }()
 	cachedCatalog = nil
@@ -60,7 +62,6 @@ func TestFeatureSupportsFeatureChecks_NoCatalog(t *testing.T) {
 }
 
 func TestFeatureUnknownProviderDefaults(t *testing.T) {
-	t.Parallel()
 	orig := cachedCatalog
 	defer func() { cachedCatalog = orig }()
 	cachedCatalog = nil
@@ -81,7 +82,6 @@ func TestFeatureUnknownProviderDefaults(t *testing.T) {
 }
 
 func TestFeatureCaseInsensitiveProvider(t *testing.T) {
-	t.Parallel()
 	pf := NewProviderFeatures()
 
 	// Provider lookup should be case-insensitive
@@ -113,7 +113,6 @@ func TestFeatureDeprecationChecker(t *testing.T) {
 }
 
 func TestFeatureSetFromCatalog_OverridesHardcoded(t *testing.T) {
-	t.Parallel()
 	// Save and restore the global cachedCatalog
 	orig := cachedCatalog
 	defer func() { cachedCatalog = orig }()
@@ -200,7 +199,6 @@ func TestFeatureSetFromCatalog_OverridesHardcoded(t *testing.T) {
 }
 
 func TestFeatureSetFromCatalog_FallsBackWhenNil(t *testing.T) {
-	t.Parallel()
 	orig := cachedCatalog
 	defer func() { cachedCatalog = orig }()
 	cachedCatalog = nil

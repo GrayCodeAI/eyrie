@@ -27,7 +27,7 @@ func EnsureCredentialRegistryInCatalog(c *Catalog) {
 				ID:                  spec.DeploymentID,
 				Name:                spec.DisplayName,
 				ProviderID:          pid,
-				APIProtocolID:       spec.APIProtocolID,
+				APIProtocolID:       spec.ProtocolID,
 				AdapterConstructor:  spec.AdapterID,
 				NativeModelIDSource: NativeModelIDDiscovered,
 			}

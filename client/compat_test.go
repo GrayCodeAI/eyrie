@@ -221,8 +221,12 @@ func TestCompatDeprecationCheckerNilSafety(t *testing.T) {
 // 3. Feature availability per provider
 // ---------------------------------------------------------------------------
 
+// The tests in this section read or write the package-level cachedCatalog
+// (directly, or transitively via Get/Supports) and run sequentially (no
+// t.Parallel()): mutating shared state via save/restore races under the
+// parallel test runner. See also client/features_test.go.
+
 func TestCompatFeatureMatrixAllProviders(t *testing.T) {
-	t.Parallel()
 	// With no catalog loaded, all providers return zero-value FeatureSet
 	orig := cachedCatalog
 	defer func() { cachedCatalog = orig }()
@@ -245,7 +249,6 @@ func TestCompatFeatureMatrixAllProviders(t *testing.T) {
 }
 
 func TestCompatSupportsAllFeatureAliases(t *testing.T) {
-	t.Parallel()
 	pf := NewProviderFeatures()
 
 	// Verify that feature name aliases resolve identically.
@@ -268,7 +271,6 @@ func TestCompatSupportsAllFeatureAliases(t *testing.T) {
 }
 
 func TestCompatSupportsUnknownFeatureReturnsFalse(t *testing.T) {
-	t.Parallel()
 	pf := NewProviderFeatures()
 	if pf.Supports("anthropic", "nonexistent_feature_xyz") {
 		t.Error("unknown feature should return false")
@@ -276,7 +278,6 @@ func TestCompatSupportsUnknownFeatureReturnsFalse(t *testing.T) {
 }
 
 func TestCompatSupportsCaseInsensitiveFeatureNames(t *testing.T) {
-	t.Parallel()
 	pf := NewProviderFeatures()
 	// "Thinking" vs "thinking" should resolve the same.
 	if pf.Supports("anthropic", "Thinking") != pf.Supports("anthropic", "thinking") {

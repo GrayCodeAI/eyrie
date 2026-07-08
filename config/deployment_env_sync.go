@@ -2,7 +2,6 @@ package config
 
 import (
 	"sort"
-	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
@@ -42,7 +41,7 @@ func DeploymentConfigFromEnv(dep catalog.Deployment, env map[string]string) Depl
 func DeploymentConfigured(deploymentID string, dep catalog.Deployment, dc DeploymentConfig) bool {
 	switch deploymentID {
 	case "ollama-local":
-		return strings.TrimSpace(dc.BaseURL) != ""
+		return dc.BaseURL != ""
 	default:
 		return deploymentHasLiveCredentials(deploymentID, dc)
 	}
@@ -51,19 +50,19 @@ func DeploymentConfigured(deploymentID string, dep catalog.Deployment, dc Deploy
 func deploymentHasLiveCredentials(deploymentID string, dc DeploymentConfig) bool {
 	switch deploymentID {
 	case "anthropic-bedrock":
-		return strings.TrimSpace(dc.AccessKeyID) != "" && strings.TrimSpace(dc.SecretAccessKey) != ""
+		return dc.AccessKeyID != "" && dc.SecretAccessKey != ""
 	case "anthropic-vertex", "gemini-vertex":
-		return strings.TrimSpace(dc.ProjectID) != "" && strings.TrimSpace(dc.Region) != "" &&
-			(strings.TrimSpace(dc.Token) != "" || strings.TrimSpace(dc.APIKey) != "")
+		return dc.ProjectID != "" && dc.Region != "" &&
+			(dc.Token != "" || dc.APIKey != "")
 	default:
-		return strings.TrimSpace(dc.APIKey) != "" || strings.TrimSpace(dc.Token) != "" ||
-			strings.TrimSpace(dc.AccessKeyID) != ""
+		return dc.APIKey != "" || dc.Token != "" ||
+			dc.AccessKeyID != ""
 	}
 }
 
 func firstEnvFromMap(env map[string]string, keys []string) string {
 	for _, k := range keys {
-		if v := strings.TrimSpace(env[k]); v != "" {
+		if v := env[k]; v != "" {
 			return v
 		}
 	}

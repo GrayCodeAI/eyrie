@@ -266,6 +266,9 @@ func (s *SQLiteStore) GetOrphanedToolUses(ctx context.Context, ancestorIDs []str
 		args = append(args, id)
 	}
 
+	// #nosec G202 -- inClause interpolates only literal "?" placeholders (one per
+	// ancestorIDs element); every actual value is bound via args through the
+	// parameterized QueryContext call below, so no untrusted data enters the SQL text.
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT nti.node_id, nti.tool_id
 		FROM node_tool_ids nti

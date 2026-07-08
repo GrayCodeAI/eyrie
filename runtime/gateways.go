@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	GatewayXiaomiTokenPlan = "xiaomi_mimo_token_plan"
+	GatewayXiaomiTokenPlan = "xiaomi_mimo_token_plan" // #nosec G101 -- constant name, not a secret value
 	gatewayZAIPayg         = "zai_payg"
 	gatewayZAICoding       = "zai_coding"
 )

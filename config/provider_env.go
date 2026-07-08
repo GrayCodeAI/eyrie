@@ -355,7 +355,7 @@ func LoadProviderConfig(path string) *ProviderConfig {
 	if path == "" {
 		path = GetProviderConfigPath()
 	}
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path defaults to GetProviderConfigPath() or is supplied by the local caller, not untrusted input
 	if err != nil {
 		return nil
 	}
@@ -373,7 +373,7 @@ func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
 	if path == "" {
 		path = GetProviderConfigPath()
 	}
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path defaults to GetProviderConfigPath() or is supplied by the local caller, not untrusted input
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil

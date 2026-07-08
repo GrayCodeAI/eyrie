@@ -34,8 +34,8 @@ const (
 const (
 	AttrLLMProvider     = "llm.provider"
 	AttrLLMModel        = "llm.model"
-	AttrLLMInputTokens  = "llm.input_tokens"
-	AttrLLMOutputTokens = "llm.output_tokens"
+	AttrLLMInputTokens  = "llm.input_tokens"  // #nosec G101 -- OTel attribute key string, not a secret value
+	AttrLLMOutputTokens = "llm.output_tokens" // #nosec G101 -- OTel attribute key string, not a secret value
 	AttrLLMCostUSD      = "llm.cost_usd"
 	AttrLLMLatencyMs    = "llm.latency_ms"
 	AttrLLMStatus       = "llm.status"
