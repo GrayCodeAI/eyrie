@@ -572,6 +572,33 @@ func TestResolveOutputConfig(t *testing.T) {
 	}
 }
 
+func TestAnthropicResponseFormatJSONSchema(t *testing.T) {
+	c := NewAnthropicClient("test", "http://example.test")
+	_, body, err := c.buildAnthropicRequest(context.Background(), []EyrieMessage{{Role: "user", Content: "hi"}}, ChatOptions{
+		Model: "claude-test",
+		ResponseFormat: &ResponseFormat{
+			Type:   "json_schema",
+			Schema: `{"type":"object","properties":{"answer":{"type":"string"}}}`,
+		},
+	}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), `"output_config":{"format":{"type":"json_schema"`) {
+		t.Fatalf("structured output was not wired into Anthropic request: %s", body)
+	}
+}
+
+func TestAnthropicResponseFormatRejectsSchemaLessJSON(t *testing.T) {
+	c := NewAnthropicClient("test", "http://example.test")
+	_, _, err := c.buildAnthropicRequest(context.Background(), nil, ChatOptions{
+		ResponseFormat: &ResponseFormat{Type: "json_object"},
+	}, false)
+	if err == nil || !strings.Contains(err.Error(), "use json_schema") {
+		t.Fatalf("expected actionable json_object error, got %v", err)
+	}
+}
+
 func TestAnthropicRequest_NewFields(t *testing.T) {
 	t.Parallel()
 	req := anthropicRequest{

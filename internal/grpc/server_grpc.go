@@ -1,32 +1,77 @@
 //go:build grpc
 
-// This file is the real gRPC server wiring. It is excluded from normal builds
-// via the "grpc" build tag because eyrie does not yet depend on
-// google.golang.org/grpc. It is intentionally a documented stub: it compiles
-// under `go build -tags grpc ./...` without pulling in grpc, and marks exactly
-// where the generated code and server registration belong.
-//
-// To activate (see README.md for full steps):
-//  1. go get google.golang.org/grpc google.golang.org/protobuf
-//  2. generate eyriev1 stubs from proto/eyrie/v1/chat.proto
-//  3. replace the body of Serve below with a real grpc.Server that registers
-//     a ChatServiceServer adapting conversation.Engine, and drop this note.
-
 package grpc
 
 import (
-	"errors"
+	"context"
+	"encoding/json"
+	"fmt"
 	"net"
+
+	googlegrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/encoding"
 )
 
-// errGRPCNotWired signals that the gRPC dependency/codegen has not been added.
-var errGRPCNotWired = errors.New("eyrie/grpc: gRPC server not wired up (run codegen; see internal/grpc/README.md)")
+// JSONCodec is the wire codec used by Eyrie's dependency-light gRPC surface.
+// Clients select it with grpc.CallContentSubtype("json").
+type JSONCodec struct{}
 
-// Serve will listen on lis and serve the ChatService over gRPC once the
-// dependency and generated stubs are in place. Today it is a stub.
-//
-// TODO(grpc): construct grpc.NewServer(), register the generated
-// ChatServiceServer backed by svc, and call grpcServer.Serve(lis).
-func Serve(_ net.Listener, _ ChatService) error {
-	return errGRPCNotWired
+func (JSONCodec) Name() string { return "json" }
+func (JSONCodec) Marshal(v interface{}) ([]byte, error) {
+	return json.Marshal(v)
+}
+func (JSONCodec) Unmarshal(data []byte, v interface{}) error {
+	return json.Unmarshal(data, v)
+}
+
+func init() {
+	encoding.RegisterCodec(JSONCodec{})
+}
+
+// NewServer creates a gRPC server and registers the supplied ChatService.
+func NewServer(svc ChatService, opts ...googlegrpc.ServerOption) (*googlegrpc.Server, error) {
+	if svc == nil {
+		return nil, fmt.Errorf("eyrie/grpc: chat service is required")
+	}
+	server := googlegrpc.NewServer(opts...)
+	server.RegisterService(&chatServiceDesc, svc)
+	return server, nil
+}
+
+// Serve registers svc and serves requests until the listener is closed or the
+// server is stopped.
+func Serve(lis net.Listener, svc ChatService, opts ...googlegrpc.ServerOption) error {
+	if lis == nil {
+		return fmt.Errorf("eyrie/grpc: listener is required")
+	}
+	server, err := NewServer(svc, opts...)
+	if err != nil {
+		return err
+	}
+	return server.Serve(lis)
+}
+
+func chatHandler(srv interface{}, ctx context.Context, decode func(interface{}) error, interceptor googlegrpc.UnaryServerInterceptor) (interface{}, error) {
+	req := new(ChatRequest)
+	if err := decode(req); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatService).Chat(ctx, req)
+	}
+	info := &googlegrpc.UnaryServerInfo{Server: srv, FullMethod: "/eyrie.v1.ChatService/Chat"}
+	handler := func(ctx context.Context, request interface{}) (interface{}, error) {
+		return srv.(ChatService).Chat(ctx, request.(*ChatRequest))
+	}
+	return interceptor(ctx, req, info, handler)
+}
+
+var chatServiceDesc = googlegrpc.ServiceDesc{
+	ServiceName: "eyrie.v1.ChatService",
+	HandlerType: (*ChatService)(nil),
+	Methods: []googlegrpc.MethodDesc{{
+		MethodName: "Chat",
+		Handler:    chatHandler,
+	}},
+	Metadata: "eyrie/v1/chat.json",
 }

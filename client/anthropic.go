@@ -426,6 +426,23 @@ func audioFormatToMediaType(format string) string {
 // EnableCaching, tools, thinking, metadata, serviceTier,
 // outputConfig — was previously re-applied in both methods.
 func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []EyrieMessage, opts ChatOptions, stream bool) (*http.Request, []byte, error) {
+	if opts.ResponseFormat != nil {
+		switch opts.ResponseFormat.Type {
+		case "json_schema":
+			if opts.ResponseFormat.Schema == "" {
+				return nil, nil, fmt.Errorf("eyrie: anthropic json_schema response format requires a schema")
+			}
+			var schema map[string]interface{}
+			if err := json.Unmarshal([]byte(opts.ResponseFormat.Schema), &schema); err != nil {
+				return nil, nil, fmt.Errorf("eyrie: invalid anthropic response schema: %w", err)
+			}
+			opts.OutputSchema = opts.ResponseFormat.Schema
+		case "json_object":
+			return nil, nil, fmt.Errorf("eyrie: anthropic does not support json_object without a schema; use json_schema")
+		default:
+			return nil, nil, fmt.Errorf("eyrie: unsupported anthropic response format %q", opts.ResponseFormat.Type)
+		}
+	}
 	messages = SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, nil, fmt.Errorf("eyrie: model is required for anthropic")
@@ -501,11 +518,9 @@ func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []
 	return req, body, nil
 }
 
-// NOTE: Anthropic does not support a native JSON mode (response_format).
-// Structured output with Anthropic is achieved via the tool-use pattern
-// (defining a tool whose input_schema is your desired output schema).
-// This is not implemented here; opts.ResponseFormat is ignored for Anthropic.
-// Future work: implement tool-use-based structured output for Anthropic.
+// Anthropic structured output is sent through output_config.format. A
+// schema-less json_object request is rejected instead of being silently
+// ignored because Anthropic requires a JSON schema.
 func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
 	req, body, err := c.buildAnthropicRequest(ctx, messages, opts, false)
 	if err != nil {
