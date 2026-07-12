@@ -87,6 +87,18 @@ func TestValidateGenerateRequest(t *testing.T) {
 	}
 }
 
+func TestModelPriceKnownContract(t *testing.T) {
+	if !modelPriceKnown("openrouter/model:free", "", 0, 0, 0) {
+		t.Fatal("explicitly free model should have known zero price")
+	}
+	if !modelPriceKnown("model", "Model", 0, 0, 128000) {
+		t.Fatal("catalog model with context metadata should have known price")
+	}
+	if modelPriceKnown("model", "Model", 0, 0, 0) {
+		t.Fatal("bare live model row should keep price unknown")
+	}
+}
+
 func TestMessageConversionPreservesToolsAndMultimodalParts(t *testing.T) {
 	messages := toClientMessages([]Message{{
 		Role: "user", Content: "inspect", ContentParts: []ContentPart{{Type: "image_url", URL: "https://example.test/image.png", Detail: "high"}},

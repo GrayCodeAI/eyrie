@@ -151,13 +151,27 @@ func (e *Engine) ListModels(ctx context.Context, providerID string, refresh bool
 			capabilities = capabilityNames(offeringForProvider(compiled, providerID, canonical, entry.ID).Capabilities)
 		}
 		out = append(out, Model{
-			ID: entry.ID, DisplayName: entry.DisplayName, Owner: entry.Owner, ProviderID: providerID,
+			ID: entry.ID, DisplayName: entry.DisplayName, Description: entry.Description,
+			Owner: entry.Owner, ProviderID: providerID, GatewayID: providerID,
 			ContextWindow: entry.ContextWindow, MaxOutputTokens: entry.MaxOutput,
 			InputPricePer1M: entry.InputPricePer1M, OutputPricePer1M: entry.OutputPricePer1M,
+			PriceKnown:   modelPriceKnown(entry.ID, entry.DisplayName, entry.InputPricePer1M, entry.OutputPricePer1M, entry.ContextWindow),
 			Capabilities: capabilities, Source: "cache",
 		})
 	}
 	return out, nil
+}
+
+func modelPriceKnown(id, displayName string, input, output float64, contextWindow int) bool {
+	if input > 0 || output > 0 {
+		return true
+	}
+	text := strings.ToLower(strings.TrimSpace(id) + " " + strings.TrimSpace(displayName))
+	if strings.Contains(text, ":free") || strings.Contains(text, "/free") ||
+		strings.HasSuffix(text, "-free") || strings.Contains(text, " free") {
+		return true
+	}
+	return contextWindow > 0
 }
 
 func offeringForProvider(compiled *catalog.CompiledCatalog, providerID, canonicalID, nativeID string) catalog.ModelOffering {

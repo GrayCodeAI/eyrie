@@ -210,12 +210,15 @@ type Event struct {
 type Model struct {
 	ID               string   `json:"id"`
 	DisplayName      string   `json:"display_name"`
+	Description      string   `json:"description,omitempty"`
 	Owner            string   `json:"owner,omitempty"`
 	ProviderID       string   `json:"provider_id"`
+	GatewayID        string   `json:"gateway_id,omitempty"`
 	ContextWindow    int      `json:"context_window,omitempty"`
 	MaxOutputTokens  int      `json:"max_output_tokens,omitempty"`
 	InputPricePer1M  float64  `json:"input_price_per_1m,omitempty"`
 	OutputPricePer1M float64  `json:"output_price_per_1m,omitempty"`
+	PriceKnown       bool     `json:"price_known"`
 	Capabilities     []string `json:"capabilities,omitempty"`
 	Source           string   `json:"source,omitempty"`
 }
