@@ -35,7 +35,7 @@ func (c *DeepSeekClient) Name() string { return "deepseek" }
 
 func (c *DeepSeekClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
 	return c.router.Chat(ctx, messages, opts, ChatProtocolCompletions, func(err error, _ *EyrieResponse) bool {
-		if err != nil && c.router.Anthropic != nil && isRetryableError(err) {
+		if err != nil && c.router.Anthropic != nil && isRetriableError(err) {
 			c.logger.Info("DeepSeek: OpenAI endpoint failed; retrying via Anthropic compatibility", "error", err)
 			return true
 		}
@@ -47,7 +47,7 @@ func (c *DeepSeekClient) StreamChat(ctx context.Context, messages []EyrieMessage
 	return c.router.StreamChat(ctx, messages, opts, ProtocolStreamConfig{
 		Primary: ChatProtocolCompletions,
 		FallbackOnError: func(err error) bool {
-			if c.router.Anthropic != nil && isRetryableError(err) {
+			if c.router.Anthropic != nil && isRetriableError(err) {
 				c.logger.Info("DeepSeek: OpenAI stream failed; retrying via Anthropic compatibility", "error", err)
 				return true
 			}
@@ -59,24 +59,10 @@ func (c *DeepSeekClient) StreamChat(ctx context.Context, messages []EyrieMessage
 func (c *DeepSeekClient) Ping(ctx context.Context) error {
 	if err := c.router.OpenAI.Ping(ctx); err == nil {
 		return nil
-	} else if c.router.Anthropic == nil || !isRetryableError(err) {
+	} else if c.router.Anthropic == nil || !isRetriableError(err) {
 		return err
 	}
 	return c.router.Anthropic.Ping(ctx)
-}
-
-// isRetryableError checks if the error is retryable (connection reset, timeout, 5xx).
-func isRetryableError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "connection reset") ||
-		strings.Contains(msg, "timeout") ||
-		strings.Contains(msg, "502") ||
-		strings.Contains(msg, "503") ||
-		strings.Contains(msg, "504") ||
-		strings.Contains(msg, "500")
 }
 
 var _ Provider = (*DeepSeekClient)(nil)

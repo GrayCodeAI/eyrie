@@ -10,7 +10,11 @@ import (
 	"net/http"
 )
 
-// OpenAIClient implements Provider for OpenAI and OpenAI-compatible APIs.
+const (
+	// maxOpenAIRequestSize is the maximum request body size for OpenAI API (32 MB).
+	maxOpenAIRequestSize = 32 * 1024 * 1024
+)
+
 type OpenAIClient struct {
 	apiKey             string
 	baseURL            string
@@ -47,7 +51,7 @@ func NewOpenAIClient(apiKey, baseURL string, compat *OpenAICompatConfig, opts ..
 		c.compat = &OpenAICompat
 	}
 	for _, opt := range opts {
-		opt.applyOpenAI(c)
+		opt.Apply(c)
 	}
 	return c
 }
@@ -421,6 +425,9 @@ func (c *OpenAIClient) buildOpenAIRequest(ctx context.Context, messages []EyrieM
 	if err != nil {
 		return nil, nil, fmt.Errorf("eyrie: marshal openai request: %w", err)
 	}
+	if len(body) > maxOpenAIRequestSize {
+		return nil, nil, fmt.Errorf("eyrie: request size %d bytes exceeds OpenAI limit of %d bytes", len(body), maxOpenAIRequestSize)
+	}
 	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		return nil, nil, fmt.Errorf("eyrie: failed to create request: %w", err)
@@ -520,7 +527,7 @@ func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
 	events := processOpenAIStream(streamCtx, sseEvents, c.logger)
 
-	return &StreamResult{Events: events, RequestID: requestID, cancel: cancel}, nil
+	return NewStreamResultWithRequestID(events, requestID, cancel), nil
 }
 
 // Ping checks connectivity.

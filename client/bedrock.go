@@ -19,6 +19,11 @@ import (
 	"time"
 )
 
+const (
+	// maxBedrockRequestSize is the maximum request body size for Bedrock (30 MB).
+	maxBedrockRequestSize = 30 * 1024 * 1024
+)
+
 type BedrockClient struct {
 	accessKeyID     string
 	secretAccessKey string
@@ -27,6 +32,7 @@ type BedrockClient struct {
 	httpClient      *http.Client
 	retry           RetryConfig
 	logger          *slog.Logger
+	guardrails      *Guardrails
 }
 
 var _ Provider = (*BedrockClient)(nil)
@@ -82,7 +88,13 @@ func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts 
 	if err := json.NewDecoder(resp.Body).Decode(&ar); err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock decode failed: %w", err)
 	}
-	return parseAnthropicResponse(ar, resp.Header.Get("X-Amzn-Requestid"), ""), nil
+	eyrieResp := parseAnthropicResponse(ar, resp.Header.Get("X-Amzn-Requestid"), "")
+
+	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
+		return nil, err
+	}
+
+	return eyrieResp, nil
 }
 
 func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
@@ -206,21 +218,18 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 			}
 		}
 
-		// Send final usage event
+		// Send final done event with usage (matching Anthropic/OpenAI pattern)
+		doneEvt := EyrieStreamEvent{Type: "done", StopReason: finishReason}
 		if usage != nil {
-			select {
-			case ch <- EyrieStreamEvent{Type: "usage", Usage: usage}:
-			case <-streamCtx.Done():
-				return
-			}
+			doneEvt.Usage = usage
 		}
 		select {
-		case ch <- EyrieStreamEvent{Type: "done", StopReason: finishReason}:
+		case ch <- doneEvt:
 		case <-streamCtx.Done():
 		}
 	}()
 
-	return &StreamResult{Events: ch, cancel: cancel, RequestID: resp.Header.Get("X-Amzn-Requestid")}, nil
+	return NewStreamResultWithRequestID(ch, resp.Header.Get("X-Amzn-Requestid"), cancel), nil
 }
 
 func (c *BedrockClient) Ping(ctx context.Context) error {
@@ -246,6 +255,7 @@ func (c *BedrockClient) Ping(ctx context.Context) error {
 }
 
 func (c *BedrockClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]byte, error) {
+	messages = SanitizeMessages(messages)
 	msgs, system := buildAnthropicMessages(messages)
 	if opts.System != "" {
 		if system != "" {
@@ -259,12 +269,20 @@ func (c *BedrockClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]
 		maxTokens = 4096
 	}
 	base := anthropicRequest{
-		Model:       opts.Model,
-		MaxTokens:   maxTokens,
-		Messages:    msgs,
-		System:      system,
-		Temperature: opts.Temperature,
-		Tools:       convertToAnthropicTools(opts.Tools),
+		Model:         opts.Model,
+		MaxTokens:     maxTokens,
+		Messages:      msgs,
+		System:        system,
+		Temperature:   opts.Temperature,
+		TopP:          opts.TopP,
+		TopK:          opts.TopK,
+		StopSequences: opts.StopSequences,
+		Tools:         convertToAnthropicTools(opts.Tools),
+		ToolChoice:    resolveToolChoice(opts.ToolChoice),
+		Thinking:      resolveThinking(opts),
+		Metadata:      resolveMetadata(opts),
+		ServiceTier:   opts.ServiceTier,
+		OutputConfig:  resolveOutputConfig(opts),
 	}
 	raw, err := json.Marshal(base)
 	if err != nil {
@@ -275,7 +293,14 @@ func (c *BedrockClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]
 		return nil, err
 	}
 	body["anthropic_version"] = "bedrock-2023-05-31"
-	return json.Marshal(body)
+	data, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > maxBedrockRequestSize {
+		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Bedrock limit of %d bytes", len(data), maxBedrockRequestSize)
+	}
+	return data, nil
 }
 
 func (c *BedrockClient) modelURL(model string) string {

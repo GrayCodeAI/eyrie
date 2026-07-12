@@ -11,6 +11,11 @@ import (
 	"strings"
 )
 
+const (
+	// maxAzureRequestSize is the maximum request body size for Azure OpenAI (30 MB).
+	maxAzureRequestSize = 30 * 1024 * 1024
+)
+
 type AzureClient struct {
 	apiKey     string
 	endpoint   string
@@ -18,6 +23,7 @@ type AzureClient struct {
 	httpClient *http.Client
 	retry      RetryConfig
 	logger     *slog.Logger
+	guardrails *Guardrails
 }
 
 var _ Provider = (*AzureClient)(nil)
@@ -54,6 +60,9 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: azure marshal request failed: %w", err)
+	}
+	if len(body) > maxAzureRequestSize {
+		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Azure limit of %d bytes", len(body), maxAzureRequestSize)
 	}
 	url := fmt.Sprintf("%s/openai/deployments/%s/chat/completions?api-version=%s", c.endpoint, opts.Model, c.apiVersion)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
@@ -107,6 +116,11 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 			result.Usage.CacheReadTokens = or.Usage.PromptTokensDetails.CachedTokens
 		}
 	}
+
+	if err := applyGuardrails(ctx, result, c.guardrails); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 
@@ -148,7 +162,7 @@ func (c *AzureClient) StreamChat(ctx context.Context, messages []EyrieMessage, o
 	sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
 	events := processOpenAIStream(streamCtx, sseEvents, c.logger)
 
-	return &StreamResult{Events: events, RequestID: requestID, cancel: cancel}, nil
+	return NewStreamResultWithRequestID(events, requestID, cancel), nil
 }
 
 func (c *AzureClient) Ping(ctx context.Context) error {

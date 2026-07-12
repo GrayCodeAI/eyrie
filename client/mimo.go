@@ -2,13 +2,14 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
+	"github.com/GrayCodeAI/eyrie/types"
 )
 
 // MiMoClient uses OpenAI-compatible MiMo endpoints first, with optional Anthropic-compat fallback.
@@ -35,20 +36,7 @@ func NewMiMoClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompa
 	}
 }
 
-// WithProviderName sets the OpenAI client provider name for errors/logging.
-func WithProviderName(name string) ClientOption {
-	return ClientOption{
-		applyOpenAIFn: func(c *OpenAIClient) { c.providerName = name },
-	}
-}
-
-// WithMimoAuth uses api-key header per MiMo documentation (OpenAI + Anthropic compat).
-func WithMimoAuth() ClientOption {
-	return ClientOption{
-		applyFn:       func(c *AnthropicClient) { c.useMimoAuth = true },
-		applyOpenAIFn: func(c *OpenAIClient) { c.useMimoAuth = true },
-	}
-}
+// WithProviderName and WithMimoAuth live in client/core (options.go wraps them).
 
 func (c *MiMoClient) Name() string {
 	if c.router.OpenAI != nil {
@@ -107,29 +95,27 @@ func mimoRetryableChatError(err error) bool {
 	if err == nil {
 		return false
 	}
+	// MiMo-specific: check xiaomi helper first (401/403 are retryable for MiMo)
 	msg := err.Error()
-	if strings.Contains(msg, "connection reset") || strings.Contains(msg, "timeout") {
-		return true
-	}
-	for _, code := range []int{
-		http.StatusUnauthorized, http.StatusForbidden,
-		http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout,
-	} {
-		if strings.Contains(msg, fmt.Sprintf("%d", code)) && xiaomi.IsRetryableHTTPStatus(code) {
+	if n := parseHTTPStatusFromError(msg); n > 0 {
+		if xiaomi.IsRetryableHTTPStatus(n) {
 			return true
 		}
 	}
-	if n := parseHTTPStatusFromError(msg); n > 0 {
-		return xiaomi.IsRetryableHTTPStatus(n)
+	// Structured path: trust EyrieError's IsRetriable
+	var eyrieErr *EyrieError
+	if errors.As(err, &eyrieErr) {
+		return eyrieErr.IsRetriable()
 	}
-	return false
+	// Conservative: only retry on explicitly transient errors (not the optimistic "unknown → true")
+	return types.IsTransient(err)
 }
 
 func parseHTTPStatusFromError(msg string) int {
 	for _, prefix := range []string{"HTTP ", "status ", "error ("} {
 		if i := strings.Index(msg, prefix); i >= 0 {
 			rest := msg[i+len(prefix):]
-			for j := 0; j < len(rest) && j < 3; j++ {
+			for j := 0; j < len(rest); j++ {
 				if rest[j] < '0' || rest[j] > '9' {
 					rest = rest[:j]
 					break

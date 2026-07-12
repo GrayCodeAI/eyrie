@@ -2,10 +2,12 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/GrayCodeAI/eyrie/types"
 )
 
 // ZAIClient uses the OpenAI-compatible endpoint (paas/v4 or coding/paas/v4) first,
@@ -103,22 +105,18 @@ func zaiRetryableChatError(err error) bool {
 	if err == nil {
 		return false
 	}
+	// Z.AI-specific: check HTTP status codes
 	msg := err.Error()
-	if strings.Contains(msg, "connection reset") || strings.Contains(msg, "timeout") {
-		return true
-	}
-	for _, code := range []int{
-		http.StatusUnauthorized, http.StatusForbidden,
-		http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout,
-	} {
-		if strings.Contains(msg, fmt.Sprintf("%d", code)) {
-			return true
-		}
-	}
 	if n := parseHTTPStatusFromError(msg); n > 0 {
 		return n >= 500 || n == http.StatusUnauthorized || n == http.StatusForbidden
 	}
-	return false
+	// Structured path: trust EyrieError's IsRetriable
+	var eyrieErr *EyrieError
+	if errors.As(err, &eyrieErr) {
+		return eyrieErr.IsRetriable()
+	}
+	// Conservative: only retry on explicitly transient errors
+	return types.IsTransient(err)
 }
 
 var _ Provider = (*ZAIClient)(nil)

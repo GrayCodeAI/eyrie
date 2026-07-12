@@ -19,6 +19,9 @@ import (
 // release once the new path is validated in production.
 const geminiSharedParserEnvVar = "EYRIE_GEMINI_SHARED_PARSER"
 
+// maxGeminiRequestSize is the maximum request body size for Gemini API (32 MB).
+const maxGeminiRequestSize = 32 * 1024 * 1024
+
 // geminiSharedParserEnabled reports whether the Gemini client should
 // use the shared parseSSEStream + processGeminiStream path (the new
 // behavior). Default: enabled.
@@ -34,6 +37,7 @@ type GeminiClient struct {
 	httpClient *http.Client
 	retry      RetryConfig
 	logger     *slog.Logger
+	guardrails *Guardrails
 }
 
 var _ Provider = (*GeminiClient)(nil)
@@ -94,9 +98,11 @@ func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		}
 	}()
 
+	requestID := resp.Header.Get("X-Goog-Request-Id")
+
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("eyrie: gemini returned %d: %s", resp.StatusCode, string(respBody))
+		detail, readErr := parseProviderError(resp.Body)
+		return nil, formatAPIError("gemini", "chat", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	respBody, err := io.ReadAll(resp.Body)
@@ -104,7 +110,16 @@ func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		return nil, fmt.Errorf("eyrie: gemini response read failed: %w", err)
 	}
 
-	return c.parseResponse(respBody)
+	eyrieResp, err := c.parseResponse(respBody, requestID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
+		return nil, err
+	}
+
+	return eyrieResp, nil
 }
 
 func (c *GeminiClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
@@ -127,10 +142,13 @@ func (c *GeminiClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: gemini stream request failed: %w", err)
 	}
+
+	requestID := resp.Header.Get("X-Goog-Request-Id")
+
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		detail, readErr := parseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, fmt.Errorf("eyrie: gemini stream returned %d: %s", resp.StatusCode, string(respBody))
+		return nil, formatAPIError("gemini", "stream", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
@@ -161,8 +179,8 @@ func (c *GeminiClient) Ping(ctx context.Context) error {
 			slog.Warn("gemini: close response body", "error", err)
 		}
 	}()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("eyrie: gemini ping returned %d", resp.StatusCode)
+	if resp.StatusCode == 401 {
+		return fmt.Errorf("eyrie: gemini: invalid API key")
 	}
 	return nil
 }
@@ -254,6 +272,7 @@ type geminiSafetySetting struct {
 }
 
 func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]byte, error) {
+	messages = SanitizeMessages(messages)
 	contents := make([]geminiContent, 0, len(messages))
 	var systemInstruction *geminiContent
 
@@ -426,7 +445,14 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 		}
 	}
 
-	return json.Marshal(req)
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > maxGeminiRequestSize {
+		return nil, fmt.Errorf("eyrie: request size %d bytes exceeds Gemini limit of %d bytes", len(data), maxGeminiRequestSize)
+	}
+	return data, nil
 }
 
 // --- Response parsing ---
@@ -456,7 +482,7 @@ type geminiPromptFeedback struct {
 	BlockReasonMessage string `json:"blockReasonMessage,omitempty"`
 }
 
-func (c *GeminiClient) parseResponse(data []byte) (*EyrieResponse, error) {
+func (c *GeminiClient) parseResponse(data []byte, requestID string) (*EyrieResponse, error) {
 	var gr geminiResponse
 	if err := json.Unmarshal(data, &gr); err != nil {
 		return nil, fmt.Errorf("eyrie: gemini response parse failed: %w", err)
@@ -476,6 +502,7 @@ func (c *GeminiClient) parseResponse(data []byte) (*EyrieResponse, error) {
 	candidate := gr.Candidates[0]
 	resp := &EyrieResponse{
 		FinishReason: mapGeminiFinishReason(candidate.FinishReason),
+		RequestID:    requestID,
 	}
 
 	for _, part := range candidate.Content.Parts {

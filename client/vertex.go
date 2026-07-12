@@ -131,11 +131,13 @@ func (c *VertexClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 		return nil, formatAPIError("vertex", "stream", resp.StatusCode, resp.Header.Get("X-Goog-Request-Id"), detail, readErr)
 	}
 
+	requestID := resp.Header.Get("X-Goog-Request-Id")
+
 	streamCtx, cancel := context.WithCancel(ctx)
 	sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
 	events := processAnthropicStream(streamCtx, sseEvents, c.logger)
 
-	return &StreamResult{Events: events, cancel: cancel}, nil
+	return NewStreamResultWithRequestID(events, requestID, cancel), nil
 }
 
 func (c *VertexClient) Ping(ctx context.Context) error {
