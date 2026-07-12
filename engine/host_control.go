@@ -168,13 +168,17 @@ func (e *Engine) ApplyGatewayEnvironment(_ context.Context, providerID string) {
 }
 
 type CatalogHealth struct {
-	Path       string    `json:"path"`
-	Exists     bool      `json:"exists"`
-	ModifiedAt time.Time `json:"modified_at,omitempty"`
-	Size       int64     `json:"size,omitempty"`
-	Models     int       `json:"models,omitempty"`
-	Stale      bool      `json:"stale,omitempty"`
-	Error      string    `json:"error,omitempty"`
+	Path        string    `json:"path"`
+	Exists      bool      `json:"exists"`
+	ModifiedAt  time.Time `json:"modified_at,omitempty"`
+	Size        int64     `json:"size,omitempty"`
+	Models      int       `json:"models,omitempty"`
+	Deployments int       `json:"deployments,omitempty"`
+	Offerings   int       `json:"offerings,omitempty"`
+	Stale       bool      `json:"stale,omitempty"`
+	StaleAfter  time.Time `json:"stale_after,omitempty"`
+	Source      string    `json:"source,omitempty"`
+	Error       string    `json:"error,omitempty"`
 }
 
 func (e *Engine) CatalogHealth(ctx context.Context) CatalogHealth {
@@ -191,7 +195,15 @@ func (e *Engine) CatalogHealth(ctx context.Context) CatalogHealth {
 		return health
 	}
 	health.Models = len(compiled.ModelsByID)
-	health.Stale = compiled.Catalog != nil && time.Now().UTC().After(compiled.Catalog.StaleAfter)
+	health.Deployments = len(compiled.DeploymentsByID)
+	health.Offerings = len(compiled.OfferingsByID)
+	if compiled.Catalog != nil {
+		health.StaleAfter = compiled.Catalog.StaleAfter
+		health.Stale = time.Now().UTC().After(compiled.Catalog.StaleAfter)
+		if compiled.Catalog.Provenance != nil {
+			health.Source = compiled.Catalog.Provenance.Source
+		}
+	}
 	return health
 }
 
