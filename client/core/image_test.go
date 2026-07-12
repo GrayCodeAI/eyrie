@@ -1,4 +1,4 @@
-package client
+package core
 
 import (
 	"encoding/base64"
@@ -10,7 +10,7 @@ import (
 
 func TestNormalizeImageSource_DataURL(t *testing.T) {
 	t.Parallel()
-	mt, data, isB64, err := normalizeImageSource("data:image/png;base64,QUJD")
+	mt, data, isB64, err := NormalizeImageSource("data:image/png;base64,QUJD")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestNormalizeImageSource_DataURL(t *testing.T) {
 
 func TestNormalizeImageSource_DataURLUnsupported(t *testing.T) {
 	t.Parallel()
-	_, _, _, err := normalizeImageSource("data:image/tiff;base64,QUJD")
+	_, _, _, err := NormalizeImageSource("data:image/tiff;base64,QUJD")
 	if err == nil || !strings.Contains(err.Error(), "unsupported image format") {
 		t.Errorf("expected unsupported-format error, got %v", err)
 	}
@@ -29,7 +29,7 @@ func TestNormalizeImageSource_DataURLUnsupported(t *testing.T) {
 
 func TestNormalizeImageSource_HTTPPassthrough(t *testing.T) {
 	t.Parallel()
-	mt, data, isB64, err := normalizeImageSource("https://example.com/cat.png")
+	mt, data, isB64, err := NormalizeImageSource("https://example.com/cat.png")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestNormalizeImageSource_LocalFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mt, data, isB64, err := normalizeImageSource(path)
+	mt, data, isB64, err := NormalizeImageSource(path)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestNormalizeImageSource_NonImageExtensionTreatedAsRawBase64(t *testing.T) 
 	t.Parallel()
 	// A token without a recognized image extension is treated as raw base64
 	// data, not a file path (preserving eyrie's long-standing default).
-	mt, data, isB64, err := normalizeImageSource("QUJDtoken")
+	mt, data, isB64, err := NormalizeImageSource("QUJDtoken")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestNormalizeImageSource_NonImageExtensionTreatedAsRawBase64(t *testing.T) 
 
 func TestNormalizeImageSource_MissingFile(t *testing.T) {
 	t.Parallel()
-	_, _, _, err := normalizeImageSource(filepath.Join(t.TempDir(), "nope.png"))
+	_, _, _, err := NormalizeImageSource(filepath.Join(t.TempDir(), "nope.png"))
 	if err == nil || !strings.Contains(err.Error(), "reading image file") {
 		t.Errorf("expected read error, got %v", err)
 	}
@@ -90,11 +90,11 @@ func TestNormalizeImageSource_MissingFile(t *testing.T) {
 func TestOpenAIImageURL(t *testing.T) {
 	t.Parallel()
 	// HTTP passes through.
-	if got := openAIImageURL("https://x/y.png"); got != "https://x/y.png" {
+	if got := OpenAIImageURL("https://x/y.png"); got != "https://x/y.png" {
 		t.Errorf("http url = %q", got)
 	}
 	// data URL passes through.
-	if got := openAIImageURL("data:image/png;base64,QUJD"); got != "data:image/png;base64,QUJD" {
+	if got := OpenAIImageURL("data:image/png;base64,QUJD"); got != "data:image/png;base64,QUJD" {
 		t.Errorf("data url = %q", got)
 	}
 	// Local file becomes a data URL.
@@ -103,25 +103,25 @@ func TestOpenAIImageURL(t *testing.T) {
 	if err := os.WriteFile(path, []byte("abc"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	got := openAIImageURL(path)
+	got := OpenAIImageURL(path)
 	if !strings.HasPrefix(got, "data:image/png;base64,") {
 		t.Errorf("local file url = %q, want data:image/png prefix", got)
 	}
 	// A bare token (no path extension, no scheme) is wrapped as raw base64 PNG.
-	if got := openAIImageURL("AAAA"); got != "data:image/png;base64,AAAA" {
+	if got := OpenAIImageURL("AAAA"); got != "data:image/png;base64,AAAA" {
 		t.Errorf("raw base64 = %q, want data:image/png;base64,AAAA", got)
 	}
 }
 
-// parseImageString shim must keep its lenient behavior for callers.
+// ParseImageString shim must keep its lenient behavior for callers.
 func TestParseImageStringShim(t *testing.T) {
 	t.Parallel()
-	mt, data, isB64 := parseImageString("data:image/png;base64,QUJD")
+	mt, data, isB64 := ParseImageString("data:image/png;base64,QUJD")
 	if !isB64 || mt != "image/png" || data != "QUJD" {
 		t.Errorf("data url shim got (%q,%q,%v)", mt, data, isB64)
 	}
 	// An HTTP URL stays a pass-through URL.
-	mt, data, isB64 = parseImageString("https://x/y.png")
+	mt, data, isB64 = ParseImageString("https://x/y.png")
 	if isB64 || data != "https://x/y.png" {
 		t.Errorf("http shim got (%q,%q,%v)", mt, data, isB64)
 	}

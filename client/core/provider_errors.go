@@ -1,4 +1,4 @@
-package client
+package core
 
 import (
 	"encoding/json"
@@ -8,25 +8,25 @@ import (
 	"strings"
 )
 
-// providerErrorDetail holds the structured fields eyrie can extract from a
+// ProviderErrorDetail holds the structured fields eyrie can extract from a
 // provider's error body. Providers vary (OpenAI nests under "error", some put
 // a top-level "code"); the parser is lenient and fills what it can.
-type providerErrorDetail struct {
+type ProviderErrorDetail struct {
 	Message string // human-readable message from the body
 	Type    string // provider error type, e.g. "invalid_request_error"
 	Code    string // provider error code, e.g. "invalid_api_key", "model_not_found"
 	Raw     string // raw body (truncated) when nothing structured was found
 }
 
-// parseProviderError reads and classifies an error response body. It
+// ParseProviderError reads and classifies an error response body. It
 // never returns a zero detail: on a read failure the detail is filled
 // with a placeholder message and the read error is returned alongside
 // so callers can attach it to the structured *EyrieError.
-func parseProviderError(body io.ReadCloser) (providerErrorDetail, error) {
+func ParseProviderError(body io.ReadCloser) (ProviderErrorDetail, error) {
 	defer func() { _ = body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(body, 8192))
 	if err != nil {
-		return providerErrorDetail{Message: "failed to read error body"}, err
+		return ProviderErrorDetail{Message: "failed to read error body"}, err
 	}
 
 	// Most OpenAI-compatible and Anthropic errors nest the detail under "error".
@@ -40,7 +40,7 @@ func parseProviderError(body io.ReadCloser) (providerErrorDetail, error) {
 		Message string `json:"message"`
 		Type    string `json:"type"`
 	}
-	d := providerErrorDetail{Raw: string(data)}
+	d := ProviderErrorDetail{Raw: string(data)}
 	if json.Unmarshal(data, &nested) == nil {
 		switch {
 		case nested.Error.Message != "":
@@ -72,7 +72,7 @@ func rawToString(raw json.RawMessage) string {
 // It is intentionally small and keyed on portable signals (HTTP status plus the
 // common cross-provider code/type/message strings) rather than a per-provider
 // table, to avoid becoming a maintenance sink across eyrie's many providers.
-func classifyProviderError(statusCode int, d providerErrorDetail) string {
+func classifyProviderError(statusCode int, d ProviderErrorDetail) string {
 	code := strings.ToLower(d.Code)
 	typ := strings.ToLower(d.Type)
 	msg := strings.ToLower(d.Message)
@@ -120,7 +120,7 @@ func classifyProviderError(statusCode int, d providerErrorDetail) string {
 	return ""
 }
 
-// formatAPIError builds the *EyrieError used across every provider
+// FormatAPIError builds the *EyrieError used across every provider
 // request path (chat, stream, embeddings). It always includes the
 // provider name, the operation (e.g. "chat", "stream"), the HTTP
 // status, the upstream correlation id (for support tickets), a
@@ -132,11 +132,11 @@ func classifyProviderError(statusCode int, d providerErrorDetail) string {
 // IsRetriable()/IsAuthError(), observability code can pull the
 // provider/status/request-id without re-parsing the message.
 //
-// inner is the read error from parseProviderError (when the body
+// inner is the read error from ParseProviderError (when the body
 // could not be read). It is attached via EyrieError.Err so
 // errors.Is(err, io.EOF) and similar checks succeed; pass nil when
 // the body was read cleanly.
-func formatAPIError(provider, op string, statusCode int, requestID string, d providerErrorDetail, inner error) error {
+func FormatAPIError(provider, op string, statusCode int, requestID string, d ProviderErrorDetail, inner error) error {
 	detail := d.Message
 	if detail == "" {
 		detail = d.Raw

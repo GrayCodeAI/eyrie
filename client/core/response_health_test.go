@@ -1,4 +1,4 @@
-package client
+package core
 
 import (
 	"context"
@@ -70,7 +70,7 @@ func TestStreamEmitsErrorOnlyReasoningDiagnostic(t *testing.T) {
 	events <- SSEEvent{Data: `{"choices":[{"delta":{},"finish_reason":"stop"}]}`}
 	close(events)
 
-	ch := processOpenAIStream(context.Background(), events, testLogger())
+	ch := ProcessOpenAIStream(context.Background(), events, testLogger())
 
 	var sawThinking, sawDiagnostic, sawContent bool
 	for evt := range ch {
@@ -96,7 +96,7 @@ func TestStreamEmitsErrorOnlyReasoningDiagnostic(t *testing.T) {
 	}
 }
 
-// A normal stream with content must NOT emit a health diagnostic.
+// A normal stream with content must NOT Emit a health diagnostic.
 func TestStreamNoDiagnosticOnHealthyResponse(t *testing.T) {
 	t.Parallel()
 	events := make(chan SSEEvent, 10)
@@ -104,10 +104,10 @@ func TestStreamNoDiagnosticOnHealthyResponse(t *testing.T) {
 	events <- SSEEvent{Data: `{"choices":[{"delta":{},"finish_reason":"stop"}]}`}
 	close(events)
 
-	ch := processOpenAIStream(context.Background(), events, testLogger())
+	ch := ProcessOpenAIStream(context.Background(), events, testLogger())
 	for evt := range ch {
 		if evt.Type == "error" {
-			t.Errorf("healthy stream should not emit error diagnostic, got %q", evt.Error)
+			t.Errorf("healthy stream should not Emit error diagnostic, got %q", evt.Error)
 		}
 	}
 }

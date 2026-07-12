@@ -1,4 +1,4 @@
-package client
+package embeddings
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 // errEmptyEmbedding is returned internally when the embedder yields no vector.
@@ -46,21 +48,21 @@ func DefaultSemanticCacheConfig() SemanticCacheConfig {
 type semanticEntry struct {
 	vector    []float32
 	model     string // embedding model that produced vector; gates cross-model reuse
-	response  *EyrieResponse
+	response  *core.EyrieResponse
 	createdAt time.Time
 
 	// Doubly-linked list pointers for LRU ordering.
 	prev, next *semanticEntry
 }
 
-// EmbeddingCachedProvider wraps a Provider and serves cached responses when a
+// EmbeddingCachedProvider wraps a core.Provider and serves cached responses when a
 // new request is semantically similar (cosine similarity above a threshold) to
 // a previously seen request. Unlike CachedProvider's exact-match SHA256 keying,
 // this tolerates paraphrases and minor wording changes.
 //
 // It is safe for concurrent use. StreamChat is passed through unchanged.
 type EmbeddingCachedProvider struct {
-	inner    Provider
+	inner    core.Provider
 	embedder Embedder
 
 	mu      sync.Mutex
@@ -79,13 +81,13 @@ type EmbeddingCachedProvider struct {
 	misses int
 }
 
-// Compile-time check that EmbeddingCachedProvider implements Provider.
-var _ Provider = (*EmbeddingCachedProvider)(nil)
+// Compile-time check that EmbeddingCachedProvider implements core.Provider.
+var _ core.Provider = (*EmbeddingCachedProvider)(nil)
 
 // NewEmbeddingCachedProvider wraps inner with a semantic (embedding-similarity)
 // cache. embedder is used to embed requests; cfg zero-value fields are replaced
 // with defaults.
-func NewEmbeddingCachedProvider(inner Provider, embedder Embedder, cfg SemanticCacheConfig) *EmbeddingCachedProvider {
+func NewEmbeddingCachedProvider(inner core.Provider, embedder Embedder, cfg SemanticCacheConfig) *EmbeddingCachedProvider {
 	if cfg.MaxAge <= 0 {
 		cfg.MaxAge = 5 * time.Minute
 	}
@@ -118,7 +120,7 @@ func (sp *EmbeddingCachedProvider) Ping(ctx context.Context) error { return sp.i
 
 // Chat returns a semantically-cached response on a hit; otherwise calls the
 // inner provider and caches the result.
-func (sp *EmbeddingCachedProvider) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+func (sp *EmbeddingCachedProvider) Chat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.EyrieResponse, error) {
 	if !sp.enabled || sp.embedder == nil {
 		return sp.inner.Chat(ctx, messages, opts)
 	}
@@ -146,7 +148,7 @@ func (sp *EmbeddingCachedProvider) Chat(ctx context.Context, messages []EyrieMes
 }
 
 // StreamChat delegates to the inner provider without caching.
-func (sp *EmbeddingCachedProvider) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+func (sp *EmbeddingCachedProvider) StreamChat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
 	return sp.inner.StreamChat(ctx, messages, opts)
 }
 
@@ -176,7 +178,7 @@ func (sp *EmbeddingCachedProvider) Stats() SemanticCacheStats {
 
 // embed builds an embedding for the request from the system prompt and message
 // contents.
-func (sp *EmbeddingCachedProvider) embed(ctx context.Context, messages []EyrieMessage, opts ChatOptions) ([]float32, error) {
+func (sp *EmbeddingCachedProvider) embed(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) ([]float32, error) {
 	var b strings.Builder
 	if opts.System != "" {
 		b.WriteString(opts.System)
@@ -203,7 +205,7 @@ func (sp *EmbeddingCachedProvider) embed(ctx context.Context, messages []EyrieMe
 
 // lookup returns the response of the most-similar cached entry whose cosine
 // similarity meets the threshold and which has not expired.
-func (sp *EmbeddingCachedProvider) lookup(vec []float32) (*EyrieResponse, bool) {
+func (sp *EmbeddingCachedProvider) lookup(vec []float32) (*core.EyrieResponse, bool) {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 
@@ -233,11 +235,11 @@ func (sp *EmbeddingCachedProvider) lookup(vec []float32) (*EyrieResponse, bool) 
 	}
 	sp.hits++
 	sp.promoteLocked(best)
-	return copyResponse(best.response), true
+	return core.CopyResponse(best.response), true
 }
 
 // store inserts a new entry, evicting expired/LRU entries as needed.
-func (sp *EmbeddingCachedProvider) store(vec []float32, resp *EyrieResponse) {
+func (sp *EmbeddingCachedProvider) store(vec []float32, resp *core.EyrieResponse) {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 
@@ -249,7 +251,7 @@ func (sp *EmbeddingCachedProvider) store(vec []float32, resp *EyrieResponse) {
 	e := &semanticEntry{
 		vector:    vec,
 		model:     sp.model,
-		response:  copyResponse(resp),
+		response:  core.CopyResponse(resp),
 		createdAt: time.Now(),
 	}
 	sp.entries = append(sp.entries, e)

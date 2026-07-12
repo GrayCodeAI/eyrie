@@ -46,7 +46,7 @@ func NewAnthropicClient(apiKey, baseURL string, opts ...ClientOption) *Anthropic
 		c.baseURL = "https://api.anthropic.com"
 	}
 	for _, opt := range opts {
-		opt.apply(c)
+		opt.Apply(c)
 	}
 	return c
 }
@@ -584,7 +584,7 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 	sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
 	events := processAnthropicStream(streamCtx, sseEvents, c.logger)
 
-	return &StreamResult{Events: events, RequestID: requestID, cancel: cancel}, nil
+	return NewStreamResultWithRequestID(events, requestID, cancel), nil
 }
 
 func (c *AnthropicClient) doRequestWithMimoAuthRetry(ctx context.Context, req *http.Request, body []byte) (*http.Response, error) {

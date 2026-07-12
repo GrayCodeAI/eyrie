@@ -1,4 +1,4 @@
-package client
+package core
 
 import (
 	"net"
@@ -6,6 +6,19 @@ import (
 	"sync"
 	"time"
 )
+
+// DefaultTimeout is the default end-to-end HTTP timeout for provider clients.
+const DefaultTimeout = 10 * time.Minute
+
+// Version is set by the root eyrie package's init() from the VERSION file
+// (via the client facade's SetVersion). Default is "dev".
+var Version = "dev"
+
+// SetVersion wires the canonical version into this package.
+func SetVersion(v string) { Version = v }
+
+// UserAgent returns the User-Agent string for HTTP requests.
+func UserAgent() string { return "eyrie/" + Version }
 
 var (
 	sharedTransport *http.Transport

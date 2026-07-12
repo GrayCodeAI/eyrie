@@ -1,4 +1,4 @@
-package client
+package core
 
 import (
 	"context"
@@ -43,8 +43,8 @@ func TestRetryShouldRetryTrue(t *testing.T) {
 	cfg := DefaultRetryConfig()
 	codes := []int{429, 500, 502, 503, 529}
 	for _, code := range codes {
-		if !cfg.shouldRetry(code) {
-			t.Errorf("shouldRetry(%d) = false, want true", code)
+		if !cfg.ShouldRetry(code) {
+			t.Errorf("ShouldRetry(%d) = false, want true", code)
 		}
 	}
 }
@@ -54,8 +54,8 @@ func TestRetryShouldRetryFalse(t *testing.T) {
 	cfg := DefaultRetryConfig()
 	codes := []int{400, 401, 403, 404}
 	for _, code := range codes {
-		if cfg.shouldRetry(code) {
-			t.Errorf("shouldRetry(%d) = true, want false", code)
+		if cfg.ShouldRetry(code) {
+			t.Errorf("ShouldRetry(%d) = true, want false", code)
 		}
 	}
 }
@@ -154,9 +154,9 @@ func TestDoWithRetrySuccess(t *testing.T) {
 	logger := slog.Default()
 	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
 
-	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	resp, err := DoWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
 	if err != nil {
-		t.Fatalf("doWithRetry: %v", err)
+		t.Fatalf("DoWithRetry: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -182,9 +182,9 @@ func TestDoWithRetryRetriesOn500ThenSucceeds(t *testing.T) {
 	logger := slog.Default()
 	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
 
-	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	resp, err := DoWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
 	if err != nil {
-		t.Fatalf("doWithRetry: %v", err)
+		t.Fatalf("DoWithRetry: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -208,9 +208,9 @@ func TestDoWithRetryExhaustsRetries(t *testing.T) {
 	logger := slog.Default()
 	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
 
-	_, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	_, err := DoWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
 	if err == nil {
-		t.Fatal("doWithRetry should fail after exhausting retries")
+		t.Fatal("DoWithRetry should fail after exhausting retries")
 	}
 	// Initial attempt + 2 retries = 3 total
 	if n := attempts.Load(); n != 3 {
@@ -231,9 +231,9 @@ func TestDoWithRetryNoRetryOn400(t *testing.T) {
 	logger := slog.Default()
 	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
 
-	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	resp, err := DoWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
 	if err != nil {
-		t.Fatalf("doWithRetry: %v", err)
+		t.Fatalf("DoWithRetry: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusBadRequest {
@@ -259,7 +259,7 @@ func TestDoWithRetryContextCancellation(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, err := doWithRetry(ctx, http.DefaultClient, req, rc, logger)
+		_, err := DoWithRetry(ctx, http.DefaultClient, req, rc, logger)
 		done <- err
 	}()
 
@@ -269,7 +269,7 @@ func TestDoWithRetryContextCancellation(t *testing.T) {
 
 	err := <-done
 	if err == nil {
-		t.Fatal("doWithRetry should fail when context is cancelled")
+		t.Fatal("DoWithRetry should fail when context is cancelled")
 	}
 }
 
@@ -291,9 +291,9 @@ func TestDoWithRetryRespectsRetryAfter(t *testing.T) {
 	logger := slog.Default()
 	req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL, nil)
 
-	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	resp, err := DoWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
 	if err != nil {
-		t.Fatalf("doWithRetry: %v", err)
+		t.Fatalf("DoWithRetry: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -323,9 +323,9 @@ func TestDoWithRetryBodyReplay(t *testing.T) {
 		return io.NopCloser(strings.NewReader(body)), nil
 	}
 
-	resp, err := doWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
+	resp, err := DoWithRetry(context.Background(), http.DefaultClient, req, rc, logger)
 	if err != nil {
-		t.Fatalf("doWithRetry: %v", err)
+		t.Fatalf("DoWithRetry: %v", err)
 	}
 	defer resp.Body.Close()
 }

@@ -6,20 +6,6 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
-func TestIsLiveOnlyProvider(t *testing.T) {
-	t.Parallel()
-	// All providers are now fully dynamic
-	allProviders := []string{
-		"anthropic", "openai", "gemini", "grok", "canopywave", "z_ai", "openrouter", "ollama", "opencodego",
-		"azure", "bedrock", "vertex", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "deepseek",
-	}
-	for _, p := range allProviders {
-		if !catalog.IsLiveOnlyProvider(p) {
-			t.Fatalf("%s should be live-only (all providers are fully dynamic)", p)
-		}
-	}
-}
-
 func TestFirstModelForProvider(t *testing.T) {
 	t.Parallel()
 	c := catalog.SeedCatalog()

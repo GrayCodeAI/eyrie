@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -29,15 +30,25 @@ type ListModelsOpts struct {
 
 // ModelEntry is one row for host model pickers.
 type ModelEntry struct {
-	ID               string  `json:"id"`
-	DisplayName      string  `json:"display_name"`
-	Owner            string  `json:"owner,omitempty"`
-	ProviderID       string  `json:"provider_id"`
-	ContextWindow    int     `json:"context_window,omitempty"`
-	InputPricePer1M  float64 `json:"input_price_per_1m,omitempty"`
-	OutputPricePer1M float64 `json:"output_price_per_1m,omitempty"`
-	Source           string  `json:"source"`
-	Installed        bool    `json:"installed,omitempty"`
+	ID               string          `json:"id"`
+	DisplayName      string          `json:"display_name"`
+	Owner            string          `json:"owner,omitempty"`
+	ProviderID       string          `json:"provider_id"`
+	ContextWindow    int             `json:"context_window,omitempty"`
+	MaxOutput        int             `json:"max_output,omitempty"`
+	InputPricePer1M  float64         `json:"input_price_per_1m,omitempty"`
+	OutputPricePer1M float64         `json:"output_price_per_1m,omitempty"`
+	LiveMetadata     json.RawMessage `json:"live_metadata,omitempty"`
+	Source           string          `json:"source"`
+	Installed        bool            `json:"installed,omitempty"`
+}
+
+// ProviderSupportsLiveModels reports whether a provider has a registered live
+// model-list fetcher. Host applications use this as presentation metadata and
+// do not need to inspect the catalog registry directly.
+func ProviderSupportsLiveModels(providerID string) bool {
+	spec, ok := registry.SpecByProviderID(strings.TrimSpace(providerID))
+	return ok && spec.LiveFetcherKey != ""
 }
 
 // ListModels returns models for a provider using registry-driven source selection.
@@ -107,6 +118,7 @@ func liveEntriesToModelList(entries []live.Entry, providerID, source string, ins
 			ID: e.ID, DisplayName: e.DisplayName, Owner: e.OwnedBy,
 			ContextWindow: e.ContextWindow, MaxOutput: e.MaxOutput,
 			InputPricePer1M: e.InputPricePer1M, OutputPricePer1M: e.OutputPricePer1M,
+			LiveMetadata: e.RawJSON,
 		}
 	}
 	return entriesToModelList(catalogEntries, providerID, source, installed)
@@ -131,8 +143,10 @@ func entriesToModelList(entries []catalog.ModelCatalogEntry, providerID, source 
 			Owner:            catalog.DisplayModelOwner(catalog.ModelOwner(e), id, e.LiveMetadata),
 			ProviderID:       providerID,
 			ContextWindow:    e.ContextWindow,
+			MaxOutput:        e.MaxOutput,
 			InputPricePer1M:  e.InputPricePer1M,
 			OutputPricePer1M: e.OutputPricePer1M,
+			LiveMetadata:     append(json.RawMessage(nil), e.LiveMetadata...),
 			Source:           source,
 			Installed:        installed,
 		})

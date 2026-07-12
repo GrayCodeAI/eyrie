@@ -1,4 +1,4 @@
-package client
+package core
 
 import (
 	"context"
@@ -17,7 +17,7 @@ func TestTTFTEventFiresBeforeContent(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processOpenAIStream(ctx, events, testLogger())
+	ch := ProcessOpenAIStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {
@@ -64,7 +64,7 @@ func TestTTFTEventFiresOnToolCallDelta(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processOpenAIStream(ctx, events, testLogger())
+	ch := ProcessOpenAIStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {
@@ -96,7 +96,7 @@ func TestTTFTEventFiredExactlyOnce(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processOpenAIStream(ctx, events, testLogger())
+	ch := ProcessOpenAIStream(ctx, events, testLogger())
 
 	var ttftCount int
 	for evt := range ch {
@@ -114,14 +114,14 @@ func TestTTFTValue(t *testing.T) {
 	t.Parallel()
 	events := make(chan SSEEvent, 10)
 
-	// Use processOpenAIStreamWithOpts with a known start time to test the value.
+	// Use ProcessOpenAIStreamWithOpts with a known start time to test the value.
 	start := time.Now().Add(-50 * time.Millisecond) // pretend 50ms elapsed already
 	events <- SSEEvent{Data: `{"choices":[{"delta":{"content":"hi"},"finish_reason":null}]}`}
 	events <- SSEEvent{Data: `{"choices":[{"delta":{},"finish_reason":"stop"}]}`}
 	close(events)
 
 	ctx := context.Background()
-	ch := processOpenAIStreamWithOpts(ctx, events, testLogger(), DefaultRepeatDetector(), start)
+	ch := ProcessOpenAIStreamWithOpts(ctx, events, testLogger(), DefaultRepeatDetector(), start)
 
 	var ttftEvt *EyrieStreamEvent
 	for evt := range ch {

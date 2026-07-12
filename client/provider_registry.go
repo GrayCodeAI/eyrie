@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
 )
@@ -40,36 +41,37 @@ type ProviderRegistryConfig struct {
 	Compat            *OpenAICompatConfig `json:"compat,omitempty"`
 }
 
-// CoreProviders are providers with dedicated SDKs.
-// This map is populated at package init time and must not be written to
-// afterward. All reads are safe for concurrent use without locking.
-var CoreProviders = map[string]ProviderRegistryConfig{
-	"anthropic": {Name: "anthropic", Type: ProviderTypeAnthropic, EnvKey: "ANTHROPIC_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"openai":    {Name: "openai", Type: ProviderTypeOpenAI, BaseURL: "https://api.openai.com/v1", EnvKey: "OPENAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"azure":     {Name: "azure", Type: ProviderTypeAzure, EnvKey: "AZURE_OPENAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"bedrock":   {Name: "bedrock", Type: ProviderTypeBedrock, EnvKey: "AWS_SECRET_ACCESS_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"vertex":    {Name: "vertex", Type: ProviderTypeVertex, EnvKey: "VERTEX_ACCESS_TOKEN", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-}
+// CoreProviders and OpenAICompatibleProviders are derived from the canonical
+// catalog registry. Dynamic providers are added only to the compatible map.
+var CoreProviders, OpenAICompatibleProviders = staticProviderMaps()
 
-// OpenAICompatibleProviders use the OpenAI SDK with custom baseUrl.
-var OpenAICompatibleProviders = map[string]ProviderRegistryConfig{
-	"deepseek":               {Name: "deepseek", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.deepseek.com/v1", EnvKey: "DEEPSEEK_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"grok":                   {Name: "grok", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.x.ai/v1", EnvKey: "XAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"openrouter":             {Name: "openrouter", Type: ProviderTypeOpenAICompatible, BaseURL: "https://openrouter.ai/api/v1", EnvKey: "OPENROUTER_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"zai_payg":               {Name: "zai_payg", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.z.ai/api/paas/v4", EnvKey: "ZAI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"zai_coding":             {Name: "zai_coding", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.z.ai/api/coding/paas/v4", EnvKey: "ZAI_CODING_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"canopywave":             {Name: "canopywave", Type: ProviderTypeOpenAICompatible, BaseURL: "https://inference.canopywave.io/v1", EnvKey: "CANOPYWAVE_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"poolside":               {Name: "poolside", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultPoolsideOpenAIBaseURL, EnvKey: "POOLSIDE_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"groq":                   {Name: "groq", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultGroqOpenAIBaseURL, EnvKey: "GROQ_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"clinepass":              {Name: "clinepass", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultClinePassOpenAIBaseURL, EnvKey: "CLINE_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"gemini":                 {Name: "gemini", Type: ProviderTypeOpenAICompatible, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", EnvKey: "GEMINI_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"ollama":                 {Name: "ollama", Type: ProviderTypeOpenAICompatible, BaseURL: "http://localhost:11434/v1", EnvKey: "OLLAMA_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: false},
-	"opencodego":             {Name: "opencodego", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultOpenCodeGoBaseURL, EnvKey: "OPENCODEGO_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"kimi":                   {Name: "kimi", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultKimiOpenAIBaseURL, EnvKey: "MOONSHOT_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"xiaomi_mimo_payg":       {Name: "xiaomi_mimo_payg", Type: ProviderTypeOpenAICompatible, BaseURL: config.DefaultXiaomiOpenAIBaseURL, EnvKey: config.EnvXiaomiPaygAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"xiaomi_mimo_token_plan": {Name: "xiaomi_mimo_token_plan", Type: ProviderTypeOpenAICompatible, BaseURL: "", EnvKey: config.EnvXiaomiTokenPlanAPIKey, SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"minimax_token_plan":     {Name: "minimax_token_plan", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.minimax.io/v1", EnvKey: "MINIMAX_TOKEN_PLAN_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
-	"minimax_payg":           {Name: "minimax_payg", Type: ProviderTypeOpenAICompatible, BaseURL: "https://api.minimax.io/v1", EnvKey: "MINIMAX_PAYG_API_KEY", SupportsStreaming: true, SupportsTools: true, SupportsReasoning: true},
+func staticProviderMaps() (map[string]ProviderRegistryConfig, map[string]ProviderRegistryConfig) {
+	core := make(map[string]ProviderRegistryConfig)
+	compatible := make(map[string]ProviderRegistryConfig)
+	for _, spec := range registry.All() {
+		providerType := ProviderTypeOpenAICompatible
+		if spec.TransportKind != "" {
+			providerType = ProviderType(spec.TransportKind)
+		}
+		baseURL := spec.RuntimeBaseURL
+		if baseURL == "" {
+			baseURL = spec.ProbeBaseURL
+		}
+		envKey := spec.RuntimeCredentialEnv
+		if envKey == "" {
+			envKey = spec.CredentialEnv
+		}
+		provider := ProviderRegistryConfig{
+			Name: spec.ProviderID, Type: providerType, BaseURL: baseURL, EnvKey: envKey,
+			SupportsStreaming: true, SupportsTools: true, SupportsReasoning: !spec.IsLocal,
+		}
+		if providerType == ProviderTypeOpenAICompatible {
+			compatible[spec.ProviderID] = provider
+		} else {
+			core[spec.ProviderID] = provider
+		}
+	}
+	return core, compatible
 }
 
 // GetProviders lists all available providers.

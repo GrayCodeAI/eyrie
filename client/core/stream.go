@@ -1,4 +1,4 @@
-package client
+package core
 
 import (
 	"bufio"
@@ -21,16 +21,17 @@ type SSEEvent struct {
 
 // SSE stream constants.
 const (
-	sseChannelBuffer    = 128
-	sseScannerInitBuf   = 64 * 1024
-	sseScannerMaxBuf    = 2 * 1024 * 1024
-	streamChannelBuffer = 256
+	sseChannelBuffer  = 128
+	sseScannerInitBuf = 64 * 1024
+	sseScannerMaxBuf  = 2 * 1024 * 1024
+	// StreamChannelBuffer is the default buffer size for provider event channels.
+	StreamChannelBuffer = 256
 )
 
-// parseSSEStream reads an SSE stream and sends events to a channel.
+// ParseSSEStream reads an SSE stream and sends events to a channel.
 // The goroutine closes the channel and body when done or context is cancelled.
 // Scanner errors are emitted as SSEEvent with Event="error" so callers can detect truncation.
-func parseSSEStream(ctx context.Context, body io.ReadCloser, logger *slog.Logger) <-chan SSEEvent {
+func ParseSSEStream(ctx context.Context, body io.ReadCloser, logger *slog.Logger) <-chan SSEEvent {
 	ch := make(chan SSEEvent, sseChannelBuffer)
 	go func() {
 		defer close(ch)
@@ -106,14 +107,14 @@ type anthropicStreamEvent struct {
 	} `json:"content_block,omitempty"`
 }
 
-// processAnthropicStream converts Anthropic SSE events to EyrieStreamEvents.
+// ProcessAnthropicStream converts Anthropic SSE events to EyrieStreamEvents.
 // Handles text, tool_use (with input_json_delta), and thinking blocks.
-func processAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
-	return processAnthropicStreamWithOpts(ctx, sseEvents, logger, time.Now())
+func ProcessAnthropicStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
+	return ProcessAnthropicStreamWithOpts(ctx, sseEvents, logger, time.Now())
 }
 
-func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger, start time.Time) <-chan EyrieStreamEvent {
-	ch := make(chan EyrieStreamEvent, streamChannelBuffer)
+func ProcessAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger, start time.Time) <-chan EyrieStreamEvent {
+	ch := make(chan EyrieStreamEvent, StreamChannelBuffer)
 	go func() {
 		defer close(ch)
 
@@ -136,9 +137,9 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 				return
 			case evt, ok := <-sseEvents:
 				if !ok {
-					// Stream closed — emit partial tool call as error if incomplete
+					// Stream closed — Emit partial tool call as error if incomplete
 					if currentTool != nil {
-						emit(ctx, ch, EyrieStreamEvent{
+						Emit(ctx, ch, EyrieStreamEvent{
 							Type:  "error",
 							Error: fmt.Sprintf("stream closed with incomplete tool call: %s", currentTool.name),
 						})
@@ -148,7 +149,7 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 				}
 				// Propagate SSE-level errors
 				if evt.Event == "error" {
-					emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: evt.Data})
+					Emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: evt.Data})
 					return
 				}
 				data := strings.TrimSpace(evt.Data)
@@ -181,15 +182,15 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 					case "text_delta":
 						if ae.Delta.Text != "" {
 							if strings.Contains(blockTypes[ae.Index], "thinking") {
-								emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: ae.Delta.Text})
+								Emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: ae.Delta.Text})
 							} else {
-								// TTFT: record and emit on the first content token.
+								// TTFT: record and Emit on the first content token.
 								if !ttftEmitted {
 									ttftEmitted = true
 									ttftMs = int(time.Since(start) / time.Millisecond)
-									emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
+									Emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
 								}
-								emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: ae.Delta.Text})
+								Emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: ae.Delta.Text})
 							}
 						}
 					case "input_json_delta":
@@ -198,13 +199,13 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 							if !ttftEmitted {
 								ttftEmitted = true
 								ttftMs = int(time.Since(start) / time.Millisecond)
-								emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
+								Emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
 							}
 							currentTool.jsonBuf.WriteString(ae.Delta.PartialJSON)
 						}
 					case "thinking_delta":
 						if ae.Delta.Text != "" {
-							emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: ae.Delta.Text})
+							Emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: ae.Delta.Text})
 						}
 					}
 
@@ -215,12 +216,12 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 						var args map[string]interface{}
 						if err := json.Unmarshal([]byte(rawJSON), &args); err != nil {
 							logger.Warn("invalid tool call JSON accumulated", "tool", currentTool.name, "error", err)
-							emit(ctx, ch, EyrieStreamEvent{
+							Emit(ctx, ch, EyrieStreamEvent{
 								Type:  "error",
 								Error: fmt.Sprintf("invalid tool call JSON for %s: %v", currentTool.name, err),
 							})
 						} else {
-							emit(ctx, ch, EyrieStreamEvent{
+							Emit(ctx, ch, EyrieStreamEvent{
 								Type:     "tool_call",
 								ToolCall: &ToolCall{ID: currentTool.id, Name: currentTool.name, Arguments: args},
 							})
@@ -229,7 +230,7 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 					}
 
 				case "message_stop":
-					emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason, TTFTms: ttftMs})
+					Emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason, TTFTms: ttftMs})
 					return
 
 				case "message_delta":
@@ -249,7 +250,7 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 						stopReason = md.Delta.StopReason
 					}
 					if md.Usage != nil && md.Usage.OutputTokens > 0 {
-						emit(ctx, ch, EyrieStreamEvent{
+						Emit(ctx, ch, EyrieStreamEvent{
 							Type: "usage",
 							Usage: &EyrieUsage{
 								CompletionTokens: md.Usage.OutputTokens,
@@ -271,7 +272,7 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 						logger.Warn("stream: failed to parse anthropic message_start", "error", err)
 					}
 					if ms.Message.Usage.InputTokens > 0 {
-						emit(ctx, ch, EyrieStreamEvent{
+						Emit(ctx, ch, EyrieStreamEvent{
 							Type: "usage",
 							Usage: &EyrieUsage{
 								PromptTokens: ms.Message.Usage.InputTokens,
@@ -280,7 +281,7 @@ func processAnthropicStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEve
 					}
 
 				case "error":
-					emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: data})
+					Emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: data})
 					return
 				}
 			}
@@ -322,7 +323,7 @@ type openaiStreamPayload struct {
 
 // thinkSplitter separates inline <think>...</think> reasoning out of streamed
 // content. Some OpenAI-compatible models (DeepSeek, Qwen, and local models via
-// Ollama/openrouter) emit chain-of-thought inline in delta.content wrapped in
+// Ollama/openrouter) Emit chain-of-thought inline in delta.content wrapped in
 // <think> tags rather than in a dedicated reasoning_content field. Left in the
 // content stream this leaks reasoning into the assistant's answer text. The
 // splitter is fed each content delta in order and routes the pieces to the
@@ -349,7 +350,7 @@ func (s *thinkSplitter) feed(delta string) (content, thinking string) {
 			idx := strings.Index(buf, thinkClose)
 			if idx == -1 {
 				// No close tag yet. Keep a possible partial close tag suffix
-				// buffered; emit the rest as thinking.
+				// buffered; Emit the rest as thinking.
 				keep := partialSuffixLen(buf, thinkClose)
 				t.WriteString(buf[:len(buf)-keep])
 				s.pending = buf[len(buf)-keep:]
@@ -392,16 +393,16 @@ func partialSuffixLen(s, tag string) int {
 	return 0
 }
 
-// processOpenAIStream converts OpenAI SSE events to EyrieStreamEvents.
+// ProcessOpenAIStream converts OpenAI SSE events to EyrieStreamEvents.
 // Handles text deltas and tool call streaming by index.
 // Also instruments TTFT (time-to-first-token) and runs a RepeatDetector to
 // synthesise a finish_reason:"repeat" event when the stream loops.
-func processOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
-	return processOpenAIStreamWithOpts(ctx, sseEvents, logger, DefaultRepeatDetector(), time.Now())
+func ProcessOpenAIStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
+	return ProcessOpenAIStreamWithOpts(ctx, sseEvents, logger, DefaultRepeatDetector(), time.Now())
 }
 
-func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger, repeat *RepeatDetector, start time.Time) <-chan EyrieStreamEvent {
-	ch := make(chan EyrieStreamEvent, streamChannelBuffer)
+func ProcessOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger, repeat *RepeatDetector, start time.Time) <-chan EyrieStreamEvent {
+	ch := make(chan EyrieStreamEvent, StreamChannelBuffer)
 	go func() {
 		defer close(ch)
 
@@ -444,7 +445,7 @@ func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent,
 					// the caller sees something rather than a nil map.
 					args = map[string]interface{}{"_raw": t.argsBuf.String()}
 				}
-				emit(ctx, ch, EyrieStreamEvent{
+				Emit(ctx, ch, EyrieStreamEvent{
 					Type:     "tool_call",
 					ToolCall: &ToolCall{ID: t.id, Name: t.name, Arguments: args},
 				})
@@ -464,9 +465,9 @@ func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent,
 				StreamEnded:  true,
 			})
 			if d := health.Diagnostic(); d != "" {
-				emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: d})
+				Emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: d})
 			}
-			emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason, TTFTms: ttftMs})
+			Emit(ctx, ch, EyrieStreamEvent{Type: "done", StopReason: stopReason, TTFTms: ttftMs})
 		}
 
 		for {
@@ -480,7 +481,7 @@ func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent,
 				}
 				// Propagate SSE-level errors
 				if evt.Event == "error" {
-					emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: evt.Data})
+					Emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: evt.Data})
 					return
 				}
 				data := strings.TrimSpace(evt.Data)
@@ -497,7 +498,7 @@ func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent,
 
 				// Emit usage if present (final chunk with stream_options.include_usage)
 				if oe.Usage != nil {
-					emit(ctx, ch, EyrieStreamEvent{
+					Emit(ctx, ch, EyrieStreamEvent{
 						Type: "usage",
 						Usage: &EyrieUsage{
 							PromptTokens:     oe.Usage.PromptTokens,
@@ -516,7 +517,7 @@ func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent,
 				// route it to a thinking event so it never lands in the answer.
 				if choice.Delta.ReasoningContent != "" {
 					sawReasoning = true
-					emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: choice.Delta.ReasoningContent})
+					Emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: choice.Delta.ReasoningContent})
 				}
 
 				// Text content. Split out any inline <think>...</think> reasoning
@@ -525,17 +526,17 @@ func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent,
 					content, thinking := splitter.feed(choice.Delta.Content)
 					if thinking != "" {
 						sawReasoning = true
-						emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: thinking})
+						Emit(ctx, ch, EyrieStreamEvent{Type: "thinking", Thinking: thinking})
 					}
 					if content != "" {
-						// TTFT: record and emit a dedicated event on the first token.
+						// TTFT: record and Emit a dedicated event on the first token.
 						if !ttftEmitted {
 							ttftEmitted = true
 							ttftMs = int(time.Since(start) / time.Millisecond)
-							emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
+							Emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
 						}
 						contentLen += len(content)
-						emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: content})
+						Emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: content})
 						// Repeat detection: abort if stream is looping.
 						if repeat != nil {
 							repeat.Feed(content)
@@ -554,7 +555,7 @@ func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent,
 					if !ttftEmitted && tc.Function.Arguments != "" {
 						ttftEmitted = true
 						ttftMs = int(time.Since(start) / time.Millisecond)
-						emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
+						Emit(ctx, ch, EyrieStreamEvent{Type: "ttft", TTFT: ttftMs})
 					}
 					t, ok := tools[tc.Index]
 					if !ok {
@@ -583,7 +584,7 @@ func processOpenAIStreamWithOpts(ctx context.Context, sseEvents <-chan SSEEvent,
 	return ch
 }
 
-func emit(ctx context.Context, ch chan<- EyrieStreamEvent, evt EyrieStreamEvent) {
+func Emit(ctx context.Context, ch chan<- EyrieStreamEvent, evt EyrieStreamEvent) {
 	select {
 	case ch <- evt:
 	case <-ctx.Done():
@@ -599,7 +600,7 @@ func emit(ctx context.Context, ch chan<- EyrieStreamEvent, evt EyrieStreamEvent)
 //   - Hermes/Nous (Qwen, and most OpenAI-compatible local models served via
 //     vLLM/SGLang/Ollama): each call is a JSON object {"name":...,"arguments":{...}}
 //     wrapped in <tool_call>...</tool_call> XML tags, with parallel calls emitted
-//     as repeated tag pairs. This is the format Qwen2.5/QwQ emit; Qwen3-Coder uses
+//     as repeated tag pairs. This is the format Qwen2.5/QwQ Emit; Qwen3-Coder uses
 //     a structurally similar but distinct "qwen3_xml" variant not handled here.
 //   - Bare JSON brace-match (last resort): a {"name":...,"arguments":{...}} object
 //     found via strings.Index(text, `{"`) / strings.LastIndex(text, "}") without
@@ -667,7 +668,7 @@ func ParseInlineToolCalls(text string) (cleanText string, toolCalls []ToolCall) 
 }
 
 // hermesToolCallOpen/Close delimit a Hermes/Nous-format tool call. Qwen and most
-// OpenAI-compatible local models emit calls as <tool_call>{json}</tool_call>.
+// OpenAI-compatible local models Emit calls as <tool_call>{json}</tool_call>.
 const (
 	hermesToolCallOpen  = "<tool_call>"
 	hermesToolCallClose = "</tool_call>"

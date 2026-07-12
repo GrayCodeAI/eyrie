@@ -8,15 +8,28 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
-// Embedder is the interface for creating embeddings.
-type Embedder interface {
-	CreateEmbedding(ctx context.Context, req EmbeddingRequest) (*EmbeddingResponse, error)
-}
-
-// Compile-time check that OpenAIClient implements Embedder.
+// Compile-time check that OpenAIClient implements embeddings.Embedder.
 var _ Embedder = (*OpenAIClient)(nil)
+
+// CreateEmbedding sends an embedding request to the specified (or default) provider.
+func (c *EyrieClient) CreateEmbedding(ctx context.Context, req EmbeddingRequest, provider string) (*EmbeddingResponse, error) {
+	if provider == "" {
+		provider = c.defaultProvider
+	}
+	p, err := c.getOrCreateProvider(provider)
+	if err != nil {
+		return nil, err
+	}
+	embedder, ok := p.(Embedder)
+	if !ok {
+		return nil, fmt.Errorf("eyrie: provider %s does not support embeddings", provider)
+	}
+	return embedder.CreateEmbedding(ctx, req)
+}
 
 // openaiEmbeddingResponse is the wire format for OpenAI-compatible embedding APIs.
 type openaiEmbeddingResponse struct {
@@ -65,7 +78,7 @@ func (c *OpenAIClient) CreateEmbedding(ctx context.Context, req EmbeddingRequest
 
 	c.logger.Debug("openai embedding", "provider", c.providerName, "model", req.Model)
 
-	resp, err := doWithRetry(ctx, c.httpClient, httpReq, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, httpReq, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: %s embedding request failed: %w", c.providerName, err)
 	}
@@ -77,8 +90,8 @@ func (c *OpenAIClient) CreateEmbedding(ctx context.Context, req EmbeddingRequest
 
 	if resp.StatusCode != 200 {
 		requestID := resp.Header.Get("X-Request-Id")
-		detail, readErr := parseProviderError(resp.Body)
-		return nil, formatAPIError(c.providerName+" embedding", "embedding", resp.StatusCode, requestID, detail, readErr)
+		detail, readErr := core.ParseProviderError(resp.Body)
+		return nil, core.FormatAPIError(c.providerName+" embedding", "embedding", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	var or openaiEmbeddingResponse
@@ -100,7 +113,7 @@ func (c *OpenAIClient) CreateEmbedding(ctx context.Context, req EmbeddingRequest
 		}
 	}
 	if or.Usage.PromptTokens > 0 || or.Usage.TotalTokens > 0 {
-		result.Usage = &EyrieUsage{
+		result.Usage = &core.EyrieUsage{
 			PromptTokens: or.Usage.PromptTokens,
 			TotalTokens:  or.Usage.TotalTokens,
 		}

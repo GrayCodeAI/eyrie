@@ -1,4 +1,4 @@
-package client
+package core
 
 import (
 	"encoding/base64"
@@ -28,7 +28,7 @@ var extToMediaType = map[string]string{
 	"gif":  "image/gif",
 }
 
-// normalizeImageSource turns any of the three image source forms into a canonical
+// NormalizeImageSource turns any of the three image source forms into a canonical
 // representation for provider clients:
 //
 //   - data:<mediaType>;base64,<data>  → returned as base64 (mediaType, data, true)
@@ -40,7 +40,7 @@ var extToMediaType = map[string]string{
 // hawk no longer each carry their own divergent encoder. Local files and
 // data-URLs are validated against supportedImageMediaTypes; HTTP URLs are left
 // for the provider to fetch (avoiding an SSRF surface inside eyrie).
-func normalizeImageSource(src string) (mediaType, data string, isBase64 bool, err error) {
+func NormalizeImageSource(src string) (mediaType, data string, isBase64 bool, err error) {
 	switch {
 	case strings.HasPrefix(src, "data:"):
 		mt, d, ok := parseDataURL(src)
@@ -84,17 +84,17 @@ func parseDataURL(src string) (mediaType, data string, ok bool) {
 	return "", "", false
 }
 
-// openAIImageURL renders an image source into the single-string form the
+// OpenAIImageURL renders an image source into the single-string form the
 // OpenAI-compatible image_url field expects: an http(s) URL or a data URL are
 // passed through; a local file is read and encoded into a data URL. On any
 // normalization error it falls back to the raw input so the request is not
 // dropped (the provider will surface a clearer error than eyrie can here).
-func openAIImageURL(src string) string {
+func OpenAIImageURL(src string) string {
 	// Already a usable URL form: pass through unchanged.
 	if strings.HasPrefix(src, "data:") || strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 		return src
 	}
-	mt, data, isBase64, err := normalizeImageSource(src)
+	mt, data, isBase64, err := NormalizeImageSource(src)
 	if err != nil {
 		return src
 	}
@@ -109,12 +109,12 @@ func openAIImageURL(src string) string {
 	return "data:image/png;base64," + data
 }
 
-// parseImageString is the backward-compatible shim retained for existing call
-// sites. It now routes through normalizeImageSource so local paths are encoded
+// ParseImageString is the backward-compatible shim retained for existing call
+// sites. It now routes through NormalizeImageSource so local paths are encoded
 // and formats are validated. On error it falls back to treating the input as a
 // pass-through URL, preserving the previous lenient behavior.
-func parseImageString(img string) (mediaType, data string, isBase64 bool) {
-	mt, d, b64, err := normalizeImageSource(img)
+func ParseImageString(img string) (mediaType, data string, isBase64 bool) {
+	mt, d, b64, err := NormalizeImageSource(img)
 	if err != nil {
 		return "", img, false
 	}

@@ -273,7 +273,7 @@ func (r *RecorderProvider) syntheticStream(ctx context.Context, resp *EyrieRespo
 		}
 	}()
 
-	return &StreamResult{Events: ch, cancel: cancel}
+	return NewStreamResult(ch, cancel)
 }
 
 // recordStream drains the real stream, accumulates data, saves the interaction, and
@@ -337,7 +337,7 @@ func (r *RecorderProvider) recordStream(ctx context.Context, result *StreamResul
 		r.mu.Unlock()
 	}()
 
-	return &StreamResult{Events: ch, cancel: cancel}
+	return NewStreamResult(ch, cancel)
 }
 
 // redact applies the redactor function if set.

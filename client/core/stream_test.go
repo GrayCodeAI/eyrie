@@ -1,5 +1,5 @@
 //nolint:errcheck
-package client
+package core
 
 import (
 	"context"
@@ -14,7 +14,7 @@ func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-// --- parseSSEStream tests ---
+// --- ParseSSEStream tests ---
 
 func TestSSEParseBasicEvents(t *testing.T) {
 	t.Parallel()
@@ -22,7 +22,7 @@ func TestSSEParseBasicEvents(t *testing.T) {
 	body := io.NopCloser(strings.NewReader(sseData))
 	ctx := context.Background()
 
-	ch := parseSSEStream(ctx, body, testLogger())
+	ch := ParseSSEStream(ctx, body, testLogger())
 
 	var events []SSEEvent
 	for evt := range ch {
@@ -45,7 +45,7 @@ func TestSSEParseMultilineData(t *testing.T) {
 	body := io.NopCloser(strings.NewReader(sseData))
 	ctx := context.Background()
 
-	ch := parseSSEStream(ctx, body, testLogger())
+	ch := ParseSSEStream(ctx, body, testLogger())
 
 	var events []SSEEvent
 	for evt := range ch {
@@ -66,7 +66,7 @@ func TestSSEParseEmptyEvents(t *testing.T) {
 	body := io.NopCloser(strings.NewReader(sseData))
 	ctx := context.Background()
 
-	ch := parseSSEStream(ctx, body, testLogger())
+	ch := ParseSSEStream(ctx, body, testLogger())
 
 	var events []SSEEvent
 	for evt := range ch {
@@ -86,7 +86,7 @@ func TestSSEParseContextCancellation(t *testing.T) {
 	pr, pw := io.Pipe()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	ch := parseSSEStream(ctx, pr, testLogger())
+	ch := ParseSSEStream(ctx, pr, testLogger())
 
 	// Write one event
 	_, _ = pw.Write([]byte("event:first\ndata:one\n\n"))
@@ -112,7 +112,7 @@ func TestSSEParseContextCancellation(t *testing.T) {
 	}
 }
 
-// --- processAnthropicStream tests ---
+// --- ProcessAnthropicStream tests ---
 
 func TestSSEAnthropicContentBlockDelta(t *testing.T) {
 	t.Parallel()
@@ -124,7 +124,7 @@ func TestSSEAnthropicContentBlockDelta(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processAnthropicStream(ctx, events, testLogger())
+	ch := ProcessAnthropicStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {
@@ -165,7 +165,7 @@ func TestSSEAnthropicToolUse(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processAnthropicStream(ctx, events, testLogger())
+	ch := ProcessAnthropicStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {
@@ -206,7 +206,7 @@ func TestSSEAnthropicThinkingDelta(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processAnthropicStream(ctx, events, testLogger())
+	ch := ProcessAnthropicStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {
@@ -234,7 +234,7 @@ func TestSSEAnthropicThinkingTextDeltaHidden(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processAnthropicStream(ctx, events, testLogger())
+	ch := ProcessAnthropicStream(ctx, events, testLogger())
 
 	var sawThinking, sawContent bool
 	for evt := range ch {
@@ -263,7 +263,7 @@ func TestSSEAnthropicStopReason(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processAnthropicStream(ctx, events, testLogger())
+	ch := ProcessAnthropicStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {
@@ -284,7 +284,7 @@ func TestSSEAnthropicStopReason(t *testing.T) {
 	}
 }
 
-// --- processOpenAIStream tests ---
+// --- ProcessOpenAIStream tests ---
 
 func TestSSEOpenAIChoicesDelta(t *testing.T) {
 	t.Parallel()
@@ -295,7 +295,7 @@ func TestSSEOpenAIChoicesDelta(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processOpenAIStream(ctx, events, testLogger())
+	ch := ProcessOpenAIStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {
@@ -342,7 +342,7 @@ func TestSSEOpenAIToolCallsAccumulation(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processOpenAIStream(ctx, events, testLogger())
+	ch := ProcessOpenAIStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {
@@ -379,7 +379,7 @@ func TestSSEOpenAIFinishReason(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processOpenAIStream(ctx, events, testLogger())
+	ch := ProcessOpenAIStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {
@@ -406,7 +406,7 @@ func TestSSEOpenAIUsage(t *testing.T) {
 	close(events)
 
 	ctx := context.Background()
-	ch := processOpenAIStream(ctx, events, testLogger())
+	ch := ProcessOpenAIStream(ctx, events, testLogger())
 
 	var results []EyrieStreamEvent
 	for evt := range ch {

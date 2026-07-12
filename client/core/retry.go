@@ -1,4 +1,4 @@
-package client
+package core
 
 import (
 	"context"
@@ -34,8 +34,8 @@ func DefaultRetryConfig() RetryConfig {
 	return NewRetryConfig(3, 500*time.Millisecond, 30*time.Second, 429, 500, 502, 503, 529)
 }
 
-// shouldRetry checks if a status code is retryable.
-func (rc RetryConfig) shouldRetry(statusCode int) bool {
+// ShouldRetry checks if a status code is retryable.
+func (rc RetryConfig) ShouldRetry(statusCode int) bool {
 	for _, code := range rc.RetryOn {
 		if code == statusCode {
 			return true
@@ -93,16 +93,16 @@ func parseRetryDelay(errMsg string) time.Duration {
 	}
 }
 
-// doWithRetry executes an HTTP request with retry logic.
+// DoWithRetry executes an HTTP request with retry logic.
 //
-// Note: doWithRetry operates at the transport layer, before
+// Note: DoWithRetry operates at the transport layer, before
 // formatAPIError constructs *EyrieError. Structured-error awareness
 // lives in the fallback chain (fallback.go:240-244) where
 // *EyrieError.IsRetriable() / IsAuthError() drive provider
-// rotation. doWithRetry only needs the raw transport status code
+// rotation. DoWithRetry only needs the raw transport status code
 // and the underlying network error to decide whether to retry the
 // same request.
-func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request, rc RetryConfig, logger *slog.Logger) (*http.Response, error) {
+func DoWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request, rc RetryConfig, logger *slog.Logger) (*http.Response, error) {
 	var lastErr error
 	var lastResp *http.Response
 
@@ -149,7 +149,7 @@ func doWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request
 			continue
 		}
 
-		if !rc.shouldRetry(resp.StatusCode) {
+		if !rc.ShouldRetry(resp.StatusCode) {
 			return resp, nil
 		}
 

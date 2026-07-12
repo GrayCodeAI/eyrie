@@ -1,42 +1,17 @@
-package client
+package embeddings
 
-import (
-	"context"
-	"fmt"
+import "github.com/GrayCodeAI/eyrie/client/core"
+
+// The embedding DTOs and the Embedder interface live in client/core because
+// the protocol adapters implement Embedder. Aliased here so this package's
+// API is unchanged.
+type (
+	// Embedder is the interface for creating embeddings.
+	Embedder = core.Embedder
+	// EmbeddingParams holds asymmetric params for indexing vs query.
+	EmbeddingParams = core.EmbeddingParams
+	// EmbeddingRequest represents an embedding API call.
+	EmbeddingRequest = core.EmbeddingRequest
+	// EmbeddingResponse holds embedding results.
+	EmbeddingResponse = core.EmbeddingResponse
 )
-
-// EmbeddingParams holds asymmetric params for indexing vs query.
-type EmbeddingParams struct {
-	Indexing map[string]string `json:"indexing,omitempty"`
-	Query    map[string]string `json:"query,omitempty"`
-}
-
-// EmbeddingRequest represents an embedding API call.
-type EmbeddingRequest struct {
-	Model  string            `json:"model"`
-	Input  []string          `json:"input"`
-	Params map[string]string `json:"params,omitempty"` // indexing or query params
-}
-
-// EmbeddingResponse holds embedding results.
-type EmbeddingResponse struct {
-	Embeddings [][]float32 `json:"embeddings"`
-	Model      string      `json:"model"`
-	Usage      *EyrieUsage `json:"usage,omitempty"`
-}
-
-// CreateEmbedding sends an embedding request to the specified (or default) provider.
-func (c *EyrieClient) CreateEmbedding(ctx context.Context, req EmbeddingRequest, provider string) (*EmbeddingResponse, error) {
-	if provider == "" {
-		provider = c.defaultProvider
-	}
-	p, err := c.getOrCreateProvider(provider)
-	if err != nil {
-		return nil, err
-	}
-	embedder, ok := p.(Embedder)
-	if !ok {
-		return nil, fmt.Errorf("eyrie: provider %s does not support embeddings", provider)
-	}
-	return embedder.CreateEmbedding(ctx, req)
-}

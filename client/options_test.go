@@ -291,46 +291,48 @@ func TestOpenAIDefaultValues(t *testing.T) {
 
 // --- Provider-specific option tests ---
 
-func TestOptionsAppliedToAnthropicOnly(t *testing.T) {
+func TestOptionsApplyToBothAdapters(t *testing.T) {
 	t.Parallel()
-	opt := ClientOption{
-		applyFn: func(c *AnthropicClient) { c.apiKey = "anthropic-only" },
+	// Options built through the clientConfigurable interface reach both
+	// adapter types with a single constructor.
+	opt := WithAPIKey("shared-key")
+	a := NewAnthropicClient("key", "", opt)
+	if a.apiKey != "shared-key" {
+		t.Errorf("anthropic: expected apiKey 'shared-key', got %q", a.apiKey)
 	}
-	c := NewAnthropicClient("key", "", opt)
-	if c.apiKey != "anthropic-only" {
-		t.Errorf("expected apiKey 'anthropic-only', got %q", c.apiKey)
+	o := NewOpenAIClient("key", "", nil, opt)
+	if o.apiKey != "shared-key" {
+		t.Errorf("openai: expected apiKey 'shared-key', got %q", o.apiKey)
 	}
 }
 
-func TestOptionsAppliedToOpenAIOnly(t *testing.T) {
+func TestProviderNameOptionIsOpenAIOnly(t *testing.T) {
 	t.Parallel()
-	opt := ClientOption{
-		applyOpenAIFn: func(c *OpenAIClient) { c.apiKey = "openai-only" },
+	// WithProviderName mutates the OpenAI adapter and is a documented no-op
+	// on the Anthropic adapter (fixed provider name).
+	opt := WithProviderName("custom")
+	o := NewOpenAIClient("key", "", nil, opt)
+	if o.providerName != "custom" {
+		t.Errorf("openai: expected providerName 'custom', got %q", o.providerName)
 	}
-	c := NewOpenAIClient("key", "", nil, opt)
-	if c.apiKey != "openai-only" {
-		t.Errorf("expected apiKey 'openai-only', got %q", c.apiKey)
+	a := NewAnthropicClient("original", "", opt)
+	if a.apiKey != "original" {
+		t.Errorf("anthropic: expected apiKey unchanged 'original', got %q", a.apiKey)
 	}
 }
 
-func TestProviderSpecificNilFnNoPanic(t *testing.T) {
+func TestZeroOptionNoPanic(t *testing.T) {
 	t.Parallel()
-	// An option with only applyFn should not panic when applied to OpenAI client.
-	opt := ClientOption{
-		applyFn: func(c *AnthropicClient) { c.apiKey = "anthropic" },
-	}
+	// A zero ClientOption (nil applyConfigurable) must not panic on either
+	// constructor and must leave the client unchanged.
+	var opt ClientOption
 	c := NewOpenAIClient("original", "", nil, opt)
 	if c.apiKey != "original" {
-		t.Errorf("expected apiKey unchanged 'original', got %q", c.apiKey)
+		t.Errorf("openai: expected apiKey unchanged 'original', got %q", c.apiKey)
 	}
-
-	// An option with only applyOpenAIFn should not panic when applied to Anthropic client.
-	opt2 := ClientOption{
-		applyOpenAIFn: func(c *OpenAIClient) { c.apiKey = "openai" },
-	}
-	c2 := NewAnthropicClient("original", "", opt2)
+	c2 := NewAnthropicClient("original", "", opt)
 	if c2.apiKey != "original" {
-		t.Errorf("expected apiKey unchanged 'original', got %q", c2.apiKey)
+		t.Errorf("anthropic: expected apiKey unchanged 'original', got %q", c2.apiKey)
 	}
 }
 

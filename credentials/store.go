@@ -8,9 +8,21 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
-const (
-	ServiceName = "hawk"
-)
+// ServiceName is the OS secret-store service under which credentials are
+// filed. It defaults to "hawk" — the original (and primary) consumer — and
+// must stay stable for existing keychain entries to remain readable. Other
+// embedders can rebrand via SetServiceName before any store access.
+var ServiceName = "hawk"
+
+// SetServiceName overrides the secret-store service name. Call it once at
+// startup, before the first credential read or write; changing it later
+// orphans previously stored secrets.
+func SetServiceName(name string) {
+	name = strings.TrimSpace(name)
+	if name != "" {
+		ServiceName = name
+	}
+}
 
 // Store persists provider API secrets outside provider.json.
 type Store interface {
@@ -53,37 +65,10 @@ func AccountForEnv(envKey string) string {
 }
 
 // EnvForAccount is a best-effort reverse map for loading into process env.
+// Accounts are stored as lowercased env names (see AccountForEnv), so the
+// uppercase transform recovers the env key for every registered provider.
 func EnvForAccount(account string) string {
-	switch strings.ToLower(account) {
-	case "anthropic_api_key":
-		return "ANTHROPIC_API_KEY"
-	case "openai_api_key":
-		return "OPENAI_API_KEY"
-	case "openrouter_api_key":
-		return "OPENROUTER_API_KEY"
-	case "gemini_api_key":
-		return "GEMINI_API_KEY"
-	case "xai_api_key":
-		return "XAI_API_KEY"
-	case "zai_api_key":
-		return "ZAI_API_KEY"
-	case "canopywave_api_key":
-		return "CANOPYWAVE_API_KEY"
-	case "opencodego_api_key":
-		return "OPENCODEGO_API_KEY"
-	case "moonshot_api_key":
-		return "MOONSHOT_API_KEY"
-	case "xiaomi_mimo_api_key":
-		return "XIAOMI_MIMO_API_KEY"
-	case "xiaomi_mimo_payg_api_key":
-		return "XIAOMI_MIMO_PAYG_API_KEY"
-	case "xiaomi_mimo_token_plan_api_key":
-		return "XIAOMI_MIMO_TOKEN_PLAN_API_KEY"
-	case "ollama_base_url":
-		return "OLLAMA_BASE_URL"
-	default:
-		return strings.ToUpper(strings.ReplaceAll(account, "-", "_"))
-	}
+	return strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(account), "-", "_"))
 }
 
 // APIKeysMap returns env-keyed secrets for catalog discovery.

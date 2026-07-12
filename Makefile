@@ -36,6 +36,7 @@ GOVULNCHECK  := $(GOBIN_DIR)/govulncheck
 
 boundaries: ## Enforce support-repo import boundaries.
 	bash ./scripts/check-ecosystem-boundaries.sh
+	bash ./scripts/check-client-layering.sh
 
 # ---------------------------------------------------------------------------
 # Default target.

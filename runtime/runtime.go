@@ -26,10 +26,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
@@ -121,9 +123,25 @@ func ChatProvider(ctx context.Context) (client.Provider, error) {
 	return setup.DeploymentProvider(ctx, cfg)
 }
 
-// AvailableProviders lists the currently registered provider IDs.
+// AvailableProviders lists engine-owned provider IDs. Built-ins come from the
+// canonical catalog registry; client-only entries are dynamically registered
+// providers and are included for backwards compatibility.
 func AvailableProviders() []string {
-	return client.Client(nil).GetProviders()
+	seen := make(map[string]struct{})
+	providers := make([]string, 0, len(registry.All()))
+	for _, spec := range registry.All() {
+		seen[spec.ProviderID] = struct{}{}
+		providers = append(providers, spec.ProviderID)
+	}
+	for _, provider := range client.Client(nil).GetProviders() {
+		if _, ok := seen[provider]; ok {
+			continue
+		}
+		seen[provider] = struct{}{}
+		providers = append(providers, provider)
+	}
+	sort.Strings(providers)
+	return providers
 }
 
 // RoutingPreviewJSON returns effective routing for a model ID.

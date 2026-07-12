@@ -136,10 +136,10 @@ func (r *Router) Chat(ctx context.Context, messages []client.EyrieMessage, opts 
 }
 
 func (r *Router) StreamChat(ctx context.Context, messages []client.EyrieMessage, opts client.ChatOptions) (*client.StreamResult, error) {
-	provider, _ := r.selectProvider()
+	provider, retry := r.selectProvider()
 	r.stratState.beginInFlight(provider.Name())
 	start := time.Now()
-	sr, err := provider.StreamChat(ctx, messages, opts)
+	sr, err := r.streamWithRetry(ctx, provider, messages, opts, retry)
 	r.stratState.recordLatency(provider.Name(), float64(time.Since(start).Milliseconds()))
 	r.stratState.endInFlight(provider.Name())
 	if err == nil {
@@ -201,6 +201,38 @@ func (r *Router) chatWithRetry(ctx context.Context, p client.Provider, messages 
 		resp, err := p.Chat(ctx, messages, opts)
 		if err == nil {
 			return resp, nil
+		}
+		lastErr = err
+		if !IsTransient(err) {
+			return nil, err
+		}
+		if attempt < cfg.MaxRetries {
+			delay := BackoffDelay(attempt, cfg)
+			if cfg.OnRetry != nil {
+				cfg.OnRetry(RetryEvent{Err: err, Attempt: attempt + 1, MaxRetries: cfg.MaxRetries, Delay: delay})
+			}
+			timer := newTimer(delay)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return nil, ctx.Err()
+			case <-timer.C:
+			}
+		}
+	}
+	return nil, lastErr
+}
+
+// streamWithRetry mirrors chatWithRetry for the streaming path: transient
+// errors on stream setup are retried with backoff. Errors that surface
+// mid-stream (after a successful setup) are not retried here — the caller
+// owns the event channel by then.
+func (r *Router) streamWithRetry(ctx context.Context, p client.Provider, messages []client.EyrieMessage, opts client.ChatOptions, cfg RetryConfig) (*client.StreamResult, error) {
+	var lastErr error
+	for attempt := 0; attempt <= cfg.MaxRetries; attempt++ {
+		sr, err := p.StreamChat(ctx, messages, opts)
+		if err == nil {
+			return sr, nil
 		}
 		lastErr = err
 		if !IsTransient(err) {

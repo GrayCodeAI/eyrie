@@ -237,13 +237,13 @@ func TestRetryConfig(t *testing.T) {
 	if rc.MaxRetries != 3 {
 		t.Errorf("expected 3 max retries, got %d", rc.MaxRetries)
 	}
-	if !rc.shouldRetry(429) {
+	if !rc.ShouldRetry(429) {
 		t.Error("expected 429 to be retryable")
 	}
-	if rc.shouldRetry(200) {
+	if rc.ShouldRetry(200) {
 		t.Error("expected 200 to not be retryable")
 	}
-	if !rc.shouldRetry(529) {
+	if !rc.ShouldRetry(529) {
 		t.Error("expected 529 to be retryable")
 	}
 }
