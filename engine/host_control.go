@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 	"github.com/GrayCodeAI/eyrie/catalog/zai"
 	"github.com/GrayCodeAI/eyrie/config"
@@ -63,12 +64,20 @@ func (e *Engine) SaveCredentialEnv(ctx context.Context, envVar, secret string) e
 }
 
 func (e *Engine) CredentialEnvKeys(providerID string) []string {
-	for _, provider := range e.CredentialProviders(context.Background()) {
-		if NormalizeProviderID(provider.ProviderID) == NormalizeProviderID(providerID) {
-			return []string{provider.EnvVar}
+	spec, ok := registry.SpecByProviderID(NormalizeProviderID(providerID))
+	if !ok {
+		return nil
+	}
+	seen := map[string]bool{}
+	var out []string
+	for _, envVar := range append(append([]string{spec.CredentialEnv}, spec.CredentialEnvFallbacks...), spec.CredentialAliases...) {
+		envVar = strings.TrimSpace(envVar)
+		if envVar != "" && !seen[envVar] {
+			seen[envVar] = true
+			out = append(out, envVar)
 		}
 	}
-	return nil
+	return out
 }
 
 // GatewayRegion returns normalized region presentation for regional gateways.
