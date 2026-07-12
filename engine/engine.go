@@ -110,7 +110,14 @@ func (e *Engine) Stream(ctx context.Context, req GenerateRequest) (*Stream, erro
 		return nil, err
 	}
 	callCtx, cancel := requestContext(ctx, req.Limits.Timeout)
-	source, err := provider.StreamChat(callCtx, toClientMessages(req.Messages), toClientOptions(req, route, true))
+	continuation := client.DefaultContinuationConfig()
+	if req.Limits.MaxContinuations > 0 {
+		continuation.MaxContinuations = req.Limits.MaxContinuations
+	}
+	if req.Limits.MaxTotalOutputTokens > 0 {
+		continuation.MaxTotalTokens = req.Limits.MaxTotalOutputTokens
+	}
+	source, err := client.StreamChatWithContinuation(callCtx, provider, toClientMessages(req.Messages), toClientOptions(req, route, true), continuation)
 	if err != nil {
 		cancel()
 		return nil, classify("stream", route, err)
@@ -266,6 +273,9 @@ func validateGenerateRequest(req GenerateRequest) error {
 	}
 	if req.Limits.MaxOutputTokens < 0 {
 		return invalid("generate", "eyrie engine: max output tokens cannot be negative")
+	}
+	if req.Limits.MaxContinuations < 0 || req.Limits.MaxTotalOutputTokens < 0 {
+		return invalid("generate", "eyrie engine: continuation limits cannot be negative")
 	}
 	if req.Requirements.MinimumContext < 0 {
 		return invalid("generate", "eyrie engine: minimum context cannot be negative")

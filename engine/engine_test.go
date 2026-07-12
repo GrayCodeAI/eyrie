@@ -74,6 +74,7 @@ func TestValidateGenerateRequest(t *testing.T) {
 		{name: "no messages", req: GenerateRequest{}},
 		{name: "missing role", req: GenerateRequest{Messages: []Message{{Content: "hello"}}}},
 		{name: "negative output", req: GenerateRequest{Messages: []Message{{Role: "user"}}, Limits: Limits{MaxOutputTokens: -1}}},
+		{name: "negative continuations", req: GenerateRequest{Messages: []Message{{Role: "user"}}, Limits: Limits{MaxContinuations: -1}}},
 		{name: "negative context", req: GenerateRequest{Messages: []Message{{Role: "user"}}, Requirements: Requirements{MinimumContext: -1}}},
 	}
 	for _, tt := range tests {

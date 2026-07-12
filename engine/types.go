@@ -75,8 +75,10 @@ type Tool struct {
 
 // Limits bounds a generation request.
 type Limits struct {
-	MaxOutputTokens int           `json:"max_output_tokens,omitempty"`
-	Timeout         time.Duration `json:"timeout,omitempty"`
+	MaxOutputTokens      int           `json:"max_output_tokens,omitempty"`
+	MaxContinuations     int           `json:"max_continuations,omitempty"`
+	MaxTotalOutputTokens int           `json:"max_total_output_tokens,omitempty"`
+	Timeout              time.Duration `json:"timeout,omitempty"`
 }
 
 // Metadata provides stable correlation identifiers. Providers receive only

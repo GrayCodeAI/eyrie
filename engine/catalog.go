@@ -9,6 +9,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/catalog/discover"
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
+	"github.com/GrayCodeAI/eyrie/config"
 )
 
 // Catalog returns the current cached catalog through a stable snapshot.
@@ -54,6 +55,37 @@ func (e *Engine) RefreshCatalog(ctx context.Context, providerID string) (Catalog
 	}
 	snapshot := snapshotFromCompiled(result.Compiled)
 	snapshot.CachePath = e.catalogPath
+	return snapshot, nil
+}
+
+// ApplyCredentials refreshes catalog state and persists sanitized deployment
+// routing derived from the Engine's credential store. Secret fields are never
+// written to provider.json.
+func (e *Engine) ApplyCredentials(ctx context.Context, providerID string) (CatalogSnapshot, error) {
+	ctx = nonNilContext(ctx)
+	snapshot, err := e.RefreshCatalog(ctx, providerID)
+	if err != nil {
+		return CatalogSnapshot{}, err
+	}
+	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{CachePath: e.catalogPath, RequireCache: true})
+	if err != nil {
+		return CatalogSnapshot{}, &Error{Code: ErrorCatalogUnavailable, Operation: "apply_credentials", Provider: providerID, Message: err.Error(), Cause: err}
+	}
+	persisted := config.LoadProviderConfig(e.providerConfigPath)
+	if persisted == nil {
+		persisted = &config.ProviderConfig{}
+	}
+	deployments := buildDeployments(compiled, persisted.Deployments, e.credentialEnv(ctx, compiled))
+	sanitized := make(map[string]config.DeploymentConfig, len(deployments))
+	for id, deployment := range deployments {
+		sanitized[id] = config.SanitizeDeploymentConfigForDisk(deployment)
+	}
+	persisted.ConfigVersion = 2
+	persisted.Deployments = sanitized
+	persisted.Routing = config.BuildRoutingPolicyFromDeployments(sanitized)
+	if err := config.SaveProviderConfig(persisted, e.providerConfigPath); err != nil {
+		return CatalogSnapshot{}, &Error{Code: ErrorInternal, Operation: "apply_credentials", Provider: providerID, Message: err.Error(), Cause: err}
+	}
 	return snapshot, nil
 }
 
