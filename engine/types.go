@@ -210,6 +210,7 @@ type Event struct {
 type Model struct {
 	ID               string   `json:"id"`
 	DisplayName      string   `json:"display_name"`
+	Owner            string   `json:"owner,omitempty"`
 	ProviderID       string   `json:"provider_id"`
 	ContextWindow    int      `json:"context_window,omitempty"`
 	MaxOutputTokens  int      `json:"max_output_tokens,omitempty"`

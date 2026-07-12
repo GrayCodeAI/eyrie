@@ -108,7 +108,7 @@ func snapshotFromCompiled(compiled *catalog.CompiledCatalog) CatalogSnapshot {
 			outputPrice = offering.Pricing.RatesPer1M["output_tokens"]
 		}
 		snapshot.Models = append(snapshot.Models, Model{
-			ID: id, DisplayName: model.Name, ProviderID: model.ProviderID,
+			ID: id, DisplayName: model.Name, Owner: model.ProviderID, ProviderID: model.ProviderID,
 			ContextWindow: model.ContextWindow, MaxOutputTokens: model.MaxOutput,
 			InputPricePer1M: inputPrice, OutputPricePer1M: outputPrice,
 			Capabilities: capabilityNames(offering.Capabilities), Source: "catalog",

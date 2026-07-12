@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
@@ -135,13 +136,41 @@ func (e *Engine) ListModels(ctx context.Context, providerID string, refresh bool
 		return nil, &Error{Code: ErrorCatalogUnavailable, Operation: "list_models", Provider: providerID, Message: err.Error(), Cause: err}
 	}
 	providerID = catalog.CanonicalProviderID(strings.TrimSpace(providerID))
-	out := make([]Model, 0, len(snapshot.Models))
-	for _, model := range snapshot.Models {
-		if providerID == "" || catalog.CanonicalProviderID(model.ProviderID) == providerID {
-			out = append(out, model)
+	if providerID == "" {
+		return snapshot.Models, nil
+	}
+	compiled, loadErr := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{CachePath: e.catalogPath, RequireCache: true})
+	if loadErr != nil {
+		return nil, &Error{Code: ErrorCatalogUnavailable, Operation: "list_models", Provider: providerID, Message: loadErr.Error(), Cause: loadErr}
+	}
+	entries := catalog.ModelEntriesForProvider(compiled, providerID)
+	out := make([]Model, 0, len(entries))
+	for _, entry := range entries {
+		capabilities := append([]string(nil), entry.ServerTools...)
+		if canonical, ok := catalog.CanonicalModelForProviderNative(compiled, providerID, entry.ID); ok {
+			capabilities = capabilityNames(offeringForProvider(compiled, providerID, canonical, entry.ID).Capabilities)
 		}
+		out = append(out, Model{
+			ID: entry.ID, DisplayName: entry.DisplayName, Owner: entry.Owner, ProviderID: providerID,
+			ContextWindow: entry.ContextWindow, MaxOutputTokens: entry.MaxOutput,
+			InputPricePer1M: entry.InputPricePer1M, OutputPricePer1M: entry.OutputPricePer1M,
+			Capabilities: capabilities, Source: "cache",
+		})
 	}
 	return out, nil
+}
+
+func offeringForProvider(compiled *catalog.CompiledCatalog, providerID, canonicalID, nativeID string) catalog.ModelOffering {
+	spec, ok := registry.SpecByProviderID(providerID)
+	if !ok {
+		return firstOffering(compiled.OfferingsByCanonicalModel[canonicalID])
+	}
+	for _, offering := range compiled.OfferingsByDeployment[spec.DeploymentID] {
+		if offering.CanonicalModelID == canonicalID && (nativeID == "" || offering.NativeModelID == nativeID) {
+			return offering
+		}
+	}
+	return firstOffering(compiled.OfferingsByCanonicalModel[canonicalID])
 }
 
 func (e *Engine) resolveProvider(ctx context.Context, req GenerateRequest) (Route, client.Provider, error) {

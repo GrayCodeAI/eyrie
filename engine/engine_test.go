@@ -228,3 +228,40 @@ func TestSelectionUsesEngineStateDir(t *testing.T) {
 		t.Fatalf("selection not cleared: %+v", saved)
 	}
 }
+
+func TestListModelsUsesGatewayOfferings(t *testing.T) {
+	dir := t.TempDir()
+	seed := catalog.SeedCatalog()
+	compiled, err := catalog.CompileCatalog(&seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerID := ""
+	var expected []catalog.ModelCatalogEntry
+	for _, candidate := range []string{"openrouter", "openai", "anthropic", "gemini"} {
+		if entries := catalog.ModelEntriesForProvider(compiled, candidate); len(entries) > 0 {
+			providerID, expected = candidate, entries
+			break
+		}
+	}
+	if providerID == "" {
+		t.Skip("seed catalog has no gateway offerings")
+	}
+	if err := catalog.WriteCatalogCache(filepath.Join(dir, "model_catalog.json"), &seed); err != nil {
+		t.Fatal(err)
+	}
+	eng, err := New(Options{StateDir: dir, SecretStore: &credentials.MapStore{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	models, err := eng.ListModels(context.Background(), providerID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(models) != len(expected) || len(models) == 0 {
+		t.Fatalf("models = %d, want %d", len(models), len(expected))
+	}
+	if models[0].ProviderID != providerID || models[0].ID != expected[0].ID {
+		t.Fatalf("gateway model mismatch: got %+v want %+v", models[0], expected[0])
+	}
+}
