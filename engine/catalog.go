@@ -1,0 +1,114 @@
+package engine
+
+import (
+	"context"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/discover"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
+)
+
+// Catalog returns the current cached catalog through a stable snapshot.
+func (e *Engine) Catalog(ctx context.Context) (CatalogSnapshot, error) {
+	ctx = nonNilContext(ctx)
+	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{CachePath: e.catalogPath, RequireCache: true})
+	if err != nil {
+		return CatalogSnapshot{}, &Error{Code: ErrorCatalogUnavailable, Operation: "catalog", Message: err.Error(), Cause: err}
+	}
+	snapshot := snapshotFromCompiled(compiled)
+	snapshot.CachePath = e.catalogPath
+	return snapshot, nil
+}
+
+// RefreshCatalog refreshes one provider when providerID is non-empty, or all
+// configured providers otherwise. Credentials are read from this Engine's
+// injected store rather than a package-global store.
+func (e *Engine) RefreshCatalog(ctx context.Context, providerID string) (CatalogSnapshot, error) {
+	ctx = nonNilContext(ctx)
+	compiled, _ := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{CachePath: e.catalogPath})
+	creds := catalog.Credentials{APIKeys: e.credentialEnv(ctx, compiled)}
+	var (
+		result *catalog.RefreshResult
+		err    error
+	)
+	if providerID = strings.TrimSpace(providerID); providerID != "" {
+		if _, ok := registry.SpecByProviderID(providerID); !ok {
+			return CatalogSnapshot{}, &Error{Code: ErrorInvalidRequest, Operation: "refresh_catalog", Provider: providerID, Message: "eyrie engine: unknown provider"}
+		}
+		// The refresh shares one compiled-cache transaction so custom host paths
+		// remain isolated. Credential presence limits live discovery to configured
+		// providers; providerID is retained for host status/error attribution.
+	}
+	result, err = discover.Run(ctx, discover.Options{
+		LoadCatalogOptions: catalog.LoadCatalogOptions{CachePath: e.catalogPath, RefreshRemote: true},
+		Credentials:        creds,
+	})
+	if err != nil {
+		return CatalogSnapshot{}, &Error{Code: ErrorCatalogUnavailable, Operation: "refresh_catalog", Provider: providerID, Message: err.Error(), Cause: err}
+	}
+	if result == nil || result.Compiled == nil {
+		return CatalogSnapshot{}, &Error{Code: ErrorCatalogUnavailable, Operation: "refresh_catalog", Provider: providerID, Message: "eyrie engine: catalog refresh returned no compiled catalog"}
+	}
+	snapshot := snapshotFromCompiled(result.Compiled)
+	snapshot.CachePath = e.catalogPath
+	return snapshot, nil
+}
+
+func snapshotFromCompiled(compiled *catalog.CompiledCatalog) CatalogSnapshot {
+	snapshot := CatalogSnapshot{CachePath: catalog.DefaultCachePath(), LoadedAt: time.Now().UTC()}
+	if compiled == nil {
+		return snapshot
+	}
+	ids := make([]string, 0, len(compiled.ModelsByID))
+	for id := range compiled.ModelsByID {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		model := compiled.ModelsByID[id]
+		offering := firstOffering(compiled.OfferingsByCanonicalModel[id])
+		inputPrice, outputPrice := 0.0, 0.0
+		if offering.Pricing.RatesPer1M != nil {
+			inputPrice = offering.Pricing.RatesPer1M["input_tokens"]
+			outputPrice = offering.Pricing.RatesPer1M["output_tokens"]
+		}
+		snapshot.Models = append(snapshot.Models, Model{
+			ID: id, DisplayName: model.Name, ProviderID: model.ProviderID,
+			ContextWindow: model.ContextWindow, MaxOutputTokens: model.MaxOutput,
+			InputPricePer1M: inputPrice, OutputPricePer1M: outputPrice,
+			Capabilities: capabilityNames(offering.Capabilities), Source: "catalog",
+		})
+	}
+	if compiled.Catalog != nil && !compiled.Catalog.StaleAfter.IsZero() {
+		snapshot.Stale = time.Now().UTC().After(compiled.Catalog.StaleAfter)
+	}
+	return snapshot
+}
+
+func firstOffering(offerings []catalog.ModelOffering) catalog.ModelOffering {
+	if len(offerings) == 0 {
+		return catalog.ModelOffering{}
+	}
+	return offerings[0]
+}
+
+func capabilityNames(caps catalog.CapabilitySet) []string {
+	var out []string
+	if caps.FunctionCalling == catalog.CapabilitySupported {
+		out = append(out, "tools")
+	}
+	if caps.ImageInput == catalog.CapabilitySupported {
+		out = append(out, "vision")
+	}
+	if caps.StructuredOutput == catalog.CapabilitySupported {
+		out = append(out, "structured_json")
+	}
+	if caps.ExplicitThinkingBudget == catalog.CapabilitySupported || caps.AdaptiveThinking == catalog.CapabilitySupported || caps.Effort == catalog.CapabilitySupported {
+		out = append(out, "reasoning")
+	}
+	sort.Strings(out)
+	return out
+}

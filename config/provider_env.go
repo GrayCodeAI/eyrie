@@ -335,13 +335,20 @@ var ProviderDetectionOrder = APIProviderDetectionOrder
 
 // GetProviderConfigDir returns the config directory path.
 func GetProviderConfigDir() string {
+	if d := strings.TrimSpace(os.Getenv("EYRIE_CONFIG_DIR")); d != "" {
+		return d
+	}
+	// HAWK_CONFIG_DIR is retained as a compatibility fallback for hosts that
+	// predate Eyrie's host-neutral configuration namespace.
 	if d := os.Getenv("HAWK_CONFIG_DIR"); d != "" {
 		return d
 	}
 	if d, err := os.UserConfigDir(); err == nil && d != "" {
+		// Preserve the historical default until the host-neutral Engine path
+		// migration can copy existing provider state safely.
 		return filepath.Join(d, "hawk")
 	}
-	panic("hawk provider config: user config directory unavailable")
+	panic("eyrie provider config: user config directory unavailable")
 }
 
 // GetProviderConfigPath returns the full path to provider.json.

@@ -133,6 +133,14 @@ func TestGetProviderConfigDir(t *testing.T) {
 	}
 }
 
+func TestGetProviderConfigDirPrefersEyrieNamespace(t *testing.T) {
+	t.Setenv("EYRIE_CONFIG_DIR", "/tmp/eyrie-config")
+	t.Setenv("HAWK_CONFIG_DIR", "/tmp/legacy-hawk-config")
+	if got := GetProviderConfigDir(); got != "/tmp/eyrie-config" {
+		t.Fatalf("GetProviderConfigDir() = %q, want EYRIE_CONFIG_DIR", got)
+	}
+}
+
 func TestGetProviderConfigPath(t *testing.T) {
 	dir := t.TempDir()
 	os.Setenv("HAWK_CONFIG_DIR", dir)

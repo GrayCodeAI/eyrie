@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
@@ -59,14 +58,22 @@ func UseDeploymentRouting(cfg *config.ProviderConfig) bool {
 
 // DeploymentProvider builds a catalog-aware router over configured deployments.
 func DeploymentProvider(ctx context.Context, cfg *config.ProviderConfig) (client.Provider, error) {
-	home, _ := os.UserHomeDir()
-	cachePath := filepath.Join(home, ".eyrie", "model_catalog.json")
 	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
-		CachePath:     cachePath,
+		CachePath:     catalog.DefaultCachePath(),
 		RefreshRemote: strings.EqualFold(os.Getenv("EYRIE_MODEL_CATALOG_REFRESH"), "true"),
 	})
 	if err != nil {
 		return nil, err
+	}
+	return DeploymentProviderFromCatalog(cfg, compiled)
+}
+
+// DeploymentProviderFromCatalog builds a deployment router from explicit
+// host-owned state. It is the host-neutral alternative to DeploymentProvider,
+// which loads Eyrie's process-default catalog path.
+func DeploymentProviderFromCatalog(cfg *config.ProviderConfig, compiled *catalog.CompiledCatalog) (client.Provider, error) {
+	if compiled == nil {
+		return nil, fmt.Errorf("deployment provider: catalog is nil")
 	}
 	deployments := ConfiguredDeploymentAdapters(cfg)
 	if len(deployments) == 0 {
