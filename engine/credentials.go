@@ -38,13 +38,13 @@ func (e *Engine) SaveCredential(ctx context.Context, providerID, secret string) 
 	status := CredentialStatus{ProviderID: providerID, EnvVar: envKey, Configured: true}
 	if spec, ok := registry.DefaultRegistry.Get(providerID); ok && !spec.RequiresKey {
 		if err := config.ProbeLocalCredential(ctx, envKey, prepared); err != nil {
-			return status, &Error{Code: ErrorProviderUnavailable, Operation: "probe_credential", Provider: providerID, Message: fmt.Sprintf("%v (credential saved)", err), Cause: err}
+			return status, &Error{Code: ErrorProviderUnavailable, Operation: "probe_credential", Provider: providerID, Message: fmt.Sprintf("%v (value saved in keychain)", err), Cause: err}
 		}
 		status.Verified = true
 		return status, nil
 	}
 	if err := config.ProbeCredential(ctx, envKey, prepared); err != nil {
-		return status, &Error{Code: ErrorAuthentication, Operation: "probe_credential", Provider: providerID, Message: fmt.Sprintf("%v (credential saved)", err), Cause: err}
+		return status, &Error{Code: ErrorAuthentication, Operation: "probe_credential", Provider: providerID, Message: fmt.Sprintf("%v (key saved in keychain)", err), Cause: err}
 	}
 	status.Verified = true
 	return status, nil
