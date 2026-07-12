@@ -34,6 +34,7 @@ type Engine struct {
 	secretStore        credentials.Store
 	catalogPath        string
 	providerConfigPath string
+	customGateways     map[string]CustomGateway
 	resolveTransport   func(context.Context, Route) (client.Provider, error)
 }
 
@@ -61,7 +62,10 @@ func New(opts Options) (*Engine, error) {
 	if providerPath == "" {
 		providerPath = config.GetProviderConfigPath()
 	}
-	engine := &Engine{secretStore: store, catalogPath: catalogPath, providerConfigPath: providerPath}
+	engine := &Engine{
+		secretStore: store, catalogPath: catalogPath, providerConfigPath: providerPath,
+		customGateways: snapshotCustomGateways(),
+	}
 	engine.resolveTransport = engine.defaultTransport
 	return engine, nil
 }
@@ -125,6 +129,16 @@ func (e *Engine) Stream(ctx context.Context, req GenerateRequest) (*Stream, erro
 // ListModels returns provider models through the stable facade.
 func (e *Engine) ListModels(ctx context.Context, providerID string, refresh bool) ([]Model, error) {
 	ctx = nonNilContext(ctx)
+	if gateway, ok := e.customGateway(providerID); ok {
+		if gateway.DefaultModel == "" {
+			return nil, nil
+		}
+		return []Model{{
+			ID: gateway.DefaultModel, DisplayName: gateway.DefaultModel,
+			ProviderID: gateway.ID, GatewayID: gateway.ID,
+			ContextWindow: gateway.ContextWindow, Capabilities: customGatewayCapabilityNames(gateway), Source: "custom",
+		}}, nil
+	}
 	var snapshot CatalogSnapshot
 	var err error
 	if refresh {
@@ -199,7 +213,10 @@ func (e *Engine) resolveProvider(ctx context.Context, req GenerateRequest) (Rout
 	return route, provider, nil
 }
 
-func (e *Engine) defaultTransport(ctx context.Context, _ Route) (client.Provider, error) {
+func (e *Engine) defaultTransport(ctx context.Context, route Route) (client.Provider, error) {
+	if provider, ok, err := e.customGatewayTransport(ctx, route); ok {
+		return provider, err
+	}
 	compiled, cfg, err := e.loadRuntimeState(ctx)
 	if err != nil {
 		return nil, err
@@ -208,6 +225,9 @@ func (e *Engine) defaultTransport(ctx context.Context, _ Route) (client.Provider
 }
 
 func (e *Engine) resolveSelection(ctx context.Context, req SelectionRequest) (Route, error) {
+	if route, ok, err := e.resolveCustomSelection(req); ok {
+		return route, err
+	}
 	compiled, cfg, err := e.loadRuntimeState(ctx)
 	if err != nil {
 		return Route{}, err

@@ -36,7 +36,7 @@ func (e *Engine) credentialEnv(ctx context.Context, compiled *catalog.CompiledCa
 	}
 	for _, envKey := range catalog.DiscoveryEnvKeysFromCatalog(compiled) {
 		secret, err := e.secretStore.Get(ctx, credentials.AccountForEnv(envKey))
-		if err == nil && strings.TrimSpace(secret) != "" {
+		if err == nil && strings.TrimSpace(secret) != "" && !config.LooksLikePlaceholderSecret(secret) {
 			out[envKey] = secret
 		}
 	}
@@ -60,11 +60,11 @@ func buildDeployments(compiled *catalog.CompiledCatalog, persisted map[string]co
 	return out
 }
 
-// mergeDeployment keeps non-secret routing fields from disk while filling
-// credential fields from the injected store. Values derived from the store or
-// current environment take precedence when present.
+// mergeDeployment keeps only non-secret routing fields from disk while filling
+// credential fields from the injected store. Legacy secret-bearing provider
+// state is never accepted as a runtime credential source.
 func mergeDeployment(persisted, derived config.DeploymentConfig) config.DeploymentConfig {
-	out := persisted
+	out := config.SanitizeDeploymentConfigForDisk(persisted)
 	if derived.APIKey != "" {
 		out.APIKey = derived.APIKey
 	}

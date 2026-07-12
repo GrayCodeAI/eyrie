@@ -62,6 +62,32 @@ func TestMaskedCredentialNeverReturnsFullSecret(t *testing.T) {
 	}
 }
 
+func TestGatewayReadinessRejectsPlaceholderAndDiskSecrets(t *testing.T) {
+	ctx := context.Background()
+	store := &credentials.MapStore{}
+	eng, err := New(Options{SecretStore: store, StateDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Set(ctx, credentials.AccountForEnv("OPENAI_API_KEY"), "changeme"); err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config.ProviderConfig{Deployments: map[string]config.DeploymentConfig{
+		"openai-direct": {APIKey: "sk-secret-on-disk"},
+	}}
+	if err := config.SaveProviderConfig(cfg, eng.providerConfigPath); err != nil {
+		t.Fatal(err)
+	}
+	for _, gateway := range eng.Gateways(ctx) {
+		if gateway.ID == "openai" && (gateway.CredentialConfigured || gateway.DeploymentConfigured) {
+			t.Fatalf("legacy or placeholder secret counted as ready: %+v", gateway)
+		}
+	}
+	if selection := eng.EffectiveSelection(ctx, SelectionOptions{}); selection.HasConfiguredDeployment {
+		t.Fatalf("legacy disk secret made selection ready: %+v", selection)
+	}
+}
+
 func TestEffectiveSelectionUsesEngineOwnedState(t *testing.T) {
 	ctx := context.Background()
 	store := &credentials.MapStore{}
@@ -135,9 +161,12 @@ func TestProviderSecretMigrationStaysInsideEnginePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg := &config.ProviderConfig{Deployments: map[string]config.DeploymentConfig{
-		"legacy": {APIKey: "sk-legacy", BaseURL: "https://example.test"},
-	}}
+	cfg := &config.ProviderConfig{
+		OpenAIAPIKey: "sk-top-level-legacy",
+		Deployments: map[string]config.DeploymentConfig{
+			"legacy": {APIKey: "sk-legacy", BaseURL: "https://example.test"},
+		},
+	}
 	if err := config.SaveProviderConfig(cfg, eng.providerConfigPath); err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +180,21 @@ func TestProviderSecretMigrationStaysInsideEnginePath(t *testing.T) {
 		t.Fatalf("provider state still contains secrets: %+v", status)
 	}
 	saved := config.LoadProviderConfig(eng.providerConfigPath)
+	if saved.OpenAIAPIKey != "" {
+		t.Fatal("migration retained a top-level legacy credential")
+	}
 	if saved.Deployments["legacy"].BaseURL != "https://example.test" {
 		t.Fatal("migration lost non-secret routing metadata")
+	}
+	// A marker is an audit artifact, not permission to trust later plaintext.
+	saved.OpenAIAPIKey = "sk-reintroduced"
+	if err := config.SaveProviderConfig(saved, eng.providerConfigPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := eng.MigrateProviderSecrets(); err != nil {
+		t.Fatal(err)
+	}
+	if config.LoadProviderConfig(eng.providerConfigPath).OpenAIAPIKey != "" {
+		t.Fatal("migration marker allowed a reintroduced plaintext credential")
 	}
 }

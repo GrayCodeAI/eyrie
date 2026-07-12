@@ -52,6 +52,14 @@ func (e *Engine) Gateways(ctx context.Context) []Gateway {
 	selection := e.ActiveSelection(ctx)
 	providerConfig := config.LoadProviderConfig(e.providerConfigPath)
 	compiled, _ := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{CachePath: e.catalogPath})
+	configuredDeployments := map[string]config.DeploymentConfig{}
+	if compiled != nil {
+		var persisted map[string]config.DeploymentConfig
+		if providerConfig != nil {
+			persisted = providerConfig.Deployments
+		}
+		configuredDeployments = buildDeployments(compiled, persisted, e.credentialEnv(ctx, compiled))
+	}
 
 	specs := registry.CredentialRegistry()
 	out := make([]Gateway, 0, len(specs))
@@ -60,10 +68,7 @@ func (e *Engine) Gateways(ctx context.Context) []Gateway {
 		envVars := append([]string{spec.EnvVar}, providerSpec.CredentialEnvFallbacks...)
 		envVars = append(envVars, providerSpec.CredentialAliases...)
 		configured := e.hasCredential(ctx, envVars)
-		deploymentConfigured := providerConfig != nil && spec.DeploymentID != ""
-		if deploymentConfigured {
-			_, deploymentConfigured = providerConfig.Deployments[spec.DeploymentID]
-		}
+		_, deploymentConfigured := configuredDeployments[spec.DeploymentID]
 		modelCount := 0
 		if compiled != nil {
 			modelCount = len(catalog.ModelEntriesForProvider(compiled, spec.ProviderID))
@@ -79,6 +84,20 @@ func (e *Engine) Gateways(ctx context.Context) []Gateway {
 			SupportsLiveDiscovery: strings.TrimSpace(providerSpec.LiveFetcherKey) != "",
 		})
 	}
+	for _, gateway := range e.customGateways {
+		configured := gateway.CredentialEnv == "" || e.hasCredential(ctx, []string{gateway.CredentialEnv})
+		modelCount := 0
+		if gateway.DefaultModel != "" {
+			modelCount = 1
+		}
+		out = append(out, Gateway{
+			ID: gateway.ID, DisplayName: gateway.DisplayName,
+			CredentialEnv: gateway.CredentialEnv, RequiresKey: gateway.CredentialEnv != "",
+			CredentialConfigured: configured, DeploymentConfigured: configured,
+			ModelCount: modelCount,
+			Active:     NormalizeProviderID(selection.Provider) == gateway.ID,
+		})
+	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out
 }
@@ -90,7 +109,7 @@ func (e *Engine) hasCredential(ctx context.Context, envVars []string) bool {
 			continue
 		}
 		secret, err := e.secretStore.Get(ctx, credentials.AccountForEnv(envVar))
-		if err == nil && strings.TrimSpace(secret) != "" {
+		if err == nil && strings.TrimSpace(secret) != "" && !config.LooksLikePlaceholderSecret(secret) {
 			return true
 		}
 	}

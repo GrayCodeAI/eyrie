@@ -388,12 +388,10 @@ func (e *Engine) ProviderStateSecurityStatus() ProviderStateSecurity {
 	if cfg == nil {
 		return status
 	}
-	for id, deployment := range cfg.Deployments {
-		if deploymentContainsSecrets(deployment) {
-			status.HasSecrets = true
-			status.Detail = "deployment " + id + " has secret fields on disk"
-			return status
-		}
+	if config.ProviderConfigContainsSecrets(*cfg) {
+		status.HasSecrets = true
+		status.Detail = "provider state has credential fields on disk"
+		return status
 	}
 	return status
 }
@@ -403,10 +401,6 @@ func (e *Engine) ProviderStateSecurityStatus() ProviderStateSecurity {
 func (e *Engine) MigrateProviderSecrets() error {
 	path := e.providerConfigPath
 	marker, backup := path+".secrets-migrated", path+".pre-secret-migrate.bak"
-	if _, err := os.Stat(marker); err == nil {
-		_ = os.Remove(backup)
-		return nil
-	}
 	data, err := os.ReadFile(path) // #nosec G304 -- engine-owned state path
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -418,15 +412,16 @@ func (e *Engine) MigrateProviderSecrets() error {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return err
 	}
-	changed := false
-	for id, deployment := range cfg.Deployments {
-		if deploymentContainsSecrets(deployment) {
-			changed = true
-		}
-		cfg.Deployments[id] = config.SanitizeDeploymentConfigForDisk(deployment)
-	}
+	changed := config.ProviderConfigContainsSecrets(cfg)
+	cfg = config.SanitizeProviderConfigForDisk(cfg)
 	if !changed {
-		return os.WriteFile(marker, []byte("ok\n"), 0o600)
+		if err := os.WriteFile(marker, []byte("ok\n"), 0o600); err != nil {
+			return err
+		}
+		if err := os.Remove(backup); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		return nil
 	}
 	if err := os.WriteFile(backup, data, 0o600); err != nil {
 		return err
@@ -471,10 +466,4 @@ func writeProviderConfigAtomic(path string, cfg *config.ProviderConfig) (err err
 		return err
 	}
 	return os.Rename(tmpPath, path)
-}
-
-func deploymentContainsSecrets(deployment config.DeploymentConfig) bool {
-	return strings.TrimSpace(deployment.APIKey) != "" || strings.TrimSpace(deployment.Token) != "" ||
-		strings.TrimSpace(deployment.SecretAccessKey) != "" || strings.TrimSpace(deployment.AccessKeyID) != "" ||
-		strings.TrimSpace(deployment.SessionToken) != ""
 }

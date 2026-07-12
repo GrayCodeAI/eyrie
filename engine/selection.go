@@ -40,7 +40,7 @@ func (e *Engine) EffectiveSelection(ctx context.Context, opts SelectionOptions) 
 	hasConfigured := false
 	configured := make(map[string]bool, len(gateways))
 	for _, gateway := range gateways {
-		ready := gateway.CredentialConfigured || gateway.DeploymentConfigured
+		ready := gateway.DeploymentConfigured
 		configured[NormalizeProviderID(gateway.ID)] = ready
 		if ready {
 			hasConfigured = true
