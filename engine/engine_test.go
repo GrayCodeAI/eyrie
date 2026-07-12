@@ -281,3 +281,28 @@ func TestListModelsUsesGatewayOfferings(t *testing.T) {
 		t.Fatalf("gateway model mismatch: got %+v want %+v", models[0], expected[0])
 	}
 }
+
+func TestModelPolicyQueriesUseEngineCatalog(t *testing.T) {
+	dir := t.TempDir()
+	seed := catalog.SeedCatalog()
+	if err := catalog.WriteCatalogCache(filepath.Join(dir, "model_catalog.json"), &seed); err != nil {
+		t.Fatal(err)
+	}
+	eng, err := New(Options{SecretStore: &credentials.MapStore{}, StateDir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	names := eng.ModelNames(ctx)
+	providers, err := eng.ModelProviders(ctx)
+	if err != nil || len(names) == 0 || len(providers) == 0 {
+		t.Fatalf("policy catalog unavailable: names=%d providers=%v err=%v", len(names), providers, err)
+	}
+	modelID := firstCatalogModelID(seed)
+	if model, ok, err := eng.ModelInfo(ctx, modelID); err != nil || !ok || model.ID == "" {
+		t.Fatalf("ModelInfo(%q) = %+v, %v, %v", modelID, model, ok, err)
+	}
+	if got := eng.ModelClassOf(ctx, modelID); got == "" {
+		t.Fatal("empty model class")
+	}
+}

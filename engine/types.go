@@ -12,6 +12,15 @@ const (
 	IntentEconomical Intent = "economical"
 )
 
+// ModelClass is a provider-neutral relative model cost/capability band.
+type ModelClass string
+
+const (
+	ModelClassEconomical ModelClass = "economical"
+	ModelClassBalanced   ModelClass = "balanced"
+	ModelClassPremium    ModelClass = "premium"
+)
+
 // Requirements describes capabilities that a resolved model must support.
 type Requirements struct {
 	Streaming      bool `json:"streaming,omitempty"`
