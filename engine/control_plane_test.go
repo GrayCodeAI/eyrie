@@ -58,3 +58,27 @@ func TestMaskedCredentialNeverReturnsFullSecret(t *testing.T) {
 		t.Fatalf("unsafe masked value %q", masked)
 	}
 }
+
+func TestEffectiveSelectionUsesEngineOwnedState(t *testing.T) {
+	ctx := context.Background()
+	store := &credentials.MapStore{}
+	stateDir := t.TempDir()
+	eng, err := New(Options{SecretStore: store, StateDir: stateDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Set(ctx, credentials.AccountForEnv("OPENAI_API_KEY"), "sk-injected-secret"); err != nil {
+		t.Fatal(err)
+	}
+	if err := eng.SetActiveProvider(ctx, "openai"); err != nil {
+		t.Fatal(err)
+	}
+
+	selection := eng.EffectiveSelection(ctx, SelectionOptions{ModelOverride: "gpt-test"})
+	if selection.Provider != "openai" || selection.Model != "gpt-test" {
+		t.Fatalf("unexpected selection: %+v", selection)
+	}
+	if !selection.HasConfiguredDeployment {
+		t.Fatal("selection ignored injected credential store")
+	}
+}

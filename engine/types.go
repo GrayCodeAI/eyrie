@@ -269,3 +269,18 @@ type Gateway struct {
 	ModelCount           int    `json:"model_count"`
 	Active               bool   `json:"active"`
 }
+
+// Selection is the effective provider/model state supplied to a host session.
+type Selection struct {
+	Provider                string `json:"provider"`
+	Model                   string `json:"model"`
+	HasConfiguredDeployment bool   `json:"has_configured_deployment"`
+	DeploymentRouting       bool   `json:"deployment_routing"`
+}
+
+// SelectionOptions contains optional user or command-line overrides.
+type SelectionOptions struct {
+	ProviderOverride          string `json:"provider_override,omitempty"`
+	ModelOverride             string `json:"model_override,omitempty"`
+	DeploymentRoutingOverride *bool  `json:"-"`
+}

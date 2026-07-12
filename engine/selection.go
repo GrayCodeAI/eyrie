@@ -14,6 +14,72 @@ func NormalizeProviderID(providerID string) string {
 	return runtime.NormalizeProviderID(providerID)
 }
 
+// EffectiveSelection resolves persisted state plus optional host overrides
+// using this Engine's injected catalog, provider config, and credential store.
+func (e *Engine) EffectiveSelection(ctx context.Context, opts SelectionOptions) Selection {
+	ctx = nonNilContext(ctx)
+	active := e.ActiveSelection(ctx)
+	provider := NormalizeProviderID(active.Provider)
+	model := strings.TrimSpace(active.Model)
+	if override := NormalizeProviderID(opts.ProviderOverride); override != "" {
+		provider = override
+	}
+	if override := strings.TrimSpace(opts.ModelOverride); override != "" {
+		model = override
+	}
+
+	compiled, _ := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{CachePath: e.catalogPath})
+	if provider == "" && model != "" && compiled != nil {
+		provider = NormalizeProviderID(catalog.GatewayForModel(compiled, model))
+		if provider == "" {
+			provider = NormalizeProviderID(catalog.ProviderForModel(compiled, model))
+		}
+	}
+
+	gateways := e.Gateways(ctx)
+	hasConfigured := false
+	configured := make(map[string]bool, len(gateways))
+	for _, gateway := range gateways {
+		ready := gateway.CredentialConfigured || gateway.DeploymentConfigured || !gateway.RequiresKey
+		configured[NormalizeProviderID(gateway.ID)] = ready
+		if ready {
+			hasConfigured = true
+			if provider == "" {
+				provider = NormalizeProviderID(gateway.ID)
+			}
+		}
+	}
+	if provider != "" && hasConfigured && !configured[provider] {
+		for _, gateway := range gateways {
+			if configured[NormalizeProviderID(gateway.ID)] {
+				provider = NormalizeProviderID(gateway.ID)
+				model = ""
+				break
+			}
+		}
+	}
+	if provider != "" && model == "" {
+		if models, err := e.ListModels(ctx, provider, false); err == nil && len(models) > 0 {
+			model = models[0].ID
+		}
+	}
+	if compiled != nil && model != "" {
+		if canonical, ok := compiled.CanonicalModelForAliasOrID(model); ok {
+			model = canonical
+		}
+	}
+
+	routing := active.DeploymentRouting
+	if opts.DeploymentRoutingOverride != nil {
+		routing = *opts.DeploymentRoutingOverride
+	}
+	return Selection{
+		Provider: provider, Model: model,
+		HasConfiguredDeployment: hasConfigured,
+		DeploymentRouting:       routing,
+	}
+}
+
 // ActiveSelection reads the persisted host selection from this Engine's state.
 func (e *Engine) ActiveSelection(ctx context.Context) Route {
 	_ = nonNilContext(ctx)
