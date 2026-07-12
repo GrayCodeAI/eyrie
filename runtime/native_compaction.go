@@ -39,19 +39,38 @@ type NativeCompactionResult struct {
 // SupportsNativeCompaction reports whether Eyrie can compact this selection
 // with a configured provider credential.
 func SupportsNativeCompaction(ctx context.Context, provider, model string) bool {
+	return SupportsNativeCompactionWithStore(ctx, provider, model, credentials.DefaultStore())
+}
+
+// SupportsNativeCompactionWithStore is the host-neutral form using an explicit
+// credential store.
+func SupportsNativeCompactionWithStore(ctx context.Context, provider, model string, store credentials.Store) bool {
 	if !supportsAnthropicCompactionSelection(provider, model) {
 		return false
 	}
-	return credentials.LookupSecret(ctx, "ANTHROPIC_API_KEY") != ""
+	if store == nil {
+		store = credentials.DefaultStore()
+	}
+	secret, err := store.Get(ctx, credentials.AccountForEnv("ANTHROPIC_API_KEY"))
+	return err == nil && strings.TrimSpace(secret) != ""
 }
 
 // CompactNativeConversation invokes the provider-native compaction protocol.
 func CompactNativeConversation(ctx context.Context, opts NativeCompactionOpts) (*NativeCompactionResult, error) {
+	return CompactNativeConversationWithStore(ctx, opts, credentials.DefaultStore())
+}
+
+// CompactNativeConversationWithStore invokes provider-native compaction using
+// an explicit host credential store.
+func CompactNativeConversationWithStore(ctx context.Context, opts NativeCompactionOpts, store credentials.Store) (*NativeCompactionResult, error) {
 	if !supportsAnthropicCompactionSelection(opts.Provider, opts.Model) {
 		return nil, fmt.Errorf("runtime: provider native compaction unavailable for %s/%s", opts.Provider, opts.Model)
 	}
-	apiKey := credentials.LookupSecret(ctx, "ANTHROPIC_API_KEY")
-	if apiKey == "" {
+	if store == nil {
+		store = credentials.DefaultStore()
+	}
+	apiKey, err := store.Get(ctx, credentials.AccountForEnv("ANTHROPIC_API_KEY"))
+	if err != nil || strings.TrimSpace(apiKey) == "" {
 		return nil, fmt.Errorf("runtime: Anthropic credential required for native compaction")
 	}
 	trigger := opts.ContextWindow * opts.ThresholdPct / 100
