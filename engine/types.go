@@ -73,6 +73,46 @@ type Tool struct {
 	Parameters  map[string]interface{} `json:"parameters"`
 }
 
+// ToolChoice controls whether and how the model may request tools.
+type ToolChoice struct {
+	Type                   string `json:"type"`
+	Name                   string `json:"name,omitempty"`
+	DisableParallelToolUse bool   `json:"disable_parallel_tool_use,omitempty"`
+}
+
+// GenerationOptions contains model-generation controls that have equivalent
+// semantics across one or more provider adapters. Provider-specific wire
+// formats remain internal to Eyrie.
+type GenerationOptions struct {
+	EnableCaching        bool              `json:"enable_caching,omitempty"`
+	ReasoningEffort      string            `json:"reasoning_effort,omitempty"`
+	ThinkingBudgetTokens int               `json:"thinking_budget_tokens,omitempty"`
+	ThinkingMode         string            `json:"thinking_mode,omitempty"`
+	ThinkingDisplay      string            `json:"thinking_display,omitempty"`
+	GLMThinkingEnabled   *bool             `json:"glm_thinking_enabled,omitempty"`
+	VirtualKeyID         string            `json:"virtual_key_id,omitempty"`
+	KimiContextCacheID   string            `json:"kimi_context_cache_id,omitempty"`
+	KimiCacheResetTTL    bool              `json:"kimi_cache_reset_ttl,omitempty"`
+	TopP                 *float64          `json:"top_p,omitempty"`
+	TopK                 *int              `json:"top_k,omitempty"`
+	StopSequences        []string          `json:"stop_sequences,omitempty"`
+	ToolChoice           *ToolChoice       `json:"tool_choice,omitempty"`
+	ServiceTier          string            `json:"service_tier,omitempty"`
+	OutputEffort         string            `json:"output_effort,omitempty"`
+	PresencePenalty      *float64          `json:"presence_penalty,omitempty"`
+	FrequencyPenalty     *float64          `json:"frequency_penalty,omitempty"`
+	N                    *int              `json:"n,omitempty"`
+	LogProbs             *bool             `json:"logprobs,omitempty"`
+	TopLogProbs          *int              `json:"top_logprobs,omitempty"`
+	Seed                 *int              `json:"seed,omitempty"`
+	Store                *bool             `json:"store,omitempty"`
+	Metadata             map[string]string `json:"metadata,omitempty"`
+	Modalities           []string          `json:"modalities,omitempty"`
+	AudioConfig          string            `json:"audio_config,omitempty"`
+	Prediction           string            `json:"prediction,omitempty"`
+	WebSearchOptions     string            `json:"web_search_options,omitempty"`
+}
+
 // Limits bounds a generation request.
 type Limits struct {
 	MaxOutputTokens      int           `json:"max_output_tokens,omitempty"`
@@ -92,15 +132,16 @@ type Metadata struct {
 
 // GenerateRequest is the provider-neutral request accepted by Engine.
 type GenerateRequest struct {
-	Messages     []Message    `json:"messages"`
-	SystemPrompt string       `json:"system_prompt,omitempty"`
-	Tools        []Tool       `json:"tools,omitempty"`
-	Requirements Requirements `json:"requirements,omitempty"`
-	Preference   Preference   `json:"preference,omitempty"`
-	Limits       Limits       `json:"limits,omitempty"`
-	Metadata     Metadata     `json:"metadata,omitempty"`
-	Temperature  *float64     `json:"temperature,omitempty"`
-	OutputSchema string       `json:"output_schema,omitempty"`
+	Messages     []Message         `json:"messages"`
+	SystemPrompt string            `json:"system_prompt,omitempty"`
+	Tools        []Tool            `json:"tools,omitempty"`
+	Requirements Requirements      `json:"requirements,omitempty"`
+	Preference   Preference        `json:"preference,omitempty"`
+	Limits       Limits            `json:"limits,omitempty"`
+	Metadata     Metadata          `json:"metadata,omitempty"`
+	Temperature  *float64          `json:"temperature,omitempty"`
+	OutputSchema string            `json:"output_schema,omitempty"`
+	Options      GenerationOptions `json:"options,omitempty"`
 }
 
 // Route is the concrete model/deployment decision made by Eyrie.
@@ -143,6 +184,7 @@ const (
 	EventToolCallDone  EventType = "tool_call_done"
 	EventUsage         EventType = "usage"
 	EventRetry         EventType = "retry"
+	EventContinuation  EventType = "continuation"
 	EventRouteChanged  EventType = "route_changed"
 	EventWarning       EventType = "warning"
 	EventTTFT          EventType = "ttft"

@@ -149,6 +149,8 @@ func normalizeEvent(event client.EyrieStreamEvent) (Event, error) {
 		}
 	case "ttft":
 		out.Type = EventTTFT
+	case "continuation":
+		out.Type = EventContinuation
 	case "error":
 		return Event{}, &Error{Code: ErrorProviderUnavailable, Operation: "stream", Message: event.Error}
 	default:

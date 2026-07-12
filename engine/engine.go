@@ -33,6 +33,7 @@ type Engine struct {
 	secretStore        credentials.Store
 	catalogPath        string
 	providerConfigPath string
+	resolveTransport   func(context.Context, Route) (client.Provider, error)
 }
 
 // New constructs a host-facing Eyrie engine.
@@ -59,7 +60,9 @@ func New(opts Options) (*Engine, error) {
 	if providerPath == "" {
 		providerPath = config.GetProviderConfigPath()
 	}
-	return &Engine{secretStore: store, catalogPath: catalogPath, providerConfigPath: providerPath}, nil
+	engine := &Engine{secretStore: store, catalogPath: catalogPath, providerConfigPath: providerPath}
+	engine.resolveTransport = engine.defaultTransport
+	return engine, nil
 }
 
 // SelectionRequest asks Eyrie to resolve a concrete provider/model route.
@@ -110,14 +113,7 @@ func (e *Engine) Stream(ctx context.Context, req GenerateRequest) (*Stream, erro
 		return nil, err
 	}
 	callCtx, cancel := requestContext(ctx, req.Limits.Timeout)
-	continuation := client.DefaultContinuationConfig()
-	if req.Limits.MaxContinuations > 0 {
-		continuation.MaxContinuations = req.Limits.MaxContinuations
-	}
-	if req.Limits.MaxTotalOutputTokens > 0 {
-		continuation.MaxTotalTokens = req.Limits.MaxTotalOutputTokens
-	}
-	source, err := client.StreamChatWithContinuation(callCtx, provider, toClientMessages(req.Messages), toClientOptions(req, route, true), continuation)
+	source, err := streamWithContinuation(callCtx, provider, toClientMessages(req.Messages), toClientOptions(req, route, true), req.Limits)
 	if err != nil {
 		cancel()
 		return nil, classify("stream", route, err)
@@ -153,15 +149,19 @@ func (e *Engine) resolveProvider(ctx context.Context, req GenerateRequest) (Rout
 	if err != nil {
 		return Route{}, nil, err
 	}
-	compiled, cfg, err := e.loadRuntimeState(ctx)
-	if err != nil {
-		return Route{}, nil, err
-	}
-	provider, err := setup.DeploymentProviderFromCatalog(cfg, compiled)
+	provider, err := e.resolveTransport(ctx, route)
 	if err != nil {
 		return Route{}, nil, classify("resolve_transport", route, err)
 	}
 	return route, provider, nil
+}
+
+func (e *Engine) defaultTransport(ctx context.Context, _ Route) (client.Provider, error) {
+	compiled, cfg, err := e.loadRuntimeState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return setup.DeploymentProviderFromCatalog(cfg, compiled)
 }
 
 func (e *Engine) resolveSelection(ctx context.Context, req SelectionRequest) (Route, error) {
