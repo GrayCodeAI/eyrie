@@ -6,7 +6,48 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/config"
+	"github.com/GrayCodeAI/eyrie/runtime"
 )
+
+// NormalizeProviderID resolves provider aliases to Eyrie's runtime identifier.
+func NormalizeProviderID(providerID string) string {
+	return runtime.NormalizeProviderID(providerID)
+}
+
+// ActiveSelection reads the persisted host selection from this Engine's state.
+func (e *Engine) ActiveSelection(ctx context.Context) Route {
+	_ = nonNilContext(ctx)
+	cfg := config.LoadProviderConfig(e.providerConfigPath)
+	return Route{
+		Provider:          NormalizeProviderID(config.ActiveProvider(cfg)),
+		Model:             config.ActiveModel(cfg),
+		DeploymentRouting: cfg != nil && (cfg.ConfigVersion >= 2 || len(cfg.Deployments) > 0 || cfg.Routing != nil),
+	}
+}
+
+// SetActiveProvider persists a provider choice without requiring a model.
+func (e *Engine) SetActiveProvider(ctx context.Context, providerID string) error {
+	_ = nonNilContext(ctx)
+	providerID = NormalizeProviderID(providerID)
+	if providerID == "" {
+		return invalid("set_active_provider", "eyrie engine: provider id is required")
+	}
+	cfg := config.LoadProviderConfig(e.providerConfigPath)
+	if cfg == nil {
+		cfg = &config.ProviderConfig{}
+	}
+	config.SetActiveProvider(cfg, providerID)
+	if err := config.SaveProviderConfig(cfg, e.providerConfigPath); err != nil {
+		return &Error{Code: ErrorInternal, Operation: "set_active_provider", Provider: providerID, Message: err.Error(), Cause: err}
+	}
+	return nil
+}
+
+// SetActiveModel persists a model choice and infers its serving provider from
+// the configured catalog.
+func (e *Engine) SetActiveModel(ctx context.Context, modelID string) error {
+	return e.SetSelection(ctx, "", modelID)
+}
 
 // SetSelection persists the host/user's provider and model choice in this
 // Engine's configured state path. It does not persist credentials.

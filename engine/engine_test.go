@@ -216,6 +216,10 @@ func TestSelectionUsesEngineStateDir(t *testing.T) {
 	if err := eng.SetSelection(context.Background(), "", modelID); err != nil {
 		t.Fatal(err)
 	}
+	active := eng.ActiveSelection(context.Background())
+	if active.Model != modelID || active.Provider == "" {
+		t.Fatalf("active selection = %+v", active)
+	}
 	saved := config.LoadProviderConfig(eng.providerConfigPath)
 	if saved == nil || saved.ActiveModel != modelID {
 		t.Fatalf("selection not saved to engine path: %+v", saved)
