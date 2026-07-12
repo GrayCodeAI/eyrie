@@ -109,7 +109,8 @@ func snapshotFromCompiled(compiled *catalog.CompiledCatalog) CatalogSnapshot {
 		}
 		snapshot.Models = append(snapshot.Models, Model{
 			ID: id, DisplayName: catalog.DisplayModelLabel(id, model.Name),
-			Owner: catalog.DisplayModelOwner(model.ProviderID, id), ProviderID: model.ProviderID,
+			Description: model.Name,
+			Owner:       catalog.DisplayModelOwner(model.ProviderID, id), ProviderID: model.ProviderID,
 			GatewayID:     catalog.GatewayForModel(compiled, id),
 			ContextWindow: model.ContextWindow, MaxOutputTokens: model.MaxOutput,
 			InputPricePer1M: inputPrice, OutputPricePer1M: outputPrice,
@@ -127,7 +128,9 @@ func firstOffering(offerings []catalog.ModelOffering) catalog.ModelOffering {
 	if len(offerings) == 0 {
 		return catalog.ModelOffering{}
 	}
-	return offerings[0]
+	ordered := append([]catalog.ModelOffering(nil), offerings...)
+	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].DeploymentID < ordered[j].DeploymentID })
+	return ordered[0]
 }
 
 func capabilityNames(caps catalog.CapabilitySet) []string {
