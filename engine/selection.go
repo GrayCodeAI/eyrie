@@ -59,26 +59,25 @@ func (e *Engine) SetSelection(ctx context.Context, providerID, modelID string) e
 	if modelID == "" {
 		return invalid("set_selection", "eyrie engine: model id is required")
 	}
-	compiled, err := catalog.LoadCatalog(context.Background(), catalog.LoadCatalogOptions{CachePath: e.catalogPath, RequireCache: true})
-	if err != nil {
-		return &Error{Code: ErrorCatalogUnavailable, Operation: "set_selection", Message: err.Error(), Cause: err}
-	}
-	canonical, ok := compiled.CanonicalModelForAliasOrID(modelID)
-	if ok {
-		modelID = canonical
-	}
-	if providerID == "" {
-		providerID = catalog.GatewayForModel(compiled, modelID)
-		if providerID == "" {
-			providerID = catalog.ProviderForModel(compiled, modelID)
-		}
-	}
-	if providerID == "" {
-		return &Error{Code: ErrorModelUnavailable, Operation: "set_selection", Model: modelID, Message: "eyrie engine: could not determine provider for model"}
-	}
 	cfg := config.LoadProviderConfig(e.providerConfigPath)
 	if cfg == nil {
 		cfg = &config.ProviderConfig{}
+	}
+	compiled, err := catalog.LoadCatalog(context.Background(), catalog.LoadCatalogOptions{CachePath: e.catalogPath, RequireCache: true})
+	if err == nil && compiled != nil {
+		canonical, ok := compiled.CanonicalModelForAliasOrID(modelID)
+		if ok {
+			modelID = canonical
+		}
+		if providerID == "" {
+			providerID = catalog.GatewayForModel(compiled, modelID)
+			if providerID == "" {
+				providerID = catalog.ProviderForModel(compiled, modelID)
+			}
+		}
+	}
+	if providerID == "" {
+		providerID = config.ActiveProvider(cfg)
 	}
 	config.SetProviderModel(cfg, providerID, modelID)
 	if err := config.SaveProviderConfig(cfg, e.providerConfigPath); err != nil {
