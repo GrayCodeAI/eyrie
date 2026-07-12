@@ -280,6 +280,8 @@ type Gateway struct {
 	DeploymentConfigured bool   `json:"deployment_configured"`
 	ModelCount           int    `json:"model_count"`
 	Active               bool   `json:"active"`
+	RegionLabel          string `json:"region_label,omitempty"`
+	RegionRequired       bool   `json:"region_required,omitempty"`
 }
 
 // Selection is the effective provider/model state supplied to a host session.

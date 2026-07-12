@@ -82,3 +82,25 @@ func TestEffectiveSelectionUsesEngineOwnedState(t *testing.T) {
 		t.Fatal("selection ignored injected credential store")
 	}
 }
+
+func TestHostControlUsesInjectedStoreAndPaths(t *testing.T) {
+	ctx := context.Background()
+	store := &credentials.MapStore{}
+	eng, err := New(Options{SecretStore: store, StateDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := eng.SaveCredentialEnv(ctx, "OPENAI_API_KEY", "sk-injected-value"); err != nil {
+		t.Fatal(err)
+	}
+	if !eng.HasCredentialEnv(ctx, "OPENAI_API_KEY") {
+		t.Fatal("host control ignored injected credential store")
+	}
+	if err := eng.SetGatewayRegion(ctx, "zai_coding", "international"); err != nil {
+		t.Fatal(err)
+	}
+	label, required := eng.GatewayRegion("zai_coding")
+	if label == "" || required {
+		t.Fatalf("unexpected gateway region label=%q required=%v", label, required)
+	}
+}

@@ -68,12 +68,14 @@ func (e *Engine) Gateways(ctx context.Context) []Gateway {
 		if compiled != nil {
 			modelCount = len(catalog.ModelEntriesForProvider(compiled, spec.ProviderID))
 		}
+		regionLabel, regionRequired := e.GatewayRegion(spec.ProviderID)
 		out = append(out, Gateway{
 			ID: spec.ProviderID, DisplayName: spec.DisplayName,
 			DeploymentID: spec.DeploymentID, CredentialEnv: spec.EnvVar,
 			RequiresKey: spec.RequiresKey, CredentialConfigured: configured,
 			DeploymentConfigured: deploymentConfigured, ModelCount: modelCount,
-			Active: NormalizeProviderID(selection.Provider) == NormalizeProviderID(spec.ProviderID),
+			Active:      NormalizeProviderID(selection.Provider) == NormalizeProviderID(spec.ProviderID),
+			RegionLabel: regionLabel, RegionRequired: regionRequired,
 		})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].ID < out[j].ID })
