@@ -28,6 +28,17 @@ func (e *Engine) ResolveCredential(ctx context.Context, secret string) Credentia
 			RequiresKey: provider.RequiresKey, Rank: provider.Rank,
 		}
 	}
+	if out.FormatOK {
+		for _, gateway := range e.GatewayDefinitions() {
+			if _, custom := e.customGateway(gateway.ID); !custom || !gateway.RequiresKey {
+				continue
+			}
+			out.Providers = append(out.Providers, CredentialProvider{
+				ProviderID: gateway.ID, EnvVar: gateway.CredentialEnv,
+				DisplayName: gateway.DisplayName, RequiresKey: true, Rank: gateway.SortOrder,
+			})
+		}
+	}
 	return out
 }
 
@@ -42,6 +53,45 @@ func (e *Engine) CredentialProviders(context.Context) []CredentialProvider {
 			RequiresKey: provider.RequiresKey, Rank: provider.Rank,
 		}
 	}
+	for _, gateway := range e.GatewayDefinitions() {
+		if _, custom := e.customGateway(gateway.ID); !custom {
+			continue
+		}
+		out = append(out, CredentialProvider{
+			ProviderID: gateway.ID, EnvVar: gateway.CredentialEnv,
+			DisplayName: gateway.DisplayName, RequiresKey: gateway.RequiresKey, Rank: gateway.SortOrder,
+		})
+	}
+	return out
+}
+
+// GatewayDefinitions returns pure registry/custom metadata in setup UI order.
+// It does not read credentials, provider state, or the model catalog.
+func (e *Engine) GatewayDefinitions() []Gateway {
+	specs := registry.CredentialRegistry()
+	out := make([]Gateway, 0, len(specs)+len(e.customGateways))
+	for _, spec := range specs {
+		providerSpec, _ := registry.SpecByProviderID(spec.ProviderID)
+		out = append(out, Gateway{
+			ID: spec.ProviderID, DisplayName: spec.DisplayName,
+			DeploymentID: spec.DeploymentID, CredentialEnv: spec.EnvVar,
+			RequiresKey: spec.RequiresKey, SortOrder: spec.SortOrder, ChatPreference: providerSpec.ChatPreference,
+			SupportsLiveDiscovery: strings.TrimSpace(providerSpec.LiveFetcherKey) != "",
+		})
+	}
+	for _, gateway := range e.customGateways {
+		out = append(out, Gateway{
+			ID: gateway.ID, DisplayName: gateway.DisplayName,
+			CredentialEnv: gateway.CredentialEnv, RequiresKey: gateway.CredentialEnv != "",
+			ModelCount: boolInt(gateway.DefaultModel != ""), SortOrder: gateway.SortOrder, ChatPreference: gateway.ChatPreference,
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].SortOrder != out[j].SortOrder {
+			return out[i].SortOrder < out[j].SortOrder
+		}
+		return out[i].ID < out[j].ID
+	})
 	return out
 }
 
@@ -58,48 +108,44 @@ func (e *Engine) Gateways(ctx context.Context) []Gateway {
 		if providerConfig != nil {
 			persisted = providerConfig.Deployments
 		}
-		configuredDeployments = buildDeployments(compiled, persisted, e.credentialEnv(ctx, compiled))
+		configuredDeployments = buildDeployments(compiled, persisted, e.discoveryCredentialsFromConfig(ctx, compiled, providerConfig).Env())
 	}
 
-	specs := registry.CredentialRegistry()
-	out := make([]Gateway, 0, len(specs))
-	for _, spec := range specs {
-		providerSpec, _ := registry.SpecByProviderID(spec.ProviderID)
-		envVars := append([]string{spec.EnvVar}, providerSpec.CredentialEnvFallbacks...)
+	definitions := e.GatewayDefinitions()
+	out := make([]Gateway, 0, len(definitions))
+	for _, definition := range definitions {
+		if custom, ok := e.customGateway(definition.ID); ok {
+			configured := custom.CredentialEnv == "" || e.hasCredential(ctx, []string{custom.CredentialEnv})
+			definition.CredentialConfigured = configured
+			definition.DeploymentConfigured = configured
+			definition.Active = NormalizeProviderID(selection.Provider) == custom.ID
+			out = append(out, definition)
+			continue
+		}
+		providerSpec, _ := registry.SpecByProviderID(definition.ID)
+		envVars := append([]string{definition.CredentialEnv}, providerSpec.CredentialEnvFallbacks...)
 		envVars = append(envVars, providerSpec.CredentialAliases...)
 		configured := e.hasCredential(ctx, envVars)
-		_, deploymentConfigured := configuredDeployments[spec.DeploymentID]
+		_, deploymentConfigured := configuredDeployments[definition.DeploymentID]
 		modelCount := 0
 		if compiled != nil {
-			modelCount = len(catalog.ModelEntriesForProvider(compiled, spec.ProviderID))
+			modelCount = len(catalog.ModelEntriesForProvider(compiled, definition.ID))
 		}
-		regionLabel, regionRequired := e.GatewayRegion(spec.ProviderID)
-		out = append(out, Gateway{
-			ID: spec.ProviderID, DisplayName: spec.DisplayName,
-			DeploymentID: spec.DeploymentID, CredentialEnv: spec.EnvVar,
-			RequiresKey: spec.RequiresKey, CredentialConfigured: configured,
-			DeploymentConfigured: deploymentConfigured, ModelCount: modelCount,
-			Active:      NormalizeProviderID(selection.Provider) == NormalizeProviderID(spec.ProviderID),
-			RegionLabel: regionLabel, RegionRequired: regionRequired,
-			SupportsLiveDiscovery: strings.TrimSpace(providerSpec.LiveFetcherKey) != "",
-		})
+		definition.CredentialConfigured = configured
+		definition.DeploymentConfigured = deploymentConfigured
+		definition.ModelCount = modelCount
+		definition.Active = NormalizeProviderID(selection.Provider) == NormalizeProviderID(definition.ID)
+		definition.RegionLabel, definition.RegionRequired = gatewayRegionFromConfig(definition.ID, providerConfig)
+		out = append(out, definition)
 	}
-	for _, gateway := range e.customGateways {
-		configured := gateway.CredentialEnv == "" || e.hasCredential(ctx, []string{gateway.CredentialEnv})
-		modelCount := 0
-		if gateway.DefaultModel != "" {
-			modelCount = 1
-		}
-		out = append(out, Gateway{
-			ID: gateway.ID, DisplayName: gateway.DisplayName,
-			CredentialEnv: gateway.CredentialEnv, RequiresKey: gateway.CredentialEnv != "",
-			CredentialConfigured: configured, DeploymentConfigured: configured,
-			ModelCount: modelCount,
-			Active:     NormalizeProviderID(selection.Provider) == gateway.ID,
-		})
-	}
-	sort.SliceStable(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out
+}
+
+func boolInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }
 
 func (e *Engine) hasCredential(ctx context.Context, envVars []string) bool {

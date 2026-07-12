@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -388,7 +390,15 @@ func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
 		return nil, fmt.Errorf("eyrie: failed to read provider config at %s: %w", path, err)
 	}
 	var cfg ProviderConfig
-	if err := json.Unmarshal(data, &cfg); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("eyrie: corrupt provider config at %s: %w", path, err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			err = fmt.Errorf("multiple JSON values")
+		}
 		return nil, fmt.Errorf("eyrie: corrupt provider config at %s: %w", path, err)
 	}
 	if cfg.Version != "" && cfg.Version != "1" {
@@ -397,17 +407,62 @@ func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
 	return &cfg, nil
 }
 
-// SaveProviderConfig saves provider config to disk.
-func SaveProviderConfig(config *ProviderConfig, path string) error {
+// SaveProviderConfig atomically persists non-secret provider state. Credential
+// material belongs in the credential store; refusing it here makes plaintext
+// provider.json writes impossible through the public config API.
+func SaveProviderConfig(config *ProviderConfig, path string) (err error) {
+	if config == nil {
+		return fmt.Errorf("eyrie: provider config is nil")
+	}
+	if ProviderConfigContainsSecrets(*config) {
+		return fmt.Errorf("eyrie: refusing to persist credential fields in provider config")
+	}
+	if config.Version != "" && config.Version != "1" {
+		return fmt.Errorf("eyrie: refusing to persist unsupported provider config version %q", config.Version)
+	}
 	if path == "" {
 		path = GetProviderConfigPath()
 	}
-	_ = os.MkdirAll(filepath.Dir(path), 0o700)
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(data, '\n'), 0o600)
+	tmp, err := os.CreateTemp(dir, ".provider-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+	}()
+	if err := tmp.Chmod(0o600); err != nil {
+		return err
+	}
+	if _, err := tmp.Write(append(data, '\n')); err != nil {
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return err
+	}
+	// The rename is the commit point. Directory fsync is best-effort because a
+	// post-commit error must not make callers roll back credentials after the
+	// plaintext source has already been replaced by sanitized state.
+	if dirHandle, openErr := os.Open(dir); openErr == nil {
+		_ = dirHandle.Sync()
+		_ = dirHandle.Close()
+	}
+	return nil
 }
 
 // IsProviderConfigured checks if a provider has valid configuration.

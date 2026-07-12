@@ -2,7 +2,7 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,11 +33,25 @@ type CredentialStorageReport struct {
 func CredentialStorage(ctx context.Context) CredentialStorageReport {
 	ctx = nonNilContext(ctx)
 	report := credentials.StorageReportFor(ctx)
-	ok, detail := credentials.KeychainWriteAvailable(ctx)
 	return CredentialStorageReport{
-		PlatformStore: report.PlatformStore, Writable: ok, Detail: detail,
+		PlatformStore: report.PlatformStore, Writable: report.KeychainWritable, Detail: report.KeychainDetail,
 		Formatted: credentials.FormatStorageReport(report),
 	}
+}
+
+func (e *Engine) credentialStorage(ctx context.Context) CredentialStorageReport {
+	if e.defaultSecretStore {
+		return CredentialStorage(ctx)
+	}
+	return CredentialStorageReport{
+		PlatformStore: "host-injected", Writable: false,
+		Detail:    "host-injected credential store configured (writability not probed)",
+		Formatted: "Credential storage:\n  platform store: host-injected\n  writability: not probed",
+	}
+}
+
+func (e *Engine) StatePaths() StatePaths {
+	return StatePaths{Catalog: e.catalogPath, ProviderConfig: e.providerConfigPath}
 }
 
 func MigrateLegacyCredentials(ctx context.Context) (int, error) {
@@ -66,6 +80,12 @@ func (e *Engine) SaveCredentialEnv(ctx context.Context, envVar, secret string) e
 }
 
 func (e *Engine) CredentialEnvKeys(providerID string) []string {
+	if gateway, ok := e.customGateway(providerID); ok {
+		if gateway.CredentialEnv == "" {
+			return nil
+		}
+		return []string{gateway.CredentialEnv}
+	}
 	spec, ok := registry.SpecByProviderID(NormalizeProviderID(providerID))
 	if !ok {
 		return nil
@@ -85,6 +105,10 @@ func (e *Engine) CredentialEnvKeys(providerID string) []string {
 // GatewayRegion returns normalized region presentation for regional gateways.
 func (e *Engine) GatewayRegion(providerID string) (label string, required bool) {
 	cfg := config.LoadProviderConfig(e.providerConfigPath)
+	return gatewayRegionFromConfig(providerID, cfg)
+}
+
+func gatewayRegionFromConfig(providerID string, cfg *config.ProviderConfig) (label string, required bool) {
 	providerID = NormalizeProviderID(providerID)
 	switch providerID {
 	case runtime.GatewayXiaomiTokenPlan:
@@ -106,10 +130,13 @@ func (e *Engine) GatewayRegion(providerID string) (label string, required bool) 
 
 // SetGatewayRegion persists regional gateway configuration at the Engine path.
 func (e *Engine) SetGatewayRegion(ctx context.Context, providerID, value string) error {
+	ctx = nonNilContext(ctx)
 	providerID = NormalizeProviderID(providerID)
-	cfg := config.LoadProviderConfig(e.providerConfigPath)
-	if cfg == nil {
-		cfg = &config.ProviderConfig{}
+	unlock := lockProviderStatePath(e.providerConfigPath)
+	defer unlock()
+	cfg, err := e.loadProviderConfigStrict()
+	if err != nil {
+		return &Error{Code: ErrorInternal, Operation: "set_gateway_region", Provider: providerID, Message: err.Error(), Cause: err}
 	}
 	switch providerID {
 	case runtime.GatewayXiaomiTokenPlan:
@@ -140,14 +167,15 @@ func (e *Engine) SetGatewayRegion(ctx context.Context, providerID, value string)
 	default:
 		return invalid("set_gateway_region", "eyrie engine: gateway does not support regions")
 	}
-	if err := config.SaveProviderConfig(cfg, e.providerConfigPath); err != nil {
+	if err := e.saveProviderConfig(ctx, cfg); err != nil {
 		return err
 	}
-	e.ApplyGatewayEnvironment(ctx, providerID)
 	return nil
 }
 
 // ApplyGatewayEnvironment derives process-local regional base URLs.
+// Deprecated: invocation-scoped hosts must use Engine state directly and must
+// not mutate process environment. This remains only for legacy callers.
 func (e *Engine) ApplyGatewayEnvironment(_ context.Context, providerID string) {
 	cfg := config.LoadProviderConfig(e.providerConfigPath)
 	if cfg == nil {
@@ -158,22 +186,26 @@ func (e *Engine) ApplyGatewayEnvironment(_ context.Context, providerID string) {
 		if cfg.XiaomiMimoTokenPlanRegion != "" {
 			_ = os.Setenv(config.EnvXiaomiTokenPlanRegion, cfg.XiaomiMimoTokenPlanRegion)
 		}
-		if cfg.XiaomiMimoTokenPlanBaseURL != "" {
-			_ = os.Setenv(config.EnvXiaomiTokenPlanBaseURL, cfg.XiaomiMimoTokenPlanBaseURL)
+		if base, err := config.ResolveXiaomiOpenAIBase(runtime.GatewayXiaomiTokenPlan, cfg); err == nil && base != "" {
+			_ = os.Setenv(config.EnvXiaomiTokenPlanBaseURL, base)
 		}
 	case "zai_payg":
 		if cfg.ZAIRegion != "" {
 			_ = os.Setenv("ZAI_REGION", cfg.ZAIRegion)
 		}
-		if cfg.ZAIBaseURL != "" {
-			_ = os.Setenv("ZAI_BASE_URL", cfg.ZAIBaseURL)
+		if region, err := zai.NormalizeRegion(cfg.ZAIRegion); err == nil {
+			if base, err := zai.ResolveOpenAIBase(zai.PlanGeneral, region, cfg.ZAIBaseURL); err == nil && base != "" {
+				_ = os.Setenv("ZAI_BASE_URL", base)
+			}
 		}
 	case "zai_coding":
 		if cfg.ZAICodingRegion != "" {
 			_ = os.Setenv("ZAI_CODING_REGION", cfg.ZAICodingRegion)
 		}
-		if cfg.ZAICodingBaseURL != "" {
-			_ = os.Setenv("ZAI_CODING_BASE_URL", cfg.ZAICodingBaseURL)
+		if region, err := zai.NormalizeRegion(cfg.ZAICodingRegion); err == nil {
+			if base, err := zai.ResolveOpenAIBase(zai.PlanCoding, region, cfg.ZAICodingBaseURL); err == nil && base != "" {
+				_ = os.Setenv("ZAI_CODING_BASE_URL", base)
+			}
 		}
 	}
 }
@@ -200,7 +232,10 @@ func (e *Engine) CatalogHealth(ctx context.Context) CatalogHealth {
 		health.Error = err.Error()
 		return health
 	}
-	compiled, err := catalog.LoadCatalog(nonNilContext(ctx), catalog.LoadCatalogOptions{CachePath: e.catalogPath})
+	if !exists {
+		return health
+	}
+	compiled, err := catalog.LoadCatalog(nonNilContext(ctx), catalog.LoadCatalogOptions{CachePath: e.catalogPath, RequireCache: true})
 	if err != nil {
 		health.Error = err.Error()
 		return health
@@ -210,7 +245,7 @@ func (e *Engine) CatalogHealth(ctx context.Context) CatalogHealth {
 	health.Offerings = len(compiled.OfferingsByID)
 	if compiled.Catalog != nil {
 		health.StaleAfter = compiled.Catalog.StaleAfter
-		health.Stale = time.Now().UTC().After(compiled.Catalog.StaleAfter)
+		health.Stale = !compiled.Catalog.StaleAfter.IsZero() && time.Now().UTC().After(compiled.Catalog.StaleAfter)
 		if compiled.Catalog.Provenance != nil {
 			health.Source = compiled.Catalog.Provenance.Source
 		}
@@ -219,6 +254,9 @@ func (e *Engine) CatalogHealth(ctx context.Context) CatalogHealth {
 }
 
 func (e *Engine) CanonicalModel(ctx context.Context, modelID string) string {
+	if _, ok := e.customGatewayForModel(modelID); ok {
+		return strings.TrimSpace(modelID)
+	}
 	compiled, err := e.policyCatalog(ctx)
 	if err == nil {
 		if canonical, ok := compiled.CanonicalModelForAliasOrID(strings.TrimSpace(modelID)); ok {
@@ -229,16 +267,19 @@ func (e *Engine) CanonicalModel(ctx context.Context, modelID string) string {
 }
 
 func (e *Engine) GatewayForModel(ctx context.Context, modelID string) string {
+	if gateway, ok := e.customGatewayForModel(modelID); ok {
+		return gateway.ID
+	}
 	compiled, _ := e.policyCatalog(ctx)
-	return catalog.GatewayForModel(compiled, modelID)
+	return NormalizeProviderID(catalog.GatewayForModel(compiled, modelID))
 }
 
 func (e *Engine) DeploymentRoutingEnabled(override *bool) bool {
 	if override != nil {
 		return *override
 	}
-	cfg := config.LoadProviderConfig(e.providerConfigPath)
-	return setup.UseDeploymentRouting(cfg)
+	cfg, err := e.loadProviderConfigStrict()
+	return err == nil && setup.DeploymentRoutingFromState(cfg)
 }
 
 func (e *Engine) DeploymentStatus(ctx context.Context, activeModel string) (string, error) {
@@ -298,38 +339,162 @@ func (e *Engine) DefaultProviderFilter(ctx context.Context) string {
 }
 
 func (e *Engine) Preflight(ctx context.Context) PreflightReport {
+	return e.PreflightWithOptions(ctx, PreflightOptions{})
+}
+
+// PreflightOptions controls whether readiness remains a local state check or
+// also verifies the selected provider over the network.
+type PreflightOptions struct {
+	VerifyLive bool `json:"verify_live,omitempty"`
+}
+
+func (e *Engine) PreflightWithOptions(ctx context.Context, opts PreflightOptions) PreflightReport {
 	ctx = nonNilContext(ctx)
 	var checks []PreflightCheck
-	health := e.CatalogHealth(ctx)
-	if health.Error != "" || health.Models == 0 {
-		checks = append(checks, PreflightCheck{Name: "catalog", Status: CheckWarn, Detail: fmt.Sprintf("catalog unavailable at %s", health.Path)})
+	cfg, stateErr := e.loadProviderConfigStrict()
+	if stateErr != nil {
+		checks = append(checks, PreflightCheck{Name: "provider_state", Status: CheckFail, Detail: stateErr.Error()})
+		cfg = &config.ProviderConfig{}
 	} else {
-		checks = append(checks, PreflightCheck{Name: "catalog", Status: CheckOK, Detail: fmt.Sprintf("%d models cached at %s", health.Models, health.Path)})
+		checks = append(checks, PreflightCheck{Name: "provider_state", Status: CheckOK, Detail: e.providerConfigPath})
 	}
-	storage := CredentialStorage(ctx)
+	providerID := NormalizeProviderID(config.ActiveProvider(cfg))
+	activeModel := strings.TrimSpace(config.ActiveModel(cfg))
+	customGateway, custom := e.customGateway(providerID)
+
+	var compiled *catalog.CompiledCatalog
+	if custom {
+		checks = append(checks, PreflightCheck{Name: "catalog", Status: CheckOK, Detail: "not required for selected custom gateway"})
+	} else {
+		health := e.CatalogHealth(ctx)
+		if health.Error != "" || health.Models == 0 {
+			checks = append(checks, PreflightCheck{Name: "catalog", Status: CheckFail, Detail: fmt.Sprintf("catalog unavailable at %s", health.Path)})
+		} else {
+			var err error
+			compiled, err = catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{CachePath: e.catalogPath, RequireCache: true})
+			if err != nil {
+				checks = append(checks, PreflightCheck{Name: "catalog", Status: CheckFail, Detail: err.Error()})
+			} else {
+				checks = append(checks, PreflightCheck{Name: "catalog", Status: CheckOK, Detail: fmt.Sprintf("%d models cached at %s", health.Models, health.Path)})
+			}
+		}
+	}
+	storage := e.credentialStorage(ctx)
 	status := CheckWarn
 	if storage.Writable {
 		status = CheckOK
 	}
 	checks = append(checks, PreflightCheck{Name: "credentials_store", Status: status, Detail: storage.Detail})
-	selection := e.EffectiveSelection(ctx, SelectionOptions{})
-	if selection.HasConfiguredDeployment {
-		checks = append(checks, PreflightCheck{Name: "credentials", Status: CheckOK, Detail: "at least one provider credential is configured in " + SecretStoreName()})
-	} else {
-		checks = append(checks, PreflightCheck{Name: "credentials", Status: CheckFail, Detail: "no provider credentials configured"})
-	}
-	if selection.Model == "" {
-		checks = append(checks, PreflightCheck{Name: "model", Status: CheckFail, Detail: "no model selected"})
-	} else {
-		checks = append(checks, PreflightCheck{Name: "model", Status: CheckOK, Detail: selection.Model})
-	}
-	ready := true
-	for _, check := range checks {
-		if check.Status == CheckFail {
-			ready = false
+
+	credentialReady := false
+	credentialDetail := "no active provider selected"
+	if custom {
+		credentialReady = customGateway.CredentialEnv == "" || e.hasCredential(ctx, []string{customGateway.CredentialEnv})
+		credentialDetail = providerID + " credential is not configured"
+		if credentialReady {
+			credentialDetail = providerID + " credential is configured"
+		}
+	} else if providerID != "" && compiled != nil && stateErr == nil {
+		if spec, ok := registry.SpecByProviderID(providerID); ok {
+			env := e.discoveryCredentialsFromConfig(ctx, compiled, cfg).Env()
+			deployments := buildDeployments(compiled, cfg.Deployments, env)
+			if deployment, ok := deployments[spec.DeploymentID]; ok {
+				_, credentialReady = setup.ProviderForDeploymentFromState(spec.DeploymentID, deployment, cfg)
+			}
+			credentialDetail = providerID + " deployment is not fully configured"
+			if credentialReady {
+				credentialDetail = providerID + " deployment is configured"
+			}
+		} else {
+			credentialDetail = "unknown active provider " + providerID
 		}
 	}
-	return PreflightReport{Ready: ready, Checks: checks}
+	credentialStatus := CheckFail
+	if credentialReady {
+		credentialStatus = CheckOK
+	}
+	checks = append(checks, PreflightCheck{Name: "credentials", Status: credentialStatus, Detail: credentialDetail})
+
+	modelDetail := activeModel
+	if activeModel == "" {
+		checks = append(checks, PreflightCheck{Name: "model", Status: CheckFail, Detail: "no model selected"})
+	} else if custom {
+		checks = append(checks, PreflightCheck{Name: "model", Status: CheckOK, Detail: activeModel})
+	} else if compiled != nil && providerModelAvailable(compiled, providerID, activeModel) {
+		checks = append(checks, PreflightCheck{Name: "model", Status: CheckOK, Detail: activeModel})
+	} else {
+		checks = append(checks, PreflightCheck{Name: "model", Status: CheckFail, Detail: modelDetail + " is not available through " + providerID})
+	}
+	localReady := true
+	for _, check := range checks {
+		if check.Status == CheckFail {
+			localReady = false
+		}
+	}
+	liveVerified := false
+	if !opts.VerifyLive {
+		checks = append(checks, PreflightCheck{Name: "provider_live", Status: CheckWarn, Detail: "not checked (local preflight only)"})
+	} else if !localReady {
+		checks = append(checks, PreflightCheck{Name: "provider_live", Status: CheckWarn, Detail: "skipped until local setup is complete"})
+	} else {
+		var err error
+		if custom {
+			err = e.probeCustomGateway(ctx, customGateway, "")
+		} else {
+			var liveModels []Model
+			liveModels, err = e.ListLiveModels(ctx, providerID)
+			if err == nil && !modelListContains(liveModels, activeModel) {
+				err = &Error{
+					Code: ErrorModelUnavailable, Operation: "preflight", Provider: providerID, Model: activeModel,
+					Message: fmt.Sprintf("eyrie engine: selected model %q is not present in %s live model list", activeModel, providerID),
+				}
+			}
+		}
+		if err != nil {
+			checks = append(checks, PreflightCheck{Name: "provider_live", Status: CheckFail, Detail: fmt.Sprintf("%s verification failed: %v", providerID, err)})
+		} else {
+			liveVerified = true
+			checks = append(checks, PreflightCheck{Name: "provider_live", Status: CheckOK, Detail: providerID + " connectivity and authentication verified"})
+		}
+	}
+	ready := localReady
+	if opts.VerifyLive && !liveVerified {
+		ready = false
+	}
+	return PreflightReport{Ready: ready, LiveVerified: liveVerified, Checks: checks}
+}
+
+func modelListContains(models []Model, modelID string) bool {
+	modelID = strings.TrimSpace(modelID)
+	for _, model := range models {
+		if strings.TrimSpace(model.ID) == modelID || strings.TrimSpace(model.CanonicalID) == modelID {
+			return true
+		}
+	}
+	return false
+}
+
+func providerModelAvailable(compiled *catalog.CompiledCatalog, providerID, modelID string) bool {
+	if compiled == nil || providerID == "" || strings.TrimSpace(modelID) == "" {
+		return false
+	}
+	if _, ok := catalog.CanonicalModelForProviderNative(compiled, providerID, modelID); ok {
+		return true
+	}
+	canonical, ok := compiled.CanonicalModelForAliasOrID(modelID)
+	if !ok {
+		canonical = strings.TrimSpace(modelID)
+	}
+	spec, ok := registry.SpecByProviderID(providerID)
+	if !ok {
+		return false
+	}
+	for _, offering := range compiled.OfferingsByDeployment[spec.DeploymentID] {
+		if offering.CanonicalModelID == canonical || offering.NativeModelID == modelID {
+			return true
+		}
+	}
+	return false
 }
 
 type CheckStatus string
@@ -347,14 +512,17 @@ type PreflightCheck struct {
 }
 
 type PreflightReport struct {
-	Ready  bool             `json:"ready"`
-	Checks []PreflightCheck `json:"checks"`
+	Ready        bool             `json:"ready"`
+	LiveVerified bool             `json:"live_verified"`
+	Checks       []PreflightCheck `json:"checks"`
 }
 
 func FormatPreflight(report PreflightReport) string {
 	var b strings.Builder
-	if report.Ready {
-		b.WriteString("Preflight: ready to chat\n")
+	if report.Ready && report.LiveVerified {
+		b.WriteString("Preflight: ready to chat (live verified)\n")
+	} else if report.Ready {
+		b.WriteString("Preflight: locally ready to chat\n")
 	} else {
 		b.WriteString("Preflight: setup incomplete\n")
 	}
@@ -396,52 +564,54 @@ func (e *Engine) ProviderStateSecurityStatus() ProviderStateSecurity {
 	return status
 }
 
-// MigrateProviderSecrets atomically strips historical secret fields from
-// provider.json while preserving routing and non-secret deployment metadata.
+// MigrateProviderSecrets imports historical credential fields into the
+// Engine's secret store, then atomically strips them from provider.json.
 func (e *Engine) MigrateProviderSecrets() error {
+	return e.MigrateProviderSecretsContext(context.Background())
+}
+
+func (e *Engine) MigrateProviderSecretsContext(ctx context.Context) error {
+	ctx = nonNilContext(ctx)
 	path := e.providerConfigPath
-	marker, backup := path+".secrets-migrated", path+".pre-secret-migrate.bak"
-	data, err := os.ReadFile(path) // #nosec G304 -- engine-owned state path
+	unlock := lockProviderStatePath(path)
+	defer unlock()
+	marker := path + ".secrets-migrated"
+	cfgState, err := config.LoadProviderConfigWithError(path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
 		return err
 	}
-	var cfg config.ProviderConfig
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return err
+	if cfgState == nil {
+		return nil
 	}
+	cfg := *cfgState
 	changed := config.ProviderConfigContainsSecrets(cfg)
-	cfg = config.SanitizeProviderConfigForDisk(cfg)
 	if !changed {
-		if err := os.WriteFile(marker, []byte("ok\n"), 0o600); err != nil {
-			return err
-		}
-		if err := os.Remove(backup); err != nil && !os.IsNotExist(err) {
+		if err := writeBytesAtomic(marker, []byte("ok\n")); err != nil {
 			return err
 		}
 		return nil
 	}
-	if err := os.WriteFile(backup, data, 0o600); err != nil {
+	writes, err := e.importLegacyProviderSecrets(ctx, cfg)
+	if err != nil {
+		return &Error{Code: ErrorInternal, Operation: "migrate_provider_secrets", Message: "eyrie engine: could not import legacy credentials", Cause: err}
+	}
+	sanitized := config.SanitizeProviderConfigForDisk(cfg)
+	if err := writeProviderConfigAtomic(path, &sanitized); err != nil {
+		return errors.Join(err, e.rollbackImportedCredentials(ctx, writes))
+	}
+	if err := writeBytesAtomic(marker, []byte("ok\n")); err != nil {
 		return err
 	}
-	if err := writeProviderConfigAtomic(path, &cfg); err != nil {
-		return err
-	}
-	if err := os.WriteFile(marker, []byte("ok\n"), 0o600); err != nil {
-		return err
-	}
-	return os.Remove(backup)
+	return nil
 }
 
 func writeProviderConfigAtomic(path string, cfg *config.ProviderConfig) (err error) {
+	return config.SaveProviderConfig(cfg, path)
+}
+
+func writeBytesAtomic(path string, data []byte) (err error) {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
-	}
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
 		return err
 	}
 	tmp, err := os.CreateTemp(dir, ".provider-*.tmp")
@@ -456,7 +626,7 @@ func writeProviderConfigAtomic(path string, cfg *config.ProviderConfig) (err err
 	if err := tmp.Chmod(0o600); err != nil {
 		return err
 	}
-	if _, err := tmp.Write(append(data, '\n')); err != nil {
+	if _, err := tmp.Write(data); err != nil {
 		return err
 	}
 	if err := tmp.Sync(); err != nil {

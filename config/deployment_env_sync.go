@@ -39,9 +39,16 @@ func DeploymentConfigFromEnv(dep catalog.Deployment, env map[string]string) Depl
 
 // DeploymentConfigured reports whether env supplies enough credentials for this deployment.
 func DeploymentConfigured(deploymentID string, dep catalog.Deployment, dc DeploymentConfig) bool {
+	if dep.ModelMappingsRequired && len(dc.ModelMappings) == 0 {
+		return false
+	}
 	switch deploymentID {
 	case "ollama-local":
 		return dc.BaseURL != ""
+	case "openai-azure":
+		return dc.APIKey != "" && dc.Endpoint != ""
+	case "xiaomi_mimo_token_plan-direct":
+		return dc.APIKey != "" && dc.BaseURL != ""
 	default:
 		return deploymentHasLiveCredentials(deploymentID, dc)
 	}
@@ -50,7 +57,7 @@ func DeploymentConfigured(deploymentID string, dep catalog.Deployment, dc Deploy
 func deploymentHasLiveCredentials(deploymentID string, dc DeploymentConfig) bool {
 	switch deploymentID {
 	case "anthropic-bedrock":
-		return dc.AccessKeyID != "" && dc.SecretAccessKey != ""
+		return dc.AccessKeyID != "" && dc.SecretAccessKey != "" && dc.Region != ""
 	case "anthropic-vertex", "gemini-vertex":
 		return dc.ProjectID != "" && dc.Region != "" &&
 			(dc.Token != "" || dc.APIKey != "")

@@ -1,6 +1,9 @@
 package engine
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Intent expresses a host's semantic preference without naming a provider.
 type Intent string
@@ -217,19 +220,21 @@ type Event struct {
 
 // Model is a host-facing catalog row.
 type Model struct {
-	ID               string   `json:"id"`
-	DisplayName      string   `json:"display_name"`
-	Description      string   `json:"description,omitempty"`
-	Owner            string   `json:"owner,omitempty"`
-	ProviderID       string   `json:"provider_id"`
-	GatewayID        string   `json:"gateway_id,omitempty"`
-	ContextWindow    int      `json:"context_window,omitempty"`
-	MaxOutputTokens  int      `json:"max_output_tokens,omitempty"`
-	InputPricePer1M  float64  `json:"input_price_per_1m,omitempty"`
-	OutputPricePer1M float64  `json:"output_price_per_1m,omitempty"`
-	PriceKnown       bool     `json:"price_known"`
-	Capabilities     []string `json:"capabilities,omitempty"`
-	Source           string   `json:"source,omitempty"`
+	ID               string          `json:"id"`
+	CanonicalID      string          `json:"canonical_id,omitempty"`
+	DisplayName      string          `json:"display_name"`
+	Description      string          `json:"description,omitempty"`
+	Owner            string          `json:"owner,omitempty"`
+	ProviderID       string          `json:"provider_id"`
+	GatewayID        string          `json:"gateway_id,omitempty"`
+	ContextWindow    int             `json:"context_window,omitempty"`
+	MaxOutputTokens  int             `json:"max_output_tokens,omitempty"`
+	InputPricePer1M  float64         `json:"input_price_per_1m,omitempty"`
+	OutputPricePer1M float64         `json:"output_price_per_1m,omitempty"`
+	PriceKnown       bool            `json:"price_known"`
+	Capabilities     []string        `json:"capabilities,omitempty"`
+	Source           string          `json:"source,omitempty"`
+	LiveMetadata     json.RawMessage `json:"live_metadata,omitempty"`
 }
 
 // CatalogSnapshot is an immutable host-facing view of a loaded catalog.
@@ -283,6 +288,15 @@ type Gateway struct {
 	RegionLabel           string `json:"region_label,omitempty"`
 	RegionRequired        bool   `json:"region_required,omitempty"`
 	SupportsLiveDiscovery bool   `json:"supports_live_discovery,omitempty"`
+	SortOrder             int    `json:"sort_order,omitempty"`
+	ChatPreference        int    `json:"chat_preference,omitempty"`
+}
+
+// StatePaths reports the Engine's host-owned state locations without reading
+// or parsing either file.
+type StatePaths struct {
+	Catalog        string `json:"catalog"`
+	ProviderConfig string `json:"provider_config"`
 }
 
 // Selection is the effective provider/model state supplied to a host session.

@@ -53,6 +53,12 @@ func UseDeploymentRouting(cfg *config.ProviderConfig) bool {
 	case "0", "false", "no", "off":
 		return false
 	}
+	return DeploymentRoutingFromState(cfg)
+}
+
+// DeploymentRoutingFromState reports routing state without consulting process
+// environment. Host-facing Engine code must use this pure form.
+func DeploymentRoutingFromState(cfg *config.ProviderConfig) bool {
 	return cfg != nil && (cfg.ConfigVersion >= 2 || len(cfg.Deployments) > 0 || cfg.Routing != nil)
 }
 
@@ -68,29 +74,53 @@ func DeploymentProvider(ctx context.Context, cfg *config.ProviderConfig) (client
 	return DeploymentProviderFromCatalog(cfg, compiled)
 }
 
-// DeploymentProviderFromCatalog builds a deployment router from explicit
-// host-owned state. It is the host-neutral alternative to DeploymentProvider,
-// which loads Eyrie's process-default catalog path.
+// DeploymentProviderFromCatalog is the ambient compatibility constructor. It
+// may consult the default store, process environment, and legacy detection.
+// Host integrations must use DeploymentProviderFromState instead.
 func DeploymentProviderFromCatalog(cfg *config.ProviderConfig, compiled *catalog.CompiledCatalog) (client.Provider, error) {
+	return deploymentProviderFromCatalog(cfg, compiled, true)
+}
+
+// DeploymentProviderFromState builds a router exclusively from the supplied
+// provider state. It never reads the default credential store, process
+// environment, process-default provider path, or legacy provider detection.
+// Host-facing Engine code must use this strict constructor.
+func DeploymentProviderFromState(cfg *config.ProviderConfig, compiled *catalog.CompiledCatalog) (client.Provider, error) {
+	return deploymentProviderFromCatalog(cfg, compiled, false)
+}
+
+func deploymentProviderFromCatalog(cfg *config.ProviderConfig, compiled *catalog.CompiledCatalog, allowAmbient bool) (client.Provider, error) {
 	if compiled == nil {
 		return nil, fmt.Errorf("deployment provider: catalog is nil")
 	}
-	deployments := ConfiguredDeploymentAdapters(cfg)
+	deployments := configuredDeploymentAdapters(cfg, allowAmbient)
 	if len(deployments) == 0 {
 		return nil, fmt.Errorf("no deployment credentials configured")
+	}
+	var routing *config.RoutingPolicy
+	if cfg != nil {
+		routing = cfg.Routing
 	}
 	return router.NewDeploymentRouter(router.DeploymentRouterOptions{
 		Catalog:     compiled,
 		Deployments: deployments,
-		Routing:     RouterRoutingPolicy(cfg.Routing),
+		Routing:     RouterRoutingPolicy(routing),
 	})
 }
 
 // ConfiguredDeploymentAdapters maps deployment IDs to live provider clients.
 func ConfiguredDeploymentAdapters(cfg *config.ProviderConfig) map[string]router.DeploymentAdapter {
+	return configuredDeploymentAdapters(cfg, true)
+}
+
+func configuredDeploymentAdapters(cfg *config.ProviderConfig, allowAmbient bool) map[string]router.DeploymentAdapter {
 	out := map[string]router.DeploymentAdapter{}
-	for id, deployment := range ConfiguredDeployments(cfg) {
-		provider, ok := ProviderForDeployment(id, deployment)
+	configured := explicitDeployments(cfg)
+	if allowAmbient {
+		configured = ConfiguredDeployments(cfg)
+	}
+	for id, deployment := range configured {
+		provider, ok := providerForDeployment(id, deployment, cfg, allowAmbient)
 		if !ok {
 			continue
 		}
@@ -98,6 +128,16 @@ func ConfiguredDeploymentAdapters(cfg *config.ProviderConfig) map[string]router.
 			DeploymentID:  id,
 			Provider:      provider,
 			ModelMappings: CloneStringMap(deployment.ModelMappings),
+		}
+	}
+	return out
+}
+
+func explicitDeployments(cfg *config.ProviderConfig) map[string]config.DeploymentConfig {
+	out := map[string]config.DeploymentConfig{}
+	if cfg != nil {
+		for id, deployment := range cfg.Deployments {
+			out[id] = deployment
 		}
 	}
 	return out
@@ -126,38 +166,58 @@ func ConfiguredDeployments(cfg *config.ProviderConfig) map[string]config.Deploym
 	return out
 }
 
-// ProviderForDeployment constructs the API client for a catalog deployment ID.
+// ProviderForDeployment constructs one adapter with ambient compatibility
+// fallbacks. Host integrations must use ProviderForDeploymentFromState.
 func ProviderForDeployment(id string, deployment config.DeploymentConfig) (client.Provider, bool) {
+	return providerForDeployment(id, deployment, nil, true)
+}
+
+// ProviderForDeploymentFromState constructs exactly one adapter without any
+// process-global credential, environment, OIDC, or provider-config fallback.
+func ProviderForDeploymentFromState(id string, deployment config.DeploymentConfig, cfg *config.ProviderConfig) (client.Provider, bool) {
+	return providerForDeployment(id, deployment, cfg, false)
+}
+
+func providerForDeployment(id string, deployment config.DeploymentConfig, cfg *config.ProviderConfig, allowAmbient bool) (client.Provider, bool) {
+	lookup := func(...string) string { return "" }
+	getenv := func(string) string { return "" }
+	if allowAmbient {
+		lookup = storeSecret
+		getenv = os.Getenv
+		if cfg == nil {
+			cfg = config.LoadProviderConfig("")
+		}
+	}
 	switch id {
 	case "anthropic-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("ANTHROPIC_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("ANTHROPIC_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
-		return client.NewAnthropicClient(apiKey, FirstNonEmpty(deployment.BaseURL, os.Getenv("ANTHROPIC_BASE_URL"))), true
+		return client.NewAnthropicClient(apiKey, FirstNonEmpty(deployment.BaseURL, getenv("ANTHROPIC_BASE_URL"))), true
 	case "anthropic-vertex":
-		projectID := FirstNonEmpty(deployment.ProjectID, os.Getenv("VERTEX_PROJECT_ID"))
-		region := FirstNonEmpty(deployment.Region, os.Getenv("VERTEX_REGION"))
+		projectID := FirstNonEmpty(deployment.ProjectID, getenv("VERTEX_PROJECT_ID"))
+		region := FirstNonEmpty(deployment.Region, getenv("VERTEX_REGION"))
 		// Opt-in OIDC keyless auth: only when enabled AND running in GitHub
 		// Actions. On ErrNoOIDC or any failure we fall through to stored token.
-		if projectID != "" && region != "" && oidcEnabled(deployment) && credentials.DetectGitHubActions() {
-			audience := FirstNonEmpty(deployment.WIFAudience, os.Getenv("VERTEX_WIF_AUDIENCE"))
-			sa := FirstNonEmpty(deployment.ServiceAccountEmail, os.Getenv("VERTEX_SERVICE_ACCOUNT_EMAIL"))
+		if allowAmbient && projectID != "" && region != "" && oidcEnabled(deployment) && credentials.DetectGitHubActions() {
+			audience := FirstNonEmpty(deployment.WIFAudience, getenv("VERTEX_WIF_AUDIENCE"))
+			sa := FirstNonEmpty(deployment.ServiceAccountEmail, getenv("VERTEX_SERVICE_ACCOUNT_EMAIL"))
 			if oidcTok, err := oidcVertexToken(context.Background(), audience, sa); err == nil && oidcTok != "" {
 				return client.NewVertexClient(projectID, region, oidcTok), true
 			}
 		}
-		token := FirstNonEmpty(deployment.Token, deployment.APIKey, storeSecret("VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"))
+		token := FirstNonEmpty(deployment.Token, deployment.APIKey, lookup("VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"))
 		if projectID == "" || region == "" || token == "" {
 			return nil, false
 		}
 		return client.NewVertexClient(projectID, region, token), true
 	case "anthropic-bedrock":
-		region := FirstNonEmpty(deployment.Region, os.Getenv("AWS_REGION"), os.Getenv("AWS_DEFAULT_REGION"))
+		region := FirstNonEmpty(deployment.Region, getenv("AWS_REGION"), getenv("AWS_DEFAULT_REGION"))
 		// Opt-in OIDC keyless auth: only when enabled AND running in GitHub
 		// Actions. On ErrNoOIDC or any failure we fall through to stored creds.
-		if oidcEnabled(deployment) && credentials.DetectGitHubActions() {
-			roleARN := FirstNonEmpty(deployment.RoleARN, os.Getenv("AWS_ROLE_ARN"))
+		if allowAmbient && oidcEnabled(deployment) && credentials.DetectGitHubActions() {
+			roleARN := FirstNonEmpty(deployment.RoleARN, getenv("AWS_ROLE_ARN"))
 			if creds, err := oidcBedrockCreds(context.Background(), roleARN, region); err == nil &&
 				creds.AccessKeyID != "" && creds.SecretAccessKey != "" {
 				oidcRegion := FirstNonEmpty(creds.Region, region)
@@ -166,61 +226,61 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 				}
 			}
 		}
-		accessKeyID := FirstNonEmpty(deployment.AccessKeyID, deployment.APIKey, storeSecret("AWS_ACCESS_KEY_ID"))
-		secretAccessKey := FirstNonEmpty(deployment.SecretAccessKey, deployment.Token, storeSecret("AWS_SECRET_ACCESS_KEY"))
-		sessionToken := FirstNonEmpty(deployment.SessionToken, storeSecret("AWS_SESSION_TOKEN"))
+		accessKeyID := FirstNonEmpty(deployment.AccessKeyID, deployment.APIKey, lookup("AWS_ACCESS_KEY_ID"))
+		secretAccessKey := FirstNonEmpty(deployment.SecretAccessKey, deployment.Token, lookup("AWS_SECRET_ACCESS_KEY"))
+		sessionToken := FirstNonEmpty(deployment.SessionToken, lookup("AWS_SESSION_TOKEN"))
 		if region == "" || accessKeyID == "" || secretAccessKey == "" {
 			return nil, false
 		}
 		return client.NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region), true
 	case "openai-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("OPENAI_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("OPENAI_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultOpenAIBaseURL), &client.OpenAICompat), true
 	case "openai-azure":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("AZURE_OPENAI_API_KEY"))
-		endpoint := FirstNonEmpty(deployment.Endpoint, os.Getenv("AZURE_OPENAI_ENDPOINT"))
-		apiVersion := FirstNonEmpty(deployment.APIVersion, os.Getenv("AZURE_OPENAI_API_VERSION"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("AZURE_OPENAI_API_KEY"))
+		endpoint := FirstNonEmpty(deployment.Endpoint, getenv("AZURE_OPENAI_ENDPOINT"))
+		apiVersion := FirstNonEmpty(deployment.APIVersion, getenv("AZURE_OPENAI_API_VERSION"))
 		if apiKey == "" || endpoint == "" {
 			return nil, false
 		}
 		return client.NewAzureClient(apiKey, endpoint, apiVersion), true
 	case "grok-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("XAI_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("XAI_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultGrokOpenAIBaseURL), &client.GrokCompat), true
 	case "gemini-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("GEMINI_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("GEMINI_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultGeminiOpenAIBaseURL), &client.GeminiCompat), true
 	case "gemini-vertex":
-		projectID := FirstNonEmpty(deployment.ProjectID, os.Getenv("VERTEX_PROJECT_ID"))
-		region := FirstNonEmpty(deployment.Region, os.Getenv("VERTEX_REGION"))
-		token := FirstNonEmpty(deployment.Token, deployment.APIKey, storeSecret("VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"))
+		projectID := FirstNonEmpty(deployment.ProjectID, getenv("VERTEX_PROJECT_ID"))
+		region := FirstNonEmpty(deployment.Region, getenv("VERTEX_REGION"))
+		token := FirstNonEmpty(deployment.Token, deployment.APIKey, lookup("VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"))
 		if projectID == "" || region == "" || token == "" {
 			return nil, false
 		}
 		return client.NewGeminiClient(token, config.VertexGeminiBaseURL(projectID, region)), true
 	case "openrouter":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("OPENROUTER_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("OPENROUTER_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultOpenRouterOpenAIBaseURL), &client.OpenRouterCompat), true
 	case "canopywave":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("CANOPYWAVE_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("CANOPYWAVE_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultCanopyWaveOpenAIBaseURL), &client.CanopyWaveCompat), true
 	case "deepseek-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("DEEPSEEK_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("DEEPSEEK_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
@@ -228,54 +288,54 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 		anthropicBase := "https://api.deepseek.com/anthropic"
 		return client.NewDeepSeekClient(apiKey, openBase, anthropicBase, &client.DeepSeekCompat), true
 	case "poolside":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("POOLSIDE_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("POOLSIDE_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultPoolsideOpenAIBaseURL), &client.PoolsideCompat), true
 	case "groq-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("GROQ_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("GROQ_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultGroqOpenAIBaseURL), &client.GroqCompat), true
 	case "clinepass":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("CLINE_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("CLINE_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultClinePassOpenAIBaseURL), &client.ClinePassCompat), true
 	case "zai_payg-direct":
-		return newZAIDeploymentClient(deployment, "zai_payg", "ZAI_API_KEY", storeSecret)
+		return newZAIDeploymentClient(deployment, "zai_payg", "ZAI_API_KEY", lookup, cfg)
 	case "zai_coding-direct":
-		return newZAIDeploymentClient(deployment, "zai_coding", "ZAI_CODING_API_KEY", storeSecret)
+		return newZAIDeploymentClient(deployment, "zai_coding", "ZAI_CODING_API_KEY", lookup, cfg)
 	case "ollama-local":
-		baseURL := config.NormalizeOllamaOpenAIBaseURL(FirstNonEmpty(deployment.BaseURL, os.Getenv("OLLAMA_BASE_URL"), config.OllamaDefaultBaseURL))
-		return client.NewOpenAIClient(FirstNonEmpty(deployment.APIKey, storeSecret("OLLAMA_API_KEY")), baseURL, &client.OllamaCompat), true
+		baseURL := config.NormalizeOllamaOpenAIBaseURL(FirstNonEmpty(deployment.BaseURL, getenv("OLLAMA_BASE_URL"), config.OllamaDefaultBaseURL))
+		return client.NewOpenAIClient(FirstNonEmpty(deployment.APIKey, lookup("OLLAMA_API_KEY")), baseURL, &client.OllamaCompat), true
 	case "opencodego":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("OPENCODEGO_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("OPENCODEGO_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenCodeGoClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultOpenCodeGoBaseURL)), true
 	case "kimi-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MOONSHOT_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("MOONSHOT_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultKimiOpenAIBaseURL), &client.KimiCompat), true
 	case "xiaomi_mimo_payg-direct":
-		return newMiMoDeploymentClient(deployment, config.ProviderXiaomiMimoPayg, "XIAOMI_MIMO_PAYG_API_KEY", storeSecret)
+		return newMiMoDeploymentClient(deployment, config.ProviderXiaomiMimoPayg, "XIAOMI_MIMO_PAYG_API_KEY", lookup, cfg)
 	case "xiaomi_mimo_token_plan-direct":
-		return newMiMoDeploymentClient(deployment, config.ProviderXiaomiMimoTokenPlan, "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", storeSecret)
+		return newMiMoDeploymentClient(deployment, config.ProviderXiaomiMimoTokenPlan, "XIAOMI_MIMO_TOKEN_PLAN_API_KEY", lookup, cfg)
 	case "minimax_token_plan-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MINIMAX_TOKEN_PLAN_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("MINIMAX_TOKEN_PLAN_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
 		return newMiniMaxDualProtocolClient(apiKey, deployment.BaseURL), true
 	case "minimax_payg-direct":
-		apiKey := FirstNonEmpty(deployment.APIKey, storeSecret("MINIMAX_PAYG_API_KEY"))
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("MINIMAX_PAYG_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
@@ -285,12 +345,11 @@ func ProviderForDeployment(id string, deployment config.DeploymentConfig) (clien
 	}
 }
 
-func newMiMoDeploymentClient(deployment config.DeploymentConfig, providerID, envKey string, lookup func(...string) string) (client.Provider, bool) {
+func newMiMoDeploymentClient(deployment config.DeploymentConfig, providerID, envKey string, lookup func(...string) string, cfg *config.ProviderConfig) (client.Provider, bool) {
 	apiKey := FirstNonEmpty(deployment.APIKey, lookup(envKey))
 	if apiKey == "" {
 		return nil, false
 	}
-	cfg := config.LoadProviderConfig("")
 	openBase, err := config.ResolveXiaomiOpenAIBase(providerID, cfg)
 	if err != nil || openBase == "" {
 		openBase = FirstNonEmpty(deployment.BaseURL, config.DefaultXiaomiOpenAIBaseURL)
@@ -308,7 +367,7 @@ func newMiMoDeploymentClient(deployment config.DeploymentConfig, providerID, env
 // newZAIDeploymentClient constructs a dual-protocol (OpenAI + Anthropic) Z.AI client
 // for either the general or Coding Plan gateway, resolving the correct bases
 // for the plan + region (international or china) per official docs.
-func newZAIDeploymentClient(deployment config.DeploymentConfig, providerID, envKey string, lookup func(...string) string) (client.Provider, bool) {
+func newZAIDeploymentClient(deployment config.DeploymentConfig, providerID, envKey string, lookup func(...string) string, cfg *config.ProviderConfig) (client.Provider, bool) {
 	apiKey := FirstNonEmpty(deployment.APIKey, lookup(envKey))
 	if apiKey == "" {
 		return nil, false
@@ -316,7 +375,6 @@ func newZAIDeploymentClient(deployment config.DeploymentConfig, providerID, envK
 
 	plan, _ := zai.PlanForProvider(providerID)
 
-	cfg := config.LoadProviderConfig("")
 	openBase, err := resolveZAIOpenAIBaseForDeployment(plan, providerID, cfg, deployment.BaseURL)
 	if err != nil || openBase == "" {
 		if plan == zai.PlanCoding {

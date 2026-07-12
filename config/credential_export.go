@@ -83,8 +83,19 @@ func ProbeCredential(ctx context.Context, envKey, secret string) error {
 	return credential.ProbeCredentialWithMimo(ctx, envKey, secret, mimoProbeConfigFromProvider())
 }
 
+// ProbeCredentialWithProviderConfig verifies a credential using only the
+// supplied provider state for region/base routing. Host-facing callers should
+// prefer this over ProbeCredential so an Engine never consults the
+// process-default provider.json path while probing a scoped credential.
+func ProbeCredentialWithProviderConfig(ctx context.Context, envKey, secret string, cfg *ProviderConfig) error {
+	return credential.ProbeCredentialWithMimoStrict(ctx, envKey, secret, mimoProbeConfig(cfg))
+}
+
 func mimoProbeConfigFromProvider() credential.MimoProbeConfig {
-	cfg := LoadProviderConfig("")
+	return mimoProbeConfig(LoadProviderConfig(""))
+}
+
+func mimoProbeConfig(cfg *ProviderConfig) credential.MimoProbeConfig {
 	if cfg == nil {
 		return credential.MimoProbeConfig{}
 	}

@@ -23,6 +23,30 @@ func TestNewUsesInjectedCredentialStore(t *testing.T) {
 	}
 }
 
+func TestContractVersionAndRemoteCatalogIsolation(t *testing.T) {
+	if ContractVersion != "2" {
+		t.Fatalf("ContractVersion = %q, want 2", ContractVersion)
+	}
+	t.Setenv("EYRIE_MODEL_CATALOG_URL", "https://ambient.invalid/catalog.json")
+	eng, err := New(Options{SecretStore: &credentials.MapStore{}, StateDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if eng.remoteCatalogURL != catalog.SeedCatalogURL {
+		t.Fatalf("ambient remote catalog leaked into Engine: %q", eng.remoteCatalogURL)
+	}
+	explicit, err := New(Options{
+		SecretStore: &credentials.MapStore{}, StateDir: t.TempDir(),
+		RemoteCatalogURL: "https://host.example.test/catalog.json",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if explicit.remoteCatalogURL != "https://host.example.test/catalog.json" {
+		t.Fatalf("explicit remote catalog = %q", explicit.remoteCatalogURL)
+	}
+}
+
 func TestNewDerivesHostNeutralPathsFromStateDir(t *testing.T) {
 	dir := t.TempDir()
 	eng, err := New(Options{SecretStore: &credentials.MapStore{}, StateDir: dir})
@@ -40,7 +64,7 @@ func TestNewDerivesHostNeutralPathsFromStateDir(t *testing.T) {
 func TestCredentialStatusAndRemoveUseInjectedStore(t *testing.T) {
 	ctx := context.Background()
 	store := &credentials.MapStore{}
-	if err := store.Set(ctx, credentials.AccountForEnv("OPENAI_API_KEY"), "sk-test-value"); err != nil {
+	if err := store.Set(ctx, credentials.AccountForEnv("OPENAI_API_KEY"), "sk-live-value-1234567890"); err != nil {
 		t.Fatal(err)
 	}
 	eng, err := New(Options{SecretStore: store})

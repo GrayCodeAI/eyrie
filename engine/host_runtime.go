@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/client"
@@ -36,6 +38,8 @@ type CustomGateway struct {
 	DefaultModel   string                     `json:"default_model,omitempty"`
 	MaxTokensField string                     `json:"max_tokens_field,omitempty"`
 	ContextWindow  int                        `json:"context_window,omitempty"`
+	SortOrder      int                        `json:"sort_order,omitempty"`
+	ChatPreference int                        `json:"chat_preference,omitempty"`
 	Capabilities   *CustomGatewayCapabilities `json:"capabilities,omitempty"`
 }
 
@@ -44,35 +48,56 @@ var customGatewayRegistry = struct {
 	gateways map[string]CustomGateway
 }{gateways: make(map[string]CustomGateway)}
 
-// RegisterCustomGateway registers safe routing metadata for a host-supplied
-// OpenAI-compatible gateway. Registration must happen before Engine creation;
+// RegisterCustomGateway registers safe OpenAI-compatible routing metadata for
+// compatibility callers. New embedders should pass Options.CustomGateways so
+// instances stay isolated. Registration must happen before Engine creation;
 // each Engine snapshots the metadata and always resolves credentials through
 // its own injected SecretStore.
 func RegisterCustomGateway(gateway CustomGateway) error {
+	gateway, err := normalizeCustomGateway(gateway)
+	if err != nil {
+		return err
+	}
+	customGatewayRegistry.Lock()
+	customGatewayRegistry.gateways[gateway.ID] = cloneCustomGateway(gateway)
+	customGatewayRegistry.Unlock()
+	return nil
+}
+
+func normalizeCustomGateway(gateway CustomGateway) (CustomGateway, error) {
 	id := NormalizeProviderID(gateway.ID)
 	if id == "" {
-		return fmt.Errorf("eyrie engine: custom gateway ID is required")
+		return CustomGateway{}, fmt.Errorf("eyrie engine: custom gateway ID is required")
 	}
 	if builtIn, ok := registry.SpecByProviderID(id); ok {
-		return fmt.Errorf("eyrie engine: custom gateway ID %q collides with built-in gateway %q", id, builtIn.ProviderID)
+		return CustomGateway{}, fmt.Errorf("eyrie engine: custom gateway ID %q collides with built-in gateway %q", id, builtIn.ProviderID)
 	}
 	baseURL := strings.TrimSpace(gateway.BaseURL)
 	if baseURL == "" {
-		return fmt.Errorf("eyrie engine: custom gateway %q base URL is required", id)
+		return CustomGateway{}, fmt.Errorf("eyrie engine: custom gateway %q base URL is required", id)
 	}
 	parsed, err := url.Parse(baseURL)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-		return fmt.Errorf("eyrie engine: custom gateway %q has invalid baseURL %q (must be http/https with host)", id, baseURL)
+		return CustomGateway{}, fmt.Errorf("eyrie engine: custom gateway %q has invalid baseURL %q (must be http/https with host)", id, baseURL)
+	}
+	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return CustomGateway{}, fmt.Errorf("eyrie engine: custom gateway %q baseURL must not contain userinfo, query, or fragment", id)
 	}
 	if gateway.ContextWindow < 0 {
-		return fmt.Errorf("eyrie engine: custom gateway %q context window cannot be negative", id)
+		return CustomGateway{}, fmt.Errorf("eyrie engine: custom gateway %q context window cannot be negative", id)
+	}
+	if gateway.SortOrder <= 0 {
+		gateway.SortOrder = 10_000
+	}
+	if gateway.ChatPreference <= 0 {
+		gateway.ChatPreference = gateway.SortOrder + 10_000
 	}
 	maxTokensField := strings.TrimSpace(gateway.MaxTokensField)
 	if maxTokensField == "" {
 		maxTokensField = "max_tokens"
 	}
 	if maxTokensField != "max_tokens" && maxTokensField != "max_completion_tokens" {
-		return fmt.Errorf("eyrie engine: custom gateway %q max tokens field must be max_tokens or max_completion_tokens", id)
+		return CustomGateway{}, fmt.Errorf("eyrie engine: custom gateway %q max tokens field must be max_tokens or max_completion_tokens", id)
 	}
 	gateway.ID = id
 	gateway.BaseURL = strings.TrimRight(baseURL, "/")
@@ -83,10 +108,25 @@ func RegisterCustomGateway(gateway CustomGateway) error {
 	gateway.CredentialEnv = strings.TrimSpace(gateway.CredentialEnv)
 	gateway.DefaultModel = strings.TrimSpace(gateway.DefaultModel)
 	gateway.MaxTokensField = maxTokensField
-	customGatewayRegistry.Lock()
-	customGatewayRegistry.gateways[id] = cloneCustomGateway(gateway)
-	customGatewayRegistry.Unlock()
-	return nil
+	return gateway, nil
+}
+
+func customGatewaysForOptions(gateways []CustomGateway, useRegistered bool) (map[string]CustomGateway, error) {
+	if gateways == nil && useRegistered {
+		return snapshotCustomGateways(), nil
+	}
+	out := make(map[string]CustomGateway, len(gateways))
+	for _, gateway := range gateways {
+		normalized, err := normalizeCustomGateway(gateway)
+		if err != nil {
+			return nil, &Error{Code: ErrorInvalidRequest, Operation: "new", Message: err.Error(), Cause: err}
+		}
+		if _, exists := out[normalized.ID]; exists {
+			return nil, invalid("new", fmt.Sprintf("eyrie engine: duplicate custom gateway %q", normalized.ID))
+		}
+		out[normalized.ID] = cloneCustomGateway(normalized)
+	}
+	return out, nil
 }
 
 func snapshotCustomGateways() map[string]CustomGateway {
@@ -118,15 +158,23 @@ func (e *Engine) customGateway(providerID string) (CustomGateway, bool) {
 func (e *Engine) resolveCustomSelection(req SelectionRequest) (Route, bool, error) {
 	providerID := NormalizeProviderID(req.Preference.PreferredProvider)
 	modelID := strings.TrimSpace(req.Preference.PreferredModelID)
-	state := config.LoadProviderConfig(e.providerConfigPath)
+	state, stateErr := e.loadProviderConfigStrict()
+	if stateErr != nil {
+		_, preferredCustom := e.customGateway(providerID)
+		if preferredCustom {
+			return Route{}, true, &Error{Code: ErrorInternal, Operation: "resolve", Provider: providerID, Message: stateErr.Error(), Cause: stateErr}
+		}
+		return Route{}, false, nil
+	}
+	activeProvider := NormalizeProviderID(config.ActiveProvider(state))
 	if providerID == "" {
-		providerID = NormalizeProviderID(config.ActiveProvider(state))
+		providerID = activeProvider
 	}
 	gateway, ok := e.customGateway(providerID)
 	if !ok {
 		return Route{}, false, nil
 	}
-	if modelID == "" {
+	if modelID == "" && providerID == activeProvider {
 		modelID = strings.TrimSpace(config.ActiveModel(state))
 	}
 	if modelID == "" {
@@ -200,6 +248,42 @@ func (e *Engine) customGatewayTransport(ctx context.Context, route Route) (clien
 	compat := &client.OpenAICompatConfig{MaxTokensField: gateway.MaxTokensField}
 	provider := client.NewOpenAIClient(secret, gateway.BaseURL, compat, client.WithProviderName(gateway.ID))
 	return provider, true, nil
+}
+
+var customGatewayProbeClient = &http.Client{Timeout: 10 * time.Second}
+
+func (e *Engine) probeCustomGateway(ctx context.Context, gateway CustomGateway, secret string) error {
+	if gateway.CredentialEnv != "" && strings.TrimSpace(secret) == "" {
+		var err error
+		secret, err = e.credentialValue(ctx, gateway.CredentialEnv)
+		if err != nil {
+			return err
+		}
+	}
+	if gateway.CredentialEnv != "" && (strings.TrimSpace(secret) == "" || config.LooksLikePlaceholderSecret(secret)) {
+		return &Error{Code: ErrorCredentialMissing, Operation: "probe_credential", Provider: gateway.ID, Message: "eyrie engine: custom gateway credential is not configured"}
+	}
+	req, err := http.NewRequestWithContext(nonNilContext(ctx), http.MethodGet, strings.TrimRight(gateway.BaseURL, "/")+"/models", nil)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(secret) != "" {
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(secret))
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := customGatewayProbeClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		code := ErrorProviderUnavailable
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			code = ErrorAuthentication
+		}
+		return &Error{Code: code, Operation: "probe_credential", Provider: gateway.ID, Message: fmt.Sprintf("eyrie engine: custom gateway probe returned HTTP %d", resp.StatusCode)}
+	}
+	return nil
 }
 
 func customGatewayCapabilityNames(gateway CustomGateway) []string {

@@ -24,7 +24,7 @@ func TestSyncProviderConfigFromCatalog_PreservesTokenPlanRegion(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HAWK_CONFIG_DIR", dir)
 	existing := &ProviderConfig{
-		Version:                   "2",
+		Version:                   "1",
 		XiaomiMimoTokenPlanRegion: "ams",
 	}
 	if err := SaveProviderConfig(existing, ""); err != nil {

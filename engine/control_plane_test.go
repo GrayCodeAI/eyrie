@@ -75,9 +75,7 @@ func TestGatewayReadinessRejectsPlaceholderAndDiskSecrets(t *testing.T) {
 	cfg := &config.ProviderConfig{Deployments: map[string]config.DeploymentConfig{
 		"openai-direct": {APIKey: "sk-secret-on-disk"},
 	}}
-	if err := config.SaveProviderConfig(cfg, eng.providerConfigPath); err != nil {
-		t.Fatal(err)
-	}
+	writeLegacyProviderConfigFixture(t, eng.providerConfigPath, cfg)
 	for _, gateway := range eng.Gateways(ctx) {
 		if gateway.ID == "openai" && (gateway.CredentialConfigured || gateway.DeploymentConfigured) {
 			t.Fatalf("legacy or placeholder secret counted as ready: %+v", gateway)
@@ -110,6 +108,28 @@ func TestEffectiveSelectionUsesEngineOwnedState(t *testing.T) {
 	if !selection.HasConfiguredDeployment {
 		t.Fatal("selection ignored injected credential store")
 	}
+}
+
+func TestPreflightRequiresPersistedModelSelection(t *testing.T) {
+	ctx := context.Background()
+	store := &credentials.MapStore{}
+	eng, err := New(Options{SecretStore: store, StateDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Set(ctx, credentials.AccountForEnv("OPENAI_API_KEY"), "sk-injected-secret"); err != nil {
+		t.Fatal(err)
+	}
+	report := eng.Preflight(ctx)
+	if report.Ready {
+		t.Fatalf("preflight auto-selected a model instead of requiring user selection: %+v", report)
+	}
+	for _, check := range report.Checks {
+		if check.Name == "model" && check.Status == CheckFail {
+			return
+		}
+	}
+	t.Fatalf("preflight did not report missing persisted model: %+v", report)
 }
 
 func TestHostControlUsesInjectedStoreAndPaths(t *testing.T) {
@@ -164,12 +184,10 @@ func TestProviderSecretMigrationStaysInsideEnginePath(t *testing.T) {
 	cfg := &config.ProviderConfig{
 		OpenAIAPIKey: "sk-top-level-legacy",
 		Deployments: map[string]config.DeploymentConfig{
-			"legacy": {APIKey: "sk-legacy", BaseURL: "https://example.test"},
+			"openai-direct": {APIKey: "sk-legacy", BaseURL: "https://example.test"},
 		},
 	}
-	if err := config.SaveProviderConfig(cfg, eng.providerConfigPath); err != nil {
-		t.Fatal(err)
-	}
+	writeLegacyProviderConfigFixture(t, eng.providerConfigPath, cfg)
 	if status := eng.ProviderStateSecurityStatus(); !status.HasSecrets {
 		t.Fatal("expected secret-bearing provider state")
 	}
@@ -183,14 +201,12 @@ func TestProviderSecretMigrationStaysInsideEnginePath(t *testing.T) {
 	if saved.OpenAIAPIKey != "" {
 		t.Fatal("migration retained a top-level legacy credential")
 	}
-	if saved.Deployments["legacy"].BaseURL != "https://example.test" {
+	if saved.Deployments["openai-direct"].BaseURL != "https://example.test" {
 		t.Fatal("migration lost non-secret routing metadata")
 	}
 	// A marker is an audit artifact, not permission to trust later plaintext.
 	saved.OpenAIAPIKey = "sk-reintroduced"
-	if err := config.SaveProviderConfig(saved, eng.providerConfigPath); err != nil {
-		t.Fatal(err)
-	}
+	writeLegacyProviderConfigFixture(t, eng.providerConfigPath, saved)
 	if err := eng.MigrateProviderSecrets(); err != nil {
 		t.Fatal(err)
 	}

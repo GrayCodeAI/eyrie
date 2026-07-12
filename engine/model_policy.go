@@ -18,6 +18,9 @@ func (e *Engine) policyCatalog(ctx context.Context) (*catalog.CompiledCatalog, e
 
 // ModelInfo returns normalized metadata for a model id or alias.
 func (e *Engine) ModelInfo(ctx context.Context, modelID string) (Model, bool, error) {
+	if gateway, ok := e.customGatewayForModel(modelID); ok {
+		return customGatewayModel(gateway), true, nil
+	}
 	compiled, err := e.policyCatalog(ctx)
 	if err != nil {
 		return Model{}, false, err
@@ -34,17 +37,41 @@ func (e *Engine) ModelInfo(ctx context.Context, modelID string) (Model, bool, er
 	return Model{}, false, nil
 }
 
-// ModelProviders lists canonical catalog model owners.
+// ModelProviders lists canonical catalog model owners and invocation-scoped
+// custom gateway owners.
 func (e *Engine) ModelProviders(ctx context.Context) ([]string, error) {
 	compiled, err := e.policyCatalog(ctx)
-	if err != nil {
+	if err != nil && len(e.customGateways) == 0 {
 		return nil, err
 	}
-	return catalog.AllModelProviders(compiled), nil
+	seen := map[string]bool{}
+	catalogProviders := catalog.AllModelProviders(compiled)
+	providers := make([]string, 0, len(e.customGateways)+len(catalogProviders))
+	for _, provider := range catalogProviders {
+		provider = strings.TrimSpace(provider)
+		if provider != "" && !seen[provider] {
+			seen[provider] = true
+			providers = append(providers, provider)
+		}
+	}
+	for _, gateway := range e.orderedCustomGateways() {
+		if !seen[gateway.ID] {
+			seen[gateway.ID] = true
+			providers = append(providers, gateway.ID)
+		}
+	}
+	sort.Strings(providers)
+	return providers, nil
 }
 
 // DefaultModel returns the catalog default for a provider.
 func (e *Engine) DefaultModel(ctx context.Context, provider, fallback string) string {
+	if gateway, ok := e.customGateway(provider); ok {
+		if gateway.DefaultModel != "" {
+			return gateway.DefaultModel
+		}
+		return fallback
+	}
 	compiled, err := e.policyCatalog(ctx)
 	if err != nil {
 		return fallback
@@ -54,6 +81,12 @@ func (e *Engine) DefaultModel(ctx context.Context, provider, fallback string) st
 
 // PreferredModel returns a provider model in the requested relative class.
 func (e *Engine) PreferredModel(ctx context.Context, provider string, class ModelClass, fallback string) string {
+	if gateway, ok := e.customGateway(provider); ok {
+		if gateway.DefaultModel != "" {
+			return gateway.DefaultModel
+		}
+		return fallback
+	}
 	compiled, err := e.policyCatalog(ctx)
 	if err != nil {
 		return fallback
@@ -65,9 +98,47 @@ func (e *Engine) PreferredModel(ctx context.Context, provider string, class Mode
 func (e *Engine) PreferredModels(ctx context.Context, primaryProvider string, class ModelClass, limit int) []string {
 	compiled, err := e.policyCatalog(ctx)
 	if err != nil {
-		return nil
+		compiled = nil
 	}
-	return catalog.PreferredModelsForTier(compiled, primaryProvider, catalogTier(class), limit)
+	seen := map[string]bool{}
+	models := make([]string, 0, len(e.customGateways)+8)
+	add := func(model string) bool {
+		model = strings.TrimSpace(model)
+		if model == "" || seen[model] {
+			return false
+		}
+		seen[model] = true
+		models = append(models, model)
+		return limit > 0 && len(models) >= limit
+	}
+
+	primaryCustom, isPrimaryCustom := e.customGateway(primaryProvider)
+	if isPrimaryCustom && add(primaryCustom.DefaultModel) {
+		return models
+	}
+	if !isPrimaryCustom {
+		for _, model := range catalog.PreferredModelsForTier(compiled, primaryProvider, catalogTier(class), limit) {
+			if add(model) {
+				return models
+			}
+		}
+	}
+	for _, gateway := range e.orderedCustomGateways() {
+		if isPrimaryCustom && gateway.ID == primaryCustom.ID {
+			continue
+		}
+		if add(gateway.DefaultModel) {
+			return models
+		}
+	}
+	if isPrimaryCustom {
+		for _, model := range catalog.PreferredModelsForTier(compiled, "", catalogTier(class), limit) {
+			if add(model) {
+				return models
+			}
+		}
+	}
+	return models
 }
 
 // ModelClassOf resolves a model's relative catalog cost band.
@@ -83,8 +154,12 @@ func (e *Engine) ModelClassOf(ctx context.Context, modelID string) ModelClass {
 	}
 }
 
-// ProviderForModel returns the canonical catalog owner for a model.
+// ProviderForModel returns the canonical catalog owner or invocation-scoped
+// custom gateway owner for a model.
 func (e *Engine) ProviderForModel(ctx context.Context, modelID string) string {
+	if gateway, ok := e.customGatewayForModel(modelID); ok {
+		return gateway.ID
+	}
 	compiled, _ := e.policyCatalog(ctx)
 	return catalog.ProviderForModel(compiled, modelID)
 }
@@ -92,15 +167,20 @@ func (e *Engine) ProviderForModel(ctx context.Context, modelID string) string {
 // PrimaryModel returns Eyrie's stable best-effort catalog primary model.
 func (e *Engine) PrimaryModel(ctx context.Context) string {
 	compiled, _ := e.policyCatalog(ctx)
-	return catalog.PrimaryModel(compiled)
+	if model := catalog.PrimaryModel(compiled); model != "" {
+		return model
+	}
+	for _, gateway := range e.orderedCustomGateways() {
+		if gateway.DefaultModel != "" {
+			return gateway.DefaultModel
+		}
+	}
+	return ""
 }
 
 // ModelNames returns canonical ids, display names, and aliases for completion.
 func (e *Engine) ModelNames(ctx context.Context) []string {
 	compiled, err := e.policyCatalog(ctx)
-	if err != nil || compiled == nil {
-		return nil
-	}
 	seen := map[string]bool{}
 	var out []string
 	add := func(value string) {
@@ -110,18 +190,64 @@ func (e *Engine) ModelNames(ctx context.Context) []string {
 			out = append(out, value)
 		}
 	}
-	for id, model := range compiled.ModelsByID {
-		add(id)
-		add(model.Name)
+	for _, gateway := range e.orderedCustomGateways() {
+		add(gateway.DefaultModel)
 	}
-	if compiled.Catalog != nil {
-		for alias, canonical := range compiled.Catalog.Aliases {
-			add(alias)
-			add(canonical)
+	if err == nil && compiled != nil {
+		for id, model := range compiled.ModelsByID {
+			add(id)
+			add(model.Name)
+		}
+		if compiled.Catalog != nil {
+			for alias, canonical := range compiled.Catalog.Aliases {
+				add(alias)
+				add(canonical)
+			}
 		}
 	}
 	sort.Strings(out)
 	return out
+}
+
+// orderedCustomGateways returns the immutable per-Engine gateway snapshot in
+// routing preference order. Map iteration must never decide which custom
+// gateway owns a model ID shared by multiple invocation-scoped gateways.
+func (e *Engine) orderedCustomGateways() []CustomGateway {
+	gateways := make([]CustomGateway, 0, len(e.customGateways))
+	for _, gateway := range e.customGateways {
+		gateways = append(gateways, cloneCustomGateway(gateway))
+	}
+	sort.SliceStable(gateways, func(i, j int) bool {
+		if gateways[i].ChatPreference != gateways[j].ChatPreference {
+			return gateways[i].ChatPreference < gateways[j].ChatPreference
+		}
+		if gateways[i].SortOrder != gateways[j].SortOrder {
+			return gateways[i].SortOrder < gateways[j].SortOrder
+		}
+		return gateways[i].ID < gateways[j].ID
+	})
+	return gateways
+}
+
+func (e *Engine) customGatewayForModel(modelID string) (CustomGateway, bool) {
+	modelID = strings.TrimSpace(modelID)
+	if modelID == "" {
+		return CustomGateway{}, false
+	}
+	for _, gateway := range e.orderedCustomGateways() {
+		if gateway.DefaultModel == modelID {
+			return gateway, true
+		}
+	}
+	return CustomGateway{}, false
+}
+
+func customGatewayModel(gateway CustomGateway) Model {
+	return Model{
+		ID: gateway.DefaultModel, CanonicalID: gateway.DefaultModel, DisplayName: gateway.DefaultModel,
+		Owner: gateway.DisplayName, ProviderID: gateway.ID, GatewayID: gateway.ID,
+		ContextWindow: gateway.ContextWindow, Capabilities: customGatewayCapabilityNames(gateway), Source: "custom",
+	}
 }
 
 func catalogTier(class ModelClass) catalog.ModelTier {

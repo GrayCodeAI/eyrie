@@ -507,9 +507,7 @@ func TestLoadProviderConfig_Roundtrip(t *testing.T) {
 		Version:          "1",
 		ConfigVersion:    2,
 		ActiveProvider:   "anthropic",
-		AnthropicAPIKey:  "sk-ant-test-key-1234567890",
 		AnthropicModel:   "claude-sonnet-4-6",
-		OpenAIAPIKey:     "sk-openai-test-key-1234567890",
 		ActiveModel:      "claude-sonnet-4-6",
 		ExplorationModel: "gpt-4o-mini",
 	}
@@ -525,9 +523,6 @@ func TestLoadProviderConfig_Roundtrip(t *testing.T) {
 
 	if loaded.ActiveProvider != original.ActiveProvider {
 		t.Errorf("ActiveProvider = %q, want %q", loaded.ActiveProvider, original.ActiveProvider)
-	}
-	if loaded.AnthropicAPIKey != original.AnthropicAPIKey {
-		t.Errorf("AnthropicAPIKey = %q, want %q", loaded.AnthropicAPIKey, original.AnthropicAPIKey)
 	}
 	if loaded.AnthropicModel != original.AnthropicModel {
 		t.Errorf("AnthropicModel = %q, want %q", loaded.AnthropicModel, original.AnthropicModel)

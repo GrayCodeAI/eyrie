@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -22,6 +23,8 @@ func TestRegisterCustomGatewayValidatesHostMetadata(t *testing.T) {
 		{name: "missing id", gateway: CustomGateway{BaseURL: "https://example.test/v1"}, want: "ID is required"},
 		{name: "missing base URL", gateway: CustomGateway{ID: "custom"}, want: "base URL is required"},
 		{name: "invalid base URL", gateway: CustomGateway{ID: "custom", BaseURL: "file:///tmp/socket"}, want: "invalid baseURL"},
+		{name: "secret in base URL", gateway: CustomGateway{ID: "custom", BaseURL: "https://user:secret@example.test/v1"}, want: "must not contain userinfo"},
+		{name: "query in base URL", gateway: CustomGateway{ID: "custom", BaseURL: "https://example.test/v1?key=secret"}, want: "must not contain userinfo"},
 		{name: "built-in collision", gateway: CustomGateway{ID: "openai", BaseURL: "https://example.test/v1"}, want: "collides with built-in gateway"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -120,7 +123,7 @@ func TestCustomGatewayUnknownToolModelUsesInjectedStoreForGenerateAndStream(t *t
 	if err := store.Set(context.Background(), credentials.AccountForEnv(envKey), "injected-secret"); err != nil {
 		t.Fatal(err)
 	}
-	eng, err := New(Options{StateDir: t.TempDir(), SecretStore: store})
+	eng, err := New(Options{StateDir: t.TempDir(), SecretStore: store, UseRegisteredCustomGateways: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +190,7 @@ func TestCustomGatewayDeclaredCapabilitiesAreEnforced(t *testing.T) {
 		ID: gatewayID, BaseURL: "https://example.test/v1", DefaultModel: "custom/model",
 		Capabilities: &CustomGatewayCapabilities{Streaming: true, Tools: false},
 	})
-	eng, err := New(Options{StateDir: t.TempDir(), SecretStore: &credentials.MapStore{}})
+	eng, err := New(Options{StateDir: t.TempDir(), SecretStore: &credentials.MapStore{}, UseRegisteredCustomGateways: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +215,7 @@ func TestCustomGatewayRejectsPlaceholderFromInjectedStore(t *testing.T) {
 	if err := store.Set(context.Background(), credentials.AccountForEnv(envKey), "your-api-key-here"); err != nil {
 		t.Fatal(err)
 	}
-	eng, err := New(Options{StateDir: t.TempDir(), SecretStore: store})
+	eng, err := New(Options{StateDir: t.TempDir(), SecretStore: store, UseRegisteredCustomGateways: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,6 +226,57 @@ func TestCustomGatewayRejectsPlaceholderFromInjectedStore(t *testing.T) {
 	if !IsCode(err, ErrorCredentialMissing) {
 		t.Fatalf("Generate() error = %v, want credential missing", err)
 	}
+}
+
+func TestSaveCustomGatewayCredentialUsesStrictTwoXXProbe(t *testing.T) {
+	const envKey = "CUSTOM_PROBE_API_KEY"
+	previous := customGatewayProbeClient
+	t.Cleanup(func() { customGatewayProbeClient = previous })
+	statusCode := http.StatusNoContent
+	customGatewayProbeClient = &http.Client{Transport: engineRoundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.String() != "https://probe.example.test/v1/models" {
+			t.Fatalf("probe URL = %q", req.URL.String())
+		}
+		if req.Header.Get("Authorization") != "Bearer custom-secret-1234567890" {
+			t.Fatalf("probe authorization header was not derived from the supplied credential")
+		}
+		return &http.Response{
+			StatusCode: statusCode,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`{}`)),
+			Request:    req,
+		}, nil
+	})}
+	store := &credentials.MapStore{}
+	eng, err := New(Options{
+		SecretStore: store, StateDir: t.TempDir(),
+		CustomGateways: []CustomGateway{{
+			ID: "strict-probe", BaseURL: "https://probe.example.test/v1", CredentialEnv: envKey,
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, err := eng.SaveCredential(context.Background(), "strict-probe", "custom-secret-1234567890")
+	if err != nil || !status.Configured || !status.Verified {
+		t.Fatalf("2xx custom probe = %+v, err=%v", status, err)
+	}
+	statusCode = http.StatusForbidden
+	status, err = eng.SaveCredential(context.Background(), "strict-probe", "custom-secret-1234567890")
+	if !status.Configured || status.Verified || !IsCode(err, ErrorAuthentication) {
+		t.Fatalf("403 custom probe = %+v, err=%v", status, err)
+	}
+	statusCode = http.StatusInternalServerError
+	status, err = eng.SaveCredential(context.Background(), "strict-probe", "custom-secret-1234567890")
+	if !status.Configured || status.Verified || !IsCode(err, ErrorProviderUnavailable) {
+		t.Fatalf("500 custom probe = %+v, err=%v", status, err)
+	}
+}
+
+type engineRoundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn engineRoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
 }
 
 func registerCustomGatewayForTest(t *testing.T, gateway CustomGateway) {

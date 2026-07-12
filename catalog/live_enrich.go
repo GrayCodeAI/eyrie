@@ -24,7 +24,8 @@ func FetchLiveProviderCatalog(env map[string]string) (Catalog, []LiveProviderEnr
 		}
 		catalogKey := registry.LiveCatalogKeyForFetcher(fetcherKey)
 		start := time.Now()
-		if !registry.CredentialPresent(spec, env) {
+		scopedEnv := registry.ScopedProviderEnv(spec, env)
+		if !registry.CredentialPresent(spec, scopedEnv) {
 			reason := "skipped (no API key)"
 			if !spec.RequiresKey {
 				reason = "skipped (no base URL)"
@@ -32,7 +33,7 @@ func FetchLiveProviderCatalog(env map[string]string) (Catalog, []LiveProviderEnr
 			enrichment = append(enrichment, LiveProviderEnrichment{Provider: catalogKey, Error: reason, DurationMs: time.Since(start).Milliseconds()})
 			continue
 		}
-		models, err := live.Fetch(fetcherKey, env)
+		models, err := live.Fetch(fetcherKey, scopedEnv)
 		elapsed := time.Since(start)
 		duration := elapsed.Milliseconds()
 		if err != nil {
@@ -121,6 +122,7 @@ func FetchLiveModelEntriesForProvider(env map[string]string, providerID string) 
 	if spec.LiveFetcherKey == "" {
 		return nil, fmt.Errorf("catalog: provider %q has no live model list API", providerID)
 	}
+	env = registry.ScopedProviderEnv(spec, env)
 	if !registry.CredentialPresent(spec, env) {
 		return nil, fmt.Errorf("catalog: set %s for %s", spec.CredentialEnv, providerID)
 	}

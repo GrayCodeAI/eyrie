@@ -17,7 +17,7 @@ import (
 )
 
 // ContractVersion is the compatibility version of the host-facing API.
-const ContractVersion = "1"
+const ContractVersion = "2"
 
 // Options supplies host-owned dependencies. A zero value uses Eyrie's safe
 // defaults. Product-specific paths are deliberately not inferred here.
@@ -26,20 +26,33 @@ type Options struct {
 	StateDir           string
 	CatalogPath        string
 	ProviderConfigPath string
+	// RemoteCatalogURL is the trusted published catalog source used by full
+	// refreshes. Empty selects Eyrie's compiled-in HTTPS catalog URL, never a
+	// process-environment override.
+	RemoteCatalogURL string
+	// CustomGateways is snapshotted per Engine. A non-nil empty slice
+	// explicitly declares that the host has no custom gateways.
+	CustomGateways []CustomGateway
+	// UseRegisteredCustomGateways opts into the deprecated process-global
+	// RegisterCustomGateway registry when CustomGateways is nil.
+	UseRegisteredCustomGateways bool
 }
 
 // Engine is Eyrie's narrow host facade. It is safe for concurrent use when
 // the configured SecretStore is safe for concurrent use.
 type Engine struct {
 	secretStore        credentials.Store
+	defaultSecretStore bool
 	catalogPath        string
 	providerConfigPath string
+	remoteCatalogURL   string
 	customGateways     map[string]CustomGateway
 	resolveTransport   func(context.Context, Route) (client.Provider, error)
 }
 
 // New constructs a host-facing Eyrie engine.
 func New(opts Options) (*Engine, error) {
+	usesDefaultStore := opts.SecretStore == nil
 	store := opts.SecretStore
 	if store == nil {
 		store = credentials.DefaultStore()
@@ -62,9 +75,18 @@ func New(opts Options) (*Engine, error) {
 	if providerPath == "" {
 		providerPath = config.GetProviderConfigPath()
 	}
+	remoteCatalogURL := strings.TrimSpace(opts.RemoteCatalogURL)
+	if remoteCatalogURL == "" {
+		remoteCatalogURL = catalog.SeedCatalogURL
+	}
+	customGateways, err := customGatewaysForOptions(opts.CustomGateways, opts.UseRegisteredCustomGateways)
+	if err != nil {
+		return nil, err
+	}
 	engine := &Engine{
-		secretStore: store, catalogPath: catalogPath, providerConfigPath: providerPath,
-		customGateways: snapshotCustomGateways(),
+		secretStore: store, defaultSecretStore: usesDefaultStore,
+		catalogPath: catalogPath, providerConfigPath: providerPath, remoteCatalogURL: remoteCatalogURL,
+		customGateways: customGateways,
 	}
 	engine.resolveTransport = engine.defaultTransport
 	return engine, nil
@@ -133,11 +155,7 @@ func (e *Engine) ListModels(ctx context.Context, providerID string, refresh bool
 		if gateway.DefaultModel == "" {
 			return nil, nil
 		}
-		return []Model{{
-			ID: gateway.DefaultModel, DisplayName: gateway.DefaultModel,
-			ProviderID: gateway.ID, GatewayID: gateway.ID,
-			ContextWindow: gateway.ContextWindow, Capabilities: customGatewayCapabilityNames(gateway), Source: "custom",
-		}}, nil
+		return []Model{customGatewayModel(gateway)}, nil
 	}
 	var snapshot CatalogSnapshot
 	var err error
@@ -149,31 +167,51 @@ func (e *Engine) ListModels(ctx context.Context, providerID string, refresh bool
 	if err != nil {
 		return nil, &Error{Code: ErrorCatalogUnavailable, Operation: "list_models", Provider: providerID, Message: err.Error(), Cause: err}
 	}
-	providerID = catalog.CanonicalProviderID(strings.TrimSpace(providerID))
-	if providerID == "" {
+	requestedProvider := strings.TrimSpace(providerID)
+	if requestedProvider == "" {
 		return snapshot.Models, nil
 	}
 	compiled, loadErr := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{CachePath: e.catalogPath, RequireCache: true})
 	if loadErr != nil {
 		return nil, &Error{Code: ErrorCatalogUnavailable, Operation: "list_models", Provider: providerID, Message: loadErr.Error(), Cause: loadErr}
 	}
-	entries := catalog.ModelEntriesForProvider(compiled, providerID)
+	entries := catalog.ModelEntriesForProvider(compiled, requestedProvider)
+	return modelsFromCatalogEntries(compiled, requestedProvider, entries, "cache", refresh, true), nil
+}
+
+func modelsFromCatalogEntries(compiled *catalog.CompiledCatalog, requestedProvider string, entries []catalog.ModelCatalogEntry, defaultSource string, metadataMarksLive, enrichCapabilities bool) []Model {
+	gatewayID := NormalizeProviderID(requestedProvider)
+	catalogProviderID := catalog.CanonicalProviderID(requestedProvider)
 	out := make([]Model, 0, len(entries))
 	for _, entry := range entries {
 		capabilities := append([]string(nil), entry.ServerTools...)
-		if canonical, ok := catalog.CanonicalModelForProviderNative(compiled, providerID, entry.ID); ok {
-			capabilities = capabilityNames(offeringForProvider(compiled, providerID, canonical, entry.ID).Capabilities)
+		owner := catalogProviderID
+		canonicalID := entry.ID
+		if canonical, ok := catalog.CanonicalModelForProviderNative(compiled, requestedProvider, entry.ID); ok {
+			canonicalID = canonical
+			if enrichCapabilities {
+				offering := offeringForProvider(compiled, requestedProvider, canonical, entry.ID)
+				capabilities = capabilityNames(offering.Capabilities)
+			}
+			if resolvedOwner := catalog.ProviderForModel(compiled, canonical); resolvedOwner != "" {
+				owner = resolvedOwner
+			}
+		}
+		source := defaultSource
+		if metadataMarksLive && len(entry.LiveMetadata) > 0 {
+			source = "live"
 		}
 		out = append(out, Model{
-			ID: entry.ID, DisplayName: entry.DisplayName, Description: entry.Description,
-			Owner: entry.Owner, ProviderID: providerID, GatewayID: providerID,
+			ID: entry.ID, CanonicalID: canonicalID, DisplayName: entry.DisplayName, Description: entry.Description,
+			Owner: entry.Owner, ProviderID: owner, GatewayID: gatewayID,
 			ContextWindow: entry.ContextWindow, MaxOutputTokens: entry.MaxOutput,
 			InputPricePer1M: entry.InputPricePer1M, OutputPricePer1M: entry.OutputPricePer1M,
 			PriceKnown:   modelPriceKnown(entry.ID, entry.DisplayName, entry.InputPricePer1M, entry.OutputPricePer1M, entry.ContextWindow),
-			Capabilities: capabilities, Source: "cache",
+			Capabilities: capabilities, Source: source,
+			LiveMetadata: append([]byte(nil), entry.LiveMetadata...),
 		})
 	}
-	return out, nil
+	return out
 }
 
 func modelPriceKnown(id, displayName string, input, output float64, contextWindow int) bool {
@@ -221,7 +259,7 @@ func (e *Engine) defaultTransport(ctx context.Context, route Route) (client.Prov
 	if err != nil {
 		return nil, err
 	}
-	return setup.DeploymentProviderFromCatalog(cfg, compiled)
+	return setup.DeploymentProviderFromState(cfg, compiled)
 }
 
 func (e *Engine) resolveSelection(ctx context.Context, req SelectionRequest) (Route, error) {

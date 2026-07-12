@@ -1,9 +1,15 @@
 package setup
 
 import (
+	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/config"
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 func TestFormatStatus_DisabledRouting(t *testing.T) {
@@ -17,8 +23,11 @@ func TestFormatStatus_DisabledRouting(t *testing.T) {
 		CatalogModels:     10,
 	}
 	out := FormatStatus(report)
-	if !strings.Contains(out, "disabled (legacy provider client)") {
-		t.Fatal("expected 'disabled' in output")
+	if !strings.Contains(out, "disabled (single-route Eyrie transport)") {
+		t.Fatal("expected engine-owned disabled-routing description")
+	}
+	if strings.Contains(out, "legacy provider client") {
+		t.Fatal("status output still describes the retired host-side provider client")
 	}
 	if !strings.Contains(out, "none (set API keys or deployments in provider.json)") {
 		t.Fatal("expected 'none' deployment message")
@@ -148,5 +157,32 @@ func TestSaveProviderConfigV2_Nil(t *testing.T) {
 	// Should not panic.
 	if err := SaveProviderConfigV2(nil); err != nil {
 		t.Fatalf("expected nil error for nil config, got %v", err)
+	}
+}
+
+func TestDeploymentStatusFromPathsIgnoresAmbientRoutingAndCredentials(t *testing.T) {
+	dir := t.TempDir()
+	providerPath := filepath.Join(dir, "provider.json")
+	catalogPath := filepath.Join(dir, "model_catalog.json")
+	if err := config.SaveProviderConfig(&config.ProviderConfig{}, providerPath); err != nil {
+		t.Fatal(err)
+	}
+	seed := catalog.SeedCatalog()
+	if err := catalog.WriteCatalogCache(catalogPath, &seed); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("EYRIE_DEPLOYMENT_ROUTING", "true")
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+	if err := store.Set(context.Background(), credentials.AccountForEnv("OPENAI_API_KEY"), "ambient-secret-1234567890"); err != nil {
+		t.Fatal(err)
+	}
+	report, err := DeploymentStatusFromPaths(context.Background(), "", providerPath, catalogPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.DeploymentRouting || len(report.Configured) != 0 {
+		t.Fatalf("host-scoped status used ambient state: %+v", report)
 	}
 }
