@@ -71,12 +71,10 @@ func (e *Engine) CredentialStatus(ctx context.Context, providerID string) (Crede
 	if err != nil {
 		return CredentialStatus{}, &Error{Code: ErrorInvalidRequest, Operation: "credential_status", Provider: providerID, Message: err.Error(), Cause: err}
 	}
-	_, err = e.secretStore.Get(ctx, credentials.AccountForEnv(inference.EnvVar))
+	secret, err := e.credentialValue(ctx, inference.EnvVar)
 	if err == nil {
-		return CredentialStatus{ProviderID: providerID, EnvVar: inference.EnvVar, Configured: true}, nil
-	}
-	if errors.Is(err, credentials.ErrNotFound) {
-		return CredentialStatus{ProviderID: providerID, EnvVar: inference.EnvVar}, nil
+		configured := strings.TrimSpace(secret) != ""
+		return CredentialStatus{ProviderID: providerID, EnvVar: inference.EnvVar, Configured: configured, Masked: maskedCredential(secret)}, nil
 	}
 	return CredentialStatus{}, &Error{Code: ErrorInternal, Operation: "credential_status", Provider: providerID, Message: "eyrie engine: could not read credential status", Cause: err}
 }

@@ -234,4 +234,38 @@ type CredentialStatus struct {
 	EnvVar     string `json:"env_var,omitempty"`
 	Configured bool   `json:"configured"`
 	Verified   bool   `json:"verified,omitempty"`
+	Masked     string `json:"masked,omitempty"`
+}
+
+// CredentialProvider is safe setup metadata for a configurable provider.
+// It contains identifiers and labels only, never credential material.
+type CredentialProvider struct {
+	ProviderID   string `json:"provider_id"`
+	DeploymentID string `json:"deployment_id,omitempty"`
+	EnvVar       string `json:"env_var,omitempty"`
+	DisplayName  string `json:"display_name"`
+	RequiresKey  bool   `json:"requires_key"`
+	Rank         int    `json:"rank,omitempty"`
+}
+
+// CredentialResolution validates pasted input and returns provider choices.
+// The input secret is never retained in this value.
+type CredentialResolution struct {
+	FormatOK                bool                 `json:"format_ok"`
+	FormatError             string               `json:"format_error,omitempty"`
+	Providers               []CredentialProvider `json:"providers"`
+	ProbeDisambiguationUsed bool                 `json:"probe_disambiguation_used,omitempty"`
+}
+
+// Gateway is one host-facing provider/deployment configuration row.
+type Gateway struct {
+	ID                   string `json:"id"`
+	DisplayName          string `json:"display_name"`
+	DeploymentID         string `json:"deployment_id,omitempty"`
+	CredentialEnv        string `json:"credential_env,omitempty"`
+	RequiresKey          bool   `json:"requires_key"`
+	CredentialConfigured bool   `json:"credential_configured"`
+	DeploymentConfigured bool   `json:"deployment_configured"`
+	ModelCount           int    `json:"model_count"`
+	Active               bool   `json:"active"`
 }
