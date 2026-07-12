@@ -76,6 +76,7 @@ func (e *Engine) Gateways(ctx context.Context) []Gateway {
 			DeploymentConfigured: deploymentConfigured, ModelCount: modelCount,
 			Active:      NormalizeProviderID(selection.Provider) == NormalizeProviderID(spec.ProviderID),
 			RegionLabel: regionLabel, RegionRequired: regionRequired,
+			SupportsLiveDiscovery: strings.TrimSpace(providerSpec.LiveFetcherKey) != "",
 		})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].ID < out[j].ID })

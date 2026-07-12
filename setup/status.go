@@ -32,9 +32,21 @@ type StatusReport struct {
 
 // DeploymentStatus builds a status report for CLI and agent diagnostics.
 func DeploymentStatus(ctx context.Context, activeModel string) (StatusReport, error) {
-	cfg := config.LoadProviderConfig("")
+	return DeploymentStatusFromPaths(ctx, activeModel, config.GetProviderConfigPath(), catalog.DefaultCachePath())
+}
+
+// DeploymentStatusFromPaths builds a status report from host-owned state.
+// Empty paths retain the process defaults for backwards compatibility.
+func DeploymentStatusFromPaths(ctx context.Context, activeModel, providerConfigPath, catalogCachePath string) (StatusReport, error) {
+	if strings.TrimSpace(providerConfigPath) == "" {
+		providerConfigPath = config.GetProviderConfigPath()
+	}
+	if strings.TrimSpace(catalogCachePath) == "" {
+		catalogCachePath = catalog.DefaultCachePath()
+	}
+	cfg := config.LoadProviderConfig(providerConfigPath)
 	report := StatusReport{
-		ProviderConfig: config.GetProviderConfigPath(),
+		ProviderConfig: providerConfigPath,
 		ActiveModel:    strings.TrimSpace(activeModel),
 	}
 	if cfg != nil {
@@ -47,7 +59,7 @@ func DeploymentStatus(ctx context.Context, activeModel string) (StatusReport, er
 	}
 	sortStrings(report.Configured)
 
-	report.CatalogCache = catalog.DefaultCachePath()
+	report.CatalogCache = catalogCachePath
 	if exists, mod, _, err := catalog.CacheInfo(report.CatalogCache); err == nil && exists {
 		report.CatalogExists = true
 		report.CatalogModified = mod
@@ -117,9 +129,21 @@ func FormatStatus(report StatusReport) string {
 
 // RoutingPreview returns JSON describing effective routing for a model ID.
 func RoutingPreview(ctx context.Context, model string) (string, error) {
-	cfg := config.LoadProviderConfig("")
+	return RoutingPreviewFromPaths(ctx, model, config.GetProviderConfigPath(), catalog.DefaultCachePath())
+}
+
+// RoutingPreviewFromPaths resolves routing from host-owned state paths.
+// Empty paths retain the process defaults for backwards compatibility.
+func RoutingPreviewFromPaths(ctx context.Context, model, providerConfigPath, catalogCachePath string) (string, error) {
+	if strings.TrimSpace(providerConfigPath) == "" {
+		providerConfigPath = config.GetProviderConfigPath()
+	}
+	if strings.TrimSpace(catalogCachePath) == "" {
+		catalogCachePath = catalog.DefaultCachePath()
+	}
+	cfg := config.LoadProviderConfig(providerConfigPath)
 	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
-		CachePath: catalog.DefaultCachePath(),
+		CachePath: catalogCachePath,
 	})
 	if err != nil {
 		return "", err

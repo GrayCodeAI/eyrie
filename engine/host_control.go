@@ -2,8 +2,10 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -242,15 +244,32 @@ func (e *Engine) DeploymentRoutingEnabled(override *bool) bool {
 func (e *Engine) DeploymentStatus(ctx context.Context, activeModel string) (string, error) {
 	// Compatibility formatter remains Eyrie-owned while setup internals migrate
 	// to injected paths. Host code receives presentation text only.
-	report, err := setup.DeploymentStatus(nonNilContext(ctx), activeModel)
+	report, err := setup.DeploymentStatusFromPaths(nonNilContext(ctx), activeModel, e.providerConfigPath, e.catalogPath)
 	if err != nil {
 		return "", err
 	}
 	return setup.FormatStatus(report), nil
 }
 
+type DeploymentSummary struct {
+	RoutingSource string `json:"routing_source,omitempty"`
+	RoutingStages int    `json:"routing_stages,omitempty"`
+	Formatted     string `json:"formatted"`
+}
+
+func (e *Engine) DeploymentSummary(ctx context.Context, activeModel string) (DeploymentSummary, error) {
+	report, err := setup.DeploymentStatusFromPaths(nonNilContext(ctx), activeModel, e.providerConfigPath, e.catalogPath)
+	if err != nil {
+		return DeploymentSummary{}, err
+	}
+	return DeploymentSummary{
+		RoutingSource: report.RoutingSource, RoutingStages: report.RoutingStages,
+		Formatted: setup.FormatStatus(report),
+	}, nil
+}
+
 func (e *Engine) RoutingPreview(ctx context.Context, modelID string) (string, error) {
-	return setup.RoutingPreview(nonNilContext(ctx), modelID)
+	return setup.RoutingPreviewFromPaths(nonNilContext(ctx), modelID, e.providerConfigPath, e.catalogPath)
 }
 
 // FormatSetupError returns a safe provider setup hint.
@@ -259,6 +278,18 @@ func FormatSetupError(providerID string, err error) string {
 		return ""
 	}
 	return runtime.FormatSetupError(providerID, err).Error()
+}
+
+// CredentialGuidance returns provider-specific, non-secret setup guidance.
+func CredentialGuidance(providerID, secret string) string {
+	switch NormalizeProviderID(providerID) {
+	case runtime.GatewayXiaomiTokenPlan:
+		return xiaomi.KeyMismatchHint(xiaomi.BillingTokenPlan, secret)
+	case xiaomi.ProviderPayAsYouGo:
+		return xiaomi.KeyMismatchHint(xiaomi.BillingPayAsYouGo, secret)
+	default:
+		return ""
+	}
 }
 
 func (e *Engine) DefaultProviderFilter(ctx context.Context) string {
@@ -337,4 +368,113 @@ func FormatPreflight(report PreflightReport) string {
 		fmt.Fprintf(&b, "  %s %s: %s\n", icon, check.Name, check.Detail)
 	}
 	return strings.TrimRight(b.String(), "\n")
+}
+
+type ProviderStateSecurity struct {
+	Path       string `json:"path"`
+	HasSecrets bool   `json:"has_secrets"`
+	Detail     string `json:"detail,omitempty"`
+	Error      string `json:"error,omitempty"`
+}
+
+// ProviderStateSecurityStatus inspects provider.json without returning values.
+func (e *Engine) ProviderStateSecurityStatus() ProviderStateSecurity {
+	status := ProviderStateSecurity{Path: e.providerConfigPath}
+	cfg, err := config.LoadProviderConfigWithError(e.providerConfigPath)
+	if err != nil {
+		status.Error = err.Error()
+		return status
+	}
+	if cfg == nil {
+		return status
+	}
+	for id, deployment := range cfg.Deployments {
+		if deploymentContainsSecrets(deployment) {
+			status.HasSecrets = true
+			status.Detail = "deployment " + id + " has secret fields on disk"
+			return status
+		}
+	}
+	return status
+}
+
+// MigrateProviderSecrets atomically strips historical secret fields from
+// provider.json while preserving routing and non-secret deployment metadata.
+func (e *Engine) MigrateProviderSecrets() error {
+	path := e.providerConfigPath
+	marker, backup := path+".secrets-migrated", path+".pre-secret-migrate.bak"
+	if _, err := os.Stat(marker); err == nil {
+		_ = os.Remove(backup)
+		return nil
+	}
+	data, err := os.ReadFile(path) // #nosec G304 -- engine-owned state path
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var cfg config.ProviderConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return err
+	}
+	changed := false
+	for id, deployment := range cfg.Deployments {
+		if deploymentContainsSecrets(deployment) {
+			changed = true
+		}
+		cfg.Deployments[id] = config.SanitizeDeploymentConfigForDisk(deployment)
+	}
+	if !changed {
+		return os.WriteFile(marker, []byte("ok\n"), 0o600)
+	}
+	if err := os.WriteFile(backup, data, 0o600); err != nil {
+		return err
+	}
+	if err := writeProviderConfigAtomic(path, &cfg); err != nil {
+		return err
+	}
+	if err := os.WriteFile(marker, []byte("ok\n"), 0o600); err != nil {
+		return err
+	}
+	return os.Remove(backup)
+}
+
+func writeProviderConfigAtomic(path string, cfg *config.ProviderConfig) (err error) {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(dir, ".provider-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+	}()
+	if err := tmp.Chmod(0o600); err != nil {
+		return err
+	}
+	if _, err := tmp.Write(append(data, '\n')); err != nil {
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
+}
+
+func deploymentContainsSecrets(deployment config.DeploymentConfig) bool {
+	return strings.TrimSpace(deployment.APIKey) != "" || strings.TrimSpace(deployment.Token) != "" ||
+		strings.TrimSpace(deployment.SecretAccessKey) != "" || strings.TrimSpace(deployment.AccessKeyID) != "" ||
+		strings.TrimSpace(deployment.SessionToken) != ""
 }

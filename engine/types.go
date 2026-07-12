@@ -271,17 +271,18 @@ type CredentialResolution struct {
 
 // Gateway is one host-facing provider/deployment configuration row.
 type Gateway struct {
-	ID                   string `json:"id"`
-	DisplayName          string `json:"display_name"`
-	DeploymentID         string `json:"deployment_id,omitempty"`
-	CredentialEnv        string `json:"credential_env,omitempty"`
-	RequiresKey          bool   `json:"requires_key"`
-	CredentialConfigured bool   `json:"credential_configured"`
-	DeploymentConfigured bool   `json:"deployment_configured"`
-	ModelCount           int    `json:"model_count"`
-	Active               bool   `json:"active"`
-	RegionLabel          string `json:"region_label,omitempty"`
-	RegionRequired       bool   `json:"region_required,omitempty"`
+	ID                    string `json:"id"`
+	DisplayName           string `json:"display_name"`
+	DeploymentID          string `json:"deployment_id,omitempty"`
+	CredentialEnv         string `json:"credential_env,omitempty"`
+	RequiresKey           bool   `json:"requires_key"`
+	CredentialConfigured  bool   `json:"credential_configured"`
+	DeploymentConfigured  bool   `json:"deployment_configured"`
+	ModelCount            int    `json:"model_count"`
+	Active                bool   `json:"active"`
+	RegionLabel           string `json:"region_label,omitempty"`
+	RegionRequired        bool   `json:"region_required,omitempty"`
+	SupportsLiveDiscovery bool   `json:"supports_live_discovery,omitempty"`
 }
 
 // Selection is the effective provider/model state supplied to a host session.

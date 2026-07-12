@@ -2,9 +2,12 @@ package engine
 
 import (
 	"context"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
@@ -102,5 +105,53 @@ func TestHostControlUsesInjectedStoreAndPaths(t *testing.T) {
 	label, required := eng.GatewayRegion("zai_coding")
 	if label == "" || required {
 		t.Fatalf("unexpected gateway region label=%q required=%v", label, required)
+	}
+	status, err := eng.DeploymentStatus(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(status, eng.providerConfigPath) || !strings.Contains(status, eng.catalogPath) {
+		t.Fatalf("deployment status escaped injected paths: %s", status)
+	}
+}
+
+func TestProviderStateSecurityFailsClosedOnCorruptState(t *testing.T) {
+	eng, err := New(Options{SecretStore: &credentials.MapStore{}, StateDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(eng.providerConfigPath, []byte("{not-json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	status := eng.ProviderStateSecurityStatus()
+	if status.Error == "" {
+		t.Fatal("expected corrupt provider state to be reported")
+	}
+}
+
+func TestProviderSecretMigrationStaysInsideEnginePath(t *testing.T) {
+	dir := t.TempDir()
+	eng, err := New(Options{SecretStore: &credentials.MapStore{}, StateDir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config.ProviderConfig{Deployments: map[string]config.DeploymentConfig{
+		"legacy": {APIKey: "sk-legacy", BaseURL: "https://example.test"},
+	}}
+	if err := config.SaveProviderConfig(cfg, eng.providerConfigPath); err != nil {
+		t.Fatal(err)
+	}
+	if status := eng.ProviderStateSecurityStatus(); !status.HasSecrets {
+		t.Fatal("expected secret-bearing provider state")
+	}
+	if err := eng.MigrateProviderSecrets(); err != nil {
+		t.Fatal(err)
+	}
+	if status := eng.ProviderStateSecurityStatus(); status.HasSecrets {
+		t.Fatalf("provider state still contains secrets: %+v", status)
+	}
+	saved := config.LoadProviderConfig(eng.providerConfigPath)
+	if saved.Deployments["legacy"].BaseURL != "https://example.test" {
+		t.Fatal("migration lost non-secret routing metadata")
 	}
 }
