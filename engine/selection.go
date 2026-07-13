@@ -22,11 +22,13 @@ func (e *Engine) EffectiveSelection(ctx context.Context, opts SelectionOptions) 
 	active := e.ActiveSelection(ctx)
 	provider := NormalizeProviderID(active.Provider)
 	model := strings.TrimSpace(active.Model)
+	hasProviderOverride := false
 	if override := NormalizeProviderID(opts.ProviderOverride); override != "" {
 		if override != provider && strings.TrimSpace(opts.ModelOverride) == "" {
 			model = ""
 		}
 		provider = override
+		hasProviderOverride = true
 	}
 	if override := strings.TrimSpace(opts.ModelOverride); override != "" {
 		model = override
@@ -53,7 +55,7 @@ func (e *Engine) EffectiveSelection(ctx context.Context, opts SelectionOptions) 
 	if provider == "" && hasConfigured {
 		provider = preferredConfiguredGateway(gateways, configured)
 	}
-	if provider != "" && hasConfigured && !configured[provider] {
+	if provider != "" && hasConfigured && !configured[provider] && !hasProviderOverride {
 		provider = preferredConfiguredGateway(gateways, configured)
 		model = ""
 	}
