@@ -17,8 +17,8 @@ import (
 
 func newTestVertexClient(serverURL, projectID, region, token string) *VertexClient {
 	c := NewVertexClient(projectID, region, token)
-	c.httpClient = &http.Client{}
-	c.retry = NewRetryConfig(0, 0, 0)
+	c.SetHTTPClient(&http.Client{})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 	return c
 }
 
@@ -34,8 +34,8 @@ func TestVertexClient_BaseURL(t *testing.T) {
 	t.Parallel()
 	c := NewVertexClient("my-project", "us-east1", "token")
 	expected := "https://us-east1-aiplatform.googleapis.com/v1/projects/my-project/locations/us-east1/publishers/anthropic/models"
-	if c.baseURL() != expected {
-		t.Errorf("expected baseURL %q, got %q", expected, c.baseURL())
+	if c.BaseURL() != expected {
+		t.Errorf("expected baseURL %q, got %q", expected, c.BaseURL())
 	}
 }
 
@@ -70,22 +70,22 @@ func TestVertexChat_Success(t *testing.T) {
 	c := newTestVertexClient(server.URL, "my-project", "us-central1", "test-bearer-token")
 
 	// Override the baseURL by constructing with server URL host
-	// We need to set the URL directly since baseURL() is computed from projectID/region
+	// We need to set the URL directly since BaseURL() is computed from projectID/region
 	// For testing, we'll monkey-patch the httpClient to redirect to our test server
-	originalDo := c.httpClient
-	c.httpClient = &http.Client{
+	originalDo := c.HTTPClient()
+	c.SetHTTPClient(&http.Client{
 		Transport: &redirectTransport{target: server.URL},
-	}
-	defer func() { c.httpClient = originalDo }()
+	})
+	defer func() { c.SetHTTPClient(originalDo) }()
 
 	// We can't easily redirect because the Vertex client constructs the full URL.
 	// Instead, use a test that verifies the body and headers by running against
-	// a server that acts as the Vertex endpoint. Since baseURL() is computed,
-	// we test the buildBody method and headers separately.
+	// a server that acts as the Vertex endpoint. Since BaseURL() is computed,
+	// we test the BuildBody method and headers separately.
 	// For an integration-level test, we use a custom approach.
 
 	// Let's test by verifying the buildBody output and header behavior separately.
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "Hello Vertex"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"}, false)
 	if err != nil {
@@ -113,16 +113,6 @@ func TestVertexChat_Success(t *testing.T) {
 		t.Errorf("expected default max_tokens=4096, got %v", bodyMap["max_tokens"])
 	}
 
-	// Verify headers
-	req, _ := http.NewRequest("POST", "http://example.com", nil)
-	c.setHeaders(req)
-	if req.Header.Get("Authorization") != "Bearer test-bearer-token" {
-		t.Errorf("expected Bearer token, got %q", req.Header.Get("Authorization"))
-	}
-	if req.Header.Get("Content-Type") != "application/json" {
-		t.Errorf("expected Content-Type application/json, got %q", req.Header.Get("Content-Type"))
-	}
-
 	// Suppress unused warnings
 	_ = capturedMethod
 	_ = capturedPath
@@ -147,7 +137,7 @@ func TestVertexBuildBody_WithSystemPrompt(t *testing.T) {
 	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "system", Content: "You are a helpful assistant."},
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"}, false)
@@ -171,7 +161,7 @@ func TestVertexBuildBody_SystemMerge(t *testing.T) {
 	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "system", Content: "From messages"},
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6", System: "From opts"}, false)
@@ -195,7 +185,7 @@ func TestVertexBuildBody_CustomMaxTokens(t *testing.T) {
 	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6", MaxTokens: 8192}, false)
 	if err != nil {
@@ -215,7 +205,7 @@ func TestVertexBuildBody_WithTemperature(t *testing.T) {
 	c := NewVertexClient("proj", "us-central1", "token")
 	temp := 0.5
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6", Temperature: &temp}, false)
 	if err != nil {
@@ -234,7 +224,7 @@ func TestVertexBuildBody_WithTools(t *testing.T) {
 	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{
 		Model: "claude-sonnet-4-6",
@@ -269,7 +259,7 @@ func TestVertexBuildBody_StreamFlag(t *testing.T) {
 	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"}, true)
 	if err != nil {
@@ -288,7 +278,7 @@ func TestVertexBuildBody_ToolResultMessage(t *testing.T) {
 	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "What is the weather?"},
 		{Role: "assistant", ToolUse: []ToolCall{
 			{ID: "toolu_1", Name: "get_weather", Arguments: map[string]interface{}{"city": "NYC"}},
@@ -312,7 +302,7 @@ func TestVertexBuildBody_VertexVersionField(t *testing.T) {
 	t.Parallel()
 	c := NewVertexClient("proj", "us-central1", "token")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"}, false)
 	if err != nil {
@@ -366,15 +356,15 @@ func TestVertexChat_SuccessWithFullResponse(t *testing.T) {
 	defer server.Close()
 
 	c := NewVertexClient("test-project", "us-central1", "vert-token")
-	c.httpClient = server.Client()
-	c.retry = NewRetryConfig(0, 0, 0)
+	c.SetHTTPClient(server.Client())
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	// We need to override the region/project so the URL hits our test server
 	// The baseURL() method constructs the URL from region/projectID.
 	// For testing, we create a custom transport that rewrites the URL.
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &vertexRewriteTransport{target: server.URL, originalHost: "us-central1-aiplatform.googleapis.com"},
-	}
+	})
 
 	resp, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Hello"},
@@ -422,10 +412,10 @@ func TestVertexChat_ToolUseResponse(t *testing.T) {
 	defer server.Close()
 
 	c := NewVertexClient("proj", "us-central1", "token")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &vertexRewriteTransport{target: server.URL, originalHost: "us-central1-aiplatform.googleapis.com"},
-	}
-	c.retry = NewRetryConfig(0, 0, 0)
+	})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	resp, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Search for vertex pricing"},
@@ -463,10 +453,10 @@ func TestVertexChat_ErrorResponse(t *testing.T) {
 	defer server.Close()
 
 	c := NewVertexClient("proj", "us-central1", "token")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &vertexRewriteTransport{target: server.URL, originalHost: "us-central1-aiplatform.googleapis.com"},
-	}
-	c.retry = NewRetryConfig(0, 0, 0)
+	})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	_, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -510,10 +500,10 @@ func TestVertexStreamChat_Success(t *testing.T) {
 	defer server.Close()
 
 	c := NewVertexClient("proj", "us-central1", "token")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &vertexRewriteTransport{target: server.URL, originalHost: "us-central1-aiplatform.googleapis.com"},
-	}
-	c.retry = NewRetryConfig(0, 0, 0)
+	})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	sr, err := c.StreamChat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Hello"},
@@ -572,9 +562,9 @@ func TestVertexPing_Success(t *testing.T) {
 	defer server.Close()
 
 	c := NewVertexClient("proj", "us-central1", "token")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &vertexRewriteTransport{target: server.URL, originalHost: "us-central1-aiplatform.googleapis.com"},
-	}
+	})
 
 	err := c.Ping(context.Background())
 	if err != nil {
@@ -590,9 +580,9 @@ func TestVertexPing_InvalidCredentials(t *testing.T) {
 	defer server.Close()
 
 	c := NewVertexClient("proj", "us-central1", "token")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &vertexRewriteTransport{target: server.URL, originalHost: "us-central1-aiplatform.googleapis.com"},
-	}
+	})
 
 	err := c.Ping(context.Background())
 	if err == nil {

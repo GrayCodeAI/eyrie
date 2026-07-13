@@ -157,7 +157,7 @@ func TestParseAnthropicResponse_MultipleToolUse(t *testing.T) {
 }
 
 // TestParseAnthropicResponse_ToolUse_BadJSON: a tool_use block
-// with malformed Input JSON still produces a ToolCall entry, but
+// with malformed Input JSON still produces a core.ToolCall entry, but
 // with nil Arguments (the unmarshal error is swallowed — same
 // behavior as the previous inlined copy).
 func TestParseAnthropicResponse_ToolUse_BadJSON(t *testing.T) {

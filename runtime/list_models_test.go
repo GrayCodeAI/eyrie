@@ -2,6 +2,7 @@ package runtime_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -113,7 +114,7 @@ func TestListModels_CacheEntriesHaveCorrectFields(t *testing.T) {
 		Offerings: []catalog.ModelOffering{{
 			ID: "anthropic-direct:claude-opus-4-6", CanonicalModelID: "anthropic/claude-opus-4-6",
 			DeploymentID: "anthropic-direct", NativeModelID: "claude-opus-4-6",
-			Pricing: catalog.Pricing{Status: catalog.PricingUnknown},
+			Pricing: catalog.Pricing{Status: catalog.PricingUnknown}, LiveMetadata: []byte(`{"id":"claude-opus-4-6"}`),
 		}},
 	}
 	if err := catalog.WriteCatalogCache(cachePath, &c); err != nil {
@@ -144,8 +145,24 @@ func TestListModels_CacheEntriesHaveCorrectFields(t *testing.T) {
 	if e.ContextWindow != 200000 {
 		t.Fatalf("expected context window 200000, got %d", e.ContextWindow)
 	}
+	if e.MaxOutput != 32000 {
+		t.Fatalf("expected max output 32000, got %d", e.MaxOutput)
+	}
+	var metadata map[string]any
+	if err := json.Unmarshal(e.LiveMetadata, &metadata); err != nil || metadata["id"] != "claude-opus-4-6" {
+		t.Fatalf("unexpected live metadata: %s (err=%v)", e.LiveMetadata, err)
+	}
 	if e.Installed {
 		t.Fatal("expected installed=false for cache source")
+	}
+}
+
+func TestProviderSupportsLiveModels(t *testing.T) {
+	if !runtime.ProviderSupportsLiveModels("openai") {
+		t.Fatal("expected OpenAI to support live model listing")
+	}
+	if runtime.ProviderSupportsLiveModels("unknown-provider") {
+		t.Fatal("unknown provider must not report live model support")
 	}
 }
 

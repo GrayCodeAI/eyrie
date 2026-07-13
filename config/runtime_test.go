@@ -9,6 +9,24 @@ import (
 	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
+func clearRuntimeProviderCredentials(t *testing.T) {
+	t.Helper()
+
+	seen := make(map[string]struct{})
+	for _, profile := range OpenAICompatibleRuntimeProfiles {
+		for _, key := range profile.DetectionEnv {
+			seen[key] = struct{}{}
+		}
+		for _, key := range profile.APIKeys {
+			seen[key.Env] = struct{}{}
+		}
+	}
+	seen["OLLAMA_BASE_URL"] = struct{}{}
+	for key := range seen {
+		t.Setenv(key, "")
+	}
+}
+
 func TestRuntimeProfileFields(t *testing.T) {
 	t.Parallel()
 	profiles := map[string]RuntimeProviderProfile{
@@ -119,6 +137,7 @@ func TestProviderModelEnvKeys_AllProvidersPresent(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
+	clearRuntimeProviderCredentials(t)
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
@@ -132,7 +151,7 @@ func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
 		t.Errorf("expected resolved model 'gpt-4o', got %q", result.Request.ResolvedModel)
 	}
 	if result.APIKey != "sk-test-key-1234567890" {
-		t.Errorf("expected API key 'sk-test-key-1234567890', got %q", result.APIKey)
+		t.Error("resolved API key did not match the isolated test credential")
 	}
 	if result.APIKeySource != "openai" {
 		t.Errorf("expected API key source 'openai', got %q", result.APIKeySource)
@@ -140,6 +159,7 @@ func TestResolveOpenAICompatibleRuntime_WithEnv(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
+	clearRuntimeProviderCredentials(t)
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
@@ -150,7 +170,7 @@ func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
 		t.Errorf("expected mode 'grok', got %q", result.Mode)
 	}
 	if result.APIKey != "xai-test-key-1234567890" {
-		t.Errorf("expected xAI API key, got %q", result.APIKey)
+		t.Error("resolved API key did not match the isolated xAI test credential")
 	}
 	if result.APIKeySource != "grok" {
 		t.Errorf("expected source 'grok', got %q", result.APIKeySource)
@@ -158,6 +178,7 @@ func TestResolveOpenAICompatibleRuntime_GrokProvider(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
+	clearRuntimeProviderCredentials(t)
 	clearKeys := []string{
 		"OPENROUTER_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY",
 		"ANTHROPIC_API_KEY", "CANOPYWAVE_API_KEY", "DEEPSEEK_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY",
@@ -177,13 +198,14 @@ func TestResolveOpenAICompatibleRuntime_FallbackModel(t *testing.T) {
 }
 
 func TestResolveOpenAICompatibleRuntime_NoKeys(t *testing.T) {
+	clearRuntimeProviderCredentials(t)
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
 
 	result := ResolveOpenAICompatibleRuntime("", "", "")
 	if result.APIKey != "" {
-		t.Errorf("expected empty API key when no env set, got %q", result.APIKey)
+		t.Error("expected an empty API key when no provider credential is configured")
 	}
 	if result.APIKeySource != "none" {
 		t.Errorf("expected source 'none', got %q", result.APIKeySource)

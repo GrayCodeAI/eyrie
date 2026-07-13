@@ -173,9 +173,63 @@ func CredentialPresent(spec ProviderSpec, env map[string]string) bool {
 				return true
 			}
 		}
+		for _, key := range spec.CredentialAliases {
+			if strings.TrimSpace(env[key]) != "" {
+				return true
+			}
+		}
 		return false
 	}
 	return strings.TrimSpace(env[spec.CredentialEnv]) != ""
+}
+
+// ScopedProviderEnv returns only credential aliases and routing metadata used
+// by one provider. Provider-specific fetchers must never receive unrelated
+// credentials from the host's full secret snapshot.
+func ScopedProviderEnv(spec ProviderSpec, env map[string]string) map[string]string {
+	allowed := map[string]bool{}
+	add := func(keys ...string) {
+		for _, key := range keys {
+			if key = strings.TrimSpace(key); key != "" {
+				allowed[key] = true
+			}
+		}
+	}
+	add(spec.CredentialEnv)
+	add(spec.CredentialEnvFallbacks...)
+	add(spec.CredentialAliases...)
+	add(spec.BaseURLEnv...)
+	switch spec.ProviderID {
+	case "azure":
+		add("AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_VERSION", "AZURE_OPENAI_DEPLOYMENT")
+	case "bedrock":
+		add("AWS_REGION", "AWS_DEFAULT_REGION")
+	case "vertex":
+		add("VERTEX_PROJECT_ID", "VERTEX_REGION")
+	case "xiaomi_mimo_token_plan":
+		add("XIAOMI_MIMO_TOKEN_PLAN_REGION", "XIAOMI_MIMO_PLATFORM_MODELS_URL")
+	case "xiaomi_mimo_payg":
+		add("XIAOMI_MIMO_PLATFORM_MODELS_URL")
+	case "zai_payg":
+		add("ZAI_REGION")
+	case "zai_coding":
+		add("ZAI_CODING_REGION")
+	}
+	out := make(map[string]string, len(allowed))
+	for key := range allowed {
+		if value := strings.TrimSpace(env[key]); value != "" {
+			out[key] = value
+		}
+	}
+	if strings.TrimSpace(out[spec.CredentialEnv]) == "" {
+		for _, alias := range spec.CredentialAliases {
+			if value := strings.TrimSpace(out[alias]); value != "" {
+				out[spec.CredentialEnv] = value
+				break
+			}
+		}
+	}
+	return out
 }
 
 // SpecForLiveFetcher returns the provider spec for a live fetcher key.

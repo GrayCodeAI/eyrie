@@ -9,7 +9,7 @@ func TestDiscoveryCredentials_StaleBaseURLUsesRegion(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HAWK_CONFIG_DIR", dir)
 	cfg := &ProviderConfig{
-		Version:                    "2",
+		Version:                    "1",
 		XiaomiMimoTokenPlanRegion:  "sgp",
 		XiaomiMimoTokenPlanBaseURL: "https://token-plan-cn.xiaomimimo.com/v1",
 	}

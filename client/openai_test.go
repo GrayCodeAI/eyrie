@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/client/adapters"
 )
 
 // StreamChat tests live in openai_stream_test.go; Ping, compat, image,
@@ -49,7 +51,7 @@ func TestOpenAIChat_Success(t *testing.T) {
 		}
 
 		// Verify request body
-		var reqBody openaiRequest
+		var reqBody adapters.OpenAIRequest
 		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 			t.Fatalf("failed to decode request: %v", err)
 		}
@@ -61,7 +63,7 @@ func TestOpenAIChat_Success(t *testing.T) {
 		}
 
 		w.Header().Set("X-Request-Id", "req-123")
-		json.NewEncoder(w).Encode(openaiResponse{
+		json.NewEncoder(w).Encode(adapters.OpenAIResponse{
 			ID: "chatcmpl-abc",
 			Choices: []struct {
 				Message struct {

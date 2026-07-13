@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -81,6 +83,14 @@ type ProviderConfig struct {
 	AnthropicVersion           string                      `json:"anthropic_version,omitempty"`
 	Deployments                map[string]DeploymentConfig `json:"deployments,omitempty"`
 	Routing                    *RoutingPolicy              `json:"routing,omitempty"`
+}
+
+// providerConfigJSON accepts the historical "version" spelling while keeping
+// ProviderConfig's serialized form canonical ("_version"). Keeping the alias
+// out of ProviderConfig also prevents new writes from reintroducing it.
+type providerConfigJSON struct {
+	ProviderConfig
+	LegacyVersion string `json:"version,omitempty"`
 }
 
 type DeploymentConfig struct {
@@ -335,13 +345,20 @@ var ProviderDetectionOrder = APIProviderDetectionOrder
 
 // GetProviderConfigDir returns the config directory path.
 func GetProviderConfigDir() string {
+	if d := strings.TrimSpace(os.Getenv("EYRIE_CONFIG_DIR")); d != "" {
+		return d
+	}
+	// HAWK_CONFIG_DIR is retained as a compatibility fallback for hosts that
+	// predate Eyrie's host-neutral configuration namespace.
 	if d := os.Getenv("HAWK_CONFIG_DIR"); d != "" {
 		return d
 	}
 	if d, err := os.UserConfigDir(); err == nil && d != "" {
+		// Preserve the historical default until the host-neutral Engine path
+		// migration can copy existing provider state safely.
 		return filepath.Join(d, "hawk")
 	}
-	panic("hawk provider config: user config directory unavailable")
+	panic("eyrie provider config: user config directory unavailable")
 }
 
 // GetProviderConfigPath returns the full path to provider.json.
@@ -359,11 +376,15 @@ func LoadProviderConfig(path string) *ProviderConfig {
 	if err != nil {
 		return nil
 	}
-	var cfg ProviderConfig
-	if json.Unmarshal(data, &cfg) != nil {
+	var wire providerConfigJSON
+	if json.Unmarshal(data, &wire) != nil {
 		return nil
 	}
-	return &cfg
+	cfg, err := normalizeProviderConfigVersion(wire)
+	if err != nil {
+		return nil
+	}
+	return cfg
 }
 
 // LoadProviderConfigWithError loads provider config from disk with detailed error reporting.
@@ -380,27 +401,98 @@ func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
 		}
 		return nil, fmt.Errorf("eyrie: failed to read provider config at %s: %w", path, err)
 	}
-	var cfg ProviderConfig
-	if err := json.Unmarshal(data, &cfg); err != nil {
+	var wire providerConfigJSON
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&wire); err != nil {
+		return nil, fmt.Errorf("eyrie: corrupt provider config at %s: %w", path, err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			err = fmt.Errorf("multiple JSON values")
+		}
+		return nil, fmt.Errorf("eyrie: corrupt provider config at %s: %w", path, err)
+	}
+	cfg, err := normalizeProviderConfigVersion(wire)
+	if err != nil {
 		return nil, fmt.Errorf("eyrie: corrupt provider config at %s: %w", path, err)
 	}
 	if cfg.Version != "" && cfg.Version != "1" {
 		return nil, fmt.Errorf("eyrie: unsupported provider config version %q at %s", cfg.Version, path)
 	}
-	return &cfg, nil
+	return cfg, nil
 }
 
-// SaveProviderConfig saves provider config to disk.
-func SaveProviderConfig(config *ProviderConfig, path string) error {
+func normalizeProviderConfigVersion(wire providerConfigJSON) (*ProviderConfig, error) {
+	canonical := strings.TrimSpace(wire.Version)
+	legacy := strings.TrimSpace(wire.LegacyVersion)
+	if canonical != "" && legacy != "" && canonical != legacy {
+		return nil, fmt.Errorf("conflicting provider config versions %q and %q", canonical, legacy)
+	}
+	if canonical == "" {
+		wire.Version = legacy
+	} else {
+		wire.Version = canonical
+	}
+	return &wire.ProviderConfig, nil
+}
+
+// SaveProviderConfig atomically persists non-secret provider state. Credential
+// material belongs in the credential store; refusing it here makes plaintext
+// provider.json writes impossible through the public config API.
+func SaveProviderConfig(config *ProviderConfig, path string) (err error) {
+	if config == nil {
+		return fmt.Errorf("eyrie: provider config is nil")
+	}
+	if ProviderConfigContainsSecrets(*config) {
+		return fmt.Errorf("eyrie: refusing to persist credential fields in provider config")
+	}
+	if config.Version != "" && config.Version != "1" {
+		return fmt.Errorf("eyrie: refusing to persist unsupported provider config version %q", config.Version)
+	}
 	if path == "" {
 		path = GetProviderConfigPath()
 	}
-	_ = os.MkdirAll(filepath.Dir(path), 0o700)
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(data, '\n'), 0o600)
+	tmp, err := os.CreateTemp(dir, ".provider-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+	}()
+	if err := tmp.Chmod(0o600); err != nil {
+		return err
+	}
+	if _, err := tmp.Write(append(data, '\n')); err != nil {
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return err
+	}
+	// The rename is the commit point. Directory fsync is best-effort because a
+	// post-commit error must not make callers roll back credentials after the
+	// plaintext source has already been replaced by sanitized state.
+	if dirHandle, openErr := os.Open(dir); openErr == nil {
+		_ = dirHandle.Sync()
+		_ = dirHandle.Close()
+	}
+	return nil
 }
 
 // IsProviderConfigured checks if a provider has valid configuration.

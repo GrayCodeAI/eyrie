@@ -52,7 +52,7 @@ func TestProbeCredential_XiaomiTokenPlan_ResolvesBaseFromProviderConfig(t *testi
 	t.Setenv("HAWK_CONFIG_DIR", dir)
 	mockBase := strings.TrimRight(srv.URL, "/") + "/v1"
 	cfg := &eyriecfg.ProviderConfig{
-		Version:                    "2",
+		Version:                    "1",
 		XiaomiMimoTokenPlanBaseURL: mockBase,
 	}
 	if err := eyriecfg.SaveProviderConfig(cfg, ""); err != nil {

@@ -525,10 +525,10 @@ func TestGemini_Stream_SharedParser_PreservesClientState(t *testing.T) {
 	defer srv.Close()
 
 	c := NewGeminiClient("test-key", srv.URL)
-	if c.httpClient == nil {
+	if c.HTTPClient() == nil {
 		t.Fatal("NewGeminiClient did not initialize httpClient")
 	}
-	if c.retry.MaxRetries == 0 {
+	if c.Retry().MaxRetries == 0 {
 		t.Fatal("retry config not initialized")
 	}
 
@@ -540,7 +540,7 @@ func TestGemini_Stream_SharedParser_PreservesClientState(t *testing.T) {
 	}
 	defer sr.Close()
 	_ = drainGeminiStream(t, sr, 5*time.Second)
-	if c.httpClient == nil {
+	if c.HTTPClient() == nil {
 		t.Error("httpClient was clobbered by StreamChat")
 	}
 }

@@ -200,24 +200,15 @@ Important:
 	return result
 }
 
-// WithStructuredOutput returns a ClientOption that configures structured JSON output.
-// For OpenAI, it sets response_format to json_schema with the given schema.
-// For Anthropic, it enables structured output via the prefill technique.
+// WithStructuredOutput returns a ClientOption for structured JSON output.
+//
+// The option itself is inert: neither adapter is mutated at construction
+// time. Anthropic uses the prefill technique and OpenAI sets response_format,
+// both handled per-call in ChatWithStructuredOutput (which receives the
+// schema through its SchemaValidation parameter — the fields this option
+// previously carried were never read). Kept for API compatibility.
 func WithStructuredOutput(schema map[string]interface{}, maxRetries int) ClientOption {
-	schemaJSON, _ := json.Marshal(schema)
-
-	return ClientOption{
-		applyFn: func(c *AnthropicClient) {
-			// Anthropic uses prefill technique - handled in ChatWithStructuredOutput
-		},
-		applyOpenAIFn: func(c *OpenAIClient) {
-			// OpenAI uses response_format - handled in ChatWithStructuredOutput
-		},
-		// Store schema for use by ChatWithStructuredOutput
-		structuredSchema:     schema,
-		structuredMaxRetries: maxRetries,
-		structuredSchemaJSON: string(schemaJSON),
-	}
+	return ClientOption{}
 }
 
 // ChatWithStructuredOutput sends a chat request with structured output validation.

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/client/adapters"
 )
 
 // Anthropic Ping, error handling, client config, and feature (thinking/tool-choice) tests. Split out of anthropic_test.go for clarity.
@@ -239,16 +241,16 @@ func TestAnthropicClient_Name(t *testing.T) {
 func TestAnthropicClient_DefaultBaseURL(t *testing.T) {
 	t.Parallel()
 	client := NewAnthropicClient("key", "")
-	if client.baseURL != "https://api.anthropic.com" {
-		t.Errorf("expected default base URL, got %q", client.baseURL)
+	if client.BaseURL() != "https://api.anthropic.com" {
+		t.Errorf("expected default base URL, got %q", client.BaseURL())
 	}
 }
 
 func TestAnthropicClient_CustomBaseURL(t *testing.T) {
 	t.Parallel()
 	client := NewAnthropicClient("key", "https://custom.proxy.com")
-	if client.baseURL != "https://custom.proxy.com" {
-		t.Errorf("expected custom base URL, got %q", client.baseURL)
+	if client.BaseURL() != "https://custom.proxy.com" {
+		t.Errorf("expected custom base URL, got %q", client.BaseURL())
 	}
 }
 
@@ -262,11 +264,11 @@ func TestAnthropicClient_WithOptions(t *testing.T) {
 		WithHTTPClient(customHTTP),
 		WithRetry(retryConfig),
 	)
-	if client.httpClient != customHTTP {
+	if client.HTTPClient() != customHTTP {
 		t.Error("expected custom HTTP client to be set")
 	}
-	if client.retry.MaxRetries != 5 {
-		t.Errorf("expected 5 max retries, got %d", client.retry.MaxRetries)
+	if client.Retry().MaxRetries != 5 {
+		t.Errorf("expected 5 max retries, got %d", client.Retry().MaxRetries)
 	}
 }
 
@@ -574,7 +576,7 @@ func TestResolveOutputConfig(t *testing.T) {
 
 func TestAnthropicResponseFormatJSONSchema(t *testing.T) {
 	c := NewAnthropicClient("test", "http://example.test")
-	_, body, err := c.buildAnthropicRequest(context.Background(), []EyrieMessage{{Role: "user", Content: "hi"}}, ChatOptions{
+	_, body, err := c.BuildAnthropicRequest(context.Background(), []EyrieMessage{{Role: "user", Content: "hi"}}, ChatOptions{
 		Model: "claude-test",
 		ResponseFormat: &ResponseFormat{
 			Type:   "json_schema",
@@ -591,7 +593,7 @@ func TestAnthropicResponseFormatJSONSchema(t *testing.T) {
 
 func TestAnthropicResponseFormatRejectsSchemaLessJSON(t *testing.T) {
 	c := NewAnthropicClient("test", "http://example.test")
-	_, _, err := c.buildAnthropicRequest(context.Background(), nil, ChatOptions{
+	_, _, err := c.BuildAnthropicRequest(context.Background(), nil, ChatOptions{
 		ResponseFormat: &ResponseFormat{Type: "json_object"},
 	}, false)
 	if err == nil || !strings.Contains(err.Error(), "use json_schema") {
@@ -601,7 +603,7 @@ func TestAnthropicResponseFormatRejectsSchemaLessJSON(t *testing.T) {
 
 func TestAnthropicRequest_NewFields(t *testing.T) {
 	t.Parallel()
-	req := anthropicRequest{
+	req := adapters.AnthropicRequest{
 		Model:         "claude-sonnet-4-6",
 		MaxTokens:     4096,
 		TopP:          float64Ptr(0.9),

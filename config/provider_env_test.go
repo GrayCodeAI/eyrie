@@ -2,6 +2,7 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -94,6 +95,17 @@ func TestLoadProviderConfigWithError_InvalidJSON(t *testing.T) {
 	}
 }
 
+func TestLoadProviderConfigWithErrorRejectsTrailingJSON(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "provider.json")
+	if err := os.WriteFile(path, []byte(`{} {}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if cfg, err := LoadProviderConfigWithError(path); err == nil || cfg != nil {
+		t.Fatalf("trailing provider JSON accepted: cfg=%#v err=%v", cfg, err)
+	}
+}
+
 func TestLoadProviderConfigWithError_UnsupportedVersion(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
@@ -114,6 +126,45 @@ func TestLoadProviderConfigWithError_UnsupportedVersion(t *testing.T) {
 	}
 }
 
+func TestLoadProviderConfigWithErrorAcceptsLegacyVersionAlias(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "provider.json")
+	if err := os.WriteFile(path, []byte(`{"version":"1","active_provider":"openai"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadProviderConfigWithError(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg == nil || cfg.Version != "1" || cfg.ActiveProvider != "openai" {
+		t.Fatalf("legacy version was not normalized: %#v", cfg)
+	}
+
+	canonicalPath := filepath.Join(t.TempDir(), "provider.json")
+	if err := SaveProviderConfig(cfg, canonicalPath); err != nil {
+		t.Fatal(err)
+	}
+	canonical, err := os.ReadFile(canonicalPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(canonical, []byte(`"version"`)) || !bytes.Contains(canonical, []byte(`"_version"`)) {
+		t.Fatalf("provider config did not use canonical version field: %s", canonical)
+	}
+}
+
+func TestLoadProviderConfigWithErrorRejectsConflictingVersionAliases(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "provider.json")
+	if err := os.WriteFile(path, []byte(`{"_version":"1","version":"2"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if cfg, err := LoadProviderConfigWithError(path); err == nil || cfg != nil {
+		t.Fatalf("conflicting provider versions accepted: cfg=%#v err=%v", cfg, err)
+	}
+}
+
 func TestGetProviderConfigDir(t *testing.T) {
 	// Test with env var set
 	dir := t.TempDir()
@@ -130,6 +181,14 @@ func TestGetProviderConfigDir(t *testing.T) {
 	got = GetProviderConfigDir()
 	if !strings.HasSuffix(got, filepath.Join("hawk")) {
 		t.Errorf("expected path ending in hawk, got %q", got)
+	}
+}
+
+func TestGetProviderConfigDirPrefersEyrieNamespace(t *testing.T) {
+	t.Setenv("EYRIE_CONFIG_DIR", "/tmp/eyrie-config")
+	t.Setenv("HAWK_CONFIG_DIR", "/tmp/legacy-hawk-config")
+	if got := GetProviderConfigDir(); got != "/tmp/eyrie-config" {
+		t.Fatalf("GetProviderConfigDir() = %q, want EYRIE_CONFIG_DIR", got)
 	}
 }
 
@@ -282,7 +341,6 @@ func TestSaveProviderConfig(t *testing.T) {
 	cfg := &ProviderConfig{
 		Version:        "1",
 		ActiveProvider: "openai",
-		OpenAIAPIKey:   "sk-openai-1234567890",
 		OpenAIModel:    "gpt-4o",
 	}
 
@@ -305,10 +363,6 @@ func TestSaveProviderConfig(t *testing.T) {
 	if loaded.ActiveProvider != "openai" {
 		t.Errorf("expected active_provider 'openai', got %q", loaded.ActiveProvider)
 	}
-	if loaded.OpenAIAPIKey != "sk-openai-1234567890" {
-		t.Errorf("expected OpenAI key preserved")
-	}
-
 	// Verify file ends with newline
 	if data[len(data)-1] != '\n' {
 		t.Error("expected trailing newline")
@@ -319,6 +373,36 @@ func TestSaveProviderConfig(t *testing.T) {
 	}
 	if got := info.Mode().Perm(); got != 0o600 {
 		t.Errorf("provider config permissions = %o, want 600", got)
+	}
+}
+
+func TestSaveProviderConfigRefusesPlaintextCredentials(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "provider.json")
+	if err := SaveProviderConfig(&ProviderConfig{OpenAIAPIKey: "sk-openai-1234567890"}, path); err == nil {
+		t.Fatal("SaveProviderConfig accepted a plaintext credential")
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("secret-bearing provider config reached disk: %v", err)
+	}
+}
+
+func TestSaveProviderConfigDoesNotReplaceExistingStateOnRefusal(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "provider.json")
+	if err := SaveProviderConfig(&ProviderConfig{ActiveProvider: "anthropic"}, path); err != nil {
+		t.Fatal(err)
+	}
+	original, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := SaveProviderConfig(&ProviderConfig{OpenAIAPIKey: "sk-openai-1234567890"}, path); err == nil {
+		t.Fatal("secret-bearing replacement was accepted")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || string(after) != string(original) {
+		t.Fatalf("refused write changed existing provider state: err=%v", err)
 	}
 }
 

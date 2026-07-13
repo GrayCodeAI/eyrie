@@ -282,11 +282,11 @@ func TestWithGuardrails_Anthropic(t *testing.T) {
 		{Type: GuardrailPII, Name: "test", Pattern: `test`, Action: GuardrailWarn},
 	}
 	c := NewAnthropicClient("key", "", WithGuardrails(rules...))
-	if c.guardrails == nil {
+	if c.Guardrails() == nil {
 		t.Fatal("expected guardrails to be set")
 	}
-	if len(c.guardrails.Rules()) != 1 {
-		t.Fatalf("expected 1 rule, got %d", len(c.guardrails.Rules()))
+	if len(c.Guardrails().Rules()) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(c.Guardrails().Rules()))
 	}
 }
 
@@ -296,21 +296,21 @@ func TestWithGuardrails_OpenAI(t *testing.T) {
 		{Type: GuardrailPII, Name: "test", Pattern: `test`, Action: GuardrailWarn},
 	}
 	c := NewOpenAIClient("key", "", nil, WithGuardrails(rules...))
-	if c.guardrails == nil {
+	if c.Guardrails() == nil {
 		t.Fatal("expected guardrails to be set")
 	}
-	if len(c.guardrails.Rules()) != 1 {
-		t.Fatalf("expected 1 rule, got %d", len(c.guardrails.Rules()))
+	if len(c.Guardrails().Rules()) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(c.Guardrails().Rules()))
 	}
 }
 
 func TestWithGuardrailType_Anthropic(t *testing.T) {
 	t.Parallel()
 	c := NewAnthropicClient("key", "", WithGuardrailType(GuardrailPII, GuardrailSecretLeak))
-	if c.guardrails == nil {
+	if c.Guardrails() == nil {
 		t.Fatal("expected guardrails to be set")
 	}
-	rules := c.guardrails.Rules()
+	rules := c.Guardrails().Rules()
 	if len(rules) == 0 {
 		t.Fatal("expected rules to be populated")
 	}
@@ -336,10 +336,10 @@ func TestWithGuardrailType_Anthropic(t *testing.T) {
 func TestWithGuardrailType_OpenAI(t *testing.T) {
 	t.Parallel()
 	c := NewOpenAIClient("key", "", nil, WithGuardrailType(GuardrailPromptInjection, GuardrailHarmfulContent))
-	if c.guardrails == nil {
+	if c.Guardrails() == nil {
 		t.Fatal("expected guardrails to be set")
 	}
-	rules := c.guardrails.Rules()
+	rules := c.Guardrails().Rules()
 	hasInjection := false
 	hasHarmful := false
 	for _, r := range rules {
@@ -361,10 +361,10 @@ func TestWithGuardrailType_OpenAI(t *testing.T) {
 func TestWithGuardrails_AllTypes(t *testing.T) {
 	t.Parallel()
 	c := NewAnthropicClient("key", "", WithGuardrailType(GuardrailPII, GuardrailSecretLeak, GuardrailPromptInjection, GuardrailHarmfulContent))
-	if c.guardrails == nil {
+	if c.Guardrails() == nil {
 		t.Fatal("expected guardrails to be set")
 	}
-	rules := c.guardrails.Rules()
+	rules := c.Guardrails().Rules()
 	if len(rules) < 10 {
 		t.Fatalf("expected at least 10 rules for all types, got %d", len(rules))
 	}
@@ -373,11 +373,11 @@ func TestWithGuardrails_AllTypes(t *testing.T) {
 func TestWithGuardrails_NilByDefault(t *testing.T) {
 	t.Parallel()
 	c := NewAnthropicClient("key", "")
-	if c.guardrails != nil {
+	if c.Guardrails() != nil {
 		t.Fatal("expected nil guardrails by default")
 	}
 	c2 := NewOpenAIClient("key", "", nil)
-	if c2.guardrails != nil {
+	if c2.Guardrails() != nil {
 		t.Fatal("expected nil guardrails by default for OpenAI")
 	}
 }
@@ -385,11 +385,11 @@ func TestWithGuardrails_NilByDefault(t *testing.T) {
 func TestWithGuardrails_EmptyRulesDoesNotPanic(t *testing.T) {
 	t.Parallel()
 	c := NewAnthropicClient("key", "", WithGuardrails())
-	if c.guardrails == nil {
+	if c.Guardrails() == nil {
 		t.Fatal("expected guardrails to be set (empty but non-nil)")
 	}
-	if len(c.guardrails.Rules()) != 0 {
-		t.Fatalf("expected 0 rules, got %d", len(c.guardrails.Rules()))
+	if len(c.Guardrails().Rules()) != 0 {
+		t.Fatalf("expected 0 rules, got %d", len(c.Guardrails().Rules()))
 	}
 }
 

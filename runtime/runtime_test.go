@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"testing"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/config"
 )
 
@@ -645,6 +647,26 @@ func TestListProviderSetupOptions(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("expected 'apikey' action in setup options")
+	}
+}
+
+func TestAvailableProvidersIncludesCanonicalRegistry(t *testing.T) {
+	providers := AvailableProviders()
+	want := make([]string, 0, len(registry.All()))
+	for _, spec := range registry.All() {
+		want = append(want, spec.ProviderID)
+	}
+	sort.Strings(want)
+
+	if !reflect.DeepEqual(providers, want) {
+		t.Fatalf("AvailableProviders() = %v, want canonical registry %v", providers, want)
+	}
+}
+
+func TestAvailableProvidersIsSorted(t *testing.T) {
+	providers := AvailableProviders()
+	if !sort.StringsAreSorted(providers) {
+		t.Fatalf("AvailableProviders() is not sorted: %v", providers)
 	}
 }
 

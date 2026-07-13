@@ -28,7 +28,7 @@ func TestDiscoveryCredentials_IncludesTokenPlanRegionFromProviderConfig(t *testi
 	dir := t.TempDir()
 	t.Setenv("HAWK_CONFIG_DIR", dir)
 
-	cfg := &ProviderConfig{Version: "2", XiaomiMimoTokenPlanRegion: "sgp"}
+	cfg := &ProviderConfig{Version: "1", XiaomiMimoTokenPlanRegion: "sgp"}
 	if err := SaveProviderConfig(cfg, ""); err != nil {
 		t.Fatal(err)
 	}

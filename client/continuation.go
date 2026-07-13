@@ -7,18 +7,8 @@ import (
 	"time"
 )
 
-// ContinuationConfig controls output continuation behavior.
-type ContinuationConfig struct {
-	// MaxContinuations is the maximum number of continuation calls (default 3).
-	MaxContinuations int
-	// MaxTotalTokens caps the total output tokens across all continuations (0 = unlimited).
-	MaxTotalTokens int
-}
-
-// DefaultContinuationConfig returns sensible defaults.
-func DefaultContinuationConfig() ContinuationConfig {
-	return ContinuationConfig{MaxContinuations: 3, MaxTotalTokens: 32000}
-}
+// ContinuationConfig and DefaultContinuationConfig live in client/core;
+// the client.* names remain available via aliases.go.
 
 // ChatWithContinuation calls Chat and automatically continues if stop_reason is "max_tokens".
 // It appends the partial response as an assistant message and retries, accumulating content.
@@ -199,5 +189,5 @@ func StreamChatWithContinuation(ctx context.Context, p Provider, messages []Eyri
 		emit(cancelCtx, outCh, EyrieStreamEvent{Type: "done", StopReason: "max_tokens"})
 	}()
 
-	return &StreamResult{Events: outCh, cancel: cancel}, nil
+	return NewStreamResult(outCh, cancel), nil
 }

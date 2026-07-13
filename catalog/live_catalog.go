@@ -6,12 +6,6 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 )
 
-// IsLiveOnlyProvider reports whether a provider uses live API discovery only.
-// All providers are now fully dynamic.
-func IsLiveOnlyProvider(providerID string) bool {
-	return true
-}
-
 // DeploymentIDForLiveCatalogKey maps a live fetch catalog key to a deployment ID.
 func DeploymentIDForLiveCatalogKey(catalogKey string) string {
 	for _, spec := range registry.All() {

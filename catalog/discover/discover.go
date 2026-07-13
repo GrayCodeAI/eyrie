@@ -37,7 +37,8 @@ func liveDeploymentIDs(v1Catalog catalog.Catalog) []string {
 // Options configures catalog discovery: published catalog + live provider APIs via API keys.
 type Options struct {
 	catalog.LoadCatalogOptions
-	Credentials catalog.Credentials
+	Credentials               catalog.Credentials
+	DisableCredentialFallback bool
 }
 
 // Run loads the deployment-aware catalog, optionally refreshes the remote catalog,
@@ -100,13 +101,13 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 	catalog.EnsureCredentialRegistryInCatalog(base)
 
 	env := opts.Credentials.Env()
-	if len(env) == 0 {
+	if len(env) == 0 && !opts.DisableCredentialFallback {
 		env = eyriecfg.DiscoveryCredentials(ctx).Env()
 	}
 	if len(env) > 0 {
 		v1Catalog, enrichment := catalog.FetchLiveProviderCatalog(env)
 		liveProviders = enrichment
-		if len(v1Catalog.Models) > 0 {
+		if liveEnrichmentSucceeded(enrichment) {
 			base = MergeCatalogWithPolicy(base, &v1Catalog, MergePolicy{
 				PreferLive:                 true,
 				ReplaceDeploymentOfferings: liveDeploymentIDs(v1Catalog),
@@ -137,9 +138,18 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 		CachePath:       opts.CachePath,
 		Source:          source,
 		RemoteURL:       opts.RemoteURL,
-		Refreshed:       refreshed || len(liveProviders) > 0,
+		Refreshed:       refreshed || liveEnrichmentSucceeded(liveProviders),
 		RemoteRefreshed: remoteRefreshed,
 		LiveProviders:   liveProviders,
 		StaleAfter:      base.StaleAfter,
 	}, nil
+}
+
+func liveEnrichmentSucceeded(enrichment []catalog.LiveProviderEnrichment) bool {
+	for _, provider := range enrichment {
+		if provider.Error == "" && provider.ModelCount > 0 {
+			return true
+		}
+	}
+	return false
 }

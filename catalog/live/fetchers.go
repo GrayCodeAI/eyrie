@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -139,8 +140,10 @@ func asFloat(v interface{}) float64 {
 	case float64:
 		return n
 	case string:
-		var f float64
-		_, _ = fmt.Sscanf(n, "%f", &f)
+		f, err := strconv.ParseFloat(strings.TrimSpace(n), 64)
+		if err != nil {
+			return 0
+		}
 		return f
 	}
 	return 0
