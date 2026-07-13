@@ -63,6 +63,29 @@ func TestEffectiveSelectionClearsModelWhenProviderOverrideChanges(t *testing.T) 
 	}
 }
 
+func TestEffectiveSelectionPreservesUnconfiguredProviderOverride(t *testing.T) {
+	ctx := context.Background()
+	store := &credentials.MapStore{}
+	if err := store.Set(ctx, credentials.AccountForEnv("CLINE_API_KEY"), "cline-live-secret-1234567890"); err != nil {
+		t.Fatal(err)
+	}
+	eng, err := New(Options{SecretStore: store, StateDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	selection := eng.EffectiveSelection(ctx, SelectionOptions{
+		ProviderOverride: "anthropic",
+		ModelOverride:    catalog.ClaudeOpusV4_6,
+	})
+	if selection.Provider != "anthropic" {
+		t.Fatalf("explicit provider override was replaced by a configured provider: %+v", selection)
+	}
+	if !selection.HasConfiguredDeployment {
+		t.Fatal("configured deployment state was lost while preserving the explicit override")
+	}
+}
+
 func TestCustomProviderOverrideDoesNotReuseOtherCustomModel(t *testing.T) {
 	ctx := context.Background()
 	eng, err := New(Options{
