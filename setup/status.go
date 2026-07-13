@@ -32,22 +32,46 @@ type StatusReport struct {
 
 // DeploymentStatus builds a status report for CLI and agent diagnostics.
 func DeploymentStatus(ctx context.Context, activeModel string) (StatusReport, error) {
-	cfg := config.LoadProviderConfig("")
+	return deploymentStatusFromPaths(ctx, activeModel, config.GetProviderConfigPath(), catalog.DefaultCachePath(), true)
+}
+
+// DeploymentStatusFromPaths builds a status report from host-owned state.
+// Empty paths retain the process defaults for backwards compatibility.
+func DeploymentStatusFromPaths(ctx context.Context, activeModel, providerConfigPath, catalogCachePath string) (StatusReport, error) {
+	return deploymentStatusFromPaths(ctx, activeModel, providerConfigPath, catalogCachePath, false)
+}
+
+func deploymentStatusFromPaths(ctx context.Context, activeModel, providerConfigPath, catalogCachePath string, allowAmbient bool) (StatusReport, error) {
+	if strings.TrimSpace(providerConfigPath) == "" {
+		providerConfigPath = config.GetProviderConfigPath()
+	}
+	if strings.TrimSpace(catalogCachePath) == "" {
+		catalogCachePath = catalog.DefaultCachePath()
+	}
+	cfg, err := config.LoadProviderConfigWithError(providerConfigPath)
+	if err != nil {
+		return StatusReport{}, err
+	}
 	report := StatusReport{
-		ProviderConfig: config.GetProviderConfigPath(),
+		ProviderConfig: providerConfigPath,
 		ActiveModel:    strings.TrimSpace(activeModel),
 	}
 	if cfg != nil {
 		report.ConfigVersion = cfg.ConfigVersion
 	}
-	report.DeploymentRouting = UseDeploymentRouting(cfg)
+	report.DeploymentRouting = DeploymentRoutingFromState(cfg)
+	configured := explicitDeployments(cfg)
+	if allowAmbient {
+		report.DeploymentRouting = UseDeploymentRouting(cfg)
+		configured = ConfiguredDeployments(cfg)
+	}
 
-	for id := range ConfiguredDeployments(cfg) {
+	for id := range configured {
 		report.Configured = append(report.Configured, id)
 	}
 	sortStrings(report.Configured)
 
-	report.CatalogCache = catalog.DefaultCachePath()
+	report.CatalogCache = catalogCachePath
 	if exists, mod, _, err := catalog.CacheInfo(report.CatalogCache); err == nil && exists {
 		report.CatalogExists = true
 		report.CatalogModified = mod
@@ -83,7 +107,7 @@ func FormatStatus(report StatusReport) string {
 	if report.DeploymentRouting {
 		b.WriteString("enabled\n")
 	} else {
-		b.WriteString("disabled (legacy provider client)\n")
+		b.WriteString("disabled (single-route Eyrie transport)\n")
 	}
 	fmt.Fprintf(&b, "Provider config: %s", report.ProviderConfig)
 	if report.ConfigVersion > 0 {
@@ -117,9 +141,24 @@ func FormatStatus(report StatusReport) string {
 
 // RoutingPreview returns JSON describing effective routing for a model ID.
 func RoutingPreview(ctx context.Context, model string) (string, error) {
-	cfg := config.LoadProviderConfig("")
+	return RoutingPreviewFromPaths(ctx, model, config.GetProviderConfigPath(), catalog.DefaultCachePath())
+}
+
+// RoutingPreviewFromPaths resolves routing from host-owned state paths.
+// Empty paths retain the process defaults for backwards compatibility.
+func RoutingPreviewFromPaths(ctx context.Context, model, providerConfigPath, catalogCachePath string) (string, error) {
+	if strings.TrimSpace(providerConfigPath) == "" {
+		providerConfigPath = config.GetProviderConfigPath()
+	}
+	if strings.TrimSpace(catalogCachePath) == "" {
+		catalogCachePath = catalog.DefaultCachePath()
+	}
+	cfg, err := config.LoadProviderConfigWithError(providerConfigPath)
+	if err != nil {
+		return "", err
+	}
 	compiled, err := catalog.LoadCatalog(ctx, catalog.LoadCatalogOptions{
-		CachePath: catalog.DefaultCachePath(),
+		CachePath: catalogCachePath,
 	})
 	if err != nil {
 		return "", err

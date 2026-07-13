@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/GrayCodeAI/eyrie/client/adapters"
 )
 
 // Vertex AI provider tests live in cloud_providers_vertex_test.go and
@@ -19,8 +21,8 @@ import (
 
 func newTestAzureClient(serverURL string) *AzureClient {
 	c := NewAzureClient("test-api-key", serverURL, "2024-08-01-preview")
-	c.httpClient = &http.Client{}
-	c.retry = NewRetryConfig(0, 0, 0)
+	c.SetHTTPClient(&http.Client{})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 	return c
 }
 
@@ -35,24 +37,24 @@ func TestAzureClient_Name(t *testing.T) {
 func TestAzureClient_DefaultAPIVersion(t *testing.T) {
 	t.Parallel()
 	c := NewAzureClient("key", "https://example.openai.azure.com", "")
-	if c.apiVersion != "2024-10-21" {
-		t.Errorf("expected default api-version '2024-10-21', got %q", c.apiVersion)
+	if c.APIVersion() != "2024-10-21" {
+		t.Errorf("expected default api-version '2024-10-21', got %q", c.APIVersion())
 	}
 }
 
 func TestAzureClient_CustomAPIVersion(t *testing.T) {
 	t.Parallel()
 	c := NewAzureClient("key", "https://example.openai.azure.com", "2024-10-01-preview")
-	if c.apiVersion != "2024-10-01-preview" {
-		t.Errorf("expected custom api-version '2024-10-01-preview', got %q", c.apiVersion)
+	if c.APIVersion() != "2024-10-01-preview" {
+		t.Errorf("expected custom api-version '2024-10-01-preview', got %q", c.APIVersion())
 	}
 }
 
 func TestAzureClient_EndpointTrailingSlashStripped(t *testing.T) {
 	t.Parallel()
 	c := NewAzureClient("key", "https://example.openai.azure.com/", "")
-	if c.endpoint != "https://example.openai.azure.com" {
-		t.Errorf("expected trailing slash stripped, got %q", c.endpoint)
+	if c.Endpoint() != "https://example.openai.azure.com" {
+		t.Errorf("expected trailing slash stripped, got %q", c.Endpoint())
 	}
 }
 
@@ -73,7 +75,7 @@ func TestAzureChat_Success(t *testing.T) {
 		}
 
 		w.Header().Set("X-Request-Id", "azure-req-001")
-		_ = json.NewEncoder(w).Encode(openaiResponse{
+		_ = json.NewEncoder(w).Encode(adapters.OpenAIResponse{
 			ID: "chatcmpl-azure-001",
 			Choices: []struct {
 				Message struct {

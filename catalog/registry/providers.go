@@ -18,7 +18,8 @@ func providerSpecs() []ProviderSpec {
 		// ── Direct API providers ──────────────────────────────────────────
 		{
 			ProviderID: "anthropic", DisplayName: "Anthropic", DeploymentID: "anthropic-direct", SortOrder: 1, ChatPreference: 2,
-			RequiresKey: true, CredentialEnv: "ANTHROPIC_API_KEY",
+			TransportKind: "anthropic",
+			RequiresKey:   true, CredentialEnv: "ANTHROPIC_API_KEY",
 			CredentialAliases: []string{"CLAUDE_API_KEY"},
 			BaseURLEnv:        []string{"ANTHROPIC_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:         ProbeAnthropic,
@@ -28,7 +29,8 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "openai", DisplayName: "OpenAI", DeploymentID: "openai-direct", SortOrder: 2, ChatPreference: 1,
-			RequiresKey: true, CredentialEnv: "OPENAI_API_KEY",
+			TransportKind: "openai",
+			RequiresKey:   true, CredentialEnv: "OPENAI_API_KEY",
 			BaseURLEnv: []string{"OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.openai.com/v1",
 			LiveFetcherKey: "openai", LiveCatalogKey: "openai",
@@ -37,7 +39,8 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "gemini", DisplayName: "Gemini API", DeploymentID: "gemini-direct", SortOrder: 3, ChatPreference: 5,
-			RequiresKey: true, CredentialEnv: "GEMINI_API_KEY",
+			RuntimeBaseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+			RequiresKey:    true, CredentialEnv: "GEMINI_API_KEY",
 			CredentialAliases: []string{"GOOGLE_API_KEY"},
 			BaseURLEnv:        []string{"GEMINI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:         ProbeGemini,
@@ -124,7 +127,8 @@ func providerSpecs() []ProviderSpec {
 		// ── Cloud platform providers ──────────────────────────────────────
 		{
 			ProviderID: "azure", DisplayName: "Azure OpenAI", DeploymentID: "openai-azure", SortOrder: 13, ChatPreference: 12,
-			RequiresKey: true, CredentialEnv: "AZURE_OPENAI_API_KEY",
+			TransportKind: "azure",
+			RequiresKey:   true, CredentialEnv: "AZURE_OPENAI_API_KEY",
 			BaseURLEnv:     []string{"AZURE_OPENAI_ENDPOINT"},
 			ProbeKind:      ProbeNone,
 			LiveFetcherKey: "azure", LiveCatalogKey: "azure",
@@ -132,7 +136,8 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "bedrock", DisplayName: "Amazon Bedrock", DeploymentID: "anthropic-bedrock", SortOrder: 14, ChatPreference: 7,
-			RequiresKey: true, CredentialEnv: "AWS_SECRET_ACCESS_KEY",
+			TransportKind: "bedrock",
+			RequiresKey:   true, CredentialEnv: "AWS_SECRET_ACCESS_KEY",
 			CredentialEnvFallbacks: []string{"AWS_ACCESS_KEY_ID", "AWS_SESSION_TOKEN"},
 			BaseURLEnv:             []string{"AWS_REGION", "AWS_DEFAULT_REGION"},
 			ProbeKind:              ProbeNone,
@@ -141,7 +146,8 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "vertex", DisplayName: "Vertex AI", DeploymentID: "gemini-vertex", SortOrder: 15, ChatPreference: 6,
-			RequiresKey: true, CredentialEnv: "VERTEX_ACCESS_TOKEN",
+			TransportKind: "vertex",
+			RequiresKey:   true, CredentialEnv: "VERTEX_ACCESS_TOKEN",
 			CredentialEnvFallbacks: []string{"GOOGLE_OAUTH_ACCESS_TOKEN"},
 			BaseURLEnv:             []string{"VERTEX_PROJECT_ID", "VERTEX_REGION"},
 			ProbeKind:              ProbeNone,
@@ -186,7 +192,8 @@ func providerSpecs() []ProviderSpec {
 		},
 		{
 			ProviderID: "clinepass", DisplayName: "ClinePass", DeploymentID: "clinepass", SortOrder: 20, ChatPreference: 22,
-			RequiresKey: true, CredentialEnv: "CLINE_API_KEY",
+			RuntimeBaseURL: "https://api.cline.bot/api/v1",
+			RequiresKey:    true, CredentialEnv: "CLINE_API_KEY",
 			BaseURLEnv:     []string{"CLINE_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
 			ProbeKind:      ProbeNone,
 			LiveFetcherKey: "clinepass", LiveCatalogKey: "clinepass",
@@ -204,7 +211,8 @@ func providerSpecs() []ProviderSpec {
 
 		// ── Local ─────────────────────────────────────────────────────────
 		{
-			ProviderID: "ollama", DisplayName: "Ollama", DeploymentID: "ollama-local", SortOrder: 21, ChatPreference: 19,
+			ProviderID: "ollama", DisplayName: "Ollama", DeploymentID: "ollama-local", SortOrder: 22, ChatPreference: 19,
+			RuntimeBaseURL: "http://localhost:11434/v1", RuntimeCredentialEnv: "OLLAMA_API_KEY",
 			RequiresKey: false, CredentialEnv: "OLLAMA_BASE_URL",
 			BaseURLEnv:     []string{"OLLAMA_BASE_URL"},
 			ProbeKind:      ProbeOllama,

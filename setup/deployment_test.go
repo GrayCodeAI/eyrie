@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
@@ -51,6 +52,43 @@ func TestProviderForDeploymentAnthropicBedrockRequiresCredentials(t *testing.T) 
 
 	if _, ok := ProviderForDeployment("anthropic-bedrock", config.DeploymentConfig{}); ok {
 		t.Fatal("expected bedrock deployment to be unavailable without credentials")
+	}
+}
+
+func TestDeploymentProviderFromStateRejectsAmbientCredentialsAndLegacyDetection(t *testing.T) {
+	store := &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
+	ctx := context.Background()
+	if err := store.Set(ctx, credentials.AccountForEnv("OPENAI_API_KEY"), "ambient-store-secret-1234567890"); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("OPENAI_API_KEY", "ambient-env-secret-1234567890")
+	compiled, err := catalog.CompileTestCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, cfg := range []*config.ProviderConfig{
+		{},
+		{Deployments: map[string]config.DeploymentConfig{"openai-direct": {}}},
+	} {
+		if provider, err := DeploymentProviderFromState(cfg, compiled); err == nil || provider != nil {
+			t.Fatalf("strict provider used ambient state: provider=%T err=%v", provider, err)
+		}
+	}
+}
+
+func TestDeploymentProviderFromStateAcceptsExplicitHydratedDeployment(t *testing.T) {
+	compiled, err := catalog.CompileTestCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config.ProviderConfig{Deployments: map[string]config.DeploymentConfig{
+		"openai-direct": {APIKey: "injected-explicit-secret-1234567890", BaseURL: "https://explicit.example.test/v1"},
+	}}
+	provider, err := DeploymentProviderFromState(cfg, compiled)
+	if err != nil || provider == nil {
+		t.Fatalf("strict provider rejected explicit state: provider=%T err=%v", provider, err)
 	}
 }
 
@@ -120,6 +158,16 @@ func TestUseDeploymentRouting_LegacyConfig(t *testing.T) {
 	cfg := &config.ProviderConfig{ConfigVersion: 0}
 	if UseDeploymentRouting(cfg) {
 		t.Fatal("expected false for legacy config without deployments/routing")
+	}
+}
+
+func TestDeploymentRoutingFromStateIgnoresAmbientOverride(t *testing.T) {
+	t.Setenv("EYRIE_DEPLOYMENT_ROUTING", "true")
+	if DeploymentRoutingFromState(nil) {
+		t.Fatal("pure deployment routing read process environment")
+	}
+	if !DeploymentRoutingFromState(&config.ProviderConfig{ConfigVersion: 2}) {
+		t.Fatal("pure deployment routing ignored explicit provider state")
 	}
 }
 
@@ -575,7 +623,7 @@ func TestProviderForDeployment_XiaomiTokenPlanDirect(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HAWK_CONFIG_DIR", dir)
 	cfg := &config.ProviderConfig{
-		Version:                    "2",
+		Version:                    "1",
 		XiaomiMimoTokenPlanRegion:  "sgp",
 		XiaomiMimoTokenPlanBaseURL: "https://token-plan-cn.xiaomimimo.com/v1",
 	}

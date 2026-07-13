@@ -36,6 +36,13 @@ When your app calls a model, eyrie figures out which provider to use, how to tal
 
 **Your app never talks to an LLM API directly. eyrie does.**
 
+Hawk is the product face: it owns UX, agent orchestration, tools, permissions,
+sessions, and product semantics. Eyrie is the provider engine: it owns
+credentials, catalog and route resolution, provider transports, normalized
+streams, retry/fallback, usage, and provider telemetry. Hawk integrates through
+the stable [`engine`](engine/) facade rather than assembling Eyrie's internal
+provider packages.
+
 ## Ecosystem Boundaries
 
 eyrie is a Hawk support engine. Keep the dependency edge one-way:
@@ -240,7 +247,11 @@ config.SaveProviderConfig(cfg, "")               // save changes
 
 ```
 eyrie/
-├── client/                 # Provider client & streaming interface
+├── engine/                 # Stable host-facing facade and provider-neutral DTOs
+├── client/                 # Backwards-compatible public client facade
+│   ├── core/               # Provider-neutral wire, stream, retry, and transport primitives
+│   ├── adapters/           # Provider protocol adapters and construction registry
+│   └── embeddings/         # Embedding clients, cache, and defaults
 ├── config/                 # Provider configuration & routing
 │   └── credential/         # Credential file management
 ├── catalog/                # Model catalog & tier system
@@ -253,7 +264,7 @@ eyrie/
 ├── credentials/            # Credential management
 ├── docs/                   # Documentation & guides
 ├── examples/               # Runnable code examples
-├── router/                 # Weighted provider router
+├── router/                 # Provider routing strategies
 ├── runtime/                # Runtime manifest & routing policies
 ├── storage/                # SQLite conversation DAG store
 ├── types/                  # Branded types & API errors

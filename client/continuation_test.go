@@ -313,5 +313,5 @@ func (s *sequentialMock) StreamChat(ctx context.Context, messages []EyrieMessage
 		}
 	}()
 
-	return &StreamResult{Events: ch, cancel: cancel}, nil
+	return NewStreamResult(ch, cancel), nil
 }

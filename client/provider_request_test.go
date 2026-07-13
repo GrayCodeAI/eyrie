@@ -116,7 +116,7 @@ func TestAnthropic_ChatVsStream_SameBody(t *testing.T) {
 func TestAnthropic_BuildRequest_ModelRequired(t *testing.T) {
 	t.Parallel()
 	c := NewAnthropicClient("test-key", "http://localhost:0")
-	_, _, err := c.buildAnthropicRequest(
+	_, _, err := c.BuildAnthropicRequest(
 		context.Background(),
 		[]EyrieMessage{{Role: "user", Content: "hi"}},
 		ChatOptions{}, // no Model
@@ -138,7 +138,7 @@ func TestAnthropic_BuildRequest_StreamSetsAccept(t *testing.T) {
 	messages := []EyrieMessage{{Role: "user", Content: "hi"}}
 	opts := ChatOptions{Model: "claude-test"}
 
-	chatReq, _, err := c.buildAnthropicRequest(context.Background(), messages, opts, false)
+	chatReq, _, err := c.BuildAnthropicRequest(context.Background(), messages, opts, false)
 	if err != nil {
 		t.Fatalf("buildAnthropicRequest(chat): %v", err)
 	}
@@ -146,7 +146,7 @@ func TestAnthropic_BuildRequest_StreamSetsAccept(t *testing.T) {
 		t.Errorf("Chat request has Accept=text/event-stream; should not")
 	}
 
-	streamReq, _, err := c.buildAnthropicRequest(context.Background(), messages, opts, true)
+	streamReq, _, err := c.BuildAnthropicRequest(context.Background(), messages, opts, true)
 	if err != nil {
 		t.Fatalf("buildAnthropicRequest(stream): %v", err)
 	}
@@ -160,7 +160,7 @@ func TestAnthropic_BuildRequest_StreamSetsAccept(t *testing.T) {
 func TestAnthropic_BuildRequest_GetBody(t *testing.T) {
 	t.Parallel()
 	c := NewAnthropicClient("test-key", "http://localhost:0")
-	req, body, err := c.buildAnthropicRequest(
+	req, body, err := c.BuildAnthropicRequest(
 		context.Background(),
 		[]EyrieMessage{{Role: "user", Content: "hi"}},
 		ChatOptions{Model: "claude-test"},
@@ -245,7 +245,7 @@ func TestAnthropic_BuildRequest_SizeLimit(t *testing.T) {
 	// Build a single huge message that pushes the body over 32 MB.
 	big := strings.Repeat("x", 33*1024*1024) // 33 MB
 	messages := []EyrieMessage{{Role: "user", Content: big}}
-	_, _, err := c.buildAnthropicRequest(context.Background(), messages,
+	_, _, err := c.BuildAnthropicRequest(context.Background(), messages,
 		ChatOptions{Model: "claude-test"}, false)
 	if err == nil {
 		t.Fatal("expected size-limit error, got nil")
@@ -321,7 +321,7 @@ func TestOpenAI_BuildRequest_StreamSetsAccept(t *testing.T) {
 	messages := []EyrieMessage{{Role: "user", Content: "hi"}}
 	opts := ChatOptions{Model: "gpt-test"}
 
-	chatReq, _, err := c.buildOpenAIRequest(context.Background(), messages, opts, false)
+	chatReq, _, err := c.BuildOpenAIRequest(context.Background(), messages, opts, false)
 	if err != nil {
 		t.Fatalf("buildOpenAIRequest(chat): %v", err)
 	}
@@ -329,7 +329,7 @@ func TestOpenAI_BuildRequest_StreamSetsAccept(t *testing.T) {
 		t.Errorf("Chat request has Accept=text/event-stream; should not")
 	}
 
-	streamReq, _, err := c.buildOpenAIRequest(context.Background(), messages, opts, true)
+	streamReq, _, err := c.BuildOpenAIRequest(context.Background(), messages, opts, true)
 	if err != nil {
 		t.Fatalf("buildOpenAIRequest(stream): %v", err)
 	}

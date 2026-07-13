@@ -5,7 +5,8 @@ Universal LLM provider runtime. One interface for every model. Authentication, r
 ## Design Principles
 
 - **Model-agnostic** — single interface for 75+ LLM providers
-- **Zero opinions** — consumers control routing, caching, and retry strategies
+- **Host-neutral engine** — Eyrie owns provider routing, transport, caching,
+  retry/fallback, and normalized telemetry; hosts own product UX and semantics
 - **Streaming-first** — all responses are streamed; blocking is opt-in
 
 ## Observability
@@ -25,13 +26,13 @@ make ci                          # Full CI suite
 
 ## Architecture
 
-- `provider.go` — Provider interface and registry
-- `routing.go` — Model routing and fallback chains
-- `streaming.go` — SSE streaming with backpressure
-- `auth.go` — API key management and rotation
-- `cache.go` — Response caching (optional)
-- `retry.go` — Retry with exponential backoff + Retry-After
-- `catalog.go` — Model catalog and capability discovery
+- `engine/` — stable host-facing provider engine facade and DTO contract
+- `client/core/` — provider-neutral wire types, transport, stream, and retry primitives
+- `client/adapters/` — provider protocol adapters and construction registry
+- `client/` — backwards-compatible public facade, middleware, and caches
+- `credentials/` — API key storage, lookup, and safe status projection
+- `catalog/` — model catalog, discovery, capabilities, and pricing
+- `router/` and `runtime/` — route policy and runtime resolution
 
 ## Conventions
 
@@ -44,7 +45,10 @@ make ci                          # Full CI suite
 
 ## Common Pitfalls
 
-- Provider interface is the boundary — keep it stable
+- `engine` is Hawk's product boundary; Hawk must not assemble lower-level
+  `client`, `catalog`, `config`, `credentials`, `router`, or `runtime` packages
+- `client.Provider` remains the lower-level compatibility boundary for other
+  consumers; preserve its method set and the facade's type identity
 - Streaming tests need careful goroutine management
 - `go.work` here should stay minimal; hawk's own `go.work` adds an `external/eyrie` replace so hawk can develop against a local eyrie checkout. Do not add extra local `replace` directives here without coordinating with hawk's workspace.
 
@@ -106,14 +110,16 @@ make ci                          # Full CI suite
 |---|---|
 | Provider interface | `client/client.go` (`Provider`, `EyrieConfig`, `EyrieMessage`, `ContentPart`) |
 | Chat implementation | `client/chat.go` (`Chat()`, `StreamChat()`, `StreamChatContinue()`) |
-| Anthropic provider | `client/anthropic.go` |
-| OpenAI provider | `client/openai.go` |
-| Gemini provider | `client/gemini.go` |
-| Bedrock provider | `client/bedrock.go` |
-| Vertex provider | `client/vertex.go` |
-| Azure provider | `client/azure.go` |
-| Provider registry | `client/provider_registry.go` |
-| Provider compatibility | `client/compat.go` (`OpenAICompat`, `GrokCompat`, etc.) |
+| Host-facing engine facade | `engine/` |
+| Provider-neutral core | `client/core/` |
+| Anthropic provider | `client/adapters/anthropic.go` |
+| OpenAI provider | `client/adapters/openai.go` |
+| Gemini provider | `client/adapters/gemini.go` |
+| Bedrock provider | `client/adapters/bedrock.go` |
+| Vertex provider | `client/adapters/vertex.go` |
+| Azure provider | `client/adapters/azure.go` |
+| Provider registry | `client/adapters/provider_registry.go` |
+| Provider compatibility | `client/adapters/compat.go` (`OpenAICompat`, `GrokCompat`, etc.) |
 | SSE streaming | `client/stream.go` (`parseSSEStream()`, `SSEEvent`) |
 | Retry logic | `client/retry.go` (`RetryConfig`, `backoffDelay()`, `shouldRetry()`) |
 | Rate limiting | `client/ratelimit.go`, `client/adaptive_ratelimit.go` |

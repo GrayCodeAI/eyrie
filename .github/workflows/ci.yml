@@ -38,7 +38,9 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
       - name: Boundary guard
-        run: bash ./scripts/check-ecosystem-boundaries.sh
+        run: |
+          bash ./scripts/check-ecosystem-boundaries.sh
+          bash ./scripts/check-client-layering.sh
       - name: gofumpt
         run: |
           go install mvdan.cc/gofumpt@v0.10.0
@@ -121,7 +123,9 @@ jobs:
       - name: Clone tok (workspace dep)
         run: git clone --depth=1 https://github.com/GrayCodeAI/tok.git ../tok
       - name: Boundary guard
-        run: bash ./scripts/check-ecosystem-boundaries.sh
+        run: |
+          bash ./scripts/check-ecosystem-boundaries.sh
+          bash ./scripts/check-client-layering.sh
       - name: Run golangci-lint
         run: |
           go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.0
@@ -143,7 +147,9 @@ jobs:
       - name: Clone tok (workspace dep)
         run: git clone --depth=1 https://github.com/GrayCodeAI/tok.git ../tok
       - name: Boundary guard
-        run: bash ./scripts/check-ecosystem-boundaries.sh
+        run: |
+          bash ./scripts/check-ecosystem-boundaries.sh
+          bash ./scripts/check-client-layering.sh
       - name: Test with race detector
         run: go test ./... -race -count=1 -shuffle=on -coverprofile=coverage.out -covermode=atomic -timeout=300s
       - name: Coverage summary

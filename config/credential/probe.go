@@ -43,6 +43,16 @@ func ProbeCredential(ctx context.Context, envKey, secret string) error {
 
 // ProbeCredentialWithMimo is like ProbeCredential but accepts persisted MiMo routing fields.
 func ProbeCredentialWithMimo(ctx context.Context, envKey, secret string, mimo MimoProbeConfig) error {
+	return probeCredentialWithMimo(ctx, envKey, secret, mimo, true)
+}
+
+// ProbeCredentialWithMimoStrict probes with explicitly supplied routing only.
+// It never reads process environment for MiMo base URLs or regions.
+func ProbeCredentialWithMimoStrict(ctx context.Context, envKey, secret string, mimo MimoProbeConfig) error {
+	return probeCredentialWithMimo(ctx, envKey, secret, mimo, false)
+}
+
+func probeCredentialWithMimo(ctx context.Context, envKey, secret string, mimo MimoProbeConfig, allowAmbient bool) error {
 	secret = strings.TrimSpace(secret)
 	envKey = strings.TrimSpace(envKey)
 	if secret == "" || envKey == "" {
@@ -65,7 +75,7 @@ func ProbeCredentialWithMimo(ctx context.Context, envKey, secret string, mimo Mi
 	case registry.ProbeOpenAIModels:
 		baseURL := spec.ProbeBaseURL
 		if _, ok := xiaomi.BillingForProvider(spec.ProviderID); ok {
-			baseURL = resolveMimoProbeBaseURL(spec, mimo)
+			baseURL = resolveMimoProbeBaseURL(spec, mimo, allowAmbient)
 			if baseURL == "" {
 				return fmt.Errorf("credential probe: configure Token Plan region (cn, sgp, or ams) before probing")
 			}
@@ -98,23 +108,23 @@ func probeOllama(ctx context.Context, baseURL string) error {
 	return nil
 }
 
-func resolveMimoProbeBaseURL(spec registry.ProviderSpec, mimo MimoProbeConfig) string {
+func resolveMimoProbeBaseURL(spec registry.ProviderSpec, mimo MimoProbeConfig, allowAmbient bool) string {
 	billing, _ := xiaomi.BillingForProvider(spec.ProviderID)
 	override := ""
 	var region xiaomi.Region
 	switch billing {
 	case xiaomi.BillingTokenPlan:
 		override = strings.TrimSpace(mimo.TokenPlanBase)
-		if override == "" {
+		if override == "" && allowAmbient {
 			override = strings.TrimSpace(os.Getenv("XIAOMI_MIMO_TOKEN_PLAN_BASE_URL"))
 		}
 		region, _ = xiaomi.NormalizeRegion(mimo.TokenPlanRegion)
-		if region == "" {
+		if region == "" && allowAmbient {
 			region, _ = xiaomi.NormalizeRegion(os.Getenv("XIAOMI_MIMO_TOKEN_PLAN_REGION"))
 		}
 	default:
 		override = strings.TrimSpace(mimo.PaygBase)
-		if override == "" {
+		if override == "" && allowAmbient {
 			override = strings.TrimSpace(os.Getenv("XIAOMI_MIMO_PAYG_BASE_URL"))
 		}
 	}

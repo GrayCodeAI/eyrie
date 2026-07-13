@@ -389,8 +389,8 @@ func TestOpenAIClient_Name(t *testing.T) {
 func TestOpenAIClient_DefaultBaseURL(t *testing.T) {
 	t.Parallel()
 	c := NewOpenAIClient("key", "", nil)
-	if c.baseURL != "https://api.openai.com/v1" {
-		t.Errorf("expected default baseURL, got %s", c.baseURL)
+	if c.BaseURL() != "https://api.openai.com/v1" {
+		t.Errorf("expected default baseURL, got %s", c.BaseURL())
 	}
 }
 

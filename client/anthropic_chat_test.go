@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/client/adapters"
 )
 
 // AnthropicClient Chat and StreamChat tests. Split out of anthropic_test.go for clarity.
@@ -35,7 +37,7 @@ func TestAnthropicChat_Success(t *testing.T) {
 		}
 
 		// Decode request body
-		var req anthropicRequest
+		var req adapters.AnthropicRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Fatalf("failed to decode request: %v", err)
 		}
@@ -193,7 +195,7 @@ func TestAnthropicChat_MultipleToolCalls(t *testing.T) {
 
 func TestAnthropicChat_DefaultMaxTokens(t *testing.T) {
 	t.Parallel()
-	var capturedBody anthropicRequest
+	var capturedBody adapters.AnthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
 			t.Fatalf("failed to decode request: %v", err)
@@ -236,7 +238,7 @@ func TestAnthropicChat_ModelRequired(t *testing.T) {
 
 func TestAnthropicChat_SystemMerge(t *testing.T) {
 	t.Parallel()
-	var capturedBody anthropicRequest
+	var capturedBody adapters.AnthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
 			t.Fatalf("failed to decode request: %v", err)
@@ -270,7 +272,7 @@ func TestAnthropicChat_SystemMerge(t *testing.T) {
 
 func TestAnthropicChat_WithTools(t *testing.T) {
 	t.Parallel()
-	var capturedBody anthropicRequest
+	var capturedBody adapters.AnthropicRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
 			t.Fatalf("failed to decode request: %v", err)

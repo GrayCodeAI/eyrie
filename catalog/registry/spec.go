@@ -45,6 +45,14 @@ type ProviderSpec struct {
 	PrepareCredentialEnv   bool
 	RetryConfig            *RetryConfig
 	IsLocal                bool
+	// TransportKind selects the runtime client implementation. Empty means
+	// OpenAI-compatible; dedicated transports declare their kind explicitly.
+	TransportKind string
+	// RuntimeBaseURL overrides ProbeBaseURL when chat and model-list endpoints
+	// differ. RuntimeCredentialEnv overrides CredentialEnv when setup metadata
+	// describes a non-secret value, as with Ollama's base URL.
+	RuntimeBaseURL       string
+	RuntimeCredentialEnv string
 }
 
 // EnvFallback describes one deployment env_fallback row.

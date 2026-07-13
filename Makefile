@@ -1,5 +1,5 @@
 # Canonical hawk-eco Makefile for Go LIBRARY repos.
-# eyrie is a library consumed by hawk (no standalone binary, no release).
+# eyrie is a versioned Go library consumed by Hawk (no standalone binary).
 
 # ---------------------------------------------------------------------------
 # Project metadata
@@ -36,6 +36,7 @@ GOVULNCHECK  := $(GOBIN_DIR)/govulncheck
 
 boundaries: ## Enforce support-repo import boundaries.
 	bash ./scripts/check-ecosystem-boundaries.sh
+	bash ./scripts/check-client-layering.sh
 
 # ---------------------------------------------------------------------------
 # Default target.

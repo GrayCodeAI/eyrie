@@ -7,159 +7,23 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
-// Version is set by the root eyrie package's init() from the VERSION file.
+// Version mirrors core.Version for backward compatibility; the canonical
+// value lives in client/core so subpackages can build User-Agent strings.
 // Default is "dev" until the root package initialises.
 var Version = "dev"
 
 // SetVersion is called by the root eyrie package's init to wire the canonical
-// version from the VERSION file into this sub-package.
-func SetVersion(v string) { Version = v }
-
-// userAgent returns the User-Agent string for HTTP requests.
-func userAgent() string { return "eyrie/" + Version }
-
-// Provider is the core interface for LLM providers.
-// Implementations must be safe for concurrent use.
-type Provider interface {
-	// Chat sends a non-streaming chat request.
-	Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error)
-	// StreamChat sends a streaming chat request.
-	// The caller must call Close() on the returned StreamResult when done.
-	StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error)
-	// Ping checks connectivity and authentication.
-	Ping(ctx context.Context) error
-	// Name returns the provider name (e.g. "anthropic", "openai").
-	Name() string
-}
-
-// EyrieConfig holds client configuration.
-type EyrieConfig struct {
-	Provider   string `json:"provider,omitempty"`
-	APIKey     string `json:"-"`
-	BaseURL    string `json:"base_url,omitempty"`
-	Model      string `json:"model,omitempty"`
-	MaxRetries int    `json:"max_retries,omitempty"`
-}
-
-// ContentPart represents a piece of content in a multi-modal message.
-// Use the helper types (TextPart, ImagePart, AudioPart) to construct these.
-type ContentPart struct {
-	Type       string          `json:"type"`                  // "text", "image_url", "input_audio"
-	Text       string          `json:"text,omitempty"`        // for type="text"
-	ImageURL   *ImageURLPart   `json:"image_url,omitempty"`   // for type="image_url"
-	InputAudio *InputAudioPart `json:"input_audio,omitempty"` // for type="input_audio"
-}
-
-// ImageURLPart represents an image content part.
-// URL can be an HTTP(S) URL or a data URI (data:image/png;base64,...).
-type ImageURLPart struct {
-	URL    string `json:"url"`
-	Detail string `json:"detail,omitempty"` // "auto", "low", "high" (OpenAI-specific)
-}
-
-// InputAudioPart represents an audio content part (base64 encoded).
-type InputAudioPart struct {
-	Data   string `json:"data"`   // base64 encoded audio
-	Format string `json:"format"` // "wav", "mp3" (OpenAI) or used to derive media_type (Anthropic)
-}
-
-// EyrieMessage represents a chat message.
-// For simple text messages, set Content directly.
-// For multi-modal messages (images, audio), use ContentParts.
-// When ContentParts is non-empty, it takes precedence over Content and Images.
-// The Images field is retained for backward compatibility.
-type EyrieMessage struct {
-	Role         string        `json:"role"`
-	Content      string        `json:"content,omitempty"`
-	Thinking     string        `json:"thinking,omitempty"`      // chain-of-thought captured from a prior response (never forwarded to providers that reject it)
-	ContentParts []ContentPart `json:"content_parts,omitempty"` // multi-modal content (takes precedence over Content/Images)
-	Images       []string      `json:"images,omitempty"`
-	ToolUse      []ToolCall    `json:"tool_use,omitempty"`     // assistant message with tool calls
-	ToolResults  []ToolResult  `json:"tool_results,omitempty"` // user message with one or more tool results
-}
-
-// ToolResult represents the result of a tool execution.
-type ToolResult struct {
-	ToolUseID string `json:"tool_use_id"`
-	Content   string `json:"content"`
-	IsError   bool   `json:"is_error,omitempty"`
-}
-
-// EyrieTool represents a tool definition.
-type EyrieTool struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Parameters  map[string]interface{} `json:"parameters"`
-}
-
-// EyrieUsage tracks token usage.
-type EyrieUsage struct {
-	PromptTokens        int `json:"prompt_tokens"`
-	CompletionTokens    int `json:"completion_tokens"`
-	TotalTokens         int `json:"total_tokens"`
-	CacheCreationTokens int `json:"cache_creation_tokens,omitempty"`
-	CacheReadTokens     int `json:"cache_read_tokens,omitempty"`
-	ThinkingTokens      int `json:"thinking_tokens,omitempty"`
-}
-
-// EyrieResponse is the response from a chat call.
-type EyrieResponse struct {
-	Content        string      `json:"content"`
-	Thinking       string      `json:"thinking,omitempty"`
-	Usage          *EyrieUsage `json:"usage,omitempty"`
-	ToolCalls      []ToolCall  `json:"tool_calls,omitempty"`
-	FinishReason   string      `json:"finish_reason"`
-	RequestID      string      `json:"request_id,omitempty"`
-	OrganizationID string      `json:"organization_id,omitempty"`
-}
-
-// ToolCall represents a tool invocation.
-type ToolCall struct {
-	ID        string                 `json:"id,omitempty"`
-	Name      string                 `json:"name"`
-	Arguments map[string]interface{} `json:"arguments"`
-}
-
-// EyrieStreamEvent is a streaming event.
-type EyrieStreamEvent struct {
-	Type       string      `json:"type"` // content, tool_call, tool_input_delta, thinking, done, error, ttft
-	Content    string      `json:"content,omitempty"`
-	ToolCall   *ToolCall   `json:"tool_call,omitempty"`
-	Thinking   string      `json:"thinking,omitempty"`
-	Error      string      `json:"error,omitempty"`
-	RequestID  string      `json:"request_id,omitempty"`
-	Usage      *EyrieUsage `json:"usage,omitempty"`
-	StopReason string      `json:"stop_reason,omitempty"`
-	TTFTms     int         `json:"ttft_ms,omitempty"` // time-to-first-token milliseconds, set on "done" event
-	// TTFT carries time-to-first-token milliseconds on Type=="ttft" events.
-	// It is emitted as a dedicated event immediately before the first content
-	// or tool-call delta so consumers can measure latency without waiting for
-	// the stream to finish.
-	TTFT int `json:"ttft,omitempty"`
-}
-
-// StreamResult wraps a streaming response with cleanup.
-// Callers must call Close() when done reading events, or cancel the context.
-type StreamResult struct {
-	Events    <-chan EyrieStreamEvent
-	RequestID string
-	cancel    context.CancelFunc
-}
-
-// Close stops the stream and releases resources.
-func (sr *StreamResult) Close() {
-	if sr.cancel != nil {
-		sr.cancel()
-	}
-}
-
-// NewStreamResult creates a StreamResult with a cancel function for resource cleanup.
-func NewStreamResult(events <-chan EyrieStreamEvent, cancel context.CancelFunc) *StreamResult {
-	return &StreamResult{Events: events, cancel: cancel}
+// version from the VERSION file into this sub-package (and client/core).
+func SetVersion(v string) {
+	Version = v
+	core.SetVersion(v)
 }
 
 // EyrieClient is the universal LLM client.
@@ -194,9 +58,15 @@ func Client(cfg *EyrieConfig, opts ...ClientOption) *EyrieClient {
 	}
 	// Apply options (including coalescing)
 	for _, opt := range opts {
-		opt.applyEyrie(c)
+		opt.ApplyEyrie(c)
 	}
 	return c
+}
+
+// SetCoalescingTTL enables request coalescing with the given reuse TTL.
+// Implements core.EyrieConfigurable for WithCoalescing.
+func (c *EyrieClient) SetCoalescingTTL(ttl time.Duration) {
+	c.coalescer = NewCoalescer(ttl)
 }
 
 // SetAPIKey sets an API key for a provider.

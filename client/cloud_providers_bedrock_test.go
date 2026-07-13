@@ -19,8 +19,8 @@ import (
 
 func newTestBedrockClient(serverURL, accessKey, secretKey, sessionToken, region string) *BedrockClient {
 	c := NewBedrockClient(accessKey, secretKey, sessionToken, region)
-	c.httpClient = &http.Client{}
-	c.retry = NewRetryConfig(0, 0, 0)
+	c.SetHTTPClient(&http.Client{})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 	return c
 }
 
@@ -35,7 +35,7 @@ func TestBedrockClient_Name(t *testing.T) {
 func TestBedrockClient_ModelURL(t *testing.T) {
 	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-west-2")
-	url := c.modelURL("anthropic.claude-3-5-sonnet-20241022-v2:0")
+	url := c.ModelURL("anthropic.claude-3-5-sonnet-20241022-v2:0")
 	// url.PathEscape does not encode ":" in Go, so it stays as-is
 	expected := "https://bedrock-runtime.us-west-2.amazonaws.com/model/anthropic.claude-3-5-sonnet-20241022-v2:0/invoke"
 	if url != expected {
@@ -72,10 +72,10 @@ func TestBedrockChat_Success(t *testing.T) {
 	defer server.Close()
 
 	c := NewBedrockClient("AKID", "secret-key", "session-token", "us-east-1")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &bedrockRewriteTransport{target: server.URL},
-	}
-	c.retry = NewRetryConfig(0, 0, 0)
+	})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	resp, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Hello Bedrock"},
@@ -173,10 +173,10 @@ func TestBedrockChat_NoSessionToken(t *testing.T) {
 	defer server.Close()
 
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1") // No session token
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &bedrockRewriteTransport{target: server.URL},
-	}
-	c.retry = NewRetryConfig(0, 0, 0)
+	})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	_, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -216,10 +216,10 @@ func TestBedrockChat_ToolUseResponse(t *testing.T) {
 	defer server.Close()
 
 	c := NewBedrockClient("AKID", "secret", "session", "us-east-1")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &bedrockRewriteTransport{target: server.URL},
-	}
-	c.retry = NewRetryConfig(0, 0, 0)
+	})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	resp, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "What's the weather in Seattle?"},
@@ -258,7 +258,7 @@ func TestBedrockBuildBody_DefaultMaxTokens(t *testing.T) {
 	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
 	if err != nil {
@@ -280,7 +280,7 @@ func TestBedrockBuildBody_CustomMaxTokens(t *testing.T) {
 	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6", MaxTokens: 8192})
 	if err != nil {
@@ -299,7 +299,7 @@ func TestBedrockBuildBody_WithSystemPrompt(t *testing.T) {
 	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "system", Content: "Be concise."},
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6"})
@@ -323,7 +323,7 @@ func TestBedrockBuildBody_WithTools(t *testing.T) {
 	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{
 		Model: "claude-sonnet-4-6",
@@ -358,7 +358,7 @@ func TestBedrockBuildBody_ToolResultMessage(t *testing.T) {
 	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "user", Content: "What is the weather?"},
 		{Role: "assistant", ToolUse: []ToolCall{
 			{ID: "toolu_1", Name: "get_weather", Arguments: map[string]interface{}{"city": "NYC"}},
@@ -382,7 +382,7 @@ func TestBedrockBuildBody_SystemMerge(t *testing.T) {
 	t.Parallel()
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
 
-	body, err := c.buildBody([]EyrieMessage{
+	body, err := c.BuildBody([]EyrieMessage{
 		{Role: "system", Content: "From messages"},
 		{Role: "user", Content: "Hello"},
 	}, ChatOptions{Model: "claude-sonnet-4-6", System: "From opts"})
@@ -411,10 +411,10 @@ func TestBedrockChat_ErrorResponse(t *testing.T) {
 	defer server.Close()
 
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &bedrockRewriteTransport{target: server.URL},
-	}
-	c.retry = NewRetryConfig(0, 0, 0)
+	})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	_, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -430,8 +430,8 @@ func TestBedrockChat_ErrorResponse(t *testing.T) {
 func TestBedrockChat_MissingCredentials(t *testing.T) {
 	t.Parallel()
 	c := NewBedrockClient("", "", "", "us-east-1")
-	c.httpClient = &http.Client{}
-	c.retry = NewRetryConfig(0, 0, 0)
+	c.SetHTTPClient(&http.Client{})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	_, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -453,7 +453,7 @@ func TestBedrockSigV4_SignatureComponents(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	body := []byte(`{"model":"test"}`)
 
-	err := c.sign(req, body, mustParseTime("20230901T000000Z"))
+	err := c.Sign(req, body, mustParseTime("20230901T000000Z"))
 	if err != nil {
 		t.Fatalf("sign error: %v", err)
 	}
@@ -496,11 +496,11 @@ func TestBedrockSigV4_DeterministicSignature(t *testing.T) {
 
 	req1, _ := http.NewRequest("POST", "https://bedrock-runtime.us-east-1.amazonaws.com/model/test/invoke", nil)
 	req1.Header.Set("Content-Type", "application/json")
-	c.sign(req1, body, now)
+	c.Sign(req1, body, now)
 
 	req2, _ := http.NewRequest("POST", "https://bedrock-runtime.us-east-1.amazonaws.com/model/test/invoke", nil)
 	req2.Header.Set("Content-Type", "application/json")
-	c.sign(req2, body, now)
+	c.Sign(req2, body, now)
 
 	auth1 := req1.Header.Get("Authorization")
 	auth2 := req2.Header.Get("Authorization")
@@ -526,9 +526,9 @@ func TestBedrockPing_Success(t *testing.T) {
 	defer server.Close()
 
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &bedrockRewriteTransport{target: server.URL},
-	}
+	})
 
 	err := c.Ping(context.Background())
 	if err != nil {
@@ -556,9 +556,9 @@ func TestBedrockPing_InvalidCredentials(t *testing.T) {
 	defer server.Close()
 
 	c := NewBedrockClient("AKID", "secret", "", "us-east-1")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &bedrockRewriteTransport{target: server.URL},
-	}
+	})
 
 	err := c.Ping(context.Background())
 	if err == nil {
@@ -586,8 +586,8 @@ func TestBedrockStreamChat_ModelRequired(t *testing.T) {
 func TestBedrockStreamChat_MissingCredentials(t *testing.T) {
 	t.Parallel()
 	c := NewBedrockClient("", "", "", "us-east-1")
-	c.httpClient = &http.Client{}
-	c.retry = NewRetryConfig(0, 0, 0)
+	c.SetHTTPClient(&http.Client{})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	_, err := c.StreamChat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},
@@ -613,7 +613,7 @@ func TestBedrockModelIDMapping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.model, func(t *testing.T) {
-			url := c.modelURL(tt.model)
+			url := c.ModelURL(tt.model)
 			// Verify base URL structure
 			if !strings.HasPrefix(url, "https://bedrock-runtime.us-east-1.amazonaws.com/model/") {
 				t.Errorf("expected bedrock-runtime URL prefix, got %q", url)
@@ -645,10 +645,10 @@ func TestBedrockChat_RegionInURL(t *testing.T) {
 
 	// Test with different regions - they should be reflected in the URL
 	c := NewBedrockClient("AKID", "secret", "", "eu-west-1")
-	c.httpClient = &http.Client{
+	c.SetHTTPClient(&http.Client{
 		Transport: &bedrockRewriteTransport{target: server.URL},
-	}
-	c.retry = NewRetryConfig(0, 0, 0)
+	})
+	c.SetRetry(NewRetryConfig(0, 0, 0))
 
 	_, err := c.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hi"},

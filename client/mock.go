@@ -134,7 +134,7 @@ func (m *MockProvider) StreamChat(ctx context.Context, messages []EyrieMessage, 
 		emit(streamCtx, ch, EyrieStreamEvent{Type: "done"})
 	}()
 
-	return &StreamResult{Events: ch, cancel: cancel}, nil
+	return NewStreamResult(ch, cancel), nil
 }
 
 // CallCount returns the number of recorded calls.

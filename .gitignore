@@ -3,6 +3,7 @@
 /basic
 bin/
 *.exe
+*.test
 
 # Secrets / local config
 .env
@@ -11,6 +12,8 @@ bin/
 
 # Build / cache / seed artifacts
 .gocache/
+.gomodcache/
+.golangci-cache/
 *.seeds.json
 elrond*.db
 *.codegraph.db
