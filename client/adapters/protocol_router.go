@@ -1,9 +1,11 @@
-package client
+package adapters
 
 import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 // ChatProtocol selects which existing eyrie client handles a gateway request.
@@ -16,9 +18,9 @@ const (
 	ChatProtocolMessages
 )
 
-type streamOpener func(context.Context, []EyrieMessage, ChatOptions) (*StreamResult, error)
+type streamOpener func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.StreamResult, error)
 
-type chatOpener func(context.Context, []EyrieMessage, ChatOptions) (*EyrieResponse, error)
+type chatOpener func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.EyrieResponse, error)
 
 // protocolStreamFallback retries a reasoning-only /v1/messages stream via the
 // alternate protocol. Non-streaming Chat is tried first because OpenCode Go
@@ -31,7 +33,7 @@ type protocolStreamFallback struct {
 
 // ProtocolChatFallback decides whether to retry via the alternate protocol
 // after the primary attempt. resp is non-nil only when primary returned err=nil.
-type ProtocolChatFallback func(primaryErr error, primaryResp *EyrieResponse) bool
+type ProtocolChatFallback func(primaryErr error, primaryResp *core.EyrieResponse) bool
 
 // ProtocolRouter picks between OpenAIClient and AnthropicClient for gateways
 // that expose both APIs (OpenCode Go, MiMo). All HTTP work stays in openai.go
@@ -50,14 +52,14 @@ type ProtocolStreamConfig struct {
 
 // Chat sends a request via the primary protocol, optionally falling back to the
 // alternate protocol when fallback returns true.
-func (r ProtocolRouter) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions, primary ChatProtocol, fallback ProtocolChatFallback) (*EyrieResponse, error) {
+func (r ProtocolRouter) Chat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions, primary ChatProtocol, fallback ProtocolChatFallback) (*core.EyrieResponse, error) {
 	primaryClient, fallbackClient := r.providers(primary)
 	resp, err := primaryClient.Chat(ctx, messages, opts)
 	if fallback == nil || !fallback(err, resp) {
 		return resp, err
 	}
 	fallbackResp, fallbackErr := fallbackClient.Chat(ctx, messages, opts)
-	if fallbackErr == nil && ResponseHasContent(fallbackResp) {
+	if fallbackErr == nil && core.ResponseHasContent(fallbackResp) {
 		return fallbackResp, nil
 	}
 	return resp, err
@@ -67,7 +69,7 @@ func (r ProtocolRouter) Chat(ctx context.Context, messages []EyrieMessage, opts 
 // the alternate protocol is tried immediately. When ReasoningOnlyFallback is set
 // and the primary is /v1/messages, an empty reasoning-only stream retries via
 // chat/completions.
-func (r ProtocolRouter) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions, cfg ProtocolStreamConfig) (*StreamResult, error) {
+func (r ProtocolRouter) StreamChat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions, cfg ProtocolStreamConfig) (*core.StreamResult, error) {
 	primaryClient, fallbackClient := r.providers(cfg.Primary)
 	result, err := primaryClient.StreamChat(ctx, messages, opts)
 	if err != nil {
@@ -79,10 +81,10 @@ func (r ProtocolRouter) StreamChat(ctx context.Context, messages []EyrieMessage,
 	if cfg.ReasoningOnlyFallback && cfg.Primary == ChatProtocolMessages {
 		fallback := fallbackClient
 		return newStreamWithReasoningFallback(ctx, messages, opts, result, protocolStreamFallback{
-			chat: func(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+			chat: func(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.EyrieResponse, error) {
 				return fallback.Chat(ctx, messages, opts)
 			},
-			stream: func(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+			stream: func(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
 				return fallback.StreamChat(ctx, messages, opts)
 			},
 		}), nil
@@ -90,7 +92,7 @@ func (r ProtocolRouter) StreamChat(ctx context.Context, messages []EyrieMessage,
 	return result, nil
 }
 
-func (r ProtocolRouter) providers(primary ChatProtocol) (Provider, Provider) {
+func (r ProtocolRouter) providers(primary ChatProtocol) (core.Provider, core.Provider) {
 	if primary == ChatProtocolMessages {
 		return r.Anthropic, r.OpenAI
 	}
@@ -106,39 +108,39 @@ func AnthropicBaseFromOpenAIV1(openAIBase string) string {
 	return base
 }
 
-func streamResultFromChat(resp *EyrieResponse) *StreamResult {
-	out := make(chan EyrieStreamEvent, streamChannelBuffer)
+func streamResultFromChat(resp *core.EyrieResponse) *core.StreamResult {
+	out := make(chan core.EyrieStreamEvent, core.StreamChannelBuffer)
 	go func() {
 		defer close(out)
 		if resp == nil {
 			return
 		}
 		if strings.TrimSpace(resp.Thinking) != "" {
-			out <- EyrieStreamEvent{Type: "thinking", Thinking: resp.Thinking}
+			out <- core.EyrieStreamEvent{Type: "thinking", Thinking: resp.Thinking}
 		}
 		if strings.TrimSpace(resp.Content) != "" {
-			out <- EyrieStreamEvent{Type: "content", Content: resp.Content}
+			out <- core.EyrieStreamEvent{Type: "content", Content: resp.Content}
 		}
 		for i := range resp.ToolCalls {
 			tc := resp.ToolCalls[i]
-			out <- EyrieStreamEvent{Type: "tool_call", ToolCall: &tc}
+			out <- core.EyrieStreamEvent{Type: "tool_call", ToolCall: &tc}
 		}
 		if resp.Usage != nil {
-			out <- EyrieStreamEvent{Type: "usage", Usage: resp.Usage}
+			out <- core.EyrieStreamEvent{Type: "usage", Usage: resp.Usage}
 		}
 		stop := resp.FinishReason
 		if stop == "" {
 			stop = "stop"
 		}
-		out <- EyrieStreamEvent{Type: "done", StopReason: stop}
+		out <- core.EyrieStreamEvent{Type: "done", StopReason: stop}
 	}()
-	return NewStreamResult(out, func() {})
+	return core.NewStreamResult(out, func() {})
 }
 
-func (f protocolStreamFallback) open(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+func (f protocolStreamFallback) open(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
 	if f.chat != nil {
 		resp, err := f.chat(ctx, messages, opts)
-		if err == nil && ResponseHasContent(resp) {
+		if err == nil && core.ResponseHasContent(resp) {
 			return streamResultFromChat(resp), nil
 		}
 	}
@@ -148,8 +150,8 @@ func (f protocolStreamFallback) open(ctx context.Context, messages []EyrieMessag
 	return nil, fmt.Errorf("eyrie: protocol stream fallback is not configured")
 }
 
-func newStreamWithReasoningFallback(ctx context.Context, messages []EyrieMessage, opts ChatOptions, primary *StreamResult, fallback protocolStreamFallback) *StreamResult {
-	out := make(chan EyrieStreamEvent, streamChannelBuffer)
+func newStreamWithReasoningFallback(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions, primary *core.StreamResult, fallback protocolStreamFallback) *core.StreamResult {
+	out := make(chan core.EyrieStreamEvent, core.StreamChannelBuffer)
 	cancelCtx, cancel := context.WithCancel(ctx)
 	go func() {
 		defer close(out)
@@ -160,7 +162,7 @@ func newStreamWithReasoningFallback(ctx context.Context, messages []EyrieMessage
 			sawReasoning bool
 			contentLen   int
 			toolCalls    int
-			buffered     []EyrieStreamEvent
+			buffered     []core.EyrieStreamEvent
 			streamErr    bool
 		)
 		flush := func() {
@@ -196,14 +198,14 @@ func newStreamWithReasoningFallback(ctx context.Context, messages []EyrieMessage
 			buffered = append(buffered, ev)
 		}
 
-		health := DetectResponseHealth(ResponseSignals{
+		health := core.DetectResponseHealth(core.ResponseSignals{
 			SawReasoning: sawReasoning,
 			ContentLen:   contentLen,
 			ToolCalls:    toolCalls,
 			StreamEnded:  true,
 			StreamErr:    streamErr,
 		})
-		if health != ResponseErrorOnlyReasoning {
+		if health != core.ResponseErrorOnlyReasoning {
 			flush()
 			return
 		}
@@ -212,7 +214,7 @@ func newStreamWithReasoningFallback(ctx context.Context, messages []EyrieMessage
 		if err != nil {
 			flush()
 			select {
-			case out <- EyrieStreamEvent{Type: "error", Error: err.Error()}:
+			case out <- core.EyrieStreamEvent{Type: "error", Error: err.Error()}:
 			case <-cancelCtx.Done():
 			}
 			return
@@ -226,5 +228,5 @@ func newStreamWithReasoningFallback(ctx context.Context, messages []EyrieMessage
 			}
 		}
 	}()
-	return NewStreamResult(out, cancel)
+	return core.NewStreamResult(out, cancel)
 }

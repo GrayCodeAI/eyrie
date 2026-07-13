@@ -1,6 +1,6 @@
 # Feature Specification: `client` Package Decomposition
 
-**Status:** In Progress — Phases 1–2 implemented 2026-07-12; layering guard live
+**Status:** In Progress — Phases 1–3 implemented 2026-07-13; layering guard live
 **Author:** Claude (architecture review session)
 **Date:** 2026-07-12
 **Repos affected:** eyrie (all changes), hawk (no code changes required; re-pin external/eyrie)
@@ -155,24 +155,24 @@ Learned in Phases 1–2 (apply to later phases):
       `GuardrailProvider` middleware wrapper stays in the facade
       (`client/guardrails.go`). Full public API aliased.
 
-### Phase 3b-iii: adapter file move — remaining
-- [ ] Both structural blockers are now cleared. What's left is the physical
-      move of the 14 adapter files to `client/adapters` plus their in-package
-      tests (large: adapter tests read unexported fields and share helpers
-      like `newTestOpenAIClient` with facade tests — split the helpers first).
-- [ ] Decide: `OpenAIClient.CreateEmbedding` implements `embeddings.Embedder`,
-      so either allow `adapters` → `embeddings` in the layering guard or move
-      the embedding DTOs into `core`. (Recommended: DTOs into `core`,
-      keeping the strict "siblings import core only" rule.)
-- [ ] `buildAnthropicCachedRequest` moves with the Anthropic adapter.
-- [ ] `provider_registry.go` and `protocol_router.go` move last; the registry
-      keyed by `AdapterID` stays the only construction path.
+### Phase 3b-iii: adapter file move — DONE 2026-07-13
+- [x] Moved provider protocol implementations and construction helpers to
+      `client/adapters`; the package imports `client/core` only.
+- [x] Preserved the existing `client` API through aliases and thin wrappers,
+      including constructors, adapter DTOs, compatibility options, provider
+      registry types, and test-facing helpers.
+- [x] Kept embedding DTO ownership in `client/core` where adapters need it;
+      `client/embeddings` remains a sibling that imports only core.
+- [x] Moved Anthropic cache request construction, protocol routing, dynamic
+      provider registration, and provider construction into the adapter layer.
+- [x] Updated tests to exercise the adapter package directly where internals
+      are required while retaining facade compatibility coverage.
 
 ### Phase 4: middleware, cache, aux
 - [ ] One sub-move per PR, same alias recipe.
 
 ### Phase 5: enforcement + deprecation
-- [ ] Add `scripts/check-client-layering.sh` (mirror of hawk's
+- [x] Add `scripts/check-client-layering.sh` (mirror of hawk's
       `check-eyrie-client-imports.sh`) to CI: fail on any sibling→sibling import
       that bypasses `core`, and on any in-tree import of the facade.
 - [ ] Mark facade aliases `// Deprecated:` pointing at the subpackage; migrate

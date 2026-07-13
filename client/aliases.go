@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/GrayCodeAI/eyrie/client/adapters"
 	"github.com/GrayCodeAI/eyrie/client/core"
 	"github.com/GrayCodeAI/eyrie/client/embeddings"
 )
@@ -222,24 +223,12 @@ func NewEmbeddingCachedProvider(inner Provider, embedder Embedder, cfg SemanticC
 	return embeddings.NewEmbeddingCachedProvider(inner, embedder, cfg)
 }
 
-// Package-local bridges for helpers that moved to client/core. Declared as
-// unexported names so the many in-package call sites read unchanged while
-// the single implementation lives in core.
-type providerErrorDetail = core.ProviderErrorDetail
-
 var (
-	doWithRetry            = core.DoWithRetry
-	parseProviderError     = core.ParseProviderError
-	formatAPIError         = core.FormatAPIError
-	copyResponse           = core.CopyResponse
-	parseSSEStream         = core.ParseSSEStream
-	processAnthropicStream = core.ProcessAnthropicStream
-	processOpenAIStream    = core.ProcessOpenAIStream
-	emit                   = core.Emit
-	openAIImageURL         = core.OpenAIImageURL
-	parseImageString       = core.ParseImageString
-	userAgent              = core.UserAgent
-	applyGuardrails        = core.ApplyGuardrails
+	copyResponse     = core.CopyResponse
+	emit             = core.Emit
+	parseImageString = core.ParseImageString
+	applyGuardrails  = core.ApplyGuardrails
+	isRetriableError = core.IsRetriableError
 )
 
 // NewStreamResult creates a StreamResult with a cancel function for resource cleanup.
@@ -256,3 +245,139 @@ func NewStreamResultWithRequestID(events <-chan EyrieStreamEvent, requestID stri
 func DefaultContinuationConfig() ContinuationConfig {
 	return core.DefaultContinuationConfig()
 }
+
+// ---------------------------------------------------------------------------
+// Adapter type aliases (moved to client/adapters)
+// ---------------------------------------------------------------------------
+
+type (
+	// AnthropicClient implements Provider for the Anthropic Messages API.
+	AnthropicClient = adapters.AnthropicClient
+	// OpenAIClient implements Provider for the OpenAI Chat Completions API.
+	OpenAIClient = adapters.OpenAIClient
+	// GeminiClient implements Provider for the Google Gemini API.
+	GeminiClient = adapters.GeminiClient
+	// AzureClient implements Provider for the Azure OpenAI API.
+	AzureClient = adapters.AzureClient
+	// BedrockClient implements Provider for the AWS Bedrock API.
+	BedrockClient = adapters.BedrockClient
+	// VertexClient implements Provider for the Google Vertex AI API.
+	VertexClient = adapters.VertexClient
+	// DeepSeekClient implements Provider for the DeepSeek API.
+	DeepSeekClient = adapters.DeepSeekClient
+	// ZAIClient implements Provider for the Z.AI API.
+	ZAIClient = adapters.ZAIClient
+	// MiMoClient implements Provider for the Xiaomi MiMo API.
+	MiMoClient = adapters.MiMoClient
+	// OpenCodeGoClient implements Provider for the OpenCode Go API.
+	OpenCodeGoClient = adapters.OpenCodeGoClient
+	// ProtocolRouter routes between OpenAI and Anthropic protocols.
+	ProtocolRouter = adapters.ProtocolRouter
+	// ProtocolStreamConfig controls streaming across two protocols.
+	ProtocolStreamConfig = adapters.ProtocolStreamConfig
+	// TokenCountResult holds token counting results.
+	TokenCountResult = adapters.TokenCountResult
+)
+
+// Adapter protocol constants.
+const (
+	ChatProtocolCompletions = adapters.ChatProtocolCompletions
+	ChatProtocolMessages    = adapters.ChatProtocolMessages
+)
+
+// Adapter constructors.
+func NewAnthropicClient(apiKey, baseURL string, opts ...ClientOption) *AnthropicClient {
+	return adapters.NewAnthropicClient(apiKey, baseURL, opts...)
+}
+
+func NewOpenAIClient(apiKey, baseURL string, compat *OpenAICompatConfig, opts ...ClientOption) *OpenAIClient {
+	return adapters.NewOpenAIClient(apiKey, baseURL, compat, opts...)
+}
+
+func NewGeminiClient(apiKey, baseURL string) *GeminiClient {
+	return adapters.NewGeminiClient(apiKey, baseURL)
+}
+
+func NewAzureClient(apiKey, endpoint, apiVersion string) *AzureClient {
+	return adapters.NewAzureClient(apiKey, endpoint, apiVersion)
+}
+
+func NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region string) *BedrockClient {
+	return adapters.NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region)
+}
+
+func NewVertexClient(projectID, region, token string) *VertexClient {
+	return adapters.NewVertexClient(projectID, region, token)
+}
+
+func NewDeepSeekClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompatConfig, opts ...ClientOption) *DeepSeekClient {
+	return adapters.NewDeepSeekClient(apiKey, openAIBase, anthropicBase, compat, opts...)
+}
+
+func NewZAIClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompatConfig, providerID string, opts ...ClientOption) *ZAIClient {
+	return adapters.NewZAIClient(apiKey, openAIBase, anthropicBase, compat, providerID, opts...)
+}
+
+func NewMiMoClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompatConfig, providerID string, opts ...ClientOption) *MiMoClient {
+	return adapters.NewMiMoClient(apiKey, openAIBase, anthropicBase, compat, providerID, opts...)
+}
+
+func NewOpenCodeGoClient(apiKey, baseURL string, opts ...ClientOption) *OpenCodeGoClient {
+	return adapters.NewOpenCodeGoClient(apiKey, baseURL, opts...)
+}
+
+func AnthropicBaseFromOpenAIV1(openAIBase string) string {
+	return adapters.AnthropicBaseFromOpenAIV1(openAIBase)
+}
+
+// Provider registry constants.
+const (
+	ProviderTypeAnthropic        = adapters.ProviderTypeAnthropic
+	ProviderTypeOpenAI           = adapters.ProviderTypeOpenAI
+	ProviderTypeOpenAICompatible = adapters.ProviderTypeOpenAICompatible
+	ProviderTypeAzure            = adapters.ProviderTypeAzure
+	ProviderTypeBedrock          = adapters.ProviderTypeBedrock
+	ProviderTypeVertex           = adapters.ProviderTypeVertex
+)
+
+// Package-local aliases keep existing in-package tests and helpers readable
+// without expanding the public client facade.
+type (
+	anthropicRequest        = adapters.AnthropicRequest
+	anthropicResponse       = adapters.AnthropicResponse
+	anthropicTool           = adapters.AnthropicTool
+	anthropicToolChoice     = adapters.AnthropicToolChoice
+	anthropicThinking       = adapters.AnthropicThinking
+	anthropicMetadata       = adapters.AnthropicMetadata
+	anthropicOutputConfig   = adapters.AnthropicOutputConfig
+	openaiEmbeddingData     = adapters.OpenAIEmbeddingData
+	openaiEmbeddingResponse = adapters.OpenAIEmbeddingResponse
+	openaiEmbeddingUsage    = adapters.OpenAIEmbeddingUsage
+)
+
+var (
+	audioFormatToMediaType      = adapters.AudioFormatToMediaType
+	resolveThinking             = adapters.ResolveThinking
+	resolveToolChoice           = adapters.ResolveToolChoice
+	resolveOutputConfig         = adapters.ResolveOutputConfig
+	buildAnthropicMessages      = adapters.BuildAnthropicMessages
+	buildAnthropicCachedRequest = adapters.BuildAnthropicCachedRequest
+	parseAnthropicResponse      = adapters.ParseAnthropicResponse
+	convertToAnthropicTools     = adapters.ConvertToAnthropicTools
+	buildRequestBase            = adapters.BuildRequestBase
+	openaiBaseFallbackURL       = adapters.OpenAIBaseFallbackURL
+	dynamicProviderEnvVar       = adapters.DynamicProviderEnvVar
+	geminiSharedParserEnvVar    = adapters.GeminiSharedParserEnvVar
+	processGeminiStream         = adapters.ProcessGeminiStream
+	mimoRetryableChatError      = adapters.MimoRetryableChatError
+	mimoFallbackChatError       = adapters.MimoFallbackChatError
+	oaCompatUnsupportedError    = adapters.OACompatUnsupportedError
+	CoreProviders               = adapters.CoreProviders
+	OpenAICompatibleProviders   = adapters.OpenAICompatibleProviders
+	sha256Hex                   = adapters.Sha256Hex
+	awsSigningKey               = adapters.AWSSigningKey
+	canonicalAWSHeaders         = adapters.CanonicalAWSHeaders
+	awsCanonicalURI             = adapters.AWSCanonicalURI
+	dynamicProviderEnabled      = adapters.DynamicProviderEnabled
+	thinkingForBudget           = adapters.ThinkingForBudget
+)

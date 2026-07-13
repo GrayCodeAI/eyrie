@@ -1,4 +1,4 @@
-package client
+package adapters
 
 import (
 	"bytes"
@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 // geminiSharedParserEnvVar is the opt-out flag for the new
@@ -19,35 +21,38 @@ import (
 // release once the new path is validated in production.
 const geminiSharedParserEnvVar = "EYRIE_GEMINI_SHARED_PARSER"
 
+// GeminiSharedParserEnvVar controls the shared SSE parser compatibility switch.
+const GeminiSharedParserEnvVar = geminiSharedParserEnvVar
+
 // maxGeminiRequestSize is the maximum request body size for Gemini API (32 MB).
 const maxGeminiRequestSize = 32 * 1024 * 1024
 
 // geminiSharedParserEnabled reports whether the Gemini client should
-// use the shared parseSSEStream + processGeminiStream path (the new
+// use the shared core.ParseSSEStream + processGeminiStream path (the new
 // behavior). Default: enabled.
 func geminiSharedParserEnabled() bool {
 	v := strings.TrimSpace(strings.ToLower(os.Getenv(geminiSharedParserEnvVar)))
 	return v != "0" && v != "false" && v != "no"
 }
 
-// GeminiClient implements Provider for the Google Gemini API.
+// GeminiClient implements core.Provider for the Google Gemini API.
 type GeminiClient struct {
 	apiKey     string
 	baseURL    string
 	httpClient *http.Client
-	retry      RetryConfig
+	retry      core.RetryConfig
 	logger     *slog.Logger
-	guardrails *Guardrails
+	guardrails *core.Guardrails
 }
 
-var _ Provider = (*GeminiClient)(nil)
+var _ core.Provider = (*GeminiClient)(nil)
 
 func NewGeminiClient(apiKey, baseURL string) *GeminiClient {
 	c := &GeminiClient{
 		apiKey:     apiKey,
 		baseURL:    baseURL,
-		httpClient: NewPooledHTTPClient(defaultTimeout),
-		retry:      DefaultRetryConfig(),
+		httpClient: core.NewPooledHTTPClient(core.DefaultTimeout),
+		retry:      core.DefaultRetryConfig(),
 		logger:     slog.Default().With("component", "gemini"),
 	}
 	if c.baseURL == "" {
@@ -60,7 +65,7 @@ func (c *GeminiClient) Name() string { return "gemini" }
 
 func (c *GeminiClient) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("User-Agent", core.UserAgent())
 	if c.isVertex() {
 		req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	} else {
@@ -72,7 +77,7 @@ func (c *GeminiClient) isVertex() bool {
 	return strings.Contains(c.baseURL, "aiplatform.googleapis.com")
 }
 
-func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+func (c *GeminiClient) Chat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.EyrieResponse, error) {
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for gemini")
 	}
@@ -88,7 +93,7 @@ func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	c.setHeaders(req)
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: gemini request failed: %w", err)
 	}
@@ -101,8 +106,8 @@ func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	requestID := resp.Header.Get("X-Goog-Request-Id")
 
 	if resp.StatusCode != http.StatusOK {
-		detail, readErr := parseProviderError(resp.Body)
-		return nil, formatAPIError("gemini", "chat", resp.StatusCode, requestID, detail, readErr)
+		detail, readErr := core.ParseProviderError(resp.Body)
+		return nil, core.FormatAPIError("gemini", "chat", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	respBody, err := io.ReadAll(resp.Body)
@@ -115,14 +120,14 @@ func (c *GeminiClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		return nil, err
 	}
 
-	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
+	if err := core.ApplyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
 		return nil, err
 	}
 
 	return eyrieResp, nil
 }
 
-func (c *GeminiClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+func (c *GeminiClient) StreamChat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for gemini")
 	}
@@ -138,7 +143,7 @@ func (c *GeminiClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	c.setHeaders(req)
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: gemini stream request failed: %w", err)
 	}
@@ -146,21 +151,21 @@ func (c *GeminiClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	requestID := resp.Header.Get("X-Goog-Request-Id")
 
 	if resp.StatusCode != http.StatusOK {
-		detail, readErr := parseProviderError(resp.Body)
+		detail, readErr := core.ParseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, formatAPIError("gemini", "stream", resp.StatusCode, requestID, detail, readErr)
+		return nil, core.FormatAPIError("gemini", "stream", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
 	if geminiSharedParserEnabled() {
-		sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
+		sseEvents := core.ParseSSEStream(streamCtx, resp.Body, c.logger)
 		events := processGeminiStream(streamCtx, sseEvents, c.logger)
-		return NewStreamResult(events, cancel), nil
+		return core.NewStreamResult(events, cancel), nil
 	}
 	// Fallback (opt-out via EYRIE_GEMINI_SHARED_PARSER=0): old bespoke parser.
-	events := make(chan EyrieStreamEvent, 64)
+	events := make(chan core.EyrieStreamEvent, 64)
 	go c.streamLoop(streamCtx, resp.Body, events)
-	return NewStreamResult(events, cancel), nil
+	return core.NewStreamResult(events, cancel), nil
 }
 
 func (c *GeminiClient) Ping(ctx context.Context) error {
@@ -271,8 +276,8 @@ type geminiSafetySetting struct {
 	Threshold string `json:"threshold"` // e.g., "BLOCK_NONE", "BLOCK_LOW_AND_ABOVE", etc.
 }
 
-func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]byte, error) {
-	messages = SanitizeMessages(messages)
+func (c *GeminiClient) buildBody(messages []core.EyrieMessage, opts core.ChatOptions) ([]byte, error) {
+	messages = core.SanitizeMessages(messages)
 	contents := make([]geminiContent, 0, len(messages))
 	var systemInstruction *geminiContent
 
@@ -310,7 +315,7 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 					gc.Parts = append(gc.Parts, geminiPart{Text: part.Text})
 				case "image_url":
 					if part.ImageURL != nil {
-						mimeType, data, isBase64 := parseImageString(part.ImageURL.URL)
+						mimeType, data, isBase64 := core.ParseImageString(part.ImageURL.URL)
 						if !isBase64 {
 							mimeType = "image/png"
 							data = part.ImageURL.URL
@@ -420,7 +425,7 @@ func (c *GeminiClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]b
 		{Category: "HARM_CATEGORY_CIVIC_INTEGRITY", Threshold: "BLOCK_NONE"},
 	}
 
-	// Map additional ChatOptions to generationConfig
+	// Map additional core.ChatOptions to generationConfig
 	if req.GenerationConfig == nil && (opts.PresencePenalty != nil || opts.FrequencyPenalty != nil || opts.Seed != nil || opts.N != nil || opts.LogProbs != nil || opts.TopLogProbs != nil) {
 		req.GenerationConfig = &geminiGenerationConfig{}
 	}
@@ -482,7 +487,7 @@ type geminiPromptFeedback struct {
 	BlockReasonMessage string `json:"blockReasonMessage,omitempty"`
 }
 
-func (c *GeminiClient) parseResponse(data []byte, requestID string) (*EyrieResponse, error) {
+func (c *GeminiClient) parseResponse(data []byte, requestID string) (*core.EyrieResponse, error) {
 	var gr geminiResponse
 	if err := json.Unmarshal(data, &gr); err != nil {
 		return nil, fmt.Errorf("eyrie: gemini response parse failed: %w", err)
@@ -500,7 +505,7 @@ func (c *GeminiClient) parseResponse(data []byte, requestID string) (*EyrieRespo
 	}
 
 	candidate := gr.Candidates[0]
-	resp := &EyrieResponse{
+	resp := &core.EyrieResponse{
 		FinishReason: mapGeminiFinishReason(candidate.FinishReason),
 		RequestID:    requestID,
 	}
@@ -510,7 +515,7 @@ func (c *GeminiClient) parseResponse(data []byte, requestID string) (*EyrieRespo
 			resp.Content += part.Text
 		}
 		if part.FunctionCall != nil {
-			tc := ToolCall{
+			tc := core.ToolCall{
 				Name:      part.FunctionCall.Name,
 				Arguments: part.FunctionCall.Args,
 			}
@@ -522,7 +527,7 @@ func (c *GeminiClient) parseResponse(data []byte, requestID string) (*EyrieRespo
 	}
 
 	if gr.Usage != nil {
-		resp.Usage = &EyrieUsage{
+		resp.Usage = &core.EyrieUsage{
 			PromptTokens:     gr.Usage.PromptTokenCount,
 			CompletionTokens: gr.Usage.CandidatesTokenCount,
 			TotalTokens:      gr.Usage.TotalTokenCount,
@@ -550,7 +555,7 @@ func mapGeminiFinishReason(reason string) string {
 // --- Streaming ---
 
 // processGeminiStream converts Gemini SSE events (parsed by the shared
-// parseSSEStream) into EyrieStreamEvents. Handles text, tool calls
+// core.ParseSSEStream) into EyrieStreamEvents. Handles text, tool calls
 // (functionCall), and the final usage+done event.
 //
 // Behavior matches the original streamLoop's processStreamChunk:
@@ -563,8 +568,8 @@ func mapGeminiFinishReason(reason string) string {
 //     StopReason but no Usage.
 //   - If the SSE channel closes without a finish reason, a bare "done"
 //     is emitted (matches the original "if !doneSent" fallback).
-func processGeminiStream(ctx context.Context, sseEvents <-chan SSEEvent, logger *slog.Logger) <-chan EyrieStreamEvent {
-	ch := make(chan EyrieStreamEvent, streamChannelBuffer)
+func processGeminiStream(ctx context.Context, sseEvents <-chan core.SSEEvent, logger *slog.Logger) <-chan core.EyrieStreamEvent {
+	ch := make(chan core.EyrieStreamEvent, core.StreamChannelBuffer)
 	go func() {
 		defer close(ch)
 		doneSent := false
@@ -575,14 +580,14 @@ func processGeminiStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 			case evt, ok := <-sseEvents:
 				if !ok {
 					if !doneSent {
-						emit(ctx, ch, EyrieStreamEvent{Type: "done"})
+						core.Emit(ctx, ch, core.EyrieStreamEvent{Type: "done"})
 					}
 					return
 				}
-				// Propagate SSE-level errors (raised by parseSSEStream on
+				// Propagate SSE-level errors (raised by core.ParseSSEStream on
 				// scanner failure or non-cancel context expiry).
 				if evt.Event == "error" {
-					emit(ctx, ch, EyrieStreamEvent{Type: "error", Error: evt.Data})
+					core.Emit(ctx, ch, core.EyrieStreamEvent{Type: "error", Error: evt.Data})
 					return
 				}
 				data := strings.TrimSpace(evt.Data)
@@ -600,17 +605,17 @@ func processGeminiStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 				candidate := chunk.Candidates[0]
 				for _, part := range candidate.Content.Parts {
 					if part.Text != "" {
-						emit(ctx, ch, EyrieStreamEvent{Type: "content", Content: part.Text})
+						core.Emit(ctx, ch, core.EyrieStreamEvent{Type: "content", Content: part.Text})
 					}
 					if part.FunctionCall != nil {
-						tc := &ToolCall{
+						tc := &core.ToolCall{
 							Name:      part.FunctionCall.Name,
 							Arguments: part.FunctionCall.Args,
 						}
 						if part.FunctionCall.ID != "" {
 							tc.ID = part.FunctionCall.ID
 						}
-						emit(ctx, ch, EyrieStreamEvent{
+						core.Emit(ctx, ch, core.EyrieStreamEvent{
 							Type:     "tool_call",
 							ToolCall: tc,
 						})
@@ -621,9 +626,9 @@ func processGeminiStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 				// original streamLoop emitted these together in a
 				// single event when the chunk carried both.
 				if chunk.Usage != nil || candidate.FinishReason != "" {
-					evt := EyrieStreamEvent{Type: "done"}
+					evt := core.EyrieStreamEvent{Type: "done"}
 					if chunk.Usage != nil {
-						evt.Usage = &EyrieUsage{
+						evt.Usage = &core.EyrieUsage{
 							PromptTokens:     chunk.Usage.PromptTokenCount,
 							CompletionTokens: chunk.Usage.CandidatesTokenCount,
 							TotalTokens:      chunk.Usage.TotalTokenCount,
@@ -634,7 +639,7 @@ func processGeminiStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 					if candidate.FinishReason != "" {
 						evt.StopReason = mapGeminiFinishReason(candidate.FinishReason)
 					}
-					emit(ctx, ch, evt)
+					core.Emit(ctx, ch, evt)
 					return
 				}
 			}
@@ -643,7 +648,7 @@ func processGeminiStream(ctx context.Context, sseEvents <-chan SSEEvent, logger 
 	return ch
 }
 
-func (c *GeminiClient) streamLoop(ctx context.Context, body io.ReadCloser, events chan<- EyrieStreamEvent) {
+func (c *GeminiClient) streamLoop(ctx context.Context, body io.ReadCloser, events chan<- core.EyrieStreamEvent) {
 	defer close(events)
 	defer func() { _ = body.Close() }()
 
@@ -678,13 +683,13 @@ func (c *GeminiClient) streamLoop(ctx context.Context, body io.ReadCloser, event
 
 	if !doneSent {
 		select {
-		case events <- EyrieStreamEvent{Type: "done"}:
+		case events <- core.EyrieStreamEvent{Type: "done"}:
 		case <-ctx.Done():
 		}
 	}
 }
 
-func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, events chan<- EyrieStreamEvent) bool {
+func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, events chan<- core.EyrieStreamEvent) bool {
 	var chunk geminiResponse
 	if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 		return false
@@ -696,13 +701,13 @@ func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, even
 	for _, part := range candidate.Content.Parts {
 		if part.Text != "" {
 			select {
-			case events <- EyrieStreamEvent{Type: "content", Content: part.Text}:
+			case events <- core.EyrieStreamEvent{Type: "content", Content: part.Text}:
 			case <-ctx.Done():
 				return false
 			}
 		}
 		if part.FunctionCall != nil {
-			tc := &ToolCall{
+			tc := &core.ToolCall{
 				Name:      part.FunctionCall.Name,
 				Arguments: part.FunctionCall.Args,
 			}
@@ -710,7 +715,7 @@ func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, even
 				tc.ID = part.FunctionCall.ID
 			}
 			select {
-			case events <- EyrieStreamEvent{
+			case events <- core.EyrieStreamEvent{
 				Type:     "tool_call",
 				ToolCall: tc,
 			}:
@@ -721,9 +726,9 @@ func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, even
 	}
 	if chunk.Usage != nil {
 		select {
-		case events <- EyrieStreamEvent{
+		case events <- core.EyrieStreamEvent{
 			Type: "done",
-			Usage: &EyrieUsage{
+			Usage: &core.EyrieUsage{
 				PromptTokens:     chunk.Usage.PromptTokenCount,
 				CompletionTokens: chunk.Usage.CandidatesTokenCount,
 				TotalTokens:      chunk.Usage.TotalTokenCount,
@@ -736,4 +741,15 @@ func (c *GeminiClient) processStreamChunk(ctx context.Context, data string, even
 		}
 	}
 	return false
+}
+
+// HTTPClient returns the configured transport client.
+func (c *GeminiClient) HTTPClient() *http.Client { return c.httpClient }
+
+// Retry returns the configured retry policy.
+func (c *GeminiClient) Retry() core.RetryConfig { return c.retry }
+
+// ProcessGeminiStream normalizes decoded Gemini SSE events.
+func ProcessGeminiStream(ctx context.Context, events <-chan core.SSEEvent, logger *slog.Logger) <-chan core.EyrieStreamEvent {
+	return processGeminiStream(ctx, events, logger)
 }

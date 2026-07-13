@@ -2,15 +2,12 @@ package client
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	"github.com/GrayCodeAI/eyrie/types"
 )
 
 // FallbackProvider wraps multiple Providers and automatically falls back to the
@@ -204,55 +201,5 @@ func (fp *FallbackProvider) recordSuccess(name string) {
 	}
 }
 
-// nonRetriableStatusCodes are HTTP status codes that indicate a client-side
-// error -- falling back won't help because the request itself is bad.
-var nonRetriableStatusCodes = map[int]bool{
-	400: true, // bad request
-	401: true, // unauthorized
-	403: true, // forbidden
-	404: true, // not found (wrong model name, etc.)
-	422: true, // unprocessable entity
-}
-
-// isRetriableError determines whether a fallback to the next provider should
-// be attempted. It delegates to types.IsTransient for known error patterns
-// but diverges on unknown errors: where IsTransient is conservative (returns
-// false for unrecognized errors), isRetriableError is optimistic (returns true).
-//
-// Rationale: in a fallback chain, trying the next provider is cheap and may
-// succeed even if the current provider failed with an unexpected error type.
-// In contrast, retry middleware (which uses IsTransient) should be conservative
-// to avoid wasting requests on errors that won't resolve with a retry.
-//
-// *EyrieError (returned by formatAPIError and friends) is preferred over
-// the string-based heuristic: it carries the structured status code so the
-// classification is exact rather than regex-parsed.
-func isRetriableError(err error) bool {
-	if err == nil {
-		return false
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	if errors.Is(err, context.Canceled) {
-		return false
-	}
-	// Structured path: trust *EyrieError's IsRetriable.
-	var eyrieErr *EyrieError
-	if errors.As(err, &eyrieErr) {
-		return eyrieErr.IsRetriable()
-	}
-	// Heuristic path for legacy errors that predate the EyrieError migration.
-	if types.IsTransient(err) {
-		return true
-	}
-	// If the error contains a known non-retriable HTTP status code, give up
-	// immediately — the request itself is bad, not the provider.
-	if code, ok := types.ExtractHTTPStatus(err); ok {
-		if nonRetriableStatusCodes[code] {
-			return false
-		}
-	}
-	// Unknown error types: treat as retriable so we at least try the next provider.
-	return true
-}
+// isRetriableError is an unexported bridge to core.IsRetriableError,
+// declared in aliases.go so fallback.go and weighted.go read unchanged.

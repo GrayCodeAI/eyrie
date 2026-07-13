@@ -1,4 +1,4 @@
-package client
+package adapters
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 // maxVertexRequestSize is the maximum request body size for Vertex AI (30 MB).
@@ -18,20 +20,20 @@ type VertexClient struct {
 	region     string
 	token      string
 	httpClient *http.Client
-	retry      RetryConfig
+	retry      core.RetryConfig
 	logger     *slog.Logger
-	guardrails *Guardrails
+	guardrails *core.Guardrails
 }
 
-var _ Provider = (*VertexClient)(nil)
+var _ core.Provider = (*VertexClient)(nil)
 
 func NewVertexClient(projectID, region, token string) *VertexClient {
 	return &VertexClient{
 		projectID:  projectID,
 		region:     region,
 		token:      token,
-		httpClient: NewPooledHTTPClient(defaultTimeout),
-		retry:      DefaultRetryConfig(),
+		httpClient: core.NewPooledHTTPClient(core.DefaultTimeout),
+		retry:      core.DefaultRetryConfig(),
 		logger:     slog.Default().With("component", "vertex"),
 	}
 }
@@ -42,8 +44,8 @@ func (c *VertexClient) baseURL() string {
 	return fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/anthropic/models", c.region, c.projectID, c.region)
 }
 
-func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
-	messages = SanitizeMessages(messages)
+func (c *VertexClient) Chat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.EyrieResponse, error) {
+	messages = core.SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for vertex")
 	}
@@ -65,7 +67,7 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	c.setHeaders(req)
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: vertex request failed: %w", err)
 	}
@@ -78,8 +80,8 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	requestID := resp.Header.Get("X-Goog-Request-Id")
 
 	if resp.StatusCode != 200 {
-		detail, readErr := parseProviderError(resp.Body)
-		return nil, formatAPIError("vertex", "chat", resp.StatusCode, requestID, detail, readErr)
+		detail, readErr := core.ParseProviderError(resp.Body)
+		return nil, core.FormatAPIError("vertex", "chat", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	var ar anthropicResponse
@@ -87,17 +89,17 @@ func (c *VertexClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		return nil, fmt.Errorf("eyrie: vertex decode failed: %w", err)
 	}
 
-	eyrieResp := parseAnthropicResponse(ar, requestID, "")
+	eyrieResp := ParseAnthropicResponse(ar, requestID, "")
 
-	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
+	if err := core.ApplyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
 		return nil, err
 	}
 
 	return eyrieResp, nil
 }
 
-func (c *VertexClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
-	messages = SanitizeMessages(messages)
+func (c *VertexClient) StreamChat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
+	messages = core.SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for vertex")
 	}
@@ -120,24 +122,24 @@ func (c *VertexClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	req.Header.Set("Accept", "text/event-stream")
 	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: vertex stream request failed: %w", err)
 	}
 
 	if resp.StatusCode != 200 {
-		detail, readErr := parseProviderError(resp.Body)
+		detail, readErr := core.ParseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, formatAPIError("vertex", "stream", resp.StatusCode, resp.Header.Get("X-Goog-Request-Id"), detail, readErr)
+		return nil, core.FormatAPIError("vertex", "stream", resp.StatusCode, resp.Header.Get("X-Goog-Request-Id"), detail, readErr)
 	}
 
 	requestID := resp.Header.Get("X-Goog-Request-Id")
 
 	streamCtx, cancel := context.WithCancel(ctx)
-	sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
-	events := processAnthropicStream(streamCtx, sseEvents, c.logger)
+	sseEvents := core.ParseSSEStream(streamCtx, resp.Body, c.logger)
+	events := core.ProcessAnthropicStream(streamCtx, sseEvents, c.logger)
 
-	return NewStreamResultWithRequestID(events, requestID, cancel), nil
+	return core.NewStreamResultWithRequestID(events, requestID, cancel), nil
 }
 
 func (c *VertexClient) Ping(ctx context.Context) error {
@@ -161,10 +163,10 @@ func (c *VertexClient) Ping(ctx context.Context) error {
 func (c *VertexClient) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("User-Agent", core.UserAgent())
 }
 
-func (c *VertexClient) buildBody(messages []EyrieMessage, opts ChatOptions, stream bool) ([]byte, error) {
+func (c *VertexClient) buildBody(messages []core.EyrieMessage, opts core.ChatOptions, stream bool) ([]byte, error) {
 	msgs, system := buildAnthropicMessages(messages)
 	if opts.System != "" {
 		if system != "" {
@@ -189,7 +191,7 @@ func (c *VertexClient) buildBody(messages []EyrieMessage, opts ChatOptions, stre
 		TopK:          opts.TopK,
 		StopSequences: opts.StopSequences,
 		Stream:        stream,
-		Tools:         convertToAnthropicTools(opts.Tools),
+		Tools:         ConvertToAnthropicTools(opts.Tools),
 		ToolChoice:    resolveToolChoice(opts.ToolChoice),
 		Thinking:      thinking,
 		Metadata:      resolveMetadata(opts),
@@ -210,3 +212,26 @@ func (c *VertexClient) buildBody(messages []EyrieMessage, opts ChatOptions, stre
 	m["anthropic_version"] = "vertex-2023-10-16"
 	return json.Marshal(m)
 }
+
+// SetHTTPClient replaces the transport used for Vertex requests.
+func (c *VertexClient) SetHTTPClient(hc *http.Client) { c.httpClient = hc }
+
+// SetRetry configures provider retry behavior.
+func (c *VertexClient) SetRetry(rc core.RetryConfig) { c.retry = rc }
+
+// HTTPClient returns the configured transport client.
+func (c *VertexClient) HTTPClient() *http.Client { return c.httpClient }
+
+// BaseURL returns the base URL for Vertex API requests.
+func (c *VertexClient) BaseURL() string { return c.baseURL() }
+
+// BuildBody constructs the request body for Vertex API calls.
+func (c *VertexClient) BuildBody(messages []core.EyrieMessage, opts core.ChatOptions, stream bool) ([]byte, error) {
+	return c.buildBody(messages, opts, stream)
+}
+
+// Region returns the configured Google Cloud region.
+func (c *VertexClient) Region() string { return c.region }
+
+// ProjectID returns the configured Google Cloud project identifier.
+func (c *VertexClient) ProjectID() string { return c.projectID }

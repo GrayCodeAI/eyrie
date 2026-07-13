@@ -416,13 +416,14 @@ func (e *Engine) PreflightWithOptions(ctx context.Context, opts PreflightOptions
 	checks = append(checks, PreflightCheck{Name: "credentials", Status: credentialStatus, Detail: credentialDetail})
 
 	modelDetail := activeModel
-	if activeModel == "" {
+	switch {
+	case activeModel == "":
 		checks = append(checks, PreflightCheck{Name: "model", Status: CheckFail, Detail: "no model selected"})
-	} else if custom {
+	case custom:
 		checks = append(checks, PreflightCheck{Name: "model", Status: CheckOK, Detail: activeModel})
-	} else if compiled != nil && providerModelAvailable(compiled, providerID, activeModel) {
+	case compiled != nil && providerModelAvailable(compiled, providerID, activeModel):
 		checks = append(checks, PreflightCheck{Name: "model", Status: CheckOK, Detail: activeModel})
-	} else {
+	default:
 		checks = append(checks, PreflightCheck{Name: "model", Status: CheckFail, Detail: modelDetail + " is not available through " + providerID})
 	}
 	localReady := true
@@ -432,11 +433,12 @@ func (e *Engine) PreflightWithOptions(ctx context.Context, opts PreflightOptions
 		}
 	}
 	liveVerified := false
-	if !opts.VerifyLive {
+	switch {
+	case !opts.VerifyLive:
 		checks = append(checks, PreflightCheck{Name: "provider_live", Status: CheckWarn, Detail: "not checked (local preflight only)"})
-	} else if !localReady {
+	case !localReady:
 		checks = append(checks, PreflightCheck{Name: "provider_live", Status: CheckWarn, Detail: "skipped until local setup is complete"})
-	} else {
+	default:
 		var err error
 		if custom {
 			err = e.probeCustomGateway(ctx, customGateway, "")
@@ -519,18 +521,20 @@ type PreflightReport struct {
 
 func FormatPreflight(report PreflightReport) string {
 	var b strings.Builder
-	if report.Ready && report.LiveVerified {
+	switch {
+	case report.Ready && report.LiveVerified:
 		b.WriteString("Preflight: ready to chat (live verified)\n")
-	} else if report.Ready {
+	case report.Ready:
 		b.WriteString("Preflight: locally ready to chat\n")
-	} else {
+	default:
 		b.WriteString("Preflight: setup incomplete\n")
 	}
 	for _, check := range report.Checks {
 		icon := "+"
-		if check.Status == CheckWarn {
+		switch check.Status {
+		case CheckWarn:
 			icon = "!"
-		} else if check.Status == CheckFail {
+		case CheckFail:
 			icon = "x"
 		}
 		fmt.Fprintf(&b, "  %s %s: %s\n", icon, check.Name, check.Detail)
@@ -584,13 +588,6 @@ func (e *Engine) MigrateProviderSecretsContext(ctx context.Context) error {
 		return nil
 	}
 	cfg := *cfgState
-	changed := config.ProviderConfigContainsSecrets(cfg)
-	if !changed {
-		if err := writeBytesAtomic(marker, []byte("ok\n")); err != nil {
-			return err
-		}
-		return nil
-	}
 	writes, err := e.importLegacyProviderSecrets(ctx, cfg)
 	if err != nil {
 		return &Error{Code: ErrorInternal, Operation: "migrate_provider_secrets", Message: "eyrie engine: could not import legacy credentials", Cause: err}

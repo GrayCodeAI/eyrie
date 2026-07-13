@@ -93,8 +93,8 @@ func TestClientConfigBaseURL_OpenAICompatible(t *testing.T) {
 	if !ok {
 		t.Fatalf("provider type = %T, want *OpenAIClient", p)
 	}
-	if oc.baseURL != "https://proxy.example/v1" {
-		t.Fatalf("baseURL = %q, want override", oc.baseURL)
+	if oc.BaseURL() != "https://proxy.example/v1" {
+		t.Fatalf("baseURL = %q, want override", oc.BaseURL())
 	}
 }
 
@@ -108,8 +108,8 @@ func TestClientConfigBaseURL_Anthropic(t *testing.T) {
 	if !ok {
 		t.Fatalf("provider type = %T, want *AnthropicClient", p)
 	}
-	if ac.baseURL != "https://anthropic-proxy.example" {
-		t.Fatalf("baseURL = %q, want override", ac.baseURL)
+	if ac.BaseURL() != "https://anthropic-proxy.example" {
+		t.Fatalf("baseURL = %q, want override", ac.BaseURL())
 	}
 }
 

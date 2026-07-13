@@ -90,7 +90,9 @@ func TestProviderStateMutationsRefuseCorruptConfig(t *testing.T) {
 func TestProviderStateRejectsUnknownFieldsAndVersions(t *testing.T) {
 	for _, raw := range [][]byte{
 		[]byte(`{"_version":"future","active_provider":"openai"}`),
+		[]byte(`{"version":"future","active_provider":"openai"}`),
 		[]byte(`{"_version":"1","future_field":true}`),
+		[]byte(`{"version":"1","future_field":true}`),
 	} {
 		eng, err := New(Options{SecretStore: &credentials.MapStore{}, StateDir: t.TempDir()})
 		if err != nil {

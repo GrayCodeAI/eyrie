@@ -2,6 +2,7 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -122,6 +123,45 @@ func TestLoadProviderConfigWithError_UnsupportedVersion(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unsupported") {
 		t.Errorf("expected 'unsupported' in error, got %q", err.Error())
+	}
+}
+
+func TestLoadProviderConfigWithErrorAcceptsLegacyVersionAlias(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "provider.json")
+	if err := os.WriteFile(path, []byte(`{"version":"1","active_provider":"openai"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadProviderConfigWithError(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg == nil || cfg.Version != "1" || cfg.ActiveProvider != "openai" {
+		t.Fatalf("legacy version was not normalized: %#v", cfg)
+	}
+
+	canonicalPath := filepath.Join(t.TempDir(), "provider.json")
+	if err := SaveProviderConfig(cfg, canonicalPath); err != nil {
+		t.Fatal(err)
+	}
+	canonical, err := os.ReadFile(canonicalPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(canonical, []byte(`"version"`)) || !bytes.Contains(canonical, []byte(`"_version"`)) {
+		t.Fatalf("provider config did not use canonical version field: %s", canonical)
+	}
+}
+
+func TestLoadProviderConfigWithErrorRejectsConflictingVersionAliases(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "provider.json")
+	if err := os.WriteFile(path, []byte(`{"_version":"1","version":"2"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if cfg, err := LoadProviderConfigWithError(path); err == nil || cfg != nil {
+		t.Fatalf("conflicting provider versions accepted: cfg=%#v err=%v", cfg, err)
 	}
 }
 

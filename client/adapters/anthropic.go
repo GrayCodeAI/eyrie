@@ -1,4 +1,4 @@
-package client
+package adapters
 
 import (
 	"bytes"
@@ -9,37 +9,39 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 // maxAnthropicRequestSize is the maximum request body size for the Messages API (32 MB).
 const maxAnthropicRequestSize = 32 * 1024 * 1024
 
-// AnthropicClient implements Provider for the Anthropic Messages API.
+// AnthropicClient implements core.Provider for the Anthropic Messages API.
 type AnthropicClient struct {
 	apiKey             string
 	baseURL            string
 	version            string
 	httpClient         *http.Client
-	retry              RetryConfig
+	retry              core.RetryConfig
 	logger             *slog.Logger
 	defaultModel       string
 	defaultMaxTokens   int
 	defaultTemperature *float64
-	guardrails         *Guardrails
+	guardrails         *core.Guardrails
 	useMimoAuth        bool
 }
 
-// Compile-time check that AnthropicClient implements Provider.
-var _ Provider = (*AnthropicClient)(nil)
+// Compile-time check that AnthropicClient implements core.Provider.
+var _ core.Provider = (*AnthropicClient)(nil)
 
 // NewAnthropicClient creates a configured Anthropic client.
-func NewAnthropicClient(apiKey, baseURL string, opts ...ClientOption) *AnthropicClient {
+func NewAnthropicClient(apiKey, baseURL string, opts ...core.ClientOption) *AnthropicClient {
 	c := &AnthropicClient{
 		apiKey:     apiKey,
 		baseURL:    baseURL,
 		version:    "2023-06-01",
-		httpClient: NewPooledHTTPClient(defaultTimeout),
-		retry:      DefaultRetryConfig(),
+		httpClient: core.NewPooledHTTPClient(core.DefaultTimeout),
+		retry:      core.DefaultRetryConfig(),
 		logger:     slog.Default(),
 	}
 	if c.baseURL == "" {
@@ -62,7 +64,7 @@ func (c *AnthropicClient) setHeaders(req *http.Request) {
 		req.Header.Set("X-Api-Key", c.apiKey)
 	}
 	req.Header.Set("Anthropic-Version", c.version)
-	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("User-Agent", core.UserAgent())
 }
 
 type anthropicRequest struct {
@@ -75,13 +77,17 @@ type anthropicRequest struct {
 	TopK          *int                     `json:"top_k,omitempty"`
 	Stream        bool                     `json:"stream,omitempty"`
 	StopSequences []string                 `json:"stop_sequences,omitempty"`
-	Tools         []anthropicTool          `json:"tools,omitempty"`
-	ToolChoice    *anthropicToolChoice     `json:"tool_choice,omitempty"`
-	Thinking      *anthropicThinking       `json:"thinking,omitempty"`
-	Metadata      *anthropicMetadata       `json:"metadata,omitempty"`
+	Tools         []AnthropicTool          `json:"tools,omitempty"`
+	ToolChoice    *AnthropicToolChoice     `json:"tool_choice,omitempty"`
+	Thinking      *AnthropicThinking       `json:"thinking,omitempty"`
+	Metadata      *AnthropicMetadata       `json:"metadata,omitempty"`
 	ServiceTier   string                   `json:"service_tier,omitempty"`
-	OutputConfig  *anthropicOutputConfig   `json:"output_config,omitempty"`
+	OutputConfig  *AnthropicOutputConfig   `json:"output_config,omitempty"`
 }
+
+type AnthropicRequest = anthropicRequest
+
+type AnthropicResponse = anthropicResponse
 
 // anthropicThinking enables Anthropic extended thinking.
 // Type is "enabled" (with budget_tokens), "adaptive" (model decides), or "disabled".
@@ -91,29 +97,47 @@ type anthropicThinking struct {
 	Display      string `json:"display,omitempty"` // "summarized" or "omitted"
 }
 
-// anthropicToolChoice controls how the model uses tools.
+type AnthropicTool = anthropicTool
+
+type AnthropicToolChoice = anthropicToolChoice
+
+type AnthropicThinking = anthropicThinking
+
+type AnthropicMetadata = anthropicMetadata
+
+type AnthropicOutputConfig = anthropicOutputConfig
+
+type AnthropicOutputFormat = anthropicOutputFormat
+
 type anthropicToolChoice struct {
-	Type                   string `json:"type"`           // "auto", "any", "tool", "none"
-	Name                   string `json:"name,omitempty"` // required when type="tool"
+	Type                   string `json:"type"`
+	Name                   string `json:"name,omitempty"`
 	DisableParallelToolUse bool   `json:"disable_parallel_tool_use,omitempty"`
 }
 
-// anthropicMetadata carries request-level metadata.
 type anthropicMetadata struct {
 	UserID string `json:"user_id,omitempty"`
 }
 
-// anthropicOutputConfig controls output format and effort.
 type anthropicOutputConfig struct {
-	Effort string                 `json:"effort,omitempty"` // "low","medium","high","xhigh","max"
+	Effort string                 `json:"effort,omitempty"`
 	Format *anthropicOutputFormat `json:"format,omitempty"`
 }
 
-// anthropicOutputFormat specifies structured output format.
 type anthropicOutputFormat struct {
-	Type   string                 `json:"type"` // "json_schema"
+	Type   string                 `json:"type"`
 	Schema map[string]interface{} `json:"schema,omitempty"`
 }
+
+func ResolveThinking(opts core.ChatOptions) *AnthropicThinking { return resolveThinking(opts) }
+
+func ResolveToolChoice(tc *core.ToolChoiceOption) *AnthropicToolChoice { return resolveToolChoice(tc) }
+
+func ResolveOutputConfig(opts core.ChatOptions) *AnthropicOutputConfig {
+	return resolveOutputConfig(opts)
+}
+
+func AudioFormatToMediaType(format string) string { return audioFormatToMediaType(format) }
 
 // thinkingForBudget returns an enabled thinking config when budget > 0, else nil.
 func thinkingForBudget(budget int) *anthropicThinking {
@@ -133,8 +157,8 @@ func thinkingDisabled() *anthropicThinking {
 	return &anthropicThinking{Type: "disabled"}
 }
 
-// resolveThinking builds the thinking config from ChatOptions.
-func resolveThinking(opts ChatOptions) *anthropicThinking {
+// resolveThinking builds the thinking config from core.ChatOptions.
+func resolveThinking(opts core.ChatOptions) *anthropicThinking {
 	switch opts.ThinkingMode {
 	case "adaptive":
 		return thinkingAdaptive()
@@ -152,8 +176,8 @@ func resolveThinking(opts ChatOptions) *anthropicThinking {
 	}
 }
 
-// resolveToolChoice converts ChatOptions.ToolChoice to wire format.
-func resolveToolChoice(tc *ToolChoiceOption) *anthropicToolChoice {
+// resolveToolChoice converts core.ChatOptions.ToolChoice to wire format.
+func resolveToolChoice(tc *core.ToolChoiceOption) *anthropicToolChoice {
 	if tc == nil {
 		return nil
 	}
@@ -164,16 +188,16 @@ func resolveToolChoice(tc *ToolChoiceOption) *anthropicToolChoice {
 	}
 }
 
-// resolveMetadata builds metadata from ChatOptions.
-func resolveMetadata(opts ChatOptions) *anthropicMetadata {
+// resolveMetadata builds metadata from core.ChatOptions.
+func resolveMetadata(opts core.ChatOptions) *anthropicMetadata {
 	if opts.MetadataUserID == "" {
 		return nil
 	}
 	return &anthropicMetadata{UserID: opts.MetadataUserID}
 }
 
-// resolveOutputConfig builds output config from ChatOptions.
-func resolveOutputConfig(opts ChatOptions) *anthropicOutputConfig {
+// resolveOutputConfig builds output config from core.ChatOptions.
+func resolveOutputConfig(opts core.ChatOptions) *anthropicOutputConfig {
 	if opts.OutputEffort == "" && opts.OutputSchema == "" {
 		return nil
 	}
@@ -217,8 +241,8 @@ type anthropicResponse struct {
 	} `json:"usage"`
 }
 
-// parseAnthropicResponse converts a parsed Anthropic Messages API
-// response into an EyrieResponse. Shared by Anthropic, Bedrock, and
+// ParseAnthropicResponse converts a parsed Anthropic Messages API
+// response into an core.EyrieResponse. Shared by Anthropic, Bedrock, and
 // Vertex clients (all three receive the same wire format).
 //
 // Content blocks are extracted per type:
@@ -229,9 +253,9 @@ type anthropicResponse struct {
 //
 // requestID is required. orgID is the Anthropic-Organization-Id
 // response header (Anthropic-specific; Bedrock and Vertex pass "").
-func parseAnthropicResponse(ar anthropicResponse, requestID, orgID string) *EyrieResponse {
+func ParseAnthropicResponse(ar anthropicResponse, requestID, orgID string) *core.EyrieResponse {
 	var content, thinkingContent string
-	var toolCalls []ToolCall
+	var toolCalls []core.ToolCall
 	for _, block := range ar.Content {
 		switch block.Type {
 		case "text":
@@ -246,13 +270,13 @@ func parseAnthropicResponse(ar anthropicResponse, requestID, orgID string) *Eyri
 			if err := json.Unmarshal(block.Input, &args); err != nil {
 				slog.Warn("anthropic: failed to parse tool_use input", "error", err, "tool_name", block.Name)
 			}
-			toolCalls = append(toolCalls, ToolCall{ID: block.ID, Name: block.Name, Arguments: args})
+			toolCalls = append(toolCalls, core.ToolCall{ID: block.ID, Name: block.Name, Arguments: args})
 		}
 	}
-	return &EyrieResponse{
+	return &core.EyrieResponse{
 		Content: content, Thinking: thinkingContent, FinishReason: ar.StopReason, ToolCalls: toolCalls,
 		RequestID: requestID, OrganizationID: orgID,
-		Usage: &EyrieUsage{
+		Usage: &core.EyrieUsage{
 			PromptTokens:        ar.Usage.InputTokens,
 			CompletionTokens:    ar.Usage.OutputTokens,
 			TotalTokens:         ar.Usage.InputTokens + ar.Usage.OutputTokens,
@@ -263,7 +287,11 @@ func parseAnthropicResponse(ar anthropicResponse, requestID, orgID string) *Eyri
 	}
 }
 
-func buildAnthropicMessages(messages []EyrieMessage) ([]map[string]interface{}, string) {
+func BuildAnthropicMessages(messages []core.EyrieMessage) ([]map[string]interface{}, string) {
+	return buildAnthropicMessages(messages)
+}
+
+func buildAnthropicMessages(messages []core.EyrieMessage) ([]map[string]interface{}, string) {
 	var system string
 	msgs := make([]map[string]interface{}, 0, len(messages))
 	for _, m := range messages {
@@ -314,7 +342,7 @@ func buildAnthropicMessages(messages []EyrieMessage) ([]map[string]interface{}, 
 					content = append(content, map[string]interface{}{"type": "text", "text": part.Text})
 				case "image_url":
 					if part.ImageURL != nil {
-						mediaType, data, isBase64 := parseImageString(part.ImageURL.URL)
+						mediaType, data, isBase64 := core.ParseImageString(part.ImageURL.URL)
 						if isBase64 {
 							content = append(content, map[string]interface{}{
 								"type": "image",
@@ -359,7 +387,7 @@ func buildAnthropicMessages(messages []EyrieMessage) ([]map[string]interface{}, 
 				content = append(content, map[string]interface{}{"type": "text", "text": m.Content})
 			}
 			for _, img := range m.Images {
-				mediaType, data, isBase64 := parseImageString(img)
+				mediaType, data, isBase64 := core.ParseImageString(img)
 				if isBase64 {
 					content = append(content, map[string]interface{}{
 						"type": "image",
@@ -425,7 +453,7 @@ func audioFormatToMediaType(format string) string {
 // every field — System, Temperature, TopP, TopK, StopSequences,
 // EnableCaching, tools, thinking, metadata, serviceTier,
 // outputConfig — was previously re-applied in both methods.
-func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []EyrieMessage, opts ChatOptions, stream bool) (*http.Request, []byte, error) {
+func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions, stream bool) (*http.Request, []byte, error) {
 	if opts.ResponseFormat != nil {
 		switch opts.ResponseFormat.Type {
 		case "json_schema":
@@ -443,7 +471,7 @@ func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []
 			return nil, nil, fmt.Errorf("eyrie: unsupported anthropic response format %q", opts.ResponseFormat.Type)
 		}
 	}
-	messages = SanitizeMessages(messages)
+	messages = core.SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, nil, fmt.Errorf("eyrie: model is required for anthropic")
 	}
@@ -457,9 +485,9 @@ func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []
 	if opts.EnableCaching {
 		allMessages := messages
 		if opts.System != "" {
-			allMessages = append([]EyrieMessage{{Role: "system", Content: opts.System}}, allMessages...)
+			allMessages = append([]core.EyrieMessage{{Role: "system", Content: opts.System}}, allMessages...)
 		}
-		tools := convertToAnthropicTools(opts.Tools)
+		tools := ConvertToAnthropicTools(opts.Tools)
 		cachedReq := buildAnthropicCachedRequest(allMessages, opts.Model, maxTokens, opts.Temperature, stream, tools,
 			thinking, resolveToolChoice(opts.ToolChoice), opts.TopP, opts.TopK, opts.StopSequences)
 		var err error
@@ -486,7 +514,7 @@ func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []
 			TopK:          opts.TopK,
 			StopSequences: opts.StopSequences,
 			Stream:        stream,
-			Tools:         convertToAnthropicTools(opts.Tools),
+			Tools:         ConvertToAnthropicTools(opts.Tools),
 			ToolChoice:    resolveToolChoice(opts.ToolChoice),
 			Thinking:      thinking,
 			Metadata:      resolveMetadata(opts),
@@ -521,7 +549,7 @@ func (c *AnthropicClient) buildAnthropicRequest(ctx context.Context, messages []
 // Anthropic structured output is sent through output_config.format. A
 // schema-less json_object request is rejected instead of being silently
 // ignored because Anthropic requires a JSON schema.
-func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+func (c *AnthropicClient) Chat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.EyrieResponse, error) {
 	req, body, err := c.buildAnthropicRequest(ctx, messages, opts, false)
 	if err != nil {
 		return nil, err
@@ -542,8 +570,8 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 	orgID := resp.Header.Get("Anthropic-Organization-Id")
 
 	if resp.StatusCode != 200 {
-		detail, readErr := parseProviderError(resp.Body)
-		return nil, formatAPIError("anthropic", "chat", resp.StatusCode, requestID, detail, readErr)
+		detail, readErr := core.ParseProviderError(resp.Body)
+		return nil, core.FormatAPIError("anthropic", "chat", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	var ar anthropicResponse
@@ -551,9 +579,9 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 		return nil, fmt.Errorf("eyrie: failed to decode anthropic response: %w", err)
 	}
 
-	eyrieResp := parseAnthropicResponse(ar, requestID, orgID)
+	eyrieResp := ParseAnthropicResponse(ar, requestID, orgID)
 
-	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
+	if err := core.ApplyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
 		return nil, err
 	}
 
@@ -561,7 +589,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []EyrieMessage, opt
 }
 
 // StreamChat sends a streaming message to Anthropic.
-func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+func (c *AnthropicClient) StreamChat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
 	req, body, err := c.buildAnthropicRequest(ctx, messages, opts, true)
 	if err != nil {
 		return nil, err
@@ -575,20 +603,20 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []EyrieMessag
 	requestID := resp.Header.Get("Request-Id")
 
 	if resp.StatusCode != 200 {
-		detail, readErr := parseProviderError(resp.Body)
+		detail, readErr := core.ParseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, formatAPIError("anthropic", "stream", resp.StatusCode, requestID, detail, readErr)
+		return nil, core.FormatAPIError("anthropic", "stream", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
-	sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
-	events := processAnthropicStream(streamCtx, sseEvents, c.logger)
+	sseEvents := core.ParseSSEStream(streamCtx, resp.Body, c.logger)
+	events := core.ProcessAnthropicStream(streamCtx, sseEvents, c.logger)
 
-	return NewStreamResultWithRequestID(events, requestID, cancel), nil
+	return core.NewStreamResultWithRequestID(events, requestID, cancel), nil
 }
 
 func (c *AnthropicClient) doRequestWithMimoAuthRetry(ctx context.Context, req *http.Request, body []byte) (*http.Response, error) {
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -603,12 +631,12 @@ func (c *AnthropicClient) doRequestWithMimoAuthRetry(ctx context.Context, req *h
 	req2.Header.Set("Content-Type", "application/json")
 	req2.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req2.Header.Set("Anthropic-Version", c.version)
-	req2.Header.Set("User-Agent", userAgent())
+	req2.Header.Set("User-Agent", core.UserAgent())
 	if req.Header.Get("Accept") != "" {
 		req2.Header.Set("Accept", req.Header.Get("Accept"))
 	}
 	req2.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
-	return doWithRetry(ctx, c.httpClient, req2, c.retry, c.logger)
+	return core.DoWithRetry(ctx, c.httpClient, req2, c.retry, c.logger)
 }
 
 // Ping checks connectivity to the Anthropic API using a lightweight GET request.
@@ -630,7 +658,7 @@ func (c *AnthropicClient) Ping(ctx context.Context) error {
 	return nil
 }
 
-func convertToAnthropicTools(tools []EyrieTool) []anthropicTool {
+func ConvertToAnthropicTools(tools []core.EyrieTool) []anthropicTool {
 	if len(tools) == 0 {
 		return nil
 	}
@@ -649,8 +677,8 @@ type TokenCountResult struct {
 // CountTokens counts the number of tokens in a message without generating a response.
 // Uses the same request format as Chat but hits the /v1/messages/count_tokens endpoint.
 // The request body includes model, messages, system, and tools (but not max_tokens or stream).
-func (c *AnthropicClient) CountTokens(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*TokenCountResult, error) {
-	messages = SanitizeMessages(messages)
+func (c *AnthropicClient) CountTokens(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*TokenCountResult, error) {
+	messages = core.SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for anthropic count_tokens")
 	}
@@ -673,7 +701,7 @@ func (c *AnthropicClient) CountTokens(ctx context.Context, messages []EyrieMessa
 		reqBody["system"] = system
 	}
 	if len(opts.Tools) > 0 {
-		reqBody["tools"] = convertToAnthropicTools(opts.Tools)
+		reqBody["tools"] = ConvertToAnthropicTools(opts.Tools)
 	}
 
 	body, err := json.Marshal(reqBody)
@@ -704,8 +732,8 @@ func (c *AnthropicClient) CountTokens(ctx context.Context, messages []EyrieMessa
 	}()
 
 	if resp.StatusCode != 200 {
-		detail, readErr := parseProviderError(resp.Body)
-		return nil, formatAPIError("anthropic", "count_tokens", resp.StatusCode, resp.Header.Get("Request-Id"), detail, readErr)
+		detail, readErr := core.ParseProviderError(resp.Body)
+		return nil, core.FormatAPIError("anthropic", "count_tokens", resp.StatusCode, resp.Header.Get("Request-Id"), detail, readErr)
 	}
 
 	var result TokenCountResult
@@ -713,4 +741,14 @@ func (c *AnthropicClient) CountTokens(ctx context.Context, messages []EyrieMessa
 		return nil, fmt.Errorf("eyrie: failed to decode count_tokens response: %w", err)
 	}
 	return &result, nil
+}
+
+// BuildAnthropicRequest constructs a complete Anthropic Messages request.
+func (c *AnthropicClient) BuildAnthropicRequest(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions, stream bool) (*http.Request, []byte, error) {
+	return c.buildAnthropicRequest(ctx, messages, opts, stream)
+}
+
+// ThinkingForBudget builds the wire-level extended-thinking configuration.
+func ThinkingForBudget(budget int) *anthropicThinking {
+	return thinkingForBudget(budget)
 }

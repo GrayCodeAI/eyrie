@@ -1,4 +1,4 @@
-package client
+package adapters
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 const (
@@ -21,27 +23,27 @@ type OpenAIClient struct {
 	providerName       string
 	compat             *OpenAICompatConfig
 	httpClient         *http.Client
-	retry              RetryConfig
+	retry              core.RetryConfig
 	logger             *slog.Logger
 	defaultModel       string
 	defaultMaxTokens   int
 	defaultTemperature *float64
-	guardrails         *Guardrails
+	guardrails         *core.Guardrails
 	useMimoAuth        bool
 }
 
-// Compile-time check that OpenAIClient implements Provider.
-var _ Provider = (*OpenAIClient)(nil)
+// Compile-time check that OpenAIClient implements core.Provider.
+var _ core.Provider = (*OpenAIClient)(nil)
 
 // NewOpenAIClient creates a configured OpenAI/compatible client.
-func NewOpenAIClient(apiKey, baseURL string, compat *OpenAICompatConfig, opts ...ClientOption) *OpenAIClient {
+func NewOpenAIClient(apiKey, baseURL string, compat *OpenAICompatConfig, opts ...core.ClientOption) *OpenAIClient {
 	c := &OpenAIClient{
 		apiKey:       apiKey,
 		baseURL:      baseURL,
 		providerName: "openai",
 		compat:       compat,
-		httpClient:   NewPooledHTTPClient(defaultTimeout),
-		retry:        DefaultRetryConfig(),
+		httpClient:   core.NewPooledHTTPClient(core.DefaultTimeout),
+		retry:        core.DefaultRetryConfig(),
 		logger:       slog.Default(),
 	}
 	if c.baseURL == "" {
@@ -66,19 +68,19 @@ func (c *OpenAIClient) setHeaders(req *http.Request) {
 	} else {
 		req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	}
-	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("User-Agent", core.UserAgent())
 }
 
 func (c *OpenAIClient) setBearerHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Del("api-key")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("User-Agent", core.UserAgent())
 }
 
 // doRequestWithMimoAuthRetry runs the HTTP request; on 401 with MiMo api-key auth, retries once with Bearer.
 func (c *OpenAIClient) doRequestWithMimoAuthRetry(ctx context.Context, req *http.Request, body []byte) (*http.Response, error) {
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +97,13 @@ func (c *OpenAIClient) doRequestWithMimoAuthRetry(ctx context.Context, req *http
 		req2.Header.Set("Accept", req.Header.Get("Accept"))
 	}
 	req2.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
-	return doWithRetry(ctx, c.httpClient, req2, c.retry, c.logger)
+	return core.DoWithRetry(ctx, c.httpClient, req2, c.retry, c.logger)
 }
+
+type (
+	OpenAIRequest  = openaiRequest
+	OpenAIResponse = openaiResponse
+)
 
 type openaiRequest struct {
 	Model               string                   `json:"model"`
@@ -110,7 +117,7 @@ type openaiRequest struct {
 	Tools               []map[string]interface{} `json:"tools,omitempty"`
 	ToolChoice          interface{}              `json:"tool_choice,omitempty"`
 	ParallelToolCalls   *bool                    `json:"parallel_tool_calls,omitempty"`
-	ResponseFormat      map[string]interface{}   `json:"response_format,omitempty"`
+	ResponseFormat      interface{}              `json:"response_format,omitempty"`
 	ReasoningEffort     string                   `json:"reasoning_effort,omitempty"`
 	Thinking            map[string]interface{}   `json:"thinking,omitempty"`
 	Stop                interface{}              `json:"stop,omitempty"`
@@ -160,10 +167,10 @@ type openaiResponse struct {
 	} `json:"usage"`
 }
 
-// openAIToolChoice converts an Anthropic-style ToolChoiceOption to OpenAI wire format.
+// openAIToolChoice converts an Anthropic-style core.ToolChoiceOption to OpenAI wire format.
 // Anthropic: {type: "auto"|"any"|"tool"|"none", name: "X"}
 // OpenAI:    "auto" | "none" | "required" | {type: "function", function: {name: "X"}}
-func openAIToolChoice(tc *ToolChoiceOption) interface{} {
+func openAIToolChoice(tc *core.ToolChoiceOption) interface{} {
 	if tc == nil {
 		return nil
 	}
@@ -193,9 +200,9 @@ func openAIToolChoice(tc *ToolChoiceOption) interface{} {
 
 // buildRequestBase builds an OpenAI-compatible request body.
 // When compat is non-nil, MaxTokensField and SupportsUsageInStreaming overrides are applied.
-// EyrieMessage.Thinking (reasoning_content from prior responses) is never forwarded into
+// core.EyrieMessage.Thinking (reasoning_content from prior responses) is never forwarded into
 // the wire format — providers like DeepSeek return HTTP 400 if it appears in input messages.
-func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, compat *OpenAICompatConfig) openaiRequest {
+func buildRequestBase(messages []core.EyrieMessage, opts core.ChatOptions, stream bool, compat *OpenAICompatConfig) openaiRequest {
 	var msgs []map[string]interface{}
 	for _, m := range messages {
 		if len(m.ToolResults) > 0 {
@@ -255,7 +262,7 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 			for _, img := range m.Images {
 				content = append(content, map[string]interface{}{
 					"type":      "image_url",
-					"image_url": map[string]interface{}{"url": openAIImageURL(img)},
+					"image_url": map[string]interface{}{"url": core.OpenAIImageURL(img)},
 				})
 			}
 			msg["content"] = content
@@ -333,7 +340,7 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 	if compat != nil && compat.SupportsReasoningEffort && opts.ReasoningEffort != "" {
 		req.ReasoningEffort = opts.ReasoningEffort
 	}
-	// Map ChatOptions fields that apply to all OpenAI-compatible providers
+	// Map core.ChatOptions fields that apply to all OpenAI-compatible providers
 	if opts.TopP != nil {
 		req.TopP = opts.TopP
 	}
@@ -404,7 +411,7 @@ func buildRequestBase(messages []EyrieMessage, opts ChatOptions, stream bool, co
 	return req
 }
 
-func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, stream bool) openaiRequest {
+func (c *OpenAIClient) buildRequest(messages []core.EyrieMessage, opts core.ChatOptions, stream bool) openaiRequest {
 	return buildRequestBase(messages, opts, stream, c.compat)
 }
 
@@ -414,8 +421,8 @@ func (c *OpenAIClient) buildRequest(messages []EyrieMessage, opts ChatOptions, s
 // above; this helper is just the request-construction dedup. If
 // stream is true, the request gets the `Accept: text/event-stream`
 // header.
-func (c *OpenAIClient) buildOpenAIRequest(ctx context.Context, messages []EyrieMessage, opts ChatOptions, stream bool) (*http.Request, []byte, error) {
-	messages = SanitizeMessages(messages)
+func (c *OpenAIClient) buildOpenAIRequest(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions, stream bool) (*http.Request, []byte, error) {
+	messages = core.SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, nil, fmt.Errorf("eyrie: model is required for %s", c.providerName)
 	}
@@ -441,7 +448,7 @@ func (c *OpenAIClient) buildOpenAIRequest(ctx context.Context, messages []EyrieM
 }
 
 // Chat sends a non-streaming request.
-func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+func (c *OpenAIClient) Chat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.EyrieResponse, error) {
 	req, body, err := c.buildOpenAIRequest(ctx, messages, opts, false)
 	if err != nil {
 		return nil, err
@@ -462,8 +469,8 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 	requestID := resp.Header.Get("X-Request-Id")
 
 	if resp.StatusCode != 200 {
-		detail, readErr := parseProviderError(resp.Body)
-		return nil, formatAPIError(c.providerName, "chat", resp.StatusCode, requestID, detail, readErr)
+		detail, readErr := core.ParseProviderError(resp.Body)
+		return nil, core.FormatAPIError(c.providerName, "chat", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	var or openaiResponse
@@ -471,7 +478,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		return nil, fmt.Errorf("eyrie: failed to decode %s response: %w", c.providerName, err)
 	}
 
-	result := &EyrieResponse{FinishReason: "unknown", RequestID: requestID}
+	result := &core.EyrieResponse{FinishReason: "unknown", RequestID: requestID}
 	if len(or.Choices) > 0 {
 		ch := or.Choices[0]
 		result.Content = ch.Message.Content
@@ -482,11 +489,11 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 			if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
 				c.logger.Warn("openai: failed to parse tool call arguments", "error", err, "tool_name", tc.Function.Name)
 			}
-			result.ToolCalls = append(result.ToolCalls, ToolCall{ID: tc.ID, Name: tc.Function.Name, Arguments: args})
+			result.ToolCalls = append(result.ToolCalls, core.ToolCall{ID: tc.ID, Name: tc.Function.Name, Arguments: args})
 		}
 	}
 	if or.Usage != nil {
-		result.Usage = &EyrieUsage{
+		result.Usage = &core.EyrieUsage{
 			PromptTokens:     or.Usage.PromptTokens,
 			CompletionTokens: or.Usage.CompletionTokens,
 			TotalTokens:      or.Usage.TotalTokens,
@@ -496,7 +503,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 		}
 	}
 
-	if err := applyGuardrails(ctx, result, c.guardrails); err != nil {
+	if err := core.ApplyGuardrails(ctx, result, c.guardrails); err != nil {
 		return nil, err
 	}
 
@@ -504,7 +511,7 @@ func (c *OpenAIClient) Chat(ctx context.Context, messages []EyrieMessage, opts C
 }
 
 // StreamChat sends a streaming request.
-func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+func (c *OpenAIClient) StreamChat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
 	req, body, err := c.buildOpenAIRequest(ctx, messages, opts, true)
 	if err != nil {
 		return nil, err
@@ -518,16 +525,16 @@ func (c *OpenAIClient) StreamChat(ctx context.Context, messages []EyrieMessage, 
 	requestID := resp.Header.Get("X-Request-Id")
 
 	if resp.StatusCode != 200 {
-		detail, readErr := parseProviderError(resp.Body)
+		detail, readErr := core.ParseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, formatAPIError(c.providerName, "stream", resp.StatusCode, requestID, detail, readErr)
+		return nil, core.FormatAPIError(c.providerName, "stream", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
-	sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
-	events := processOpenAIStream(streamCtx, sseEvents, c.logger)
+	sseEvents := core.ParseSSEStream(streamCtx, resp.Body, c.logger)
+	events := core.ProcessOpenAIStream(streamCtx, sseEvents, c.logger)
 
-	return NewStreamResultWithRequestID(events, requestID, cancel), nil
+	return core.NewStreamResultWithRequestID(events, requestID, cancel), nil
 }
 
 // Ping checks connectivity.
@@ -558,4 +565,19 @@ func (c *OpenAIClient) Ping(ctx context.Context) error {
 		return fmt.Errorf("eyrie: %s: invalid API key", c.providerName)
 	}
 	return nil
+}
+
+// BuildRequestBase creates the provider-neutral OpenAI-compatible wire body.
+func BuildRequestBase(messages []core.EyrieMessage, opts core.ChatOptions, stream bool, compat *OpenAICompatConfig) OpenAIRequest {
+	return buildRequestBase(messages, opts, stream, compat)
+}
+
+// OpenAIToolChoice converts the public tool-choice contract to wire form.
+func OpenAIToolChoice(tc *core.ToolChoiceOption) interface{} {
+	return openAIToolChoice(tc)
+}
+
+// BuildOpenAIRequest constructs a complete OpenAI-compatible HTTP request.
+func (c *OpenAIClient) BuildOpenAIRequest(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions, stream bool) (*http.Request, []byte, error) {
+	return c.buildOpenAIRequest(ctx, messages, opts, stream)
 }

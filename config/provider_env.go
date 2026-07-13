@@ -85,6 +85,14 @@ type ProviderConfig struct {
 	Routing                    *RoutingPolicy              `json:"routing,omitempty"`
 }
 
+// providerConfigJSON accepts the historical "version" spelling while keeping
+// ProviderConfig's serialized form canonical ("_version"). Keeping the alias
+// out of ProviderConfig also prevents new writes from reintroducing it.
+type providerConfigJSON struct {
+	ProviderConfig
+	LegacyVersion string `json:"version,omitempty"`
+}
+
 type DeploymentConfig struct {
 	APIKey          string            `json:"api_key,omitempty"`
 	BaseURL         string            `json:"base_url,omitempty"`
@@ -368,11 +376,15 @@ func LoadProviderConfig(path string) *ProviderConfig {
 	if err != nil {
 		return nil
 	}
-	var cfg ProviderConfig
-	if json.Unmarshal(data, &cfg) != nil {
+	var wire providerConfigJSON
+	if json.Unmarshal(data, &wire) != nil {
 		return nil
 	}
-	return &cfg
+	cfg, err := normalizeProviderConfigVersion(wire)
+	if err != nil {
+		return nil
+	}
+	return cfg
 }
 
 // LoadProviderConfigWithError loads provider config from disk with detailed error reporting.
@@ -389,10 +401,10 @@ func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
 		}
 		return nil, fmt.Errorf("eyrie: failed to read provider config at %s: %w", path, err)
 	}
-	var cfg ProviderConfig
+	var wire providerConfigJSON
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&cfg); err != nil {
+	if err := decoder.Decode(&wire); err != nil {
 		return nil, fmt.Errorf("eyrie: corrupt provider config at %s: %w", path, err)
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
@@ -401,10 +413,28 @@ func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
 		}
 		return nil, fmt.Errorf("eyrie: corrupt provider config at %s: %w", path, err)
 	}
+	cfg, err := normalizeProviderConfigVersion(wire)
+	if err != nil {
+		return nil, fmt.Errorf("eyrie: corrupt provider config at %s: %w", path, err)
+	}
 	if cfg.Version != "" && cfg.Version != "1" {
 		return nil, fmt.Errorf("eyrie: unsupported provider config version %q at %s", cfg.Version, path)
 	}
-	return &cfg, nil
+	return cfg, nil
+}
+
+func normalizeProviderConfigVersion(wire providerConfigJSON) (*ProviderConfig, error) {
+	canonical := strings.TrimSpace(wire.Version)
+	legacy := strings.TrimSpace(wire.LegacyVersion)
+	if canonical != "" && legacy != "" && canonical != legacy {
+		return nil, fmt.Errorf("conflicting provider config versions %q and %q", canonical, legacy)
+	}
+	if canonical == "" {
+		wire.Version = legacy
+	} else {
+		wire.Version = canonical
+	}
+	return &wire.ProviderConfig, nil
 }
 
 // SaveProviderConfig atomically persists non-secret provider state. Credential

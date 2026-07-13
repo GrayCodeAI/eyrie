@@ -1,4 +1,4 @@
-package client
+package adapters
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 const (
@@ -21,12 +23,12 @@ type AzureClient struct {
 	endpoint   string
 	apiVersion string
 	httpClient *http.Client
-	retry      RetryConfig
+	retry      core.RetryConfig
 	logger     *slog.Logger
-	guardrails *Guardrails
+	guardrails *core.Guardrails
 }
 
-var _ Provider = (*AzureClient)(nil)
+var _ core.Provider = (*AzureClient)(nil)
 
 func NewAzureClient(apiKey, endpoint, apiVersion string) *AzureClient {
 	if apiVersion == "" {
@@ -36,8 +38,8 @@ func NewAzureClient(apiKey, endpoint, apiVersion string) *AzureClient {
 		apiKey:     apiKey,
 		endpoint:   strings.TrimRight(endpoint, "/"),
 		apiVersion: apiVersion,
-		httpClient: NewPooledHTTPClient(defaultTimeout),
-		retry:      DefaultRetryConfig(),
+		httpClient: core.NewPooledHTTPClient(core.DefaultTimeout),
+		retry:      core.DefaultRetryConfig(),
 		logger:     slog.Default(),
 	}
 }
@@ -47,11 +49,11 @@ func (c *AzureClient) Name() string { return "azure" }
 func (c *AzureClient) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("api-key", c.apiKey)
-	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("User-Agent", core.UserAgent())
 }
 
-func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
-	messages = SanitizeMessages(messages)
+func (c *AzureClient) Chat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.EyrieResponse, error) {
+	messages = core.SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for azure")
 	}
@@ -74,7 +76,7 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 
 	c.logger.Debug("azure chat", "model", opts.Model, "endpoint", c.endpoint)
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: azure request failed: %w", err)
 	}
@@ -86,8 +88,8 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 
 	requestID := resp.Header.Get("X-Request-Id")
 	if resp.StatusCode != 200 {
-		detail, readErr := parseProviderError(resp.Body)
-		return nil, formatAPIError("azure", "chat", resp.StatusCode, requestID, detail, readErr)
+		detail, readErr := core.ParseProviderError(resp.Body)
+		return nil, core.FormatAPIError("azure", "chat", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	var or openaiResponse
@@ -95,7 +97,7 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 		return nil, fmt.Errorf("eyrie: azure decode failed: %w", err)
 	}
 
-	result := &EyrieResponse{FinishReason: "unknown", RequestID: requestID}
+	result := &core.EyrieResponse{FinishReason: "unknown", RequestID: requestID}
 	if len(or.Choices) > 0 {
 		ch := or.Choices[0]
 		result.Content = ch.Message.Content
@@ -103,11 +105,11 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 		for _, tc := range ch.Message.ToolCalls {
 			var args map[string]interface{}
 			_ = json.Unmarshal([]byte(tc.Function.Arguments), &args)
-			result.ToolCalls = append(result.ToolCalls, ToolCall{ID: tc.ID, Name: tc.Function.Name, Arguments: args})
+			result.ToolCalls = append(result.ToolCalls, core.ToolCall{ID: tc.ID, Name: tc.Function.Name, Arguments: args})
 		}
 	}
 	if or.Usage != nil {
-		result.Usage = &EyrieUsage{
+		result.Usage = &core.EyrieUsage{
 			PromptTokens:     or.Usage.PromptTokens,
 			CompletionTokens: or.Usage.CompletionTokens,
 			TotalTokens:      or.Usage.TotalTokens,
@@ -117,15 +119,15 @@ func (c *AzureClient) Chat(ctx context.Context, messages []EyrieMessage, opts Ch
 		}
 	}
 
-	if err := applyGuardrails(ctx, result, c.guardrails); err != nil {
+	if err := core.ApplyGuardrails(ctx, result, c.guardrails); err != nil {
 		return nil, err
 	}
 
 	return result, nil
 }
 
-func (c *AzureClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
-	messages = SanitizeMessages(messages)
+func (c *AzureClient) StreamChat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
+	messages = core.SanitizeMessages(messages)
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for azure")
 	}
@@ -146,23 +148,23 @@ func (c *AzureClient) StreamChat(ctx context.Context, messages []EyrieMessage, o
 
 	c.logger.Debug("azure stream", "model", opts.Model, "endpoint", c.endpoint)
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: azure stream request failed: %w", err)
 	}
 
 	requestID := resp.Header.Get("X-Request-Id")
 	if resp.StatusCode != 200 {
-		detail, readErr := parseProviderError(resp.Body)
+		detail, readErr := core.ParseProviderError(resp.Body)
 		_ = resp.Body.Close()
-		return nil, formatAPIError("azure", "stream", resp.StatusCode, requestID, detail, readErr)
+		return nil, core.FormatAPIError("azure", "stream", resp.StatusCode, requestID, detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
-	sseEvents := parseSSEStream(streamCtx, resp.Body, c.logger)
-	events := processOpenAIStream(streamCtx, sseEvents, c.logger)
+	sseEvents := core.ParseSSEStream(streamCtx, resp.Body, c.logger)
+	events := core.ProcessOpenAIStream(streamCtx, sseEvents, c.logger)
 
-	return NewStreamResultWithRequestID(events, requestID, cancel), nil
+	return core.NewStreamResultWithRequestID(events, requestID, cancel), nil
 }
 
 func (c *AzureClient) Ping(ctx context.Context) error {
@@ -183,6 +185,18 @@ func (c *AzureClient) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (c *AzureClient) buildRequest(messages []EyrieMessage, opts ChatOptions, stream bool) openaiRequest {
+func (c *AzureClient) buildRequest(messages []core.EyrieMessage, opts core.ChatOptions, stream bool) openaiRequest {
 	return buildRequestBase(messages, opts, stream, &AzureCompat)
 }
+
+// SetHTTPClient replaces the transport used for Azure requests.
+func (c *AzureClient) SetHTTPClient(hc *http.Client) { c.httpClient = hc }
+
+// SetRetry configures provider retry behavior.
+func (c *AzureClient) SetRetry(rc core.RetryConfig) { c.retry = rc }
+
+// APIVersion returns the API version.
+func (c *AzureClient) APIVersion() string { return c.apiVersion }
+
+// Endpoint returns the base endpoint.
+func (c *AzureClient) Endpoint() string { return c.endpoint }

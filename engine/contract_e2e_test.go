@@ -121,6 +121,7 @@ func (p *continuationProvider) Ping(context.Context) error { return nil }
 func (p *continuationProvider) Chat(context.Context, []client.EyrieMessage, client.ChatOptions) (*client.EyrieResponse, error) {
 	return nil, nil
 }
+
 func (p *continuationProvider) StreamChat(_ context.Context, messages []client.EyrieMessage, _ client.ChatOptions) (*client.StreamResult, error) {
 	p.calls++
 	p.requests = append(p.requests, append([]client.EyrieMessage(nil), messages...))

@@ -140,13 +140,9 @@ func normalizeEvent(event client.EyrieStreamEvent) (Event, error) {
 	case "tool_input_delta":
 		out.Type = EventToolCallDelta
 	case "done":
-		if out.Usage != nil {
-			// Usage remains attached to done for backward-friendly single-event
-			// accounting; future providers may also emit EventUsage separately.
-			out.Type = EventDone
-		} else {
-			out.Type = EventDone
-		}
+		// Usage remains attached to done for backward-friendly single-event
+		// accounting; future providers may also emit EventUsage separately.
+		out.Type = EventDone
 	case "ttft":
 		out.Type = EventTTFT
 	case "continuation":

@@ -465,7 +465,7 @@ func TestAudioFormatToMediaType(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			got := audioFormatToMediaType(tt.input)
 			if got != tt.expected {
-				t.Errorf("audioFormatToMediaType(%q) = %q, want %q", tt.input, got, tt.expected)
+				t.Errorf("AudioFormatToMediaType(%q) = %q, want %q", tt.input, got, tt.expected)
 			}
 		})
 	}

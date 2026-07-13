@@ -1,4 +1,4 @@
-package client
+package adapters
 
 import (
 	"log/slog"
@@ -6,7 +6,28 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GrayCodeAI/eyrie/client/core"
 	"github.com/GrayCodeAI/eyrie/types"
+)
+
+type (
+	ClientOption = core.ClientOption
+	RetryConfig  = core.RetryConfig
+)
+
+const defaultTimeout = core.DefaultTimeout
+
+var (
+	WithAPIKey       = core.WithAPIKey
+	WithBaseURL      = core.WithBaseURL
+	WithHTTPClient   = core.WithHTTPClient
+	WithLogger       = core.WithLogger
+	WithMaxTokens    = core.WithMaxTokens
+	WithModel        = core.WithModel
+	WithProviderName = core.WithProviderName
+	WithRetry        = core.WithRetry
+	WithTemperature  = core.WithTemperature
+	WithTimeout      = core.WithTimeout
 )
 
 // --- Individual option tests ---

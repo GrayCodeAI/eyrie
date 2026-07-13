@@ -8,8 +8,6 @@ import (
 	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
-const defaultTimeout = core.DefaultTimeout
-
 // ClientOption and the adapter-level With* constructors live in client/core
 // (see core.Configurable); they are aliased/wrapped here so the public
 // client.* API is unchanged. Only WithCoalescing is defined locally — it

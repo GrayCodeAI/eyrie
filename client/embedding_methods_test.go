@@ -188,4 +188,3 @@ func TestCreateEmbeddingFloat32Precision(t *testing.T) {
 		t.Errorf("Embeddings[0][0] = %f, want %f (within float32 precision)", resp.Embeddings[0][0], expected)
 	}
 }
-

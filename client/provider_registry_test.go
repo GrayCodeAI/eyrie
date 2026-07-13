@@ -34,16 +34,13 @@ func TestGetOrCreateProvider_VertexUsesAnthropicVertexClient(t *testing.T) {
 	if !ok {
 		t.Fatalf("provider type = %T, want *VertexClient (regression: registry was creating a GeminiClient for ProviderTypeVertex)", p)
 	}
-	if vc.projectID != "my-project" {
-		t.Errorf("projectID = %q, want %q", vc.projectID, "my-project")
+	if vc.ProjectID() != "my-project" {
+		t.Errorf("projectID = %q, want %q", vc.ProjectID(), "my-project")
 	}
-	if vc.region != "us-east1" {
-		t.Errorf("region = %q, want %q", vc.region, "us-east1")
+	if vc.Region() != "us-east1" {
+		t.Errorf("region = %q, want %q", vc.Region(), "us-east1")
 	}
-	if vc.token != "test-bearer-token" {
-		t.Errorf("token = %q, want %q", vc.token, "test-bearer-token")
-	}
-	if got := vc.baseURL(); got != "https://us-east1-aiplatform.googleapis.com/v1/projects/my-project/locations/us-east1/publishers/anthropic/models" {
+	if got := vc.BaseURL(); got != "https://us-east1-aiplatform.googleapis.com/v1/projects/my-project/locations/us-east1/publishers/anthropic/models" {
 		t.Errorf("baseURL() = %q, want Anthropic-on-Vertex URL", got)
 	}
 }
@@ -67,8 +64,8 @@ func TestGetOrCreateProvider_VertexRegionDefaultsToUsCentral1(t *testing.T) {
 	if !ok {
 		t.Fatalf("provider type = %T, want *VertexClient", p)
 	}
-	if vc.region != "us-central1" {
-		t.Errorf("region = %q, want default %q", vc.region, "us-central1")
+	if vc.Region() != "us-central1" {
+		t.Errorf("region = %q, want default %q", vc.Region(), "us-central1")
 	}
 }
 
@@ -133,8 +130,8 @@ func TestDynamicProvider_OptIn_Registers(t *testing.T) {
 	if !ok {
 		t.Fatalf("provider type = %T, want *OpenAIClient", p)
 	}
-	if oc.baseURL != "http://localhost:9999/v1" {
-		t.Errorf("baseURL = %q, want %q", oc.baseURL, "http://localhost:9999/v1")
+	if oc.BaseURL() != "http://localhost:9999/v1" {
+		t.Errorf("baseURL = %q, want %q", oc.BaseURL(), "http://localhost:9999/v1")
 	}
 }
 

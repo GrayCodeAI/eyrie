@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -45,6 +46,41 @@ func TestMigrateProviderSecretsImportsBeforeSanitizing(t *testing.T) {
 	}
 	if got := saved.Deployments["openai-direct"].BaseURL; got != "https://gateway.example.test/v1" {
 		t.Fatalf("non-secret route metadata = %q", got)
+	}
+}
+
+func TestMigrateProviderStateCanonicalizesLegacyVersionAlias(t *testing.T) {
+	ctx := context.Background()
+	store := &credentials.MapStore{}
+	eng, err := New(Options{SecretStore: store, StateDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := []byte(`{"version":"1","active_provider":"openai","openai_api_key":"sk-legacy-version-alias-1234567890"}`)
+	if err := os.WriteFile(eng.providerConfigPath, legacy, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := eng.MigrateProviderSecretsContext(ctx); err != nil {
+		t.Fatal(err)
+	}
+	secret, err := store.Get(ctx, credentials.AccountForEnv("OPENAI_API_KEY"))
+	if err != nil || secret != "sk-legacy-version-alias-1234567890" {
+		t.Fatalf("legacy credential was not imported before rewrite: value=%q err=%v", secret, err)
+	}
+	persisted, err := os.ReadFile(eng.providerConfigPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(persisted, []byte(`"version"`)) {
+		t.Fatalf("migration persisted legacy version alias: %s", persisted)
+	}
+	if !bytes.Contains(persisted, []byte(`"_version"`)) || bytes.Contains(persisted, []byte("sk-legacy-version-alias")) {
+		t.Fatalf("migration did not atomically canonicalize and sanitize provider state: %s", persisted)
+	}
+	cfg, err := config.LoadProviderConfigWithError(eng.providerConfigPath)
+	if err != nil || cfg == nil || cfg.Version != "1" || cfg.ActiveProvider != "openai" || config.ProviderConfigContainsSecrets(*cfg) {
+		t.Fatalf("canonical provider state is invalid: cfg=%#v err=%v", cfg, err)
 	}
 }
 

@@ -1,4 +1,4 @@
-package client
+package adapters
 
 import (
 	"bytes"
@@ -17,6 +17,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 const (
@@ -30,12 +32,12 @@ type BedrockClient struct {
 	sessionToken    string
 	region          string
 	httpClient      *http.Client
-	retry           RetryConfig
+	retry           core.RetryConfig
 	logger          *slog.Logger
-	guardrails      *Guardrails
+	guardrails      *core.Guardrails
 }
 
-var _ Provider = (*BedrockClient)(nil)
+var _ core.Provider = (*BedrockClient)(nil)
 
 func NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region string) *BedrockClient {
 	return &BedrockClient{
@@ -43,15 +45,15 @@ func NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region string)
 		secretAccessKey: secretAccessKey,
 		sessionToken:    sessionToken,
 		region:          region,
-		httpClient:      NewPooledHTTPClient(defaultTimeout),
-		retry:           DefaultRetryConfig(),
+		httpClient:      core.NewPooledHTTPClient(core.DefaultTimeout),
+		retry:           core.DefaultRetryConfig(),
 		logger:          slog.Default().With("component", "bedrock"),
 	}
 }
 
 func (c *BedrockClient) Name() string { return "anthropic-bedrock" }
 
-func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
+func (c *BedrockClient) Chat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.EyrieResponse, error) {
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for bedrock")
 	}
@@ -70,7 +72,7 @@ func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts 
 		return nil, err
 	}
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock request failed: %w", err)
 	}
@@ -80,24 +82,24 @@ func (c *BedrockClient) Chat(ctx context.Context, messages []EyrieMessage, opts 
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {
-		detail, readErr := parseProviderError(resp.Body)
-		return nil, formatAPIError("bedrock", "chat", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
+		detail, readErr := core.ParseProviderError(resp.Body)
+		return nil, core.FormatAPIError("bedrock", "chat", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
 	}
 
 	var ar anthropicResponse
 	if err := json.NewDecoder(resp.Body).Decode(&ar); err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock decode failed: %w", err)
 	}
-	eyrieResp := parseAnthropicResponse(ar, resp.Header.Get("X-Amzn-Requestid"), "")
+	eyrieResp := ParseAnthropicResponse(ar, resp.Header.Get("X-Amzn-Requestid"), "")
 
-	if err := applyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
+	if err := core.ApplyGuardrails(ctx, eyrieResp, c.guardrails); err != nil {
 		return nil, err
 	}
 
 	return eyrieResp, nil
 }
 
-func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+func (c *BedrockClient) StreamChat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
 	if opts.Model == "" {
 		return nil, fmt.Errorf("eyrie: model is required for bedrock")
 	}
@@ -128,7 +130,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 		return nil, err
 	}
 
-	resp, err := doWithRetry(ctx, c.httpClient, req, c.retry, c.logger) //nolint:bodyclose // closed in goroutine for streaming
+	resp, err := core.DoWithRetry(ctx, c.httpClient, req, c.retry, c.logger) //nolint:bodyclose // closed in goroutine for streaming
 	if err != nil {
 		return nil, fmt.Errorf("eyrie: bedrock stream request failed: %w", err)
 	}
@@ -138,12 +140,12 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 				slog.Warn("bedrock: close error response body", "error", err)
 			}
 		}()
-		detail, readErr := parseProviderError(resp.Body)
-		return nil, formatAPIError("bedrock stream", "stream", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
+		detail, readErr := core.ParseProviderError(resp.Body)
+		return nil, core.FormatAPIError("bedrock stream", "stream", resp.StatusCode, resp.Header.Get("X-Amzn-Requestid"), detail, readErr)
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
-	ch := make(chan EyrieStreamEvent, 64)
+	ch := make(chan core.EyrieStreamEvent, 64)
 
 	go func() {
 		defer close(ch)
@@ -155,7 +157,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 		}()
 
 		var contentBuf strings.Builder
-		var usage *EyrieUsage
+		var usage *core.EyrieUsage
 		var finishReason string
 
 		// Bedrock uses Amazon EventStream format. Parse it.
@@ -165,7 +167,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 			if err != nil {
 				if err != io.EOF {
 					select {
-					case ch <- EyrieStreamEvent{Type: "error", Content: err.Error()}:
+					case ch <- core.EyrieStreamEvent{Type: "error", Content: err.Error()}:
 					case <-streamCtx.Done():
 					}
 				}
@@ -183,7 +185,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 				if chunk.Delta != nil && chunk.Delta.Text != "" {
 					contentBuf.WriteString(chunk.Delta.Text)
 					select {
-					case ch <- EyrieStreamEvent{Type: "content", Content: chunk.Delta.Text}:
+					case ch <- core.EyrieStreamEvent{Type: "content", Content: chunk.Delta.Text}:
 					case <-streamCtx.Done():
 						return
 					}
@@ -191,7 +193,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 				if chunk.Delta != nil && chunk.Delta.Type == "input_json_delta" && chunk.Delta.PartialJSON != "" {
 					// Accumulate tool input JSON
 					select {
-					case ch <- EyrieStreamEvent{Type: "tool_input_delta", Content: chunk.Delta.PartialJSON}:
+					case ch <- core.EyrieStreamEvent{Type: "tool_input_delta", Content: chunk.Delta.PartialJSON}:
 					case <-streamCtx.Done():
 						return
 					}
@@ -200,9 +202,9 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 				if chunk.ContentBlock != nil && chunk.ContentBlock.Type == "tool_use" {
 					var args map[string]interface{}
 					_ = json.Unmarshal(chunk.ContentBlock.Input, &args)
-					tc := ToolCall{ID: chunk.ContentBlock.ID, Name: chunk.ContentBlock.Name, Arguments: args}
+					tc := core.ToolCall{ID: chunk.ContentBlock.ID, Name: chunk.ContentBlock.Name, Arguments: args}
 					select {
-					case ch <- EyrieStreamEvent{Type: "tool_call", ToolCall: &tc}:
+					case ch <- core.EyrieStreamEvent{Type: "tool_call", ToolCall: &tc}:
 					case <-streamCtx.Done():
 						return
 					}
@@ -219,7 +221,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 		}
 
 		// Send final done event with usage (matching Anthropic/OpenAI pattern)
-		doneEvt := EyrieStreamEvent{Type: "done", StopReason: finishReason}
+		doneEvt := core.EyrieStreamEvent{Type: "done", StopReason: finishReason}
 		if usage != nil {
 			doneEvt.Usage = usage
 		}
@@ -229,7 +231,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []EyrieMessage,
 		}
 	}()
 
-	return NewStreamResultWithRequestID(ch, resp.Header.Get("X-Amzn-Requestid"), cancel), nil
+	return core.NewStreamResultWithRequestID(ch, resp.Header.Get("X-Amzn-Requestid"), cancel), nil
 }
 
 func (c *BedrockClient) Ping(ctx context.Context) error {
@@ -254,8 +256,8 @@ func (c *BedrockClient) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (c *BedrockClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]byte, error) {
-	messages = SanitizeMessages(messages)
+func (c *BedrockClient) buildBody(messages []core.EyrieMessage, opts core.ChatOptions) ([]byte, error) {
+	messages = core.SanitizeMessages(messages)
 	msgs, system := buildAnthropicMessages(messages)
 	if opts.System != "" {
 		if system != "" {
@@ -277,7 +279,7 @@ func (c *BedrockClient) buildBody(messages []EyrieMessage, opts ChatOptions) ([]
 		TopP:          opts.TopP,
 		TopK:          opts.TopK,
 		StopSequences: opts.StopSequences,
-		Tools:         convertToAnthropicTools(opts.Tools),
+		Tools:         ConvertToAnthropicTools(opts.Tools),
 		ToolChoice:    resolveToolChoice(opts.ToolChoice),
 		Thinking:      resolveThinking(opts),
 		Metadata:      resolveMetadata(opts),
@@ -324,7 +326,7 @@ type anthropicStreamChunk struct {
 		StopReason  string `json:"stop_reason,omitempty"`
 	} `json:"delta,omitempty"`
 	Message *struct {
-		Usage *EyrieUsage `json:"usage,omitempty"`
+		Usage *core.EyrieUsage `json:"usage,omitempty"`
 	} `json:"message,omitempty"`
 }
 
@@ -514,4 +516,44 @@ func hmacSHA256(key []byte, data string) []byte {
 	mac := hmac.New(sha256.New, key)
 	_, _ = mac.Write([]byte(data))
 	return mac.Sum(nil)
+}
+
+// ModelURL returns the signed model URL for Bedrock.
+func (c *BedrockClient) ModelURL(model string) string {
+	return c.modelURL(model)
+}
+
+// BuildBody creates the Anthropic-compatible Bedrock request payload.
+func (c *BedrockClient) BuildBody(messages []core.EyrieMessage, opts core.ChatOptions) ([]byte, error) {
+	return c.buildBody(messages, opts)
+}
+
+// HTTPClient returns the underlying HTTP client.
+func (c *BedrockClient) HTTPClient() *http.Client { return c.httpClient }
+
+// Retry returns the retry configuration.
+func (c *BedrockClient) Retry() core.RetryConfig { return c.retry }
+
+// Region returns the AWS region.
+func (c *BedrockClient) Region() string { return c.region }
+
+// AWSCanonicalURI returns the canonical URI used by SigV4.
+func AWSCanonicalURI(uri string) string { return awsCanonicalURI(uri) }
+
+// AWSSigningKey derives a SigV4 signing key from explicit inputs.
+func AWSSigningKey(secret, dateStamp, region, service string) []byte {
+	return awsSigningKey(secret, dateStamp, region, service)
+}
+
+// Sign applies AWS SigV4 headers to a Bedrock request.
+func (c *BedrockClient) Sign(req *http.Request, body []byte, now time.Time) error {
+	return c.sign(req, body, now)
+}
+
+// Sha256Hex returns a lowercase SHA-256 digest.
+func Sha256Hex(data []byte) string { return sha256Hex(data) }
+
+// CanonicalAWSHeaders canonicalizes a header set for SigV4.
+func CanonicalAWSHeaders(headers http.Header) (string, string) {
+	return canonicalAWSHeaders(headers)
 }

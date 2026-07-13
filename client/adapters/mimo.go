@@ -1,4 +1,4 @@
-package client
+package adapters
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/GrayCodeAI/eyrie/client/core"
 
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 	"github.com/GrayCodeAI/eyrie/types"
@@ -20,10 +22,10 @@ type MiMoClient struct {
 }
 
 // NewMiMoClient builds a MiMo provider client (payg or token_plan gateway).
-func NewMiMoClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompatConfig, providerID string, opts ...ClientOption) *MiMoClient {
+func NewMiMoClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompatConfig, providerID string, opts ...core.ClientOption) *MiMoClient {
 	openAIBase = strings.TrimRight(strings.TrimSpace(openAIBase), "/")
 	anthropicBase = strings.TrimRight(strings.TrimSpace(anthropicBase), "/")
-	mimoOpts := append(append([]ClientOption{}, opts...), WithMimoAuth(), WithProviderName(providerID))
+	mimoOpts := append(append([]core.ClientOption{}, opts...), core.WithMimoAuth(), core.WithProviderName(providerID))
 	o := NewOpenAIClient(apiKey, openAIBase, compat, mimoOpts...)
 	var a *AnthropicClient
 	if anthropicBase != "" {
@@ -36,7 +38,7 @@ func NewMiMoClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompa
 	}
 }
 
-// WithProviderName and WithMimoAuth live in client/core (options.go wraps them).
+// core.WithProviderName and core.WithMimoAuth live in client/core (options.go wraps them).
 
 func (c *MiMoClient) Name() string {
 	if c.router.OpenAI != nil {
@@ -45,8 +47,8 @@ func (c *MiMoClient) Name() string {
 	return c.providerID
 }
 
-func (c *MiMoClient) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
-	return c.router.Chat(ctx, messages, opts, ChatProtocolCompletions, func(err error, _ *EyrieResponse) bool {
+func (c *MiMoClient) Chat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.EyrieResponse, error) {
+	return c.router.Chat(ctx, messages, opts, ChatProtocolCompletions, func(err error, _ *core.EyrieResponse) bool {
 		if err != nil && c.router.Anthropic != nil && mimoFallbackChatError(err) {
 			c.logger.Info("MiMo: OpenAI endpoint failed; retrying via Anthropic compatibility", "provider", c.providerID, "error", err)
 			return true
@@ -55,7 +57,7 @@ func (c *MiMoClient) Chat(ctx context.Context, messages []EyrieMessage, opts Cha
 	})
 }
 
-func (c *MiMoClient) StreamChat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*StreamResult, error) {
+func (c *MiMoClient) StreamChat(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
 	return c.router.StreamChat(ctx, messages, opts, ProtocolStreamConfig{
 		Primary: ChatProtocolCompletions,
 		FallbackOnError: func(err error) bool {
@@ -102,8 +104,8 @@ func mimoRetryableChatError(err error) bool {
 			return true
 		}
 	}
-	// Structured path: trust EyrieError's IsRetriable
-	var eyrieErr *EyrieError
+	// Structured path: trust core.EyrieError's IsRetriable
+	var eyrieErr *core.EyrieError
 	if errors.As(err, &eyrieErr) {
 		return eyrieErr.IsRetriable()
 	}
@@ -129,9 +131,18 @@ func parseHTTPStatusFromError(msg string) int {
 	return 0
 }
 
-var _ Provider = (*MiMoClient)(nil)
+var _ core.Provider = (*MiMoClient)(nil)
 
 // mimoAuthHeaders sets MiMo-preferred authentication on outbound requests.
 func mimoAuthHeaders(req *http.Request, apiKey string) {
 	xiaomi.SetMimoRequestAuth(req, apiKey)
 }
+
+// MimoRetryableChatError reports whether an error is retryable for MiMo.
+func MimoRetryableChatError(err error) bool { return mimoRetryableChatError(err) }
+
+// MimoFallbackChatError reports whether the error should trigger Anthropic fallback.
+func MimoFallbackChatError(err error) bool { return mimoFallbackChatError(err) }
+
+// ProviderID reports the configured MiMo gateway identity.
+func (c *MiMoClient) ProviderID() string { return c.providerID }

@@ -15,7 +15,10 @@ func lockProviderStatePath(path string) func() {
 		key = filepath.Clean(path)
 	}
 	value, _ := providerStateLocks.LoadOrStore(key, &sync.Mutex{})
-	mu := value.(*sync.Mutex)
+	mu, ok := value.(*sync.Mutex)
+	if !ok {
+		panic("eyrie engine: provider-state lock map contains a non-mutex value")
+	}
 	mu.Lock()
 	return mu.Unlock
 }

@@ -6,9 +6,8 @@ import (
 	"context"
 	"os"
 	"strings"
-	"time"
-
 	"sync"
+	"time"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
 

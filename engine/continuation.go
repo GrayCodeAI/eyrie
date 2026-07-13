@@ -74,7 +74,8 @@ func streamWithContinuation(ctx context.Context, provider client.Provider, messa
 			}) {
 				return
 			}
-			msgs = append(msgs,
+			msgs = append(
+				msgs,
 				client.EyrieMessage{Role: "assistant", Content: segment.String()},
 				client.EyrieMessage{Role: "user", Content: "Continue."},
 			)
