@@ -2,6 +2,10 @@
 
 Universal LLM provider runtime. One interface for every model. Authentication, routing, streaming, retries, caching — handled.
 
+## Development workflow
+
+When starting any new work (feature, fix, refactor, chore), always create a feature branch from `main` first. Never commit directly to `main`. Use branch naming conventions like `feat/<description>`, `fix/<description>`, or `chore/<description>`. Open a PR, ensure CI is green, then merge.
+
 ## Design Principles
 
 - **Model-agnostic** — single interface for 75+ LLM providers
