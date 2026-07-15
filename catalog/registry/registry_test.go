@@ -287,6 +287,32 @@ func TestProviderRegistry_DeploymentEnvFallbacks_BaseURL(t *testing.T) {
 	}
 }
 
+// TestProviderRegistry_AnthropicBaseURL_NoOpenAIFallback guards against a
+// credential-hijack regression: a provider's base-URL must only ever come from
+// its OWN env vars. A stray OPENAI_BASE_URL must not redirect anthropic's
+// API key to an attacker-controlled host, so the anthropic provider's base_url
+// fallback must not include OPENAI_BASE_URL / OPENAI_API_BASE.
+func TestProviderRegistry_AnthropicBaseURL_NoOpenAIFallback(t *testing.T) {
+	t.Parallel()
+	var spec ProviderSpec
+	found := false
+	for _, s := range All() {
+		if s.ProviderID == "anthropic" {
+			spec = s
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("anthropic provider not registered")
+	}
+	for _, env := range spec.BaseURLEnv {
+		if env == "OPENAI_BASE_URL" || env == "OPENAI_API_BASE" {
+			t.Fatalf("anthropic BaseURLEnv must not fall back to %s (got %v)", env, spec.BaseURLEnv)
+		}
+	}
+}
+
 // --- CredentialPresent tests ---
 
 func TestCredentialPresent(t *testing.T) {

@@ -53,7 +53,7 @@ var (
 		Mode: "anthropic", DefaultBaseURL: DefaultAnthropicOpenAIBaseURL, DefaultModel: "claude-3-5-sonnet-latest",
 		DetectionEnv: []string{"ANTHROPIC_API_KEY"},
 		ModelEnv:     []string{"ANTHROPIC_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"ANTHROPIC_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"ANTHROPIC_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "ANTHROPIC_API_KEY", Source: "anthropic"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
 	OpenAIRuntimeProfile = RuntimeProviderProfile{
@@ -67,14 +67,14 @@ var (
 		Mode: "grok", DefaultBaseURL: DefaultGrokOpenAIBaseURL, DefaultModel: "grok-2",
 		DetectionEnv: []string{"XAI_API_KEY"},
 		ModelEnv:     []string{"XAI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"XAI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"XAI_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "XAI_API_KEY", Source: "grok"}},
 	}
 	GeminiRuntimeProfile = RuntimeProviderProfile{
 		Mode: "gemini", DefaultBaseURL: DefaultGeminiOpenAIBaseURL, DefaultModel: "gemini-2.0-flash",
 		DetectionEnv: []string{"GEMINI_API_KEY"},
 		ModelEnv:     []string{"GEMINI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"GEMINI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"GEMINI_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "GEMINI_API_KEY", Source: "gemini"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
 	VertexRuntimeProfile = RuntimeProviderProfile{
@@ -102,35 +102,35 @@ var (
 		Mode: "openrouter", DefaultBaseURL: DefaultOpenRouterOpenAIBaseURL,
 		DetectionEnv: []string{"OPENROUTER_API_KEY"},
 		ModelEnv:     []string{"OPENROUTER_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"OPENROUTER_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"OPENROUTER_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "OPENROUTER_API_KEY", Source: "openrouter"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
 	ZAIPaygRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultZAIOpenAIBaseURL,
 		DetectionEnv: []string{"ZAI_API_KEY"},
 		ModelEnv:     []string{"ZAI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"ZAI_BASE_URL", "ZAI_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"ZAI_BASE_URL", "ZAI_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "ZAI_API_KEY", Source: "zai_payg"}},
 	}
 	ZAICodingRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultZAICodingOpenAIBaseURL,
 		DetectionEnv: []string{"ZAI_CODING_API_KEY"},
 		ModelEnv:     []string{"ZAI_CODING_MODEL", "ZAI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"ZAI_CODING_BASE_URL", "ZAI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"ZAI_CODING_BASE_URL", "ZAI_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "ZAI_CODING_API_KEY", Source: "zai_coding"}},
 	}
 	CanopyWaveRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultCanopyWaveOpenAIBaseURL,
 		DetectionEnv: []string{"CANOPYWAVE_API_KEY"},
 		ModelEnv:     []string{"CANOPYWAVE_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"CANOPYWAVE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"CANOPYWAVE_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "CANOPYWAVE_API_KEY", Source: "canopywave"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
 	DeepSeekRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: "https://api.deepseek.com/v1",
 		DetectionEnv: []string{"DEEPSEEK_API_KEY"},
 		ModelEnv:     []string{"DEEPSEEK_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"DEEPSEEK_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"DEEPSEEK_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "DEEPSEEK_API_KEY", Source: "deepseek"}},
 	}
 	OpenCodeGoRuntimeProfile = RuntimeProviderProfile{
@@ -144,35 +144,35 @@ var (
 		Mode: "openai", DefaultBaseURL: DefaultKimiOpenAIBaseURL,
 		DetectionEnv: []string{"MOONSHOT_API_KEY"},
 		ModelEnv:     []string{"MOONSHOT_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"MOONSHOT_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"MOONSHOT_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "MOONSHOT_API_KEY", Source: "kimi"}},
 	}
 	XiaomiPaygRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultXiaomiOpenAIBaseURL,
 		DetectionEnv: []string{EnvXiaomiPaygAPIKey},
 		ModelEnv:     []string{"XIAOMI_MIMO_PAYG_MODEL", "XIAOMI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{EnvXiaomiPaygBaseURL, "XIAOMI_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{EnvXiaomiPaygBaseURL, "XIAOMI_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: EnvXiaomiPaygAPIKey, Source: "xiaomi_mimo_payg"}},
 	}
 	XiaomiTokenPlanRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: "",
 		DetectionEnv: []string{EnvXiaomiTokenPlanAPIKey},
 		ModelEnv:     []string{"XIAOMI_MIMO_TOKEN_PLAN_MODEL", "XIAOMI_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{EnvXiaomiTokenPlanBaseURL, "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{EnvXiaomiTokenPlanBaseURL},
 		APIKeys:      []APIKeyDef{{Env: EnvXiaomiTokenPlanAPIKey, Source: "xiaomi_mimo_token_plan"}},
 	}
 	MiniMaxTokenPlanRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultMiniMaxOpenAIBaseURL,
 		DetectionEnv: []string{"MINIMAX_TOKEN_PLAN_API_KEY"},
 		ModelEnv:     []string{"MINIMAX_TOKEN_PLAN_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"MINIMAX_TOKEN_PLAN_BASE_URL", "MINIMAX_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"MINIMAX_TOKEN_PLAN_BASE_URL", "MINIMAX_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "MINIMAX_TOKEN_PLAN_API_KEY", Source: "minimax_token_plan"}},
 	}
 	MiniMaxPaygRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultMiniMaxOpenAIBaseURL,
 		DetectionEnv: []string{"MINIMAX_PAYG_API_KEY"},
 		ModelEnv:     []string{"MINIMAX_PAYG_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"MINIMAX_PAYG_BASE_URL", "MINIMAX_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"MINIMAX_PAYG_BASE_URL", "MINIMAX_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "MINIMAX_PAYG_API_KEY", Source: "minimax_payg"}},
 	}
 	OllamaRuntimeProfile = RuntimeProviderProfile{
@@ -186,21 +186,21 @@ var (
 		Mode: "openai", DefaultBaseURL: DefaultPoolsideOpenAIBaseURL,
 		DetectionEnv: []string{"POOLSIDE_API_KEY"},
 		ModelEnv:     []string{"POOLSIDE_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"POOLSIDE_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"POOLSIDE_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "POOLSIDE_API_KEY", Source: "poolside"}},
 	}
 	GroqRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: "https://api.groq.com/openai/v1",
 		DetectionEnv: []string{"GROQ_API_KEY"},
 		ModelEnv:     []string{"GROQ_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"GROQ_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"GROQ_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "GROQ_API_KEY", Source: "groq"}},
 	}
 	ClinePassRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultClinePassOpenAIBaseURL,
 		DetectionEnv: []string{"CLINE_API_KEY"},
 		ModelEnv:     []string{"CLINE_MODEL", "OPENAI_MODEL"},
-		BaseURLEnv:   []string{"CLINE_API_BASE", "OPENAI_BASE_URL", "OPENAI_API_BASE"},
+		BaseURLEnv:   []string{"CLINE_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "CLINE_API_KEY", Source: "clinepass"}},
 	}
 )
