@@ -173,21 +173,31 @@ ANTHROPIC_API_KEY=sk-... go run ./examples/basic/
 
 ## Supported Providers
 
-12 setup gateways in `catalog/registry/providers.go` (hawk `/config` uses the same list):
+22 provider gateways in `catalog/registry/providers.go` (hawk `/config` uses the same list), listed in registry `SortOrder`:
 
 | Provider | ID | Env variable |
 |---|---|---|
 | **Anthropic** | `anthropic` | `ANTHROPIC_API_KEY` |
 | **OpenAI** | `openai` | `OPENAI_API_KEY` |
 | **Google Gemini** | `gemini` | `GEMINI_API_KEY` |
-| **OpenRouter** | `openrouter` | `OPENROUTER_API_KEY` |
+| **DeepSeek** | `deepseek` | `DEEPSEEK_API_KEY` |
 | **xAI (Grok)** | `grok` | `XAI_API_KEY` |
-| **Z.AI** | `z-ai` | `ZAI_API_KEY` |
-| **CanopyWave** | `canopywave` | `CANOPYWAVE_API_KEY` |
-| **OpenCode Go** | `opencodego` | `OPENCODEGO_API_KEY` |
 | **Kimi (Moonshot)** | `kimi` | `MOONSHOT_API_KEY` |
-| **Xiaomi (MiMo) Pay-as-you-go** | `xiaomi_mimo_payg` | `XIAOMI_MIMO_PAYG_API_KEY` |
+| **Z.AI — Coding Plan** | `zai_coding` | `ZAI_CODING_API_KEY` |
+| **Z.AI — Pay-as-you-go** | `zai_payg` | `ZAI_API_KEY` |
 | **Xiaomi (MiMo) Token Plan** | `xiaomi_mimo_token_plan` | `XIAOMI_MIMO_TOKEN_PLAN_API_KEY` (+ region `cn` / `sgp` / `ams`) |
+| **Xiaomi (MiMo) Pay-as-you-go** | `xiaomi_mimo_payg` | `XIAOMI_MIMO_PAYG_API_KEY` |
+| **MiniMax — Token Plan** | `minimax_token_plan` | `MINIMAX_TOKEN_PLAN_API_KEY` |
+| **MiniMax — Pay-as-you-go** | `minimax_payg` | `MINIMAX_PAYG_API_KEY` |
+| **Azure OpenAI** | `azure` | `AZURE_OPENAI_API_KEY` (+ `AZURE_OPENAI_ENDPOINT`) |
+| **Amazon Bedrock** | `bedrock` | `AWS_SECRET_ACCESS_KEY` (+ `AWS_ACCESS_KEY_ID`, `AWS_SESSION_TOKEN`) |
+| **Vertex AI** | `vertex` | `VERTEX_ACCESS_TOKEN` (or `GOOGLE_OAUTH_ACCESS_TOKEN`) |
+| **OpenRouter** | `openrouter` | `OPENROUTER_API_KEY` |
+| **CanopyWave** | `canopywave` | `CANOPYWAVE_API_KEY` |
+| **Poolside** | `poolside` | `POOLSIDE_API_KEY` |
+| **Groq** | `groq` | `GROQ_API_KEY` |
+| **ClinePass** | `clinepass` | `CLINE_API_KEY` |
+| **OpenCode Go** | `opencodego` | `OPENCODEGO_API_KEY` |
 | **Ollama** | `ollama` | `OLLAMA_BASE_URL` (local; no API key) |
 
 Runtime auto-detection uses a separate priority order for chat when no deployment is pinned; see `config` profiles.
