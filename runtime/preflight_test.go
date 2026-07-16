@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,28 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/credentials"
 )
+
+// failingStore is a mock credential store that always returns errors.
+type failingStore struct{}
+
+func (f *failingStore) Set(ctx context.Context, account, secret string) error {
+	_ = ctx
+	_ = account
+	_ = secret
+	return errors.New("mock failing store: Set not implemented")
+}
+
+func (f *failingStore) Get(ctx context.Context, account string) (string, error) {
+	_ = ctx
+	_ = account
+	return "", errors.New("mock failing store: Get not implemented")
+}
+
+func (f *failingStore) Delete(ctx context.Context, account string) error {
+	_ = ctx
+	_ = account
+	return errors.New("mock failing store: Delete not implemented")
+}
 
 // --- PreflightStatus constants ---
 
@@ -176,6 +199,9 @@ func TestPreflight_KeychainCheck(t *testing.T) {
 func TestPreflight_NotReady_WhenCredentialsFail(t *testing.T) {
 	setupPreflightEnv(t, "{}\n")
 
+	// Use failing store to ensure credentials check fails
+	credentials.SetDefaultStore(&failingStore{})
+
 	r := Preflight(context.Background())
 	// If credentials check fails, Ready should be false.
 	for _, c := range r.Checks {
@@ -186,8 +212,7 @@ func TestPreflight_NotReady_WhenCredentialsFail(t *testing.T) {
 			return
 		}
 	}
-	// If creds check doesn't fail (edge case), skip
-	t.Skip("credentials check did not fail in this environment") // TODO: https://github.com/GrayCodeAI/eyrie/issues/28
+	t.Fatal("expected credentials check to fail with failing store")
 }
 
 func TestPreflight_WithValidModel(t *testing.T) {
@@ -394,6 +419,9 @@ func TestPreflight_CheckNames(t *testing.T) {
 func TestPreflight_MultipleFailures(t *testing.T) {
 	setupPreflightEnv(t, "{}\n")
 
+	// Use failing store to ensure credential failures
+	credentials.SetDefaultStore(&failingStore{})
+
 	r := Preflight(context.Background())
 	failCount := 0
 	for _, c := range r.Checks {
@@ -402,7 +430,7 @@ func TestPreflight_MultipleFailures(t *testing.T) {
 		}
 	}
 	if failCount == 0 {
-		t.Skip("no failures detected in this environment") // TODO: https://github.com/GrayCodeAI/eyrie/issues/29
+		t.Fatal("expected at least one failure with failing store")
 	}
 	if r.Ready {
 		t.Fatal("expected not ready with failures")
