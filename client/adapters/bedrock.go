@@ -28,7 +28,7 @@ const (
 
 type BedrockClient struct {
 	accessKeyID     string
-	secretAccessKey string
+	secretAccessKey []byte
 	sessionToken    string
 	region          string
 	httpClient      *http.Client
@@ -37,12 +37,22 @@ type BedrockClient struct {
 	guardrails      *core.Guardrails
 }
 
+// String returns a safe string representation of the Bedrock client.
+// Sensitive fields (secret access key) are masked to prevent accidental exposure in logs.
+func (c *BedrockClient) String() string {
+	masked := "****"
+	if len(c.secretAccessKey) > 4 {
+		masked = string(c.secretAccessKey[:4]) + "****"
+	}
+	return fmt.Sprintf("BedrockClient{access_key_id=%s, region=%s, secret_access_key=%s}", c.accessKeyID, c.region, masked)
+}
+
 var _ core.Provider = (*BedrockClient)(nil)
 
 func NewBedrockClient(accessKeyID, secretAccessKey, sessionToken, region string) *BedrockClient {
 	return &BedrockClient{
 		accessKeyID:     accessKeyID,
-		secretAccessKey: secretAccessKey,
+		secretAccessKey: []byte(secretAccessKey),
 		sessionToken:    sessionToken,
 		region:          region,
 		httpClient:      core.NewPooledHTTPClient(core.DefaultTimeout),
@@ -163,7 +173,21 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []core.EyrieMes
 		// Bedrock uses Amazon EventStream format. Parse it.
 		reader := newEventStreamReader(resp.Body)
 		for {
-			event, err := reader.ReadEvent()
+			event, err := func() (*eventStreamFrame, error) {
+				var result *eventStreamFrame
+				var readErr error
+				done := make(chan struct{})
+				go func() {
+					result, readErr = reader.ReadEvent()
+					close(done)
+				}()
+				select {
+				case <-done:
+					return result, readErr
+				case <-streamCtx.Done():
+					return nil, streamCtx.Err()
+				}
+			}()
 			if err != nil {
 				if err != io.EOF {
 					select {
@@ -235,7 +259,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []core.EyrieMes
 }
 
 func (c *BedrockClient) Ping(ctx context.Context) error {
-	if c.region == "" || c.accessKeyID == "" || c.secretAccessKey == "" {
+	if c.region == "" || c.accessKeyID == "" || len(c.secretAccessKey) == 0 {
 		return fmt.Errorf("eyrie: bedrock credentials are incomplete")
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://bedrock.%s.amazonaws.com/foundation-models", c.region), nil)
@@ -432,7 +456,7 @@ func (es *eventStreamReader) ReadEvent() (*eventStreamFrame, error) {
 }
 
 func (c *BedrockClient) sign(req *http.Request, body []byte, now time.Time) error {
-	if c.region == "" || c.accessKeyID == "" || c.secretAccessKey == "" {
+	if c.region == "" || c.accessKeyID == "" || len(c.secretAccessKey) == 0 {
 		return fmt.Errorf("eyrie: bedrock credentials are incomplete")
 	}
 	service := "bedrock"
@@ -464,7 +488,7 @@ func (c *BedrockClient) sign(req *http.Request, body []byte, now time.Time) erro
 		scope,
 		sha256Hex([]byte(canonicalRequest)),
 	}, "\n")
-	signingKey := awsSigningKey(c.secretAccessKey, dateStamp, c.region, service)
+	signingKey := awsSigningKey(string(c.secretAccessKey), dateStamp, c.region, service)
 	signature := hex.EncodeToString(hmacSHA256(signingKey, stringToSign))
 	req.Header.Set("Authorization", fmt.Sprintf("AWS4-HMAC-SHA256 Credential=%s/%s, SignedHeaders=%s, Signature=%s", c.accessKeyID, scope, signedHeaders, signature))
 	return nil

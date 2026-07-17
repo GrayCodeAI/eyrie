@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -53,6 +54,14 @@ func Open(path string, opts ...Option) (*SQLiteStore, error) {
 	if err := s.migrate(); err != nil {
 		_ = db.Close()
 		return nil, err
+	}
+	// Restrict SQLite database file permissions to owner-only read/write.
+	// Skip for in-memory databases (path == ":memory:") which have no real file.
+	if path != ":memory:" {
+		if err := os.Chmod(path, 0o600); err != nil {
+			_ = db.Close()
+			return nil, fmt.Errorf("storage: chmod %s: %w", path, err)
+		}
 	}
 	return s, nil
 }
