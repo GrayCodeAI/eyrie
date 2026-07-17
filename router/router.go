@@ -30,14 +30,15 @@ func (e RouteEntry) cost() int {
 }
 
 type Router struct {
-	entries      []RouteEntry
-	fallback     []client.Provider
-	totalWeight  int
-	defaultRetry RetryConfig
-	strategy     Strategy
-	stratState   *strategyState
-	mu           sync.RWMutex
-	stats        map[string]*atomic.Int64
+	entries         []RouteEntry
+	fallback        []client.Provider
+	totalWeight     int
+	defaultRetry    RetryConfig
+	strategy        Strategy
+	stratState      *strategyState
+	breakers        map[string]*CircuitBreaker
+	mu              sync.RWMutex
+	stats           map[string]*atomic.Int64
 }
 
 // Option configures a Router at construction time.

@@ -112,7 +112,8 @@ func ParseCustomHeaders() map[string]string {
 			name := strings.TrimSpace(line[:idx])
 			value := strings.TrimSpace(line[idx+1:])
 			// Reject header names/values containing control characters to prevent injection.
-			if strings.ContainsAny(name, "\r\n") || strings.ContainsAny(value, "\r\n") {
+			if strings.IndexFunc(name, func(r rune) bool { return r < 0x20 }) >= 0 ||
+				strings.IndexFunc(value, func(r rune) bool { return r < 0x20 }) >= 0 {
 				continue
 			}
 			result[name] = value
