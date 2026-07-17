@@ -36,7 +36,6 @@ type Router struct {
 	defaultRetry RetryConfig
 	strategy     Strategy
 	stratState   *strategyState
-	breakers     map[string]*CircuitBreaker
 	mu           sync.RWMutex
 	stats        map[string]*atomic.Int64
 }
