@@ -139,7 +139,7 @@ make ci                          # Full CI suite
 | Linter config | `.golangci.yml` (govet, ineffassign, misspell — minimal) |
 
 <!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+## GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **eyrie** (9305 symbols, 33738 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
