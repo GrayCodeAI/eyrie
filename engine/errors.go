@@ -3,6 +3,8 @@ package engine
 import (
 	"errors"
 	"fmt"
+
+	"github.com/GrayCodeAI/eyrie/catalog"
 )
 
 // ErrorCode is a stable, machine-readable engine failure category.
@@ -58,6 +60,12 @@ func (e *Error) Unwrap() error {
 func IsCode(err error, code ErrorCode) bool {
 	var target *Error
 	return errors.As(err, &target) && target.Code == code
+}
+
+// IsCatalogCacheRequired reports whether an operation needs the local model
+// catalog to be refreshed before it can continue.
+func IsCatalogCacheRequired(err error) bool {
+	return errors.Is(err, catalog.ErrCatalogCacheRequired)
 }
 
 func invalid(operation, message string) error {

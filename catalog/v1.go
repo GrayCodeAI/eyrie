@@ -171,14 +171,14 @@ type Pricing struct {
 func CapabilitySetFromEntry(e live.Entry) CapabilitySet {
 	set := CapabilitySet{ServerTools: map[string]CapabilityState{}}
 	for _, feat := range e.Features {
-		switch feat {
+		switch strings.ToLower(strings.TrimSpace(feat)) {
 		case "web_search":
 			set.ServerTools[feat] = CapabilitySupported
 		case "image_generation":
 			set.ServerTools[feat] = CapabilitySupported
 		case "code_interpreter":
 			set.ServerTools[feat] = CapabilitySupported
-		case "function_calling":
+		case "function_calling", "function-calling", "tools":
 			set.FunctionCalling = CapabilitySupported
 		}
 	}

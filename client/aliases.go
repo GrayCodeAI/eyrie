@@ -271,6 +271,8 @@ type (
 	MiMoClient = adapters.MiMoClient
 	// OpenCodeGoClient implements Provider for the OpenCode Go API.
 	OpenCodeGoClient = adapters.OpenCodeGoClient
+	// PoolsideClient implements Poolside reasoning-only stream recovery.
+	PoolsideClient = adapters.PoolsideClient
 	// ProtocolRouter routes between OpenAI and Anthropic protocols.
 	ProtocolRouter = adapters.ProtocolRouter
 	// ProtocolStreamConfig controls streaming across two protocols.
@@ -292,6 +294,10 @@ func NewAnthropicClient(apiKey, baseURL string, opts ...ClientOption) *Anthropic
 
 func NewOpenAIClient(apiKey, baseURL string, compat *OpenAICompatConfig, opts ...ClientOption) *OpenAIClient {
 	return adapters.NewOpenAIClient(apiKey, baseURL, compat, opts...)
+}
+
+func NewPoolsideClient(apiKey, baseURL string, opts ...ClientOption) *PoolsideClient {
+	return adapters.NewPoolsideClient(apiKey, baseURL, opts...)
 }
 
 func NewGeminiClient(apiKey, baseURL string) *GeminiClient {
