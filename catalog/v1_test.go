@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/GrayCodeAI/eyrie/catalog/live"
 )
 
 func TestCatalogFromLegacyCompiles(t *testing.T) {
@@ -226,6 +228,13 @@ func TestCapabilitySetFromLegacy_AnthropicFeatures(t *testing.T) {
 	}
 	if len(set.EffortLevels) != 5 {
 		t.Errorf("EffortLevels len = %d, want 5", len(set.EffortLevels))
+	}
+}
+
+func TestCapabilitySetFromEntry_ToolsAliasSupportsFunctionCalling(t *testing.T) {
+	set := CapabilitySetFromEntry(live.Entry{Features: []string{"tools", "reasoning"}})
+	if set.FunctionCalling != CapabilitySupported {
+		t.Fatalf("FunctionCalling = %q, want supported", set.FunctionCalling)
 	}
 }
 
