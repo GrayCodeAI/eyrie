@@ -180,6 +180,12 @@ func TestRefreshProviderWithOptions_UsesOnlyScopedCachePath(t *testing.T) {
 	if len(catalog.ModelEntriesForProvider(result.Compiled, "canopywave")) == 0 {
 		t.Fatal("provider-scoped cache is missing live CanopyWave models")
 	}
+	if catalog.IsBootstrapCatalog(result.Compiled.Catalog) {
+		t.Fatal("provider refresh left populated catalog marked as bootstrap")
+	}
+	if _, ok := catalog.LoadValidCatalogCache(scopedPath); !ok {
+		t.Fatal("provider refresh persisted a catalog that cannot be loaded as valid")
+	}
 
 	globalAfter, err := os.ReadFile(globalPath)
 	if err != nil {

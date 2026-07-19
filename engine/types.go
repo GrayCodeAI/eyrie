@@ -247,11 +247,14 @@ type CatalogSnapshot struct {
 
 // CredentialStatus is safe to render or log; it never contains a secret.
 type CredentialStatus struct {
-	ProviderID string `json:"provider_id"`
-	EnvVar     string `json:"env_var,omitempty"`
-	Configured bool   `json:"configured"`
-	Verified   bool   `json:"verified,omitempty"`
-	Masked     string `json:"masked,omitempty"`
+	ProviderID          string `json:"provider_id"`
+	EnvVar              string `json:"env_var,omitempty"`
+	Configured          bool   `json:"configured"`
+	Verified            bool   `json:"verified,omitempty"`
+	Masked              string `json:"masked,omitempty"`
+	EnvironmentSet      bool   `json:"environment_set,omitempty"`
+	EnvironmentVariable string `json:"environment_variable,omitempty"`
+	EnvironmentConflict bool   `json:"environment_conflict,omitempty"`
 }
 
 // CredentialProvider is safe setup metadata for a configurable provider.
