@@ -9,10 +9,10 @@ import (
 )
 
 // ServiceName is the OS secret-store service under which credentials are
-// filed. It defaults to "hawk" — the original (and primary) consumer — and
-// must stay stable for existing keychain entries to remain readable. Other
-// embedders can rebrand via SetServiceName before any store access.
-var ServiceName = "hawk"
+// filed. It defaults to "eyrie" (host-neutral). Embedders must call
+// SetServiceName before any credential read or write to store secrets under
+// their own service; changing it later orphans previously stored secrets.
+var ServiceName = "eyrie"
 
 // SetServiceName overrides the secret-store service name. Call it once at
 // startup, before the first credential read or write; changing it later
