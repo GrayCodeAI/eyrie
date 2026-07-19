@@ -292,7 +292,7 @@ func providerForDeployment(id string, deployment config.DeploymentConfig, cfg *c
 		if apiKey == "" {
 			return nil, false
 		}
-		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultPoolsideOpenAIBaseURL), &client.PoolsideCompat), true
+		return client.NewPoolsideClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultPoolsideOpenAIBaseURL)), true
 	case "groq-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("GROQ_API_KEY"))
 		if apiKey == "" {

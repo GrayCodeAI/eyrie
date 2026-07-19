@@ -57,7 +57,8 @@ func TestFetchPoolside_ParsesProviderFields(t *testing.T) {
 		"owned_by": "poolside",
 		"display_name": "Poolside: Laguna M.1",
 		"context_length": 262144,
-		"max_completion_tokens": 32768
+		"max_completion_tokens": 32768,
+		"supported_features": ["tools", "reasoning"]
 	}`)
 	entry, ok := entryFromOpenAICompatJSON(raw)
 	if !ok {
@@ -77,5 +78,8 @@ func TestFetchPoolside_ParsesProviderFields(t *testing.T) {
 	}
 	if entry.MaxOutput != 32768 {
 		t.Fatalf("max_output = %d", entry.MaxOutput)
+	}
+	if len(entry.Features) != 2 || entry.Features[0] != "tools" || entry.Features[1] != "reasoning" {
+		t.Fatalf("features = %v, want Poolside supported_features", entry.Features)
 	}
 }

@@ -160,7 +160,7 @@ func newStreamWithReasoningFallback(ctx context.Context, messages []core.EyrieMe
 
 		var (
 			sawReasoning bool
-			contentLen   int
+			content      strings.Builder
 			toolCalls    int
 			buffered     []core.EyrieStreamEvent
 			streamErr    bool
@@ -180,13 +180,15 @@ func newStreamWithReasoningFallback(ctx context.Context, messages []core.EyrieMe
 			case "thinking":
 				sawReasoning = true
 			case "content":
-				contentLen += len(ev.Content)
+				content.WriteString(ev.Content)
 			case "tool_call":
 				toolCalls++
 			case "error":
-				streamErr = true
+				if !isReasoningOnlyStreamDiagnostic(ev.Error) {
+					streamErr = true
+				}
 			}
-			if contentLen > 0 || toolCalls > 0 {
+			if strings.TrimSpace(content.String()) != "" || toolCalls > 0 {
 				flush()
 				select {
 				case out <- ev:
@@ -200,7 +202,7 @@ func newStreamWithReasoningFallback(ctx context.Context, messages []core.EyrieMe
 
 		health := core.DetectResponseHealth(core.ResponseSignals{
 			SawReasoning: sawReasoning,
-			ContentLen:   contentLen,
+			ContentLen:   len(strings.TrimSpace(content.String())),
 			ToolCalls:    toolCalls,
 			StreamEnded:  true,
 			StreamErr:    streamErr,
@@ -229,4 +231,10 @@ func newStreamWithReasoningFallback(ctx context.Context, messages []core.EyrieMe
 		}
 	}()
 	return core.NewStreamResult(out, cancel)
+}
+
+func isReasoningOnlyStreamDiagnostic(message string) bool {
+	message = strings.ToLower(strings.TrimSpace(message))
+	return strings.Contains(message, "error_only_reasoning") ||
+		strings.Contains(message, "reasoning tokens but no answer")
 }

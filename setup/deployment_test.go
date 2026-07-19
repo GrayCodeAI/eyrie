@@ -92,6 +92,18 @@ func TestDeploymentProviderFromStateAcceptsExplicitHydratedDeployment(t *testing
 	}
 }
 
+func TestProviderForDeploymentPoolsideUsesReasoningRecoveryClient(t *testing.T) {
+	provider, ok := ProviderForDeployment("poolside", config.DeploymentConfig{
+		APIKey: "poolside-test-key-1234567890",
+	})
+	if !ok {
+		t.Fatal("expected Poolside deployment provider")
+	}
+	if _, ok := provider.(*client.PoolsideClient); !ok {
+		t.Fatalf("provider type = %T, want *client.PoolsideClient", provider)
+	}
+}
+
 // --- UseDeploymentRouting ---
 
 func TestUseDeploymentRouting_EnvOverrideTrue(t *testing.T) {

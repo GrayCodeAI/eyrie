@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,6 +60,40 @@ func TestMaskedCredentialNeverReturnsFullSecret(t *testing.T) {
 	masked := maskedCredential(secret)
 	if masked == secret || masked == "" {
 		t.Fatalf("unsafe masked value %q", masked)
+	}
+}
+
+func TestCredentialStatusReportsEnvironmentConflictWithoutSecrets(t *testing.T) {
+	ctx := context.Background()
+	store := &credentials.MapStore{}
+	eng, err := New(Options{SecretStore: store, StateDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Set(ctx, credentials.AccountForEnv("OPENAI_API_KEY"), "sk-keychain-value"); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("OPENAI_API_KEY", "sk-environment-value")
+
+	status, err := eng.CredentialStatus(ctx, "openai")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !status.EnvironmentSet || !status.EnvironmentConflict {
+		t.Fatalf("expected environment conflict, got %+v", status)
+	}
+	encoded := fmt.Sprintf("%+v", status)
+	if strings.Contains(encoded, "sk-keychain-value") || strings.Contains(encoded, "sk-environment-value") {
+		t.Fatalf("credential status exposed a secret: %s", encoded)
+	}
+
+	t.Setenv("OPENAI_API_KEY", "sk-keychain-value")
+	status, err = eng.CredentialStatus(ctx, "openai")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !status.EnvironmentSet || status.EnvironmentConflict {
+		t.Fatalf("matching environment credential reported conflict: %+v", status)
 	}
 }
 
