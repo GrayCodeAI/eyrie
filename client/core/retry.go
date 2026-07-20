@@ -31,7 +31,10 @@ func NewRetryConfig(maxRetries int, baseDelay, maxDelay time.Duration, retryOn .
 
 // DefaultRetryConfig returns sensible defaults.
 func DefaultRetryConfig() RetryConfig {
-	return NewRetryConfig(3, 500*time.Millisecond, 30*time.Second, 429, 500, 502, 503, 529)
+	return NewRetryConfig(
+		DefaultMaxRetries, DefaultBaseDelay, DefaultMaxDelay,
+		429, 500, 502, 503, 529,
+	)
 }
 
 // ShouldRetry checks if a status code is retryable.
