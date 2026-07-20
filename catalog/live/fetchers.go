@@ -106,6 +106,7 @@ type listModelJSON struct {
 	InputTokenPricePerM  *float64 `json:"input_token_price_per_m"`
 	OutputTokenPricePerM *float64 `json:"output_token_price_per_m"`
 	Features             []string `json:"features"`
+	SupportedFeatures    []string `json:"supported_features"`
 	Tags                 []string `json:"tags"`
 	OwnedBy              string   `json:"owned_by"`
 	Status               *int     `json:"status"`
@@ -238,6 +239,9 @@ func entryFromOpenAICompatJSON(raw json.RawMessage) (Entry, bool) {
 		label = id
 	}
 	features := append([]string(nil), m.Features...)
+	for _, feature := range m.SupportedFeatures {
+		features = appendUnique(features, feature)
+	}
 	owner := strings.TrimSpace(m.OwnedBy)
 	if owner == "" {
 		owner = ownerFromModelID(id)

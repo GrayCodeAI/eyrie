@@ -2,8 +2,10 @@ package engine
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
@@ -93,10 +95,10 @@ func (e *Engine) CredentialStatus(ctx context.Context, providerID string) (Crede
 			return CredentialStatus{}, &Error{Code: ErrorInternal, Operation: "credential_status", Provider: gateway.ID, Message: "eyrie engine: could not read credential status", Cause: err}
 		}
 		configured := strings.TrimSpace(secret) != "" && !config.LooksLikePlaceholderSecret(secret)
-		return CredentialStatus{
+		return credentialStatusWithEnvironment(CredentialStatus{
 			ProviderID: gateway.ID, EnvVar: gateway.CredentialEnv,
 			Configured: configured, Masked: maskedCredentialIf(configured, secret),
-		}, nil
+		}, secret, gateway.CredentialEnv), nil
 	}
 	inference, err := config.InferenceForProvider(providerID)
 	if err != nil {
@@ -108,13 +110,39 @@ func (e *Engine) CredentialStatus(ctx context.Context, providerID string) (Crede
 			return CredentialStatus{}, &Error{Code: ErrorInternal, Operation: "credential_status", Provider: providerID, Message: "eyrie engine: could not read credential status", Cause: err}
 		}
 		if strings.TrimSpace(secret) != "" && !config.LooksLikePlaceholderSecret(secret) {
-			return CredentialStatus{
+			return credentialStatusWithEnvironment(CredentialStatus{
 				ProviderID: providerID, EnvVar: inference.EnvVar,
 				Configured: true, Masked: maskedCredential(secret),
-			}, nil
+			}, secret, e.CredentialEnvKeys(providerID)...), nil
 		}
 	}
-	return CredentialStatus{ProviderID: providerID, EnvVar: inference.EnvVar}, nil
+	return credentialStatusWithEnvironment(
+		CredentialStatus{ProviderID: providerID, EnvVar: inference.EnvVar},
+		"",
+		e.CredentialEnvKeys(providerID)...,
+	), nil
+}
+
+// credentialStatusWithEnvironment adds safe process-environment metadata to a
+// credential status. Secret values are compared only as fixed-size digests and
+// are never retained in or returned from the status DTO.
+func credentialStatusWithEnvironment(status CredentialStatus, storedSecret string, envVars ...string) CredentialStatus {
+	for _, envVar := range envVars {
+		envVar = strings.TrimSpace(envVar)
+		environmentSecret, ok := os.LookupEnv(envVar)
+		environmentSecret = strings.TrimSpace(environmentSecret)
+		if !ok || environmentSecret == "" {
+			continue
+		}
+		status.EnvironmentSet = true
+		status.EnvironmentVariable = envVar
+		storedSecret = strings.TrimSpace(storedSecret)
+		if storedSecret != "" {
+			status.EnvironmentConflict = sha256.Sum256([]byte(environmentSecret)) != sha256.Sum256([]byte(storedSecret))
+		}
+		break
+	}
+	return status
 }
 
 func (e *Engine) saveCustomGatewayCredential(ctx context.Context, gateway CustomGateway, secret string) (CredentialStatus, error) {

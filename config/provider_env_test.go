@@ -179,8 +179,8 @@ func TestGetProviderConfigDir(t *testing.T) {
 	// Test without env var (uses OS config dir when available)
 	os.Unsetenv("HAWK_CONFIG_DIR")
 	got = GetProviderConfigDir()
-	if !strings.HasSuffix(got, filepath.Join("hawk")) {
-		t.Errorf("expected path ending in hawk, got %q", got)
+	if !strings.HasSuffix(got, filepath.Join("eyrie")) {
+		t.Errorf("expected path ending in eyrie, got %q", got)
 	}
 }
 

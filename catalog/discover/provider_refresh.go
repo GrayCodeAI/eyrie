@@ -153,8 +153,9 @@ func refreshProvider(ctx context.Context, providerID string, opts ProviderRefres
 	if base.Provenance == nil {
 		base.Provenance = &catalog.Provenance{}
 	}
-	base.Provenance.ObservedAt = now
 	source = appendSourceSuffix(source, "providers")
+	base.Provenance.Source = source
+	base.Provenance.ObservedAt = now
 
 	if err := catalog.WriteCatalogCache(cachePath, base); err != nil {
 		return nil, fmt.Errorf("catalog discover: write cache: %w", err)
