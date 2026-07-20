@@ -344,33 +344,37 @@ func ValidateBaseURL(baseURL string) string {
 var ProviderDetectionOrder = APIProviderDetectionOrder
 
 // GetProviderConfigDir returns the config directory path.
-func GetProviderConfigDir() string {
+func GetProviderConfigDir() (string, error) {
 	if d := strings.TrimSpace(os.Getenv("EYRIE_CONFIG_DIR")); d != "" {
-		return d
+		return d, nil
 	}
 	// HAWK_CONFIG_DIR is retained as a compatibility fallback for hosts that
 	// predate Eyrie's host-neutral configuration namespace.
 	if d := os.Getenv("HAWK_CONFIG_DIR"); d != "" {
-		return d
+		return d, nil
 	}
 	if d, err := os.UserConfigDir(); err == nil && d != "" {
 		// Host-neutral default. Embedders that migrate from a product-specific
 		// directory should copy existing provider state to this path.
-		return filepath.Join(d, "eyrie")
+		return filepath.Join(d, "eyrie"), nil
 	}
-	panic("eyrie provider config: user config directory unavailable")
+	return "", fmt.Errorf("eyrie provider config: user config directory unavailable")
 }
 
 // GetProviderConfigPath returns the full path to provider.json.
-func GetProviderConfigPath() string {
-	return filepath.Join(GetProviderConfigDir(), "provider.json")
+func GetProviderConfigPath() (string, error) {
+	dir, err := GetProviderConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "provider.json"), nil
 }
 
 // LoadProviderConfig loads provider config from disk.
 // Returns nil if file doesn't exist. Returns error for corrupt JSON or permission issues.
 func LoadProviderConfig(path string) *ProviderConfig {
 	if path == "" {
-		path = GetProviderConfigPath()
+		path, _ = GetProviderConfigPath()
 	}
 	data, err := os.ReadFile(path) // #nosec G304 -- path defaults to GetProviderConfigPath() or is supplied by the local caller, not untrusted input
 	if err != nil {
@@ -392,7 +396,7 @@ func LoadProviderConfig(path string) *ProviderConfig {
 // Returns (nil, error) for corrupt JSON or permission issues.
 func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
 	if path == "" {
-		path = GetProviderConfigPath()
+		path, _ = GetProviderConfigPath()
 	}
 	data, err := os.ReadFile(path) // #nosec G304 -- path defaults to GetProviderConfigPath() or is supplied by the local caller, not untrusted input
 	if err != nil {
@@ -451,7 +455,10 @@ func SaveProviderConfig(config *ProviderConfig, path string) (err error) {
 		return fmt.Errorf("eyrie: refusing to persist unsupported provider config version %q", config.Version)
 	}
 	if path == "" {
-		path = GetProviderConfigPath()
+		path, err = GetProviderConfigPath()
+		if err != nil {
+			return err
+		}
 	}
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {

@@ -75,7 +75,11 @@ func New(opts Options) (*Engine, error) {
 		catalogPath = catalog.DefaultCachePath()
 	}
 	if providerPath == "" {
-		providerPath = config.GetProviderConfigPath()
+		resolvedProviderPath, err := config.GetProviderConfigPath()
+		if err != nil {
+			return nil, err
+		}
+		providerPath = resolvedProviderPath
 	}
 	remoteCatalogURL := strings.TrimSpace(opts.RemoteCatalogURL)
 	if remoteCatalogURL == "" {
