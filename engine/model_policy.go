@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 func (e *Engine) policyCatalog(ctx context.Context) (*catalog.CompiledCatalog, error) {
@@ -146,11 +147,11 @@ func (e *Engine) ModelClassOf(ctx context.Context, modelID string) ModelClass {
 	compiled, _ := e.policyCatalog(ctx)
 	switch catalog.ModelCostTierOf(compiled, modelID) {
 	case catalog.CostTierCheap:
-		return ModelClassEconomical
+		return llm.ModelClassEconomical
 	case catalog.CostTierExpensive:
-		return ModelClassPremium
+		return llm.ModelClassPremium
 	default:
-		return ModelClassBalanced
+		return llm.ModelClassBalanced
 	}
 }
 
@@ -252,9 +253,9 @@ func customGatewayModel(gateway CustomGateway) Model {
 
 func catalogTier(class ModelClass) catalog.ModelTier {
 	switch class {
-	case ModelClassEconomical:
+	case llm.ModelClassEconomical:
 		return catalog.TierHaiku
-	case ModelClassPremium:
+	case llm.ModelClassPremium:
 		return catalog.TierOpus
 	default:
 		return catalog.TierSonnet

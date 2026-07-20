@@ -125,10 +125,10 @@ func normalizeEvent(event client.EyrieStreamEvent) (Event, error) {
 	out := Event{
 		Content: event.Content, Thinking: event.Thinking, RequestID: event.RequestID,
 		Usage: fromClientUsage(event.Usage), StopReason: event.StopReason,
-		TTFTMillis: event.TTFTms,
+		TTFTms: event.TTFTms,
 	}
-	if out.TTFTMillis == 0 {
-		out.TTFTMillis = event.TTFT
+	if out.TTFTms == 0 {
+		out.TTFTms = event.TTFT
 	}
 	switch event.Type {
 	case "content":
@@ -150,7 +150,7 @@ func normalizeEvent(event client.EyrieStreamEvent) (Event, error) {
 	case "error":
 		return Event{}, &Error{Code: ErrorProviderUnavailable, Operation: "stream", Message: event.Error}
 	default:
-		out.Type = EventType(event.Type)
+		out.Type = event.Type
 	}
 	if event.ToolCall != nil {
 		out.ToolCall = &ToolCall{ID: event.ToolCall.ID, Name: event.ToolCall.Name, Arguments: event.ToolCall.Arguments}

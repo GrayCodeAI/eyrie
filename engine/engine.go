@@ -16,6 +16,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
 	"github.com/GrayCodeAI/eyrie/setup"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 // ContractVersion is the compatibility version of the host-facing API.
@@ -378,15 +379,15 @@ func selectCompatibleModel(compiled *catalog.CompiledCatalog, req SelectionReque
 	sort.SliceStable(candidates, func(i, j int) bool {
 		a, b := candidates[i], candidates[j]
 		switch req.Preference.Intent {
-		case IntentEconomical:
+		case llm.IntentEconomical:
 			if a.cost != b.cost {
 				return a.cost < b.cost
 			}
-		case IntentReasoning:
+		case llm.IntentReasoning:
 			if a.model.ContextWindow != b.model.ContextWindow {
 				return a.model.ContextWindow > b.model.ContextWindow
 			}
-		case IntentFast:
+		case llm.IntentFast:
 			if a.model.MaxOutput != b.model.MaxOutput {
 				return a.model.MaxOutput < b.model.MaxOutput
 			}
