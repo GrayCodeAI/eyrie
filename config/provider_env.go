@@ -354,9 +354,9 @@ func GetProviderConfigDir() string {
 		return d
 	}
 	if d, err := os.UserConfigDir(); err == nil && d != "" {
-		// Preserve the historical default until the host-neutral Engine path
-		// migration can copy existing provider state safely.
-		return filepath.Join(d, "hawk")
+		// Host-neutral default. Embedders that migrate from a product-specific
+		// directory should copy existing provider state to this path.
+		return filepath.Join(d, "eyrie")
 	}
 	panic("eyrie provider config: user config directory unavailable")
 }

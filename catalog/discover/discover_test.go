@@ -58,6 +58,12 @@ func TestDiscoverCatalog_MergesProviderModelsWithAPIKey(t *testing.T) {
 	if _, err := os.Stat(cachePath); err != nil {
 		t.Fatalf("cache not written: %v", err)
 	}
+	if result.Compiled.Catalog.Provenance == nil || result.Compiled.Catalog.Provenance.Source != result.Source {
+		t.Fatalf("catalog provenance = %+v, want source %q", result.Compiled.Catalog.Provenance, result.Source)
+	}
+	if _, ok := catalog.LoadValidCatalogCache(cachePath); !ok {
+		t.Fatal("discover persisted a catalog that cannot be loaded as valid")
+	}
 	if len(result.LiveProviders) != len(registry.All()) {
 		t.Fatalf("LiveProviders: got %d want %d", len(result.LiveProviders), len(registry.All()))
 	}

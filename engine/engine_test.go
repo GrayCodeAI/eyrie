@@ -47,6 +47,16 @@ func TestContractVersionAndRemoteCatalogIsolation(t *testing.T) {
 	}
 }
 
+func TestIsCatalogCacheRequired(t *testing.T) {
+	wrapped := &Error{Code: ErrorCatalogUnavailable, Cause: catalog.ErrCatalogCacheRequired}
+	if !IsCatalogCacheRequired(wrapped) {
+		t.Fatal("wrapped catalog cache requirement was not recognized")
+	}
+	if IsCatalogCacheRequired(errors.New("authentication failed")) {
+		t.Fatal("unrelated error reported as catalog cache requirement")
+	}
+}
+
 func TestNewDerivesHostNeutralPathsFromStateDir(t *testing.T) {
 	dir := t.TempDir()
 	eng, err := New(Options{SecretStore: &credentials.MapStore{}, StateDir: dir})

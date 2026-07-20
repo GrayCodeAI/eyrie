@@ -118,8 +118,9 @@ func run(ctx context.Context, opts Options) (*catalog.RefreshResult, error) {
 			if base.Provenance == nil {
 				base.Provenance = &catalog.Provenance{}
 			}
-			base.Provenance.ObservedAt = now
 			source = appendSourceSuffix(source, "providers")
+			base.Provenance.Source = source
+			base.Provenance.ObservedAt = now
 		}
 	}
 
