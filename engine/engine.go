@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -106,21 +107,51 @@ func New(opts Options) (*Engine, error) {
 var migrateLegacyProviderConfigOnce sync.Once
 
 func migrateLegacyProviderConfig() {
+	// Resolve the target dir from the same source eyrie reads provider.json
+	// from. Honors EYRIE_CONFIG_DIR and the HAWK_CONFIG_DIR compat fallback,
+	// instead of hard-coding the default user-config dir.
+	resolvedDir := config.GetProviderConfigDir()
+	if resolvedDir == "" {
+		return
+	}
 	userDir, err := os.UserConfigDir()
 	if err != nil || userDir == "" {
 		return
 	}
-	eyrieDir := filepath.Join(userDir, "eyrie")
-	// Copy legacy <userdir>/hawk/<name> → <userdir>/eyrie/<name> the first time
-	// an engine starts after the rename, for each file that does not yet exist
-	// in the new dir. One-time, idempotent, never overwrites newer state.
+	// The legacy "hawk" subdir lived in the user-config root. If a custom
+	// EYRIE_CONFIG_DIR is in use, there is no legacy "hawk" subdir to migrate
+	// from; skip.
+	legacyDir := filepath.Join(userDir, "hawk")
+	// Copy legacy <legacyDir>/<name> → <resolvedDir>/<name> the first time an
+	// engine starts after the rename, for each file that does not yet exist
+	// in the destination. One-time, idempotent, never overwrites newer state.
+	// The .tmp+rename pair makes the write atomic, so a parallel engine
+	// starting in the same instant cannot observe a half-written file.
 	for _, name := range []string{"provider.json", "categories.json"} {
-		if _, err := os.Stat(filepath.Join(eyrieDir, name)); err == nil {
+		dest := filepath.Join(resolvedDir, name)
+		if _, err := os.Stat(dest); err == nil {
 			continue // already present (fresh install or previously migrated)
 		}
-		if data, readErr := os.ReadFile(filepath.Join(userDir, "hawk", name)); readErr == nil {
-			_ = os.MkdirAll(eyrieDir, 0o700)
-			_ = os.WriteFile(filepath.Join(eyrieDir, name), data, 0o600)
+		legacyPath := filepath.Join(legacyDir, name)
+		data, readErr := os.ReadFile(legacyPath)
+		if readErr != nil {
+			continue // no legacy file to migrate; nothing to do
+		}
+		if err := os.MkdirAll(resolvedDir, 0o700); err != nil {
+			slog.Warn("config: legacy migration mkdir failed",
+				"dir", resolvedDir, "name", name, "error", err)
+			continue
+		}
+		tmp := dest + ".tmp"
+		if err := os.WriteFile(tmp, data, 0o600); err != nil {
+			slog.Warn("config: legacy migration write failed",
+				"path", tmp, "name", name, "error", err)
+			continue
+		}
+		if err := os.Rename(tmp, dest); err != nil {
+			slog.Warn("config: legacy migration rename failed",
+				"from", tmp, "to", dest, "name", name, "error", err)
+			_ = os.Remove(tmp)
 		}
 	}
 }
