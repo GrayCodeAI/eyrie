@@ -76,7 +76,11 @@ func New(opts Options) (*Engine, error) {
 		catalogPath = catalog.DefaultCachePath()
 	}
 	if providerPath == "" {
-		providerPath = config.GetProviderConfigPath()
+		p, err := config.GetProviderConfigPath()
+		if err != nil {
+			return nil, err
+		}
+		providerPath = p
 	}
 	remoteCatalogURL := strings.TrimSpace(opts.RemoteCatalogURL)
 	if remoteCatalogURL == "" {
@@ -110,8 +114,8 @@ func migrateLegacyProviderConfig() {
 	// Resolve the target dir from the same source eyrie reads provider.json
 	// from. Honors EYRIE_CONFIG_DIR and the HAWK_CONFIG_DIR compat fallback,
 	// instead of hard-coding the default user-config dir.
-	resolvedDir := config.GetProviderConfigDir()
-	if resolvedDir == "" {
+	resolvedDir, err := config.GetProviderConfigDir()
+	if err != nil || resolvedDir == "" {
 		return
 	}
 	userDir, err := os.UserConfigDir()

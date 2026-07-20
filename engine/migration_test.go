@@ -41,7 +41,11 @@ func TestMigrateLegacyConfigHonorsEYRIE_CONFIG_DIR(t *testing.T) {
 	}
 
 	// Sanity: the resolved dir is the custom one.
-	if got := config.GetProviderConfigDir(); got != customDir {
+	got, err := config.GetProviderConfigDir()
+	if err != nil {
+		t.Fatalf("GetProviderConfigDir: %v", err)
+	}
+	if got != customDir {
 		t.Fatalf("GetProviderConfigDir = %q, want %q", got, customDir)
 	}
 
@@ -49,11 +53,11 @@ func TestMigrateLegacyConfigHonorsEYRIE_CONFIG_DIR(t *testing.T) {
 
 	// Should have copied to <EYRIE_CONFIG_DIR>/provider.json.
 	dst := filepath.Join(customDir, "provider.json")
-	got, err := os.ReadFile(dst)
+	data, err := os.ReadFile(dst)
 	if err != nil {
 		t.Fatalf("read %s: %v (migration should target the custom dir)", dst, err)
 	}
-	if string(got) != string(legacyData) {
+	if string(data) != string(legacyData) {
 		t.Fatalf("migration content mismatch")
 	}
 	// Should NOT have created a file at the default path.

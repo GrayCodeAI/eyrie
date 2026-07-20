@@ -90,10 +90,14 @@ func Load(ctx context.Context) (*Runtime, error) {
 		return nil, err
 	}
 	cfg := config.LoadProviderConfig("")
+	providerPath, err := config.GetProviderConfigPath()
+	if err != nil {
+		return nil, err
+	}
 	return &Runtime{
 		Catalog:      compiled,
 		Provider:     cfg,
-		ProviderPath: config.GetProviderConfigPath(),
+		ProviderPath: providerPath,
 	}, nil
 }
 
@@ -277,6 +281,10 @@ func configuredDeploymentIDsForProvider(compiled *catalog.CompiledCatalog, provi
 }
 
 // DefaultPaths reports standard eyrie paths on disk.
-func DefaultPaths() (catalogPath, providerPath string) {
-	return catalog.DefaultCachePath(), config.GetProviderConfigPath()
+func DefaultPaths() (catalogPath, providerPath string, err error) {
+	providerPath, err = config.GetProviderConfigPath()
+	if err != nil {
+		return "", "", err
+	}
+	return catalog.DefaultCachePath(), providerPath, nil
 }
