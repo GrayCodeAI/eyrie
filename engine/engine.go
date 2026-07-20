@@ -16,6 +16,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
 	"github.com/GrayCodeAI/eyrie/setup"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 // ContractVersion is the compatibility version of the host-facing API.
@@ -75,7 +76,11 @@ func New(opts Options) (*Engine, error) {
 		catalogPath = catalog.DefaultCachePath()
 	}
 	if providerPath == "" {
-		providerPath = config.GetProviderConfigPath()
+		resolvedProviderPath, err := config.GetProviderConfigPath()
+		if err != nil {
+			return nil, &Error{Code: ErrorInternal, Operation: "new", Message: err.Error(), Cause: err}
+		}
+		providerPath = resolvedProviderPath
 	}
 	remoteCatalogURL := strings.TrimSpace(opts.RemoteCatalogURL)
 	if remoteCatalogURL == "" {
@@ -281,6 +286,14 @@ func (e *Engine) resolveProvider(ctx context.Context, req GenerateRequest) (Rout
 	if err != nil {
 		return Route{}, nil, classify("resolve_transport", route, err)
 	}
+	// Guard against a transport that returns (nil, nil): resolveTransport is a
+	// pluggable func field (custom gateways can override it), and a nil
+	// provider paired with a nil error would nil-panic at the provider.Chat /
+	// provider.StreamChat call sites. Surface it as a classified error instead.
+	if provider == nil {
+		return Route{}, nil, classify("resolve_transport", route,
+			fmt.Errorf("resolved transport is nil for provider %q", route.Provider))
+	}
 	return route, provider, nil
 }
 
@@ -378,15 +391,15 @@ func selectCompatibleModel(compiled *catalog.CompiledCatalog, req SelectionReque
 	sort.SliceStable(candidates, func(i, j int) bool {
 		a, b := candidates[i], candidates[j]
 		switch req.Preference.Intent {
-		case IntentEconomical:
+		case llm.IntentEconomical:
 			if a.cost != b.cost {
 				return a.cost < b.cost
 			}
-		case IntentReasoning:
+		case llm.IntentReasoning:
 			if a.model.ContextWindow != b.model.ContextWindow {
 				return a.model.ContextWindow > b.model.ContextWindow
 			}
-		case IntentFast:
+		case llm.IntentFast:
 			if a.model.MaxOutput != b.model.MaxOutput {
 				return a.model.MaxOutput < b.model.MaxOutput
 			}

@@ -79,7 +79,7 @@ func TestCredentialStatusReportsEnvironmentConflictWithoutSecrets(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !status.EnvironmentSet || !status.EnvironmentConflict {
+	if status.EnvironmentVariable == "" || !status.EnvironmentConflict {
 		t.Fatalf("expected environment conflict, got %+v", status)
 	}
 	encoded := fmt.Sprintf("%+v", status)
@@ -92,7 +92,7 @@ func TestCredentialStatusReportsEnvironmentConflictWithoutSecrets(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !status.EnvironmentSet || status.EnvironmentConflict {
+	if status.EnvironmentVariable == "" || status.EnvironmentConflict {
 		t.Fatalf("matching environment credential reported conflict: %+v", status)
 	}
 }
