@@ -106,15 +106,21 @@ func New(opts Options) (*Engine, error) {
 var migrateLegacyProviderConfigOnce sync.Once
 
 func migrateLegacyProviderConfig() {
-	eyriePath := config.GetProviderConfigPath()
-	if _, err := os.Stat(eyriePath); err == nil {
-		return // already present (fresh install or previously migrated)
+	userDir, err := os.UserConfigDir()
+	if err != nil || userDir == "" {
+		return
 	}
-	if d, err := os.UserConfigDir(); err == nil && d != "" {
-		legacyPath := filepath.Join(d, "hawk", "provider.json")
-		if data, err := os.ReadFile(legacyPath); err == nil {
-			_ = os.MkdirAll(filepath.Dir(eyriePath), 0o700)
-			_ = os.WriteFile(eyriePath, data, 0o600)
+	eyrieDir := filepath.Join(userDir, "eyrie")
+	// Copy legacy <userdir>/hawk/<name> → <userdir>/eyrie/<name> the first time
+	// an engine starts after the rename, for each file that does not yet exist
+	// in the new dir. One-time, idempotent, never overwrites newer state.
+	for _, name := range []string{"provider.json", "categories.json"} {
+		if _, err := os.Stat(filepath.Join(eyrieDir, name)); err == nil {
+			continue // already present (fresh install or previously migrated)
+		}
+		if data, readErr := os.ReadFile(filepath.Join(userDir, "hawk", name)); readErr == nil {
+			_ = os.MkdirAll(eyrieDir, 0o700)
+			_ = os.WriteFile(filepath.Join(eyrieDir, name), data, 0o600)
 		}
 	}
 }
