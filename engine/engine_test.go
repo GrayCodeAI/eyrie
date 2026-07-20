@@ -10,6 +10,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 func TestNewUsesInjectedCredentialStore(t *testing.T) {
@@ -135,8 +136,8 @@ func TestModelPriceKnownContract(t *testing.T) {
 
 func TestMessageConversionPreservesToolsAndMultimodalParts(t *testing.T) {
 	messages := toClientMessages([]Message{{
-		Role: "user", Content: "inspect", ContentParts: []ContentPart{{Type: "image_url", URL: "https://example.test/image.png", Detail: "high"}},
-		ToolCalls:   []ToolCall{{ID: "call-1", Name: "read", Arguments: map[string]interface{}{"path": "a.go"}}},
+		Role: "user", Content: "inspect", ContentParts: []ContentPart{{Type: "image_url", ImageURL: &llm.ImageURLPart{URL: "https://example.test/image.png", Detail: "high"}}},
+		ToolUse:     []ToolCall{{ID: "call-1", Name: "read", Arguments: map[string]interface{}{"path": "a.go"}}},
 		ToolResults: []ToolResult{{ToolUseID: "call-1", Content: "ok"}},
 	}})
 	if len(messages) != 1 || len(messages[0].ContentParts) != 1 || messages[0].ContentParts[0].ImageURL == nil {
@@ -213,7 +214,7 @@ func TestSelectCompatibleModelUsesCapabilitiesAndIntent(t *testing.T) {
 
 	model, provider := selectCompatibleModel(compiled, SelectionRequest{
 		Requirements: Requirements{Tools: true, MinimumContext: 100_000},
-		Preference:   Preference{Intent: IntentEconomical},
+		Preference:   Preference{Intent: llm.IntentEconomical},
 	})
 	if model != "vendor/cheap" || provider != "vendor" {
 		t.Fatalf("selected %q via %q, want vendor/cheap via vendor", model, provider)
@@ -221,7 +222,7 @@ func TestSelectCompatibleModelUsesCapabilitiesAndIntent(t *testing.T) {
 
 	model, _ = selectCompatibleModel(compiled, SelectionRequest{
 		Requirements: Requirements{Tools: true, MinimumContext: 150_000},
-		Preference:   Preference{Intent: IntentReasoning},
+		Preference:   Preference{Intent: llm.IntentReasoning},
 	})
 	if model != "vendor/rich" {
 		t.Fatalf("selected %q, want vendor/rich", model)
