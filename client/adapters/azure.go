@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 const (
@@ -164,7 +165,7 @@ func (c *AzureClient) StreamChat(ctx context.Context, messages []core.EyrieMessa
 	sseEvents := core.ParseSSEStream(streamCtx, resp.Body, c.logger)
 	events := core.ProcessOpenAIStream(streamCtx, sseEvents, c.logger)
 
-	return core.NewStreamResultWithRequestID(events, requestID, cancel), nil
+	return llm.NewStreamResult(events, requestID, cancel), nil
 }
 
 func (c *AzureClient) Ping(ctx context.Context) error {

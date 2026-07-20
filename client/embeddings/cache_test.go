@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 // echoMock is a minimal core.Provider that echoes the last user message and
@@ -37,7 +38,7 @@ func (m *echoMock) StreamChat(ctx context.Context, msgs []core.EyrieMessage, opt
 	ch <- core.EyrieStreamEvent{Type: "content", Content: resp.Content}
 	ch <- core.EyrieStreamEvent{Type: "done", StopReason: "stop"}
 	close(ch)
-	return core.NewStreamResult(ch, func() {}), nil
+	return llm.NewStreamResult(ch, "", func() {}), nil
 }
 
 func (m *echoMock) Ping(context.Context) error { return nil }

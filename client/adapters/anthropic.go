@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 // maxAnthropicRequestSize is the maximum request body size for the Messages API (32 MB).
@@ -612,7 +613,7 @@ func (c *AnthropicClient) StreamChat(ctx context.Context, messages []core.EyrieM
 	sseEvents := core.ParseSSEStream(streamCtx, resp.Body, c.logger)
 	events := core.ProcessAnthropicStream(streamCtx, sseEvents, c.logger)
 
-	return core.NewStreamResultWithRequestID(events, requestID, cancel), nil
+	return llm.NewStreamResult(events, requestID, cancel), nil
 }
 
 func (c *AnthropicClient) doRequestWithMimoAuthRetry(ctx context.Context, req *http.Request, body []byte) (*http.Response, error) {
