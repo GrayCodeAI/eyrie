@@ -132,8 +132,14 @@ func DoWithRetry(ctx context.Context, httpClient *http.Client, req *http.Request
 			}
 		}
 
-		// Clone request body for retry (body may have been consumed)
+		// Clone request body for retry (body may have been consumed).
+		// If a Body is set but GetBody is missing, retries would silently
+		// send a drained body and likely fail with a confusing provider
+		// error; surface that immediately instead.
 		retryReq := req.Clone(ctx)
+		if req.Body != nil && req.GetBody == nil {
+			return nil, fmt.Errorf("retry requires GetBody set on *http.Request (setBody=%T)", req.Body)
+		}
 		if req.GetBody != nil {
 			body, err := req.GetBody()
 			if err != nil {

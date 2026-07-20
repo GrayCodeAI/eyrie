@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -317,25 +316,6 @@ func ValidateAPIKey(apiKey, providerName string) string {
 	}
 	if len(apiKey) < 10 {
 		return providerName + " API key appears invalid (too short)"
-	}
-	return ""
-}
-
-// ValidateBaseURL validates a base URL. Returns an error message if the URL
-// is syntactically invalid (unparseable or missing a scheme), or empty if valid.
-func ValidateBaseURL(baseURL string) string {
-	if baseURL == "" {
-		return ""
-	}
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return "Invalid base URL: " + baseURL + " (" + err.Error() + ")"
-	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return "Invalid base URL: " + baseURL + " (must be http or https)"
-	}
-	if u.Host == "" {
-		return "Invalid base URL: " + baseURL + " (missing host)"
 	}
 	return ""
 }

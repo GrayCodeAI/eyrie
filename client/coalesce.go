@@ -150,9 +150,17 @@ func (c *Coalescer) Coalesce(ctx context.Context, key CoalesceKey, fn func() (*E
 		inflight.result = result
 	}()
 
-	// Schedule cleanup after TTL
+	// Schedule cleanup after TTL. Use a cancellable timer so the goroutine
+	// exits promptly if the enclosing context is cancelled (e.g. caller
+	// shutdown), instead of lingering for the full TTL.
 	go func() {
-		time.Sleep(c.ttl)
+		timer := time.NewTimer(c.ttl)
+		defer timer.Stop()
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			return
+		}
 		c.mu.Lock()
 		delete(c.inflight, keyStr)
 		c.mu.Unlock()
