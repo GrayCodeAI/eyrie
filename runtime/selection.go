@@ -288,7 +288,10 @@ func SetActiveModel(ctx context.Context, modelID string) error {
 		provider = config.DefaultProviderFromConfig(cfg)
 	}
 	config.SetProviderModel(cfg, provider, modelID)
-	path := config.GetProviderConfigPath()
+	path, err := config.GetProviderConfigPath()
+	if err != nil {
+		return err
+	}
 	return config.SaveProviderConfig(cfg, path)
 }
 
@@ -304,7 +307,11 @@ func SetActiveProvider(ctx context.Context, provider string) error {
 		cfg = &config.ProviderConfig{}
 	}
 	config.SetActiveProvider(cfg, provider)
-	return config.SaveProviderConfig(cfg, config.GetProviderConfigPath())
+	path, err := config.GetProviderConfigPath()
+	if err != nil {
+		return err
+	}
+	return config.SaveProviderConfig(cfg, path)
 }
 
 // ClearActiveSelection removes active provider/model from provider.json.
@@ -315,7 +322,11 @@ func ClearActiveSelection(ctx context.Context) error {
 		return nil
 	}
 	config.ClearActiveSelection(cfg)
-	return config.SaveProviderConfig(cfg, config.GetProviderConfigPath())
+	path, err := config.GetProviderConfigPath()
+	if err != nil {
+		return err
+	}
+	return config.SaveProviderConfig(cfg, path)
 }
 
 func inferProviderForModel(ctx context.Context, modelID string) string {
