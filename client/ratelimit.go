@@ -86,6 +86,13 @@ func (b *tokenBucket) wait(ctx context.Context) error {
 					select {
 					case <-ctx.Done():
 						timer.Stop()
+						// Refund the token consumed above (b.tokens--): the
+						// request is aborting during the min-interval wait and
+						// never proceeds, so the token must return to the bucket
+						// rather than being silently lost.
+						b.mu.Lock()
+						b.tokens++
+						b.mu.Unlock()
 						return fmt.Errorf("eyrie: rate limiter: %w", ctx.Err())
 					case <-timer.C:
 					}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 func TestStreamResultFromChat(t *testing.T) {
@@ -32,7 +33,7 @@ func TestNewStreamWithReasoningFallbackChatFirst(t *testing.T) {
 	primaryEvents <- core.EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
 	primaryEvents <- core.EyrieStreamEvent{Type: "done", StopReason: "end_turn"}
 	close(primaryEvents)
-	primary := core.NewStreamResult(primaryEvents, func() {})
+	primary := llm.NewStreamResult(primaryEvents, "", func() {})
 
 	var chatCalled, streamCalled bool
 	fallback := protocolStreamFallback{
@@ -73,7 +74,7 @@ func TestNewStreamWithReasoningFallbackStreamWhenChatEmpty(t *testing.T) {
 	primaryEvents <- core.EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
 	primaryEvents <- core.EyrieStreamEvent{Type: "done", StopReason: "end_turn"}
 	close(primaryEvents)
-	primary := core.NewStreamResult(primaryEvents, func() {})
+	primary := llm.NewStreamResult(primaryEvents, "", func() {})
 
 	fallbackEvents := make(chan core.EyrieStreamEvent, 4)
 	fallbackEvents <- core.EyrieStreamEvent{Type: "content", Content: "stream answer"}
@@ -88,7 +89,7 @@ func TestNewStreamWithReasoningFallbackStreamWhenChatEmpty(t *testing.T) {
 		},
 		stream: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.StreamResult, error) {
 			streamCalled = true
-			return core.NewStreamResult(fallbackEvents, func() {}), nil
+			return llm.NewStreamResult(fallbackEvents, "", func() {}), nil
 		},
 	}
 

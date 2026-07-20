@@ -134,7 +134,6 @@ func credentialStatusWithEnvironment(status CredentialStatus, storedSecret strin
 		if !ok || environmentSecret == "" {
 			continue
 		}
-		status.EnvironmentSet = true
 		status.EnvironmentVariable = envVar
 		storedSecret = strings.TrimSpace(storedSecret)
 		if storedSecret != "" {

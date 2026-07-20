@@ -9,6 +9,7 @@ import (
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/credentials"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 func TestModelPolicyIncludesInvocationScopedCustomGateways(t *testing.T) {
@@ -32,10 +33,10 @@ func TestModelPolicyIncludesInvocationScopedCustomGateways(t *testing.T) {
 	if got := eng.DefaultModel(ctx, "custom-primary", "fallback"); got != "custom/primary" {
 		t.Fatalf("DefaultModel(custom) = %q", got)
 	}
-	if got := eng.PreferredModel(ctx, "custom-primary", ModelClassPremium, "fallback"); got != "custom/primary" {
+	if got := eng.PreferredModel(ctx, "custom-primary", llm.ModelClassPremium, "fallback"); got != "custom/primary" {
 		t.Fatalf("PreferredModel(custom) = %q", got)
 	}
-	preferred := eng.PreferredModels(ctx, "custom-primary", ModelClassBalanced, 2)
+	preferred := eng.PreferredModels(ctx, "custom-primary", llm.ModelClassBalanced, 2)
 	if !slices.Equal(preferred, []string{"custom/primary", "custom/secondary"}) {
 		t.Fatalf("PreferredModels(custom) = %v", preferred)
 	}

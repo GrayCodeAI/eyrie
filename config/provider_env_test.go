@@ -171,14 +171,17 @@ func TestGetProviderConfigDir(t *testing.T) {
 	os.Setenv("HAWK_CONFIG_DIR", dir)
 	defer os.Unsetenv("HAWK_CONFIG_DIR")
 
-	got := GetProviderConfigDir()
+	got, err := GetProviderConfigDir()
+	if err != nil {
+		t.Fatalf("GetProviderConfigDir() error = %v", err)
+	}
 	if got != dir {
 		t.Errorf("expected %q, got %q", dir, got)
 	}
 
 	// Test without env var (uses OS config dir when available)
 	os.Unsetenv("HAWK_CONFIG_DIR")
-	got = GetProviderConfigDir()
+	got, _ = GetProviderConfigDir()
 	if !strings.HasSuffix(got, filepath.Join("eyrie")) {
 		t.Errorf("expected path ending in eyrie, got %q", got)
 	}
@@ -187,7 +190,11 @@ func TestGetProviderConfigDir(t *testing.T) {
 func TestGetProviderConfigDirPrefersEyrieNamespace(t *testing.T) {
 	t.Setenv("EYRIE_CONFIG_DIR", "/tmp/eyrie-config")
 	t.Setenv("HAWK_CONFIG_DIR", "/tmp/legacy-hawk-config")
-	if got := GetProviderConfigDir(); got != "/tmp/eyrie-config" {
+	got, err := GetProviderConfigDir()
+	if err != nil {
+		t.Fatalf("GetProviderConfigDir() error = %v", err)
+	}
+	if got != "/tmp/eyrie-config" {
 		t.Fatalf("GetProviderConfigDir() = %q, want EYRIE_CONFIG_DIR", got)
 	}
 }
@@ -197,7 +204,10 @@ func TestGetProviderConfigPath(t *testing.T) {
 	os.Setenv("HAWK_CONFIG_DIR", dir)
 	defer os.Unsetenv("HAWK_CONFIG_DIR")
 
-	got := GetProviderConfigPath()
+	got, err := GetProviderConfigPath()
+	if err != nil {
+		t.Fatalf("GetProviderConfigPath() error = %v", err)
+	}
 	expected := filepath.Join(dir, "provider.json")
 	if got != expected {
 		t.Errorf("expected %q, got %q", expected, got)

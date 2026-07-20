@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 // geminiSharedParserEnvVar is the opt-out flag for the new
@@ -160,12 +161,12 @@ func (c *GeminiClient) StreamChat(ctx context.Context, messages []core.EyrieMess
 	if geminiSharedParserEnabled() {
 		sseEvents := core.ParseSSEStream(streamCtx, resp.Body, c.logger)
 		events := processGeminiStream(streamCtx, sseEvents, c.logger)
-		return core.NewStreamResult(events, cancel), nil
+		return llm.NewStreamResult(events, "", cancel), nil
 	}
 	// Fallback (opt-out via EYRIE_GEMINI_SHARED_PARSER=0): old bespoke parser.
 	events := make(chan core.EyrieStreamEvent, 64)
 	go c.streamLoop(streamCtx, resp.Body, events)
-	return core.NewStreamResult(events, cancel), nil
+	return llm.NewStreamResult(events, "", cancel), nil
 }
 
 func (c *GeminiClient) Ping(ctx context.Context) error {
