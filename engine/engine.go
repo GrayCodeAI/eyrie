@@ -3,9 +3,11 @@ package engine
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
@@ -89,7 +91,32 @@ func New(opts Options) (*Engine, error) {
 		customGateways: customGateways,
 	}
 	engine.resolveTransport = engine.defaultTransport
+	migrateLegacyProviderConfigOnce.Do(migrateLegacyProviderConfig)
 	return engine, nil
+}
+
+// migrateLegacyProviderConfig copies a provider.json left in the old
+// product-specific "hawk" config dir into the new host-neutral "eyrie" dir the
+// first time an engine starts after the rename. Without this, upgrading users
+// silently lose their active provider/model selection, deployments, and routing
+// (hawk starts as if unconfigured and they must re-run /config).
+//
+// The copy only happens when the eyrie-dir provider.json does not yet exist, so
+// it is a one-time, idempotent migration that never overwrites newer state.
+var migrateLegacyProviderConfigOnce sync.Once
+
+func migrateLegacyProviderConfig() {
+	eyriePath := config.GetProviderConfigPath()
+	if _, err := os.Stat(eyriePath); err == nil {
+		return // already present (fresh install or previously migrated)
+	}
+	if d, err := os.UserConfigDir(); err == nil && d != "" {
+		legacyPath := filepath.Join(d, "hawk", "provider.json")
+		if data, err := os.ReadFile(legacyPath); err == nil {
+			_ = os.MkdirAll(filepath.Dir(eyriePath), 0o700)
+			_ = os.WriteFile(eyriePath, data, 0o600)
+		}
+	}
 }
 
 // SelectionRequest asks Eyrie to resolve a concrete provider/model route.
