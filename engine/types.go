@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"time"
-
 	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
@@ -87,14 +85,10 @@ type Event = llm.EyrieStreamEvent
 // Model is a host-facing catalog row.
 type Model = llm.Model
 
-// CatalogSnapshot is an immutable host-facing view of a loaded catalog.
-type CatalogSnapshot struct {
-	Models    []Model   `json:"models"`
-	CachePath string    `json:"cache_path,omitempty"`
-	RemoteURL string    `json:"remote_url,omitempty"`
-	Stale     bool      `json:"stale,omitempty"`
-	LoadedAt  time.Time `json:"loaded_at"`
-}
+// CatalogSnapshot is an immutable host-facing view of a loaded catalog. It is a
+// type alias to the canonical llm.CatalogSnapshot so exactly one struct crosses
+// the host boundary (matching every other type in this file).
+type CatalogSnapshot = llm.CatalogSnapshot
 
 // CredentialStatus is safe to render or log; it never contains a secret.
 type CredentialStatus = llm.CredentialStatus
