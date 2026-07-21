@@ -328,10 +328,7 @@ func TestCredentialTargets_WithCatalog(t *testing.T) {
 // --- DefaultPaths ---
 
 func TestDefaultPaths(t *testing.T) {
-	catalogPath, providerPath, err := DefaultPaths()
-	if err != nil {
-		t.Fatalf("DefaultPaths: %v", err)
-	}
+	catalogPath, providerPath := DefaultPaths()
 	if catalogPath == "" {
 		t.Fatal("expected non-empty catalog path")
 	}
@@ -347,10 +344,7 @@ func TestDefaultPaths(t *testing.T) {
 }
 
 func TestDefaultPaths_ContainsEyrieDir(t *testing.T) {
-	catalogPath, _, err := DefaultPaths()
-	if err != nil {
-		t.Fatalf("DefaultPaths: %v", err)
-	}
+	catalogPath, _ := DefaultPaths()
 	if !filepath.IsAbs(catalogPath) {
 		t.Fatalf("expected absolute path, got %q", catalogPath)
 	}

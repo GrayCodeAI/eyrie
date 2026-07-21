@@ -20,6 +20,7 @@ func TestMigrateLegacyConfigHonorsEYRIE_CONFIG_DIR(t *testing.T) {
 	customDir := t.TempDir()
 	t.Setenv("EYRIE_CONFIG_DIR", customDir)
 	t.Setenv("HAWK_CONFIG_DIR", "")
+	t.Setenv("XDG_CONFIG_HOME", "")
 
 	// Compute the same legacy dir the migration will read: it derives from
 	// os.UserConfigDir(), which on macOS/Linux appends "Library/Application

@@ -137,4 +137,5 @@ make ci                          # Full CI suite
 | Mock provider | `client/mock.go` |
 | Main test file | `client/client_test.go` (httptest servers, provider detection) |
 | Linter config | `.golangci.yml` (govet, ineffassign, misspell — minimal) |
+
 This repo is a submodule of [hawk](https://github.com/GrayCodeAI/hawk) at `hawk/external/eyrie`. Work in the submodule (go.work picks it up), push, sync here, PR/merge, then pull main in the submodule.
