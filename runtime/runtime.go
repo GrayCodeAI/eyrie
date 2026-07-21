@@ -281,10 +281,7 @@ func configuredDeploymentIDsForProvider(compiled *catalog.CompiledCatalog, provi
 }
 
 // DefaultPaths reports standard eyrie paths on disk.
-func DefaultPaths() (catalogPath, providerPath string, err error) {
-	providerPath, err = config.GetProviderConfigPath()
-	if err != nil {
-		return "", "", err
-	}
-	return catalog.DefaultCachePath(), providerPath, nil
+func DefaultPaths() (catalogPath, providerPath string) {
+	providerPath, _ = config.GetProviderConfigPath()
+	return catalog.DefaultCachePath(), providerPath
 }

@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 const (
@@ -534,7 +535,7 @@ func (c *OpenAIClient) StreamChat(ctx context.Context, messages []core.EyrieMess
 	sseEvents := core.ParseSSEStream(streamCtx, resp.Body, c.logger)
 	events := core.ProcessOpenAIStream(streamCtx, sseEvents, c.logger)
 
-	return core.NewStreamResultWithRequestID(events, requestID, cancel), nil
+	return llm.NewStreamResult(events, requestID, cancel), nil
 }
 
 // Ping checks connectivity.

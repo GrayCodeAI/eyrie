@@ -31,7 +31,9 @@ func ApplyCredentialsForProvider(ctx context.Context, providerID string, creds c
 	}
 	cfg := config.SyncProviderConfigFromCatalog(catResult.Compiled, env)
 	path, err := config.GetProviderConfigPath()
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	if err := config.SaveProviderConfig(cfg, path); err != nil {
 		return nil, fmt.Errorf("save provider config: %w", err)
 	}
@@ -66,7 +68,9 @@ func ApplyCredentials(ctx context.Context, creds catalog.Credentials) (*ApplyCre
 	}
 	cfg := config.SyncProviderConfigFromCatalog(catResult.Compiled, env)
 	path, err := config.GetProviderConfigPath()
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	if err := config.SaveProviderConfig(cfg, path); err != nil {
 		return nil, fmt.Errorf("save provider config: %w", err)
 	}

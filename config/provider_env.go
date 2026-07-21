@@ -323,10 +323,9 @@ func ValidateAPIKey(apiKey, providerName string) string {
 // ProviderDetectionOrder is the priority order for provider detection.
 var ProviderDetectionOrder = APIProviderDetectionOrder
 
-// GetProviderConfigDir returns the config directory path.
-// It returns a non-nil error if neither EYRIE_CONFIG_DIR / HAWK_CONFIG_DIR
-// are set nor os.UserConfigDir is available, instead of panicking, so
-// callers (and embedders on sandboxed platforms) can recover gracefully.
+// GetProviderConfigDir returns the config directory path. It returns an error
+// when no configuration directory can be resolved (e.g. unset HOME in a
+// container) so callers degrade gracefully instead of panicking.
 func GetProviderConfigDir() (string, error) {
 	if d := strings.TrimSpace(os.Getenv("EYRIE_CONFIG_DIR")); d != "" {
 		return d, nil
@@ -342,27 +341,17 @@ func GetProviderConfigDir() (string, error) {
 		// directory should copy existing provider state to this path.
 		return filepath.Join(d, "eyrie"), nil
 	}
-	return "", err
+	return "", fmt.Errorf("eyrie provider config: user config directory unavailable")
 }
 
-// MustGetProviderConfigDir returns the config directory path or panics. Useful
-// for test fixtures and startup paths that genuinely cannot proceed without
-// a config dir. Production paths should call GetProviderConfigDir directly.
-func MustGetProviderConfigDir() string {
-	d, err := GetProviderConfigDir()
-	if err != nil {
-		panic("eyrie provider config: user config directory unavailable: " + err.Error())
-	}
-	return d
-}
-
-// GetProviderConfigPath returns the full path to provider.json.
+// GetProviderConfigPath returns the full path to provider.json. It returns an
+// error when the configuration directory cannot be resolved.
 func GetProviderConfigPath() (string, error) {
-	d, err := GetProviderConfigDir()
+	dir, err := GetProviderConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(d, "provider.json"), nil
+	return filepath.Join(dir, "provider.json"), nil
 }
 
 // LoadProviderConfig loads provider config from disk.
@@ -371,11 +360,7 @@ func GetProviderConfigPath() (string, error) {
 // should use LoadProviderConfigWithError).
 func LoadProviderConfig(path string) *ProviderConfig {
 	if path == "" {
-		p, err := GetProviderConfigPath()
-		if err != nil {
-			return nil
-		}
-		path = p
+		path, _ = GetProviderConfigPath()
 	}
 	data, err := os.ReadFile(path) // #nosec G304 -- path defaults to GetProviderConfigPath() or is supplied by the local caller, not untrusted input
 	if err != nil {
@@ -397,11 +382,7 @@ func LoadProviderConfig(path string) *ProviderConfig {
 // Returns (nil, error) for corrupt JSON, missing config dir, or permission issues.
 func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
 	if path == "" {
-		p, err := GetProviderConfigPath()
-		if err != nil {
-			return nil, err
-		}
-		path = p
+		path, _ = GetProviderConfigPath()
 	}
 	data, err := os.ReadFile(path) // #nosec G304 -- path defaults to GetProviderConfigPath() or is supplied by the local caller, not untrusted input
 	if err != nil {
@@ -460,14 +441,13 @@ func SaveProviderConfig(config *ProviderConfig, path string) (err error) {
 		return fmt.Errorf("eyrie: refusing to persist unsupported provider config version %q", config.Version)
 	}
 	if path == "" {
-		p, err := GetProviderConfigPath()
+		path, err = GetProviderConfigPath()
 		if err != nil {
 			return err
 		}
-		path = p
 	}
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	if err = os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(config, "", "  ")

@@ -47,11 +47,7 @@ func DeploymentStatusFromPaths(ctx context.Context, activeModel, providerConfigP
 
 func deploymentStatusFromPaths(ctx context.Context, activeModel, providerConfigPath, catalogCachePath string, allowAmbient bool) (StatusReport, error) {
 	if strings.TrimSpace(providerConfigPath) == "" {
-		p, err := config.GetProviderConfigPath()
-		if err != nil {
-			return StatusReport{}, err
-		}
-		providerConfigPath = p
+		providerConfigPath, _ = config.GetProviderConfigPath()
 	}
 	if strings.TrimSpace(catalogCachePath) == "" {
 		catalogCachePath = catalog.DefaultCachePath()
@@ -160,11 +156,7 @@ func RoutingPreview(ctx context.Context, model string) (string, error) {
 // Empty paths retain the process defaults for backwards compatibility.
 func RoutingPreviewFromPaths(ctx context.Context, model, providerConfigPath, catalogCachePath string) (string, error) {
 	if strings.TrimSpace(providerConfigPath) == "" {
-		p, err := config.GetProviderConfigPath()
-		if err != nil {
-			return "", err
-		}
-		providerConfigPath = p
+		providerConfigPath, _ = config.GetProviderConfigPath()
 	}
 	if strings.TrimSpace(catalogCachePath) == "" {
 		catalogCachePath = catalog.DefaultCachePath()
