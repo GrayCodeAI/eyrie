@@ -360,6 +360,16 @@ func (e *Engine) streamAndSave(ctx context.Context, parentNode *storage.Node, me
 
 			contSR, contErr := e.provider.StreamChat(ctx, contMessages, chatOpts)
 			if contErr != nil {
+				// Surface the continuation failure explicitly. The prior
+				// assistant node is already persisted as "completed" with the
+				// truncated text; emit an error event tagged to that node so
+				// callers can distinguish a truncated/continuation-failed
+				// response from a clean completion. The done event still
+				// follows so the stream terminates normally.
+				select {
+				case events <- Event{Type: EventError, Error: contErr.Error(), NodeID: assistantNode.ID}:
+				case <-ctx.Done():
+				}
 				select {
 				case events <- Event{Type: EventDone, NodeID: assistantNode.ID}:
 				case <-ctx.Done():

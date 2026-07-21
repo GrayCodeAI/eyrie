@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -321,25 +320,6 @@ func ValidateAPIKey(apiKey, providerName string) string {
 	return ""
 }
 
-// ValidateBaseURL validates a base URL. Returns an error message if the URL
-// is syntactically invalid (unparseable or missing a scheme), or empty if valid.
-func ValidateBaseURL(baseURL string) string {
-	if baseURL == "" {
-		return ""
-	}
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return "Invalid base URL: " + baseURL + " (" + err.Error() + ")"
-	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return "Invalid base URL: " + baseURL + " (must be http or https)"
-	}
-	if u.Host == "" {
-		return "Invalid base URL: " + baseURL + " (missing host)"
-	}
-	return ""
-}
-
 // ProviderDetectionOrder is the priority order for provider detection.
 var ProviderDetectionOrder = APIProviderDetectionOrder
 
@@ -355,7 +335,8 @@ func GetProviderConfigDir() (string, error) {
 	if d := os.Getenv("HAWK_CONFIG_DIR"); d != "" {
 		return d, nil
 	}
-	if d, err := os.UserConfigDir(); err == nil && d != "" {
+	d, err := os.UserConfigDir()
+	if err == nil && d != "" {
 		// Host-neutral default. Embedders that migrate from a product-specific
 		// directory should copy existing provider state to this path.
 		return filepath.Join(d, "eyrie"), nil
@@ -374,7 +355,9 @@ func GetProviderConfigPath() (string, error) {
 }
 
 // LoadProviderConfig loads provider config from disk.
-// Returns nil if file doesn't exist. Returns error for corrupt JSON or permission issues.
+// Returns nil if file doesn't exist or the config dir cannot be resolved.
+// Returns nil for corrupt JSON or permission issues (callers wanting detail
+// should use LoadProviderConfigWithError).
 func LoadProviderConfig(path string) *ProviderConfig {
 	if path == "" {
 		path, _ = GetProviderConfigPath()
@@ -396,7 +379,7 @@ func LoadProviderConfig(path string) *ProviderConfig {
 
 // LoadProviderConfigWithError loads provider config from disk with detailed error reporting.
 // Returns (nil, nil) if file doesn't exist.
-// Returns (nil, error) for corrupt JSON or permission issues.
+// Returns (nil, error) for corrupt JSON, missing config dir, or permission issues.
 func LoadProviderConfigWithError(path string) (*ProviderConfig, error) {
 	if path == "" {
 		path, _ = GetProviderConfigPath()
