@@ -22,6 +22,11 @@ import (
 // SecretStoreName is safe presentation metadata for host UIs.
 func SecretStoreName() string { return credentials.PlatformSecretStoreName() }
 
+// SetSecretStoreServiceName overrides the OS secret-store service name (default
+// "eyrie"). Hosts call this once at startup so existing credentials filed under
+// their product name (e.g. "hawk") stay readable.
+func SetSecretStoreServiceName(name string) { credentials.SetServiceName(name) }
+
 // CredentialStorageReport is safe to print and never includes secrets.
 type CredentialStorageReport struct {
 	PlatformStore string `json:"platform_store"`
