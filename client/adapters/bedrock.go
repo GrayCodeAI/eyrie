@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 const (
@@ -255,7 +256,7 @@ func (c *BedrockClient) StreamChat(ctx context.Context, messages []core.EyrieMes
 		}
 	}()
 
-	return core.NewStreamResultWithRequestID(ch, resp.Header.Get("X-Amzn-Requestid"), cancel), nil
+	return llm.NewStreamResult(ch, resp.Header.Get("X-Amzn-Requestid"), cancel), nil
 }
 
 func (c *BedrockClient) Ping(ctx context.Context) error {

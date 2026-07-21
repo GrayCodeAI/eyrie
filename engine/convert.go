@@ -2,36 +2,16 @@ package engine
 
 import "github.com/GrayCodeAI/eyrie/client"
 
+// toClientMessages returns the messages unchanged: the engine and the client
+// both speak the canonical contract message type, so no per-field conversion
+// is needed.
 func toClientMessages(in []Message) []client.EyrieMessage {
-	out := make([]client.EyrieMessage, 0, len(in))
-	for _, message := range in {
-		parts := make([]client.ContentPart, 0, len(message.ContentParts))
-		for _, part := range message.ContentParts {
-			converted := client.ContentPart{Type: part.Type, Text: part.Text}
-			if part.URL != "" {
-				converted.ImageURL = &client.ImageURLPart{URL: part.URL, Detail: part.Detail}
-			}
-			if part.AudioData != "" {
-				converted.InputAudio = &client.InputAudioPart{Data: part.AudioData, Format: part.AudioFormat}
-			}
-			parts = append(parts, converted)
-		}
-		calls := make([]client.ToolCall, 0, len(message.ToolCalls))
-		for _, call := range message.ToolCalls {
-			calls = append(calls, client.ToolCall{ID: call.ID, Name: call.Name, Arguments: call.Arguments})
-		}
-		results := make([]client.ToolResult, 0, len(message.ToolResults))
-		for _, result := range message.ToolResults {
-			results = append(results, client.ToolResult{ToolUseID: result.ToolUseID, Content: result.Content, IsError: result.IsError})
-		}
-		out = append(out, client.EyrieMessage{
-			Role: message.Role, Content: message.Content, Thinking: message.Thinking,
-			ContentParts: parts, ToolUse: calls, ToolResults: results,
-		})
-	}
-	return out
+	return in
 }
 
+// toClientOptions maps a normalized generation request onto the client's
+// wire-format chat options. Provider-specific translation continues to live in
+// the adapters; this is the contract-level mapping.
 func toClientOptions(req GenerateRequest, route Route, stream bool) client.ChatOptions {
 	tools := make([]client.EyrieTool, 0, len(req.Tools))
 	for _, tool := range req.Tools {
@@ -108,28 +88,19 @@ func cloneStringMap(in map[string]string) map[string]string {
 	return out
 }
 
+// fromClientResponse attaches the resolved route to a client response. The
+// engine and the client both speak the canonical contract response type, so
+// this only sets the route the engine selected.
 func fromClientResponse(resp *client.EyrieResponse, route Route) *GenerateResponse {
 	if resp == nil {
-		return &GenerateResponse{Route: route}
+		return &GenerateResponse{Route: &route}
 	}
-	calls := make([]ToolCall, 0, len(resp.ToolCalls))
-	for _, call := range resp.ToolCalls {
-		calls = append(calls, ToolCall{ID: call.ID, Name: call.Name, Arguments: call.Arguments})
-	}
-	return &GenerateResponse{
-		Content: resp.Content, Thinking: resp.Thinking, ToolCalls: calls,
-		FinishReason: resp.FinishReason, RequestID: resp.RequestID,
-		Usage: fromClientUsage(resp.Usage), Route: route,
-	}
+	resp.Route = &route
+	return resp
 }
 
+// fromClientUsage returns the usage unchanged: the engine and the client both
+// speak the canonical contract usage type.
 func fromClientUsage(usage *client.EyrieUsage) *Usage {
-	if usage == nil {
-		return nil
-	}
-	return &Usage{
-		InputTokens: usage.PromptTokens, OutputTokens: usage.CompletionTokens,
-		TotalTokens: usage.TotalTokens, CacheCreationTokens: usage.CacheCreationTokens,
-		CacheReadTokens: usage.CacheReadTokens, ThinkingTokens: usage.ThinkingTokens,
-	}
+	return usage
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 // ChatProtocol selects which existing eyrie client handles a gateway request.
@@ -134,7 +135,7 @@ func streamResultFromChat(resp *core.EyrieResponse) *core.StreamResult {
 		}
 		out <- core.EyrieStreamEvent{Type: "done", StopReason: stop}
 	}()
-	return core.NewStreamResult(out, func() {})
+	return llm.NewStreamResult(out, "", func() {})
 }
 
 func (f protocolStreamFallback) open(ctx context.Context, messages []core.EyrieMessage, opts core.ChatOptions) (*core.StreamResult, error) {
@@ -230,7 +231,7 @@ func newStreamWithReasoningFallback(ctx context.Context, messages []core.EyrieMe
 			}
 		}
 	}()
-	return core.NewStreamResult(out, cancel)
+	return llm.NewStreamResult(out, "", cancel)
 }
 
 func isReasoningOnlyStreamDiagnostic(message string) bool {
