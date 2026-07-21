@@ -317,9 +317,6 @@ func ParseInlineToolCalls(content string) (string, []ToolCall) {
 	if len(calls) == 0 {
 		return clean, nil
 	}
-	out := make([]ToolCall, 0, len(calls))
-	for _, call := range calls {
-		out = append(out, ToolCall{ID: call.ID, Name: call.Name, Arguments: call.Arguments})
-	}
+	out := append([]ToolCall(nil), calls...)
 	return clean, out
 }

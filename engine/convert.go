@@ -13,10 +13,7 @@ func toClientMessages(in []Message) []client.EyrieMessage {
 // wire-format chat options. Provider-specific translation continues to live in
 // the adapters; this is the contract-level mapping.
 func toClientOptions(req GenerateRequest, route Route, stream bool) client.ChatOptions {
-	tools := make([]client.EyrieTool, 0, len(req.Tools))
-	for _, tool := range req.Tools {
-		tools = append(tools, client.EyrieTool{Name: tool.Name, Description: tool.Description, Parameters: tool.Parameters})
-	}
+	tools := append([]client.EyrieTool(nil), req.Tools...)
 	opts := client.ChatOptions{
 		Provider: route.Provider, Model: route.Model, Stream: stream,
 		System: req.SystemPrompt, Tools: tools, Temperature: req.Temperature,
