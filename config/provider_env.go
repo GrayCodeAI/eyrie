@@ -447,7 +447,7 @@ func SaveProviderConfig(config *ProviderConfig, path string) (err error) {
 		}
 	}
 	dir := filepath.Dir(path)
-	if err = os.MkdirAll(dir, 0o700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
