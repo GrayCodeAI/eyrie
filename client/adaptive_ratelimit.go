@@ -276,16 +276,41 @@ func (a *AdaptiveRateLimitProvider) StreamChat(ctx context.Context, messages []E
 		return nil, err
 	}
 
-	// Wrap the events channel to intercept usage events for token tracking
+	// Wrap the events channel to intercept usage events for token tracking.
+	// Also observe ctx cancellation so that:
+	//   - we stop forwarding events promptly (the caller's wrappedCh is no
+	//     longer being drained on the consumer side);
+	//   - we release the inner stream's resources (body, goroutine) by
+	//     closing it; otherwise it hangs on a blocking send.
 	wrappedCh := make(chan EyrieStreamEvent, cap(result.Events))
 	go func() {
 		defer close(wrappedCh)
-		for evt := range result.Events {
-			if evt.Type == "usage" && evt.Usage != nil {
-				tokens := a.extractTokens(evt.Usage)
-				a.recordTokens(tokens)
+		for {
+			select {
+			case <-ctx.Done():
+				result.Close()
+				// Drain remaining events so the inner goroutine can complete
+				// and close its own body.
+				for range result.Events {
+				}
+				return
+			case evt, ok := <-result.Events:
+				if !ok {
+					return
+				}
+				if evt.Type == "usage" && evt.Usage != nil {
+					tokens := a.extractTokens(evt.Usage)
+					a.recordTokens(tokens)
+				}
+				select {
+				case wrappedCh <- evt:
+				case <-ctx.Done():
+					result.Close()
+					for range result.Events {
+					}
+					return
+				}
 			}
-			wrappedCh <- evt
 		}
 	}()
 

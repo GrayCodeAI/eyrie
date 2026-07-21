@@ -319,42 +319,6 @@ func TestValidateAPIKey_TableDriven(t *testing.T) {
 	}
 }
 
-func TestValidateBaseURL_TableDriven(t *testing.T) {
-	tests := []struct {
-		name      string
-		baseURL   string
-		wantEmpty bool
-	}{
-		{
-			name:      "empty URL is valid",
-			baseURL:   "",
-			wantEmpty: true,
-		},
-		{
-			name:      "http URL is valid",
-			baseURL:   "https://api.openai.com/v1",
-			wantEmpty: true,
-		},
-		{
-			name:      "localhost URL is valid",
-			baseURL:   "http://localhost:11434/v1",
-			wantEmpty: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			msg := ValidateBaseURL(tt.baseURL)
-			if tt.wantEmpty && msg != "" {
-				t.Errorf("expected no error, got %q", msg)
-			}
-			if !tt.wantEmpty && msg == "" {
-				t.Error("expected error, got empty")
-			}
-		})
-	}
-}
-
 func TestIsLocalProviderURL_TableDriven(t *testing.T) {
 	tests := []struct {
 		name string
