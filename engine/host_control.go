@@ -27,6 +27,25 @@ func SecretStoreName() string { return credentials.PlatformSecretStoreName() }
 // their product name (e.g. "hawk") stay readable.
 func SetSecretStoreServiceName(name string) { credentials.SetServiceName(name) }
 
+// -- Test-fixture re‑exports -------------------------------------------------
+// These let host test code inject credential fixtures through the engine
+// boundary instead of importing eyrie/credentials directly.
+
+// SetDefaultStore replaces the process-wide credential store (for tests).
+var SetDefaultStore = credentials.SetDefaultStore
+
+// DefaultStore returns the process-wide credential store (for tests).
+var DefaultStore = credentials.DefaultStore
+
+// MapStore is the in-memory credential store for tests (alias).
+type MapStore = credentials.MapStore
+
+// AccountForEnv returns the keychain account name for an env var.
+func AccountForEnv(envVar string) string { return credentials.AccountForEnv(envVar) }
+
+// HasSecret reports whether a secret exists for an env var (for tests).
+func HasSecret(ctx context.Context, envKey string) bool { return credentials.HasSecret(ctx, envKey) }
+
 // CredentialStorageReport is safe to print and never includes secrets.
 type CredentialStorageReport struct {
 	PlatformStore string `json:"platform_store"`
