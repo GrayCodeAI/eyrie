@@ -279,6 +279,10 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+      - name: Clone ecosystem deps
+        run: |
+          git clone --depth=1 https://github.com/GrayCodeAI/tok.git ../tok
+          git clone --depth=1 https://github.com/GrayCodeAI/hawk-core-contracts.git ../hawk-core-contracts
       - name: Run fuzz targets
         run: |
           go test -fuzz=FuzzSanitizeMessages       -fuzztime=60s ./client
