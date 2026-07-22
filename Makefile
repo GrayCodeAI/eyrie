@@ -31,12 +31,17 @@ GOVULNCHECK  := $(GOBIN_DIR)/govulncheck
 # ---------------------------------------------------------------------------
 # Phony declarations (alphabetical).
 # ---------------------------------------------------------------------------
-.PHONY: all bench boundaries build ci clean cover fmt help lint lint-fix \
+.PHONY: all bench boundaries build check-replace ci clean cover fmt help lint lint-fix \
         security test test-10x test-race tidy version vet
 
 boundaries: ## Enforce support-repo import boundaries.
 	bash ./scripts/check-ecosystem-boundaries.sh
 	bash ./scripts/check-client-layering.sh
+
+.PHONY: check-replace
+check-replace: ## Fail if go.mod has local replace directives (run before tagging)
+	@bash scripts/check-no-replace-directives.sh
+
 
 # ---------------------------------------------------------------------------
 # Default target.
@@ -101,7 +106,7 @@ tidy: ## Tidy go.mod / go.sum.
 # ---------------------------------------------------------------------------
 # Composite gate used by CI and pre-push.
 # ---------------------------------------------------------------------------
-ci: tidy fmt vet lint boundaries test-race security ## Run everything CI runs.
+ci: tidy fmt vet lint boundaries check-replace test-race security ## Run everything CI runs.
 	@echo "All CI checks passed."
 
 # ---------------------------------------------------------------------------
