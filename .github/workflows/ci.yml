@@ -86,6 +86,8 @@ jobs:
           fi
       - name: go mod verify
         run: go mod verify
+      - name: Check no local replace directives
+        run: make check-replace
       - name: no stray replace directives
         run: |
           if grep -q "^\s*replace" go.mod; then
