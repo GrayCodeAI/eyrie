@@ -3,7 +3,7 @@ module github.com/GrayCodeAI/eyrie
 go 1.26.5
 
 require (
-	github.com/GrayCodeAI/hawk-core-contracts v0.1.7
+	github.com/GrayCodeAI/hawk-core-contracts v0.1.8-0.20260722171750-1ac244a8fd1b
 	github.com/google/uuid v1.6.0
 	github.com/tiktoken-go/tokenizer v0.8.0
 	github.com/zalando/go-keyring v0.2.8
