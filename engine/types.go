@@ -113,3 +113,40 @@ type Selection = llm.Selection
 
 // SelectionOptions contains optional user or command-line overrides.
 type SelectionOptions = llm.SelectionOptions
+
+// CatalogHealth is the host-facing catalog health report.
+type CatalogHealth = llm.CatalogHealth
+
+// DeploymentSummary is the host-facing deployment routing summary.
+type DeploymentSummary = llm.DeploymentSummary
+
+// PreflightOptions configures a readiness check.
+type PreflightOptions = llm.PreflightOptions
+
+// PreflightReport is the host-facing preflight result.
+type PreflightReport = llm.PreflightReport
+
+// PreflightCheck is one readiness check row.
+type PreflightCheck = llm.PreflightCheck
+
+// CheckStatus is a preflight check status.
+type CheckStatus = llm.CheckStatus
+
+// ProviderStateSecurity reports provider.json security posture (no secrets).
+type ProviderStateSecurity = llm.ProviderStateSecurity
+
+// NativeCompactionRequest is a provider-native compaction request.
+type NativeCompactionRequest = llm.NativeCompactionRequest
+
+// EventStreamer is the pull-based host stream contract.
+type EventStreamer = llm.EventStreamer
+
+// Provider is the full host port (composition of role interfaces in llm).
+type Provider = llm.Provider
+
+// Re-export preflight status constants from the contract package.
+const (
+	CheckOK   = llm.CheckOK
+	CheckFail = llm.CheckFail
+	CheckWarn = llm.CheckWarn
+)

@@ -6,17 +6,6 @@ import (
 	"github.com/GrayCodeAI/eyrie/runtime"
 )
 
-// NativeCompactionRequest asks Eyrie to use a provider-native compaction
-// protocol without exposing provider credentials to the host.
-type NativeCompactionRequest struct {
-	Provider        string
-	Model           string
-	Messages        []Message
-	ContextWindow   int
-	ThresholdPct    int
-	MaxOutputTokens int
-}
-
 // SupportsNativeCompaction reports whether the selection and configured
 // credential store support native compaction.
 func (e *Engine) SupportsNativeCompaction(ctx context.Context, provider, model string) bool {

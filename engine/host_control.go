@@ -234,20 +234,6 @@ func (e *Engine) ApplyGatewayEnvironment(_ context.Context, providerID string) {
 	}
 }
 
-type CatalogHealth struct {
-	Path        string    `json:"path"`
-	Exists      bool      `json:"exists"`
-	ModifiedAt  time.Time `json:"modified_at,omitempty"`
-	Size        int64     `json:"size,omitempty"`
-	Models      int       `json:"models,omitempty"`
-	Deployments int       `json:"deployments,omitempty"`
-	Offerings   int       `json:"offerings,omitempty"`
-	Stale       bool      `json:"stale,omitempty"`
-	StaleAfter  time.Time `json:"stale_after,omitempty"`
-	Source      string    `json:"source,omitempty"`
-	Error       string    `json:"error,omitempty"`
-}
-
 func (e *Engine) CatalogHealth(ctx context.Context) CatalogHealth {
 	health := CatalogHealth{Path: e.catalogPath}
 	exists, modified, size, err := catalog.CacheInfo(e.catalogPath)
@@ -316,12 +302,6 @@ func (e *Engine) DeploymentStatus(ctx context.Context, activeModel string) (stri
 	return setup.FormatStatus(report), nil
 }
 
-type DeploymentSummary struct {
-	RoutingSource string `json:"routing_source,omitempty"`
-	RoutingStages int    `json:"routing_stages,omitempty"`
-	Formatted     string `json:"formatted"`
-}
-
 func (e *Engine) DeploymentSummary(ctx context.Context, activeModel string) (DeploymentSummary, error) {
 	report, err := setup.DeploymentStatusFromPaths(nonNilContext(ctx), activeModel, e.providerConfigPath, e.catalogPath)
 	if err != nil {
@@ -364,12 +344,6 @@ func (e *Engine) DefaultProviderFilter(ctx context.Context) string {
 
 func (e *Engine) Preflight(ctx context.Context) PreflightReport {
 	return e.PreflightWithOptions(ctx, PreflightOptions{})
-}
-
-// PreflightOptions controls whether readiness remains a local state check or
-// also verifies the selected provider over the network.
-type PreflightOptions struct {
-	VerifyLive bool `json:"verify_live,omitempty"`
 }
 
 func (e *Engine) PreflightWithOptions(ctx context.Context, opts PreflightOptions) PreflightReport {
@@ -523,26 +497,6 @@ func providerModelAvailable(compiled *catalog.CompiledCatalog, providerID, model
 	return false
 }
 
-type CheckStatus string
-
-const (
-	CheckOK   CheckStatus = "ok"
-	CheckWarn CheckStatus = "warn"
-	CheckFail CheckStatus = "fail"
-)
-
-type PreflightCheck struct {
-	Name   string      `json:"name"`
-	Status CheckStatus `json:"status"`
-	Detail string      `json:"detail"`
-}
-
-type PreflightReport struct {
-	Ready        bool             `json:"ready"`
-	LiveVerified bool             `json:"live_verified"`
-	Checks       []PreflightCheck `json:"checks"`
-}
-
 func FormatPreflight(report PreflightReport) string {
 	var b strings.Builder
 	switch {
@@ -564,13 +518,6 @@ func FormatPreflight(report PreflightReport) string {
 		fmt.Fprintf(&b, "  %s %s: %s\n", icon, check.Name, check.Detail)
 	}
 	return strings.TrimRight(b.String(), "\n")
-}
-
-type ProviderStateSecurity struct {
-	Path       string `json:"path"`
-	HasSecrets bool   `json:"has_secrets"`
-	Detail     string `json:"detail,omitempty"`
-	Error      string `json:"error,omitempty"`
 }
 
 // ProviderStateSecurityStatus inspects provider.json without returning values.
