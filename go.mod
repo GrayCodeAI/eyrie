@@ -3,7 +3,7 @@ module github.com/GrayCodeAI/eyrie
 go 1.26.5
 
 require (
-	github.com/GrayCodeAI/hawk-core-contracts v0.0.0
+	github.com/GrayCodeAI/hawk-core-contracts v0.1.6
 	github.com/google/uuid v1.6.0
 	github.com/tiktoken-go/tokenizer v0.8.0
 	github.com/zalando/go-keyring v0.2.8
@@ -13,7 +13,6 @@ require (
 	modernc.org/sqlite v1.51.0
 )
 
-replace github.com/GrayCodeAI/hawk-core-contracts => ../hawk-core-contracts
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
