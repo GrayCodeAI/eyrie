@@ -47,7 +47,8 @@ provider packages.
 
 eyrie is a Hawk support engine. Keep the dependency edge one-way:
 
-- eyrie uses local-only types (provider/transport types are eyrie-scoped, not shared contracts)
+- host-facing DTOs and the `Provider` port live in `hawk-core-contracts/llm`; `engine/` re-exports them as aliases (`*Engine` implements `llm.Provider`)
+- internal provider/transport types stay eyrie-scoped (not shared contracts)
 - do not import `hawk/internal/*`
 - do not import removed legacy path `hawk/shared/types`
 - do not import other engines (`yaad`, `tok`, `trace`, `sight`, `inspect`) — engines are peers, not dependencies
