@@ -198,8 +198,22 @@ func (e *Engine) Generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 }
 
 // Stream starts a normalized streaming generation. The returned stream must be
-// closed by the caller.
-func (e *Engine) Stream(ctx context.Context, req GenerateRequest) (*Stream, error) {
+// closed by the caller. The concrete type is *Stream; the signature returns
+// EventStreamer so *Engine satisfies llm.Provider / llm.Generator.
+//
+// When the concrete *Stream is nil, this returns a typed-nil EventStreamer
+// (interface nil) so callers can check stream == nil reliably.
+func (e *Engine) Stream(ctx context.Context, req GenerateRequest) (EventStreamer, error) {
+	s, err := e.stream(ctx, req)
+	if s == nil {
+		return nil, err
+	}
+	return s, err
+}
+
+// stream is the concrete implementation used by Stream and by callers that need
+// the *Stream type without a type assertion.
+func (e *Engine) stream(ctx context.Context, req GenerateRequest) (*Stream, error) {
 	ctx = nonNilContext(ctx)
 	if err := validateGenerateRequest(req); err != nil {
 		return nil, err
