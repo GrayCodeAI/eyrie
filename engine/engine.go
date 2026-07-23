@@ -40,6 +40,19 @@ type Options struct {
 	// UseRegisteredCustomGateways opts into the deprecated process-global
 	// RegisterCustomGateway registry when CustomGateways is nil.
 	UseRegisteredCustomGateways bool
+	// EnableRateLimiting wraps resolved transports with an adaptive rate
+	// limiter that backs off when approaching provider limits. Off by default.
+	EnableRateLimiting bool
+	// RateLimitConfig configures the adaptive rate limiter. Zero value uses
+	// sensible defaults (10% threshold, 10s max delay).
+	RateLimitConfig client.AdaptiveRateLimitConfig
+	// EnableCaching wraps resolved transports with a semantic response cache.
+	// Only caches deterministic requests (temperature <= threshold). Off by
+	// default.
+	EnableCaching bool
+	// CacheConfig configures the response cache. Zero value uses sensible
+	// defaults (5min TTL, 100 entries, 0.5 temperature threshold).
+	CacheConfig client.CacheConfig
 }
 
 // Engine is Eyrie's narrow host facade. It is safe for concurrent use when
@@ -52,6 +65,10 @@ type Engine struct {
 	remoteCatalogURL   string
 	customGateways     map[string]CustomGateway
 	resolveTransport   func(context.Context, Route) (client.Provider, error)
+	enableRateLimiting bool
+	rateLimitConfig    client.AdaptiveRateLimitConfig
+	enableCaching      bool
+	cacheConfig        client.CacheConfig
 }
 
 // New constructs a host-facing Eyrie engine.
@@ -94,7 +111,11 @@ func New(opts Options) (*Engine, error) {
 	engine := &Engine{
 		secretStore: store, defaultSecretStore: usesDefaultStore,
 		catalogPath: catalogPath, providerConfigPath: providerPath, remoteCatalogURL: remoteCatalogURL,
-		customGateways: customGateways,
+		customGateways:     customGateways,
+		enableRateLimiting: opts.EnableRateLimiting,
+		rateLimitConfig:    opts.RateLimitConfig,
+		enableCaching:      opts.EnableCaching,
+		cacheConfig:        opts.CacheConfig,
 	}
 	engine.resolveTransport = engine.defaultTransport
 	migrateLegacyProviderConfigOnce.Do(migrateLegacyProviderConfig)
@@ -350,7 +371,22 @@ func (e *Engine) defaultTransport(ctx context.Context, route Route) (client.Prov
 	if err != nil {
 		return nil, err
 	}
-	return setup.DeploymentProviderFromState(cfg, compiled)
+	provider, err := setup.DeploymentProviderFromState(cfg, compiled)
+	if err != nil {
+		return nil, err
+	}
+	// Wrap with opt-in middleware: rate limiting first (outermost), then cache.
+	if e.enableRateLimiting {
+		rlProvider, rlErr := client.NewAdaptiveRateLimitProvider(provider, e.rateLimitConfig)
+		if rlErr == nil {
+			provider = rlProvider
+		}
+		// On error, proceed without rate limiting rather than failing the request.
+	}
+	if e.enableCaching {
+		provider = client.NewCachedProvider(provider, e.cacheConfig)
+	}
+	return provider, nil
 }
 
 func (e *Engine) resolveSelection(ctx context.Context, req SelectionRequest) (Route, error) {
