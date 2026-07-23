@@ -481,6 +481,13 @@ func selectCompatibleModel(compiled *catalog.CompiledCatalog, req SelectionReque
 				return a.model.ContextWindow > b.model.ContextWindow
 			}
 		case llm.IntentFast:
+			// Prefer smaller context windows as a latency proxy: models with
+			// smaller context windows tend to have lower TTFT and higher
+			// throughput. MaxOutput ascending is a secondary tiebreaker
+			// (smaller output caps correlate with lighter models).
+			if a.model.ContextWindow != b.model.ContextWindow {
+				return a.model.ContextWindow < b.model.ContextWindow
+			}
 			if a.model.MaxOutput != b.model.MaxOutput {
 				return a.model.MaxOutput < b.model.MaxOutput
 			}
