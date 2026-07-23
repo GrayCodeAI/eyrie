@@ -2,7 +2,6 @@ package router
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
 )
@@ -48,19 +47,7 @@ func RoutingPreviewJSON(requested string, compiled *catalog.CompiledCatalog, pol
 }
 
 func resolveCanonicalModelID(requested string, compiled *catalog.CompiledCatalog) string {
-	if compiled == nil {
-		if strings.Contains(requested, "/") {
-			return requested
-		}
-		return ""
-	}
-	if canonical, ok := compiled.CanonicalModelForAliasOrID(requested); ok {
-		return canonical
-	}
-	if strings.Contains(requested, "/") {
-		return requested
-	}
-	return ""
+	return catalog.ResolveModel(compiled, requested)
 }
 
 func resolveRoutingStages(canonicalModelID string, compiled *catalog.CompiledCatalog, policy RoutingPolicy) ([]RoutingStage, string) {
