@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // FallbackProvider wraps multiple Providers and automatically falls back to the
@@ -21,6 +22,10 @@ import (
 type FallbackProvider struct {
 	providers []Provider
 	logger    *slog.Logger
+
+	// PerProviderTimeout bounds each individual provider attempt. Zero means
+	// no per-provider timeout (the caller's context is the only deadline).
+	PerProviderTimeout time.Duration
 
 	// stats tracks how many times each provider served a request.
 	mu    sync.RWMutex
@@ -81,6 +86,15 @@ func (fp *FallbackProvider) Ping(ctx context.Context) error {
 	return fmt.Errorf("eyrie: all providers failed ping: %w", lastErr)
 }
 
+// attemptCtx returns a context bounded by PerProviderTimeout if configured,
+// otherwise the original context unchanged.
+func (fp *FallbackProvider) attemptCtx(ctx context.Context) (context.Context, context.CancelFunc) {
+	if fp.PerProviderTimeout > 0 {
+		return context.WithTimeout(ctx, fp.PerProviderTimeout)
+	}
+	return ctx, func() {}
+}
+
 // Chat sends a non-streaming chat request, falling back through the provider
 // chain on retriable errors. Returns the first successful response.
 func (fp *FallbackProvider) Chat(ctx context.Context, messages []EyrieMessage, opts ChatOptions) (*EyrieResponse, error) {
@@ -98,7 +112,9 @@ func (fp *FallbackProvider) Chat(ctx context.Context, messages []EyrieMessage, o
 			"total", len(fp.providers),
 		)
 
-		resp, err := p.Chat(ctx, messages, opts)
+		attemptCtx, cancel := fp.attemptCtx(ctx)
+		resp, err := p.Chat(attemptCtx, messages, opts)
+		cancel()
 		if err == nil {
 			fp.recordSuccess(p.Name())
 			fp.logger.Debug(
@@ -148,6 +164,10 @@ func (fp *FallbackProvider) StreamChat(ctx context.Context, messages []EyrieMess
 			"total", len(fp.providers),
 		)
 
+		// Note: PerProviderTimeout is not applied to StreamChat because the
+		// stream is long-lived; the caller's context governs its lifetime.
+		// The timeout only guards the initial connection attempt via the
+		// provider's internal dial/connect behavior.
 		sr, err := p.StreamChat(ctx, messages, opts)
 		if err == nil {
 			fp.recordSuccess(p.Name())
