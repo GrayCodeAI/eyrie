@@ -34,10 +34,10 @@ type cacheControlParam struct {
 //
 // Only applies to messages with role "user" or "assistant".
 // No-op if fewer than 2 messages.
-func AddCacheBreakpoints(messages []EyrieMessage) []anthropicCachedMessage {
-	result := make([]anthropicCachedMessage, len(messages))
+func AddCacheBreakpoints(messages []EyrieMessage) []AnthropicCachedMessage {
+	result := make([]AnthropicCachedMessage, len(messages))
 	for i, m := range messages {
-		result[i] = anthropicCachedMessage{Role: m.Role, Content: m.Content}
+		result[i] = AnthropicCachedMessage{Role: m.Role, Content: m.Content}
 	}
 
 	// Find the second-to-last non-system message index
@@ -57,8 +57,8 @@ func AddCacheBreakpoints(messages []EyrieMessage) []anthropicCachedMessage {
 	return result
 }
 
-// anthropicCachedMessage is an Anthropic message with optional cache_control.
-type anthropicCachedMessage struct {
+// AnthropicCachedMessage is an Anthropic message with optional cache_control.
+type AnthropicCachedMessage struct {
 	Role         string      `json:"role"`
 	Content      interface{} `json:"content"` // string or []CachedContent
 	CacheControl interface{} `json:"cache_control,omitempty"`

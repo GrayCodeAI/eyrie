@@ -73,7 +73,12 @@ func directChatProvider(ctx context.Context, primary string) client.Provider {
 	if len(providers) == 1 {
 		return providers[0]
 	}
-	return client.NewFallbackProvider(providers...)
+	fp, err := client.NewFallbackProvider(providers...)
+	if err != nil {
+		// Cannot happen: providers has at least 2 elements here.
+		return providers[0]
+	}
+	return fp
 }
 
 func directFallbackProviderIDs(ctx context.Context, primary string) []string {

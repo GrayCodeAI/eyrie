@@ -32,10 +32,9 @@ var _ Provider = (*FallbackProvider)(nil)
 
 // NewFallbackProvider creates a FallbackProvider that tries providers in order.
 // At least one provider must be supplied.
-func NewFallbackProvider(providers ...Provider) *FallbackProvider {
+func NewFallbackProvider(providers ...Provider) (*FallbackProvider, error) {
 	if len(providers) == 0 {
-		slog.Error("FallbackProvider requires at least one provider; returning nil")
-		return nil
+		return nil, fmt.Errorf("eyrie: FallbackProvider requires at least one provider")
 	}
 	stats := make(map[string]*atomic.Int64, len(providers))
 	for _, p := range providers {
@@ -47,7 +46,7 @@ func NewFallbackProvider(providers ...Provider) *FallbackProvider {
 		providers: providers,
 		logger:    slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn})),
 		stats:     stats,
-	}
+	}, nil
 }
 
 // SetLogger sets a custom logger for the FallbackProvider.
