@@ -269,7 +269,7 @@ func (e *Engine) CanonicalModel(ctx context.Context, modelID string) string {
 	}
 	compiled, err := e.policyCatalog(ctx)
 	if err == nil {
-		if canonical, ok := compiled.CanonicalModelForAliasOrID(strings.TrimSpace(modelID)); ok {
+		if canonical := catalog.ResolveModel(compiled, modelID); canonical != "" {
 			return canonical
 		}
 	}

@@ -14,7 +14,7 @@ func TestFallbackProviderSuccess(t *testing.T) {
 	primary := NewMockProvider(MockModeFixed)
 	primary.Response = "from primary"
 
-	fp := NewFallbackProvider(primary)
+	fp, _ := NewFallbackProvider(primary)
 	resp, err := fp.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hello"},
 	}, ChatOptions{Model: "test"})
@@ -34,7 +34,7 @@ func TestFallbackProviderFallsBack(t *testing.T) {
 	secondary := NewMockProvider(MockModeFixed)
 	secondary.Response = "from secondary"
 
-	fp := NewFallbackProvider(primary, secondary)
+	fp, _ := NewFallbackProvider(primary, secondary)
 	resp, err := fp.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hello"},
 	}, ChatOptions{Model: "test"})
@@ -58,7 +58,7 @@ func TestFallbackProviderAllFail(t *testing.T) {
 	p2 := NewMockProvider(MockModeError)
 	p3 := NewMockProvider(MockModeError)
 
-	fp := NewFallbackProvider(p1, p2, p3)
+	fp, _ := NewFallbackProvider(p1, p2, p3)
 	_, err := fp.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hello"},
 	}, ChatOptions{Model: "test"})
@@ -77,7 +77,7 @@ func TestFallbackProviderStats(t *testing.T) {
 	secondary := NewMockProvider(MockModeFixed)
 	secondary.Response = "ok"
 
-	fp := NewFallbackProvider(primary, secondary)
+	fp, _ := NewFallbackProvider(primary, secondary)
 
 	for i := 0; i < 5; i++ {
 		_, err := fp.Chat(context.Background(), []EyrieMessage{
@@ -104,7 +104,7 @@ func TestFallbackProviderRespectsContextCancellation(t *testing.T) {
 	secondary := NewMockProvider(MockModeFixed)
 	secondary.Response = "fast"
 
-	fp := NewFallbackProvider(primary, secondary)
+	fp, _ := NewFallbackProvider(primary, secondary)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
@@ -123,7 +123,7 @@ func TestFallbackProviderStreamFallback(t *testing.T) {
 	secondary := NewMockProvider(MockModeFixed)
 	secondary.Response = "streamed from secondary"
 
-	fp := NewFallbackProvider(primary, secondary)
+	fp, _ := NewFallbackProvider(primary, secondary)
 
 	sr, err := fp.StreamChat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hello"},
@@ -149,7 +149,7 @@ func TestFallbackProviderPing(t *testing.T) {
 	p1 := NewMockProvider(MockModeFixed)
 	p2 := NewMockProvider(MockModeFixed)
 
-	fp := NewFallbackProvider(p1, p2)
+	fp, _ := NewFallbackProvider(p1, p2)
 	if err := fp.Ping(context.Background()); err != nil {
 		t.Fatalf("ping failed: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestFallbackProviderName(t *testing.T) {
 	p1 := NewMockProvider(MockModeFixed)
 	p2 := NewMockProvider(MockModeFixed)
 
-	fp := NewFallbackProvider(p1, p2)
+	fp, _ := NewFallbackProvider(p1, p2)
 	name := fp.Name()
 	if name != "fallback(mock->mock)" {
 		t.Errorf("unexpected name: %s", name)
@@ -285,11 +285,14 @@ func TestIsRetriableErrorVsIsTransientDivergence(t *testing.T) {
 	}
 }
 
-func TestFallbackProviderPanicOnEmpty(t *testing.T) {
+func TestFallbackProviderErrorOnEmpty(t *testing.T) {
 	t.Parallel()
-	fp := NewFallbackProvider()
+	fp, err := NewFallbackProvider()
+	if err == nil {
+		t.Error("expected error from NewFallbackProvider with no providers")
+	}
 	if fp != nil {
-		t.Error("expected nil from NewFallbackProvider with no providers")
+		t.Error("expected nil provider from NewFallbackProvider with no providers")
 	}
 }
 
@@ -300,7 +303,7 @@ func TestFallbackProviderNonRetriableDoesNotFallback(t *testing.T) {
 	secondary := NewMockProvider(MockModeFixed)
 	secondary.Response = "should not reach"
 
-	fp := NewFallbackProvider(primary, secondary)
+	fp, _ := NewFallbackProvider(primary, secondary)
 	_, err := fp.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hello"},
 	}, ChatOptions{Model: "test"})

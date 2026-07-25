@@ -296,7 +296,7 @@ func TestCompatFallbackChainOrder(t *testing.T) {
 	p3 := NewMockProvider(MockModeFixed)
 	p3.Response = "from third"
 
-	fp := NewFallbackProvider(p1, p2, p3)
+	fp, _ := NewFallbackProvider(p1, p2, p3)
 	resp, err := fp.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hello"},
 	}, ChatOptions{Model: "test"})
@@ -319,7 +319,7 @@ func TestCompatFallbackStopsOnFirstSuccess(t *testing.T) {
 	p2 := NewMockProvider(MockModeFixed)
 	p2.Response = "second"
 
-	fp := NewFallbackProvider(p1, p2)
+	fp, _ := NewFallbackProvider(p1, p2)
 	resp, err := fp.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hello"},
 	}, ChatOptions{Model: "test"})
@@ -341,7 +341,7 @@ func TestCompatFallbackNonRetriableStopsChain(t *testing.T) {
 	p2 := NewMockProvider(MockModeFixed)
 	p2.Response = "should not reach"
 
-	fp := NewFallbackProvider(p1, p2)
+	fp, _ := NewFallbackProvider(p1, p2)
 	_, err := fp.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hello"},
 	}, ChatOptions{Model: "test"})
@@ -363,7 +363,7 @@ func TestCompatFallbackRetriableContinuesChain(t *testing.T) {
 			p2.Response = "fallback"
 			p2.Reset()
 
-			fp := NewFallbackProvider(p1, p2)
+			fp, _ := NewFallbackProvider(p1, p2)
 			resp, err := fp.Chat(context.Background(), []EyrieMessage{
 				{Role: "user", Content: "hello"},
 			}, ChatOptions{Model: "test"})
@@ -386,7 +386,7 @@ func TestCompatFallbackStreamFallsBack(t *testing.T) {
 	p2 := NewMockProvider(MockModeFixed)
 	p2.Response = "streamed"
 
-	fp := NewFallbackProvider(p1, p2)
+	fp, _ := NewFallbackProvider(p1, p2)
 	sr, err := fp.StreamChat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "hello"},
 	}, ChatOptions{Model: "test"})
@@ -412,7 +412,7 @@ func TestCompatFallbackStatsTrackSuccesses(t *testing.T) {
 	p2 := NewMockProvider(MockModeFixed)
 	p2.Response = "ok"
 
-	fp := NewFallbackProvider(p1, p2)
+	fp, _ := NewFallbackProvider(p1, p2)
 	for i := 0; i < 3; i++ {
 		_, err := fp.Chat(context.Background(), []EyrieMessage{
 			{Role: "user", Content: "hello"},
@@ -434,7 +434,7 @@ func TestCompatFallbackNameFormat(t *testing.T) {
 	p2 := NewMockProvider(MockModeFixed)
 	p3 := NewMockProvider(MockModeFixed)
 
-	fp := NewFallbackProvider(p1, p2, p3)
+	fp, _ := NewFallbackProvider(p1, p2, p3)
 	want := "fallback(mock->mock->mock)"
 	if fp.Name() != want {
 		t.Errorf("Name() = %q, want %q", fp.Name(), want)
@@ -446,7 +446,7 @@ func TestCompatFallbackPingChainSucceedsOnFirst(t *testing.T) {
 	p1 := NewMockProvider(MockModeFixed)
 	p2 := NewMockProvider(MockModeFixed)
 
-	fp := NewFallbackProvider(p1, p2)
+	fp, _ := NewFallbackProvider(p1, p2)
 	if err := fp.Ping(context.Background()); err != nil {
 		t.Fatalf("ping failed: %v", err)
 	}
@@ -457,7 +457,7 @@ func TestCompatFallbackPingChainFallsBack(t *testing.T) {
 	p1 := &errorProvider{err: fmt.Errorf("ping failed")}
 	p2 := NewMockProvider(MockModeFixed)
 
-	fp := NewFallbackProvider(p1, p2)
+	fp, _ := NewFallbackProvider(p1, p2)
 	if err := fp.Ping(context.Background()); err != nil {
 		t.Fatalf("expected ping to succeed on second provider, got: %v", err)
 	}
@@ -468,7 +468,7 @@ func TestCompatFallbackPingAllFail(t *testing.T) {
 	p1 := &errorProvider{err: fmt.Errorf("fail 1")}
 	p2 := &errorProvider{err: fmt.Errorf("fail 2")}
 
-	fp := NewFallbackProvider(p1, p2)
+	fp, _ := NewFallbackProvider(p1, p2)
 	if err := fp.Ping(context.Background()); err == nil {
 		t.Error("expected error when all providers fail ping")
 	}
@@ -480,7 +480,7 @@ func TestCompatFallbackContextCancellation(t *testing.T) {
 	p1.Response = "ok"
 	p1.Delay = 5_000_000_000 // 5 seconds
 
-	fp := NewFallbackProvider(p1)
+	fp, _ := NewFallbackProvider(p1)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50_000_000) // 50ms
 	defer cancel()
@@ -493,10 +493,13 @@ func TestCompatFallbackContextCancellation(t *testing.T) {
 	}
 }
 
-func TestCompatFallbackPanicsWithNoProviders(t *testing.T) {
+func TestCompatFallbackErrorWithNoProviders(t *testing.T) {
 	t.Parallel()
-	fp := NewFallbackProvider()
+	fp, err := NewFallbackProvider()
+	if err == nil {
+		t.Error("expected error from NewFallbackProvider with no providers")
+	}
 	if fp != nil {
-		t.Error("expected nil from NewFallbackProvider with no providers")
+		t.Error("expected nil provider from NewFallbackProvider with no providers")
 	}
 }
