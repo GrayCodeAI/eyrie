@@ -174,10 +174,7 @@ func (cp *CallbackProvider) StreamChat(ctx context.Context, messages []EyrieMess
 		}
 	}()
 
-	return &StreamResult{
-		Events:    wrappedEvents,
-		RequestID: result.RequestID,
-	}, nil
+	return NewStreamResultWithRequestID(wrappedEvents, result.RequestID, result.Close), nil
 }
 
 // --- internal helpers ---

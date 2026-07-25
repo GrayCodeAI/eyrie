@@ -570,7 +570,12 @@ func newMiniMaxDualProtocolClient(apiKey, baseURL string) client.Provider {
 	anthropicBase := config.DefaultMiniMaxAnthropicBaseURL
 	openaiClient := client.NewOpenAIClient(apiKey, openaiBase, &client.OpenAICompat)
 	anthropicClient := client.NewAnthropicClient(apiKey, anthropicBase)
-	return client.NewFallbackProvider(openaiClient, anthropicClient)
+	fp, err := client.NewFallbackProvider(openaiClient, anthropicClient)
+	if err != nil {
+		// Cannot happen with two providers; return the primary as fallback.
+		return openaiClient
+	}
+	return fp
 }
 
 // CloneStringMap returns a shallow copy of m.

@@ -284,6 +284,31 @@ func (c *CompiledCatalog) CanonicalModelForAliasOrID(value string) (string, bool
 	return "", false
 }
 
+// ResolveModel maps a model alias or native ID to its canonical catalog ID.
+// It trims whitespace, handles nil catalogs, and falls back to the input
+// itself when it looks like a provider-native ID (contains "/").
+// This centralizes the alias-resolution pattern used across engine, runtime,
+// and router packages, replacing per-caller trim + nil-check + fallback logic.
+func ResolveModel(compiled *CompiledCatalog, model string) string {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return ""
+	}
+	if compiled == nil {
+		if strings.Contains(model, "/") {
+			return model
+		}
+		return ""
+	}
+	if canonical, ok := compiled.CanonicalModelForAliasOrID(model); ok {
+		return canonical
+	}
+	if strings.Contains(model, "/") {
+		return model
+	}
+	return ""
+}
+
 func (c *CompiledCatalog) OfferingForDeployment(canonicalModelID, deploymentID string) (ModelOffering, bool) {
 	if c == nil {
 		return ModelOffering{}, false

@@ -314,10 +314,7 @@ func (a *AdaptiveRateLimitProvider) StreamChat(ctx context.Context, messages []E
 		}
 	}()
 
-	return &StreamResult{
-		Events:    wrappedCh,
-		RequestID: result.RequestID,
-	}, nil
+	return NewStreamResultWithRequestID(wrappedCh, result.RequestID, result.Close), nil
 }
 
 // UpdateFromHeaders updates the rate limit state from HTTP response headers.

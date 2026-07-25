@@ -27,13 +27,13 @@ const (
 
 // Error is the typed error returned across the host boundary.
 type Error struct {
-	Code      ErrorCode
-	Operation string
-	Provider  string
-	Model     string
-	Message   string
-	Retryable bool
-	Cause     error
+	Code      ErrorCode `json:"code"`
+	Operation string    `json:"operation,omitempty"`
+	Provider  string    `json:"provider,omitempty"`
+	Model     string    `json:"model,omitempty"`
+	Message   string    `json:"message,omitempty"`
+	Retryable bool      `json:"retryable,omitempty"`
+	Cause     error     `json:"-"`
 }
 
 func (e *Error) Error() string {

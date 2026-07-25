@@ -433,6 +433,67 @@ func TestCanonicalModelForAliasOrID_NilCompiled(t *testing.T) {
 	}
 }
 
+// --- ResolveModel tests ---
+
+func TestResolveModel_ByDirectID(t *testing.T) {
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
+	got := ResolveModel(compiled, "anthropic/claude-sonnet-4-6")
+	if got != "anthropic/claude-sonnet-4-6" {
+		t.Fatalf("got %q, want %q", got, "anthropic/claude-sonnet-4-6")
+	}
+}
+
+func TestResolveModel_ByAlias(t *testing.T) {
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
+	got := ResolveModel(compiled, "claude-sonnet-4-6")
+	if got != "anthropic/claude-sonnet-4-6" {
+		t.Fatalf("got %q, want %q", got, "anthropic/claude-sonnet-4-6")
+	}
+}
+
+func TestResolveModel_NotFound(t *testing.T) {
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
+	got := ResolveModel(compiled, "nonexistent-model")
+	if got != "" {
+		t.Fatalf("got %q, want empty", got)
+	}
+}
+
+func TestResolveModel_NilCompiledNativeID(t *testing.T) {
+	got := ResolveModel(nil, "openai/gpt-4o")
+	if got != "openai/gpt-4o" {
+		t.Fatalf("nil catalog with native ID: got %q, want %q", got, "openai/gpt-4o")
+	}
+}
+
+func TestResolveModel_NilCompiledAlias(t *testing.T) {
+	got := ResolveModel(nil, "gpt-4o")
+	if got != "" {
+		t.Fatalf("nil catalog with alias: got %q, want empty", got)
+	}
+}
+
+func TestResolveModel_EmptyString(t *testing.T) {
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
+	got := ResolveModel(compiled, "")
+	if got != "" {
+		t.Fatalf("empty input: got %q, want empty", got)
+	}
+}
+
+func TestResolveModel_TrimsWhitespace(t *testing.T) {
+	c := SeedCatalog()
+	compiled, _ := CompileCatalog(&c)
+	got := ResolveModel(compiled, "  claude-sonnet-4-6  ")
+	if got != "anthropic/claude-sonnet-4-6" {
+		t.Fatalf("whitespace trim: got %q, want %q", got, "anthropic/claude-sonnet-4-6")
+	}
+}
+
 // --- OfferingForDeployment tests ---
 
 func TestOfferingForDeployment_Found(t *testing.T) {
