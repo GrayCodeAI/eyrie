@@ -240,7 +240,7 @@ func TestFallbackProviderIntegration(t *testing.T) {
 
 	primary := NewAnthropicClient("key1", failServer.URL, WithRetry(NewRetryConfig(0, 0, 0)))
 	secondary := NewAnthropicClient("key2", okServer.URL, WithRetry(NewRetryConfig(0, 0, 0)))
-	fb := NewFallbackProvider(primary, secondary)
+	fb, _ := NewFallbackProvider(primary, secondary)
 
 	resp, err := fb.Chat(context.Background(), []EyrieMessage{
 		{Role: "user", Content: "Hi"},

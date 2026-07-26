@@ -276,6 +276,7 @@ eyrie/
 ├── docs/                   # Documentation & guides
 ├── examples/               # Runnable code examples
 ├── router/                 # Provider routing strategies
+├── operationsgraph/        # Privacy-safe route and generation telemetry projection
 ├── runtime/                # Runtime manifest & routing policies
 ├── storage/                # SQLite conversation DAG store
 ├── types/                  # Branded types & API errors
@@ -293,6 +294,11 @@ eyrie/
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system design and data flows.
+
+`operationsgraph.Build` projects resolved routes and normalized usage into
+`eyrie.graph/v1` operations nodes. Provider, model, request ID, and generated
+content are represented only by SHA-256 digests; token counts, finish reason,
+tool-call count, and deployment-routing state remain queryable.
 
 ## Ecosystem
 

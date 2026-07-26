@@ -15,6 +15,16 @@ type CombinedStore struct {
 	cache    map[string]combinedCacheEntry
 }
 
+// combinedCacheEntry caches a decrypted secret in memory for a short TTL
+// (2s) to avoid repeated OS keychain round-trips on hot paths.
+//
+// Security tradeoff: plaintext secrets in heap memory are readable via core
+// dumps or process inspection tools (gops, /proc/pid/mem). This is accepted
+// because (a) the TTL is very short, (b) the alternative — a keychain call
+// per credential lookup — adds measurable latency to every LLM request, and
+// (c) the process already holds the secret in transit for the HTTP request.
+// Go's string immutability prevents explicit zeroing; if stronger guarantees
+// are needed, switch to a []byte-based cache with manual memclr on eviction.
 type combinedCacheEntry struct {
 	secret   string
 	found    bool

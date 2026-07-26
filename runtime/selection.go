@@ -149,16 +149,12 @@ func HasConfiguredDeployment(ctx context.Context) bool {
 
 // ResolveCanonicalModel maps aliases/native IDs to canonical catalog model IDs.
 func ResolveCanonicalModel(ctx context.Context, model string) string {
-	model = strings.TrimSpace(model)
-	if model == "" {
-		return ""
-	}
 	rt, err := Load(ctx)
-	if err == nil && rt != nil && rt.Catalog != nil {
-		if canonical, ok := rt.Catalog.CanonicalModelForAliasOrID(model); ok {
-			return canonical
-		}
+	if err == nil && rt != nil {
+		return catalog.ResolveModel(rt.Catalog, model)
 	}
+	// No runtime available — fall back to trimmed input if it looks native.
+	model = strings.TrimSpace(model)
 	if strings.Contains(model, "/") {
 		return model
 	}
