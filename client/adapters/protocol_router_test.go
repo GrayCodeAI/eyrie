@@ -217,6 +217,189 @@ func TestStreamResultFromChat_NilResponse(t *testing.T) {
 	}
 }
 
+func TestNewStreamWithReasoningFallbackErrorFallback(t *testing.T) {
+	t.Parallel()
+	primaryEvents := make(chan core.EyrieStreamEvent, 4)
+	primaryEvents <- core.EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
+	primaryEvents <- core.EyrieStreamEvent{Type: "done", StopReason: "end_turn"}
+	close(primaryEvents)
+	primary := llm.NewStreamResult(primaryEvents, "", func() {})
+
+	fallbackEvents := make(chan core.EyrieStreamEvent, 4)
+	fallbackEvents <- core.EyrieStreamEvent{Type: "content", Content: "fallback content"}
+	fallbackEvents <- core.EyrieStreamEvent{Type: "done", StopReason: "stop"}
+	close(fallbackEvents)
+
+	fallback := protocolStreamFallback{
+		chat: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.EyrieResponse, error) {
+			return nil, fmt.Errorf("chat failed")
+		},
+		stream: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.StreamResult, error) {
+			return llm.NewStreamResult(fallbackEvents, "", func() {}), nil
+		},
+	}
+
+	result := newStreamWithReasoningFallback(context.Background(), nil, core.ChatOptions{}, primary, fallback)
+	var content string
+	var gotError bool
+	for event := range result.Events {
+		if event.Type == "content" {
+			content += event.Content
+		}
+		if event.Type == "error" {
+			gotError = true
+		}
+	}
+	if content != "fallback content" {
+		t.Fatalf("content = %q, want fallback content", content)
+	}
+	if gotError {
+		t.Fatal("did not expect error event")
+	}
+}
+
+func TestNewStreamWithReasoningFallbackErrorFallbackFails(t *testing.T) {
+	t.Parallel()
+	primaryEvents := make(chan core.EyrieStreamEvent, 4)
+	primaryEvents <- core.EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
+	primaryEvents <- core.EyrieStreamEvent{Type: "done", StopReason: "end_turn"}
+	close(primaryEvents)
+	primary := llm.NewStreamResult(primaryEvents, "", func() {})
+
+	fallback := protocolStreamFallback{
+		chat: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.EyrieResponse, error) {
+			return nil, fmt.Errorf("chat failed")
+		},
+		stream: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.StreamResult, error) {
+			return nil, fmt.Errorf("stream also failed")
+		},
+	}
+
+	result := newStreamWithReasoningFallback(context.Background(), nil, core.ChatOptions{}, primary, fallback)
+	var gotError bool
+	var errorMsg string
+	for event := range result.Events {
+		if event.Type == "error" {
+			gotError = true
+			errorMsg = event.Error
+		}
+	}
+	if !gotError {
+		t.Fatal("expected error event when both fallbacks fail")
+	}
+	if errorMsg != "stream also failed" {
+		t.Errorf("error = %q, want stream also failed", errorMsg)
+	}
+}
+
+func TestNewStreamWithReasoningFallbackNonReasoningError(t *testing.T) {
+	t.Parallel()
+	primaryEvents := make(chan core.EyrieStreamEvent, 4)
+	primaryEvents <- core.EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
+	primaryEvents <- core.EyrieStreamEvent{Type: "error", Error: "connection refused"}
+	primaryEvents <- core.EyrieStreamEvent{Type: "done", StopReason: "end_turn"}
+	close(primaryEvents)
+	primary := llm.NewStreamResult(primaryEvents, "", func() {})
+
+	var fallbackCalled bool
+	fallback := protocolStreamFallback{
+		chat: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.EyrieResponse, error) {
+			fallbackCalled = true
+			return &core.EyrieResponse{Content: "fallback"}, nil
+		},
+		stream: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.StreamResult, error) {
+			fallbackCalled = true
+			return nil, fmt.Errorf("should not reach")
+		},
+	}
+
+	result := newStreamWithReasoningFallback(context.Background(), nil, core.ChatOptions{}, primary, fallback)
+	var gotError bool
+	for event := range result.Events {
+		if event.Type == "error" {
+			gotError = true
+		}
+	}
+	if !gotError {
+		t.Fatal("expected error event for non-reasoning error")
+	}
+	if fallbackCalled {
+		t.Fatal("fallback should not be called for non-reasoning error")
+	}
+}
+
+func TestNewStreamWithReasoningFallbackNormalContent(t *testing.T) {
+	t.Parallel()
+	primaryEvents := make(chan core.EyrieStreamEvent, 4)
+	primaryEvents <- core.EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
+	primaryEvents <- core.EyrieStreamEvent{Type: "content", Content: "actual answer"}
+	primaryEvents <- core.EyrieStreamEvent{Type: "done", StopReason: "stop"}
+	close(primaryEvents)
+	primary := llm.NewStreamResult(primaryEvents, "", func() {})
+
+	var fallbackCalled bool
+	fallback := protocolStreamFallback{
+		chat: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.EyrieResponse, error) {
+			fallbackCalled = true
+			return &core.EyrieResponse{Content: "fallback"}, nil
+		},
+		stream: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.StreamResult, error) {
+			fallbackCalled = true
+			return nil, fmt.Errorf("should not reach")
+		},
+	}
+
+	result := newStreamWithReasoningFallback(context.Background(), nil, core.ChatOptions{}, primary, fallback)
+	var content string
+	for event := range result.Events {
+		if event.Type == "content" {
+			content += event.Content
+		}
+	}
+	if content != "actual answer" {
+		t.Fatalf("content = %q, want actual answer", content)
+	}
+	if fallbackCalled {
+		t.Fatal("fallback should not be called when content is present")
+	}
+}
+
+func TestNewStreamWithReasoningFallbackToolCalls(t *testing.T) {
+	t.Parallel()
+	primaryEvents := make(chan core.EyrieStreamEvent, 4)
+	primaryEvents <- core.EyrieStreamEvent{Type: "thinking", Thinking: "internal reasoning"}
+	primaryEvents <- core.EyrieStreamEvent{Type: "tool_call", ToolCall: &core.ToolCall{Name: "test_tool"}}
+	primaryEvents <- core.EyrieStreamEvent{Type: "done", StopReason: "tool_calls"}
+	close(primaryEvents)
+	primary := llm.NewStreamResult(primaryEvents, "", func() {})
+
+	var fallbackCalled bool
+	fallback := protocolStreamFallback{
+		chat: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.EyrieResponse, error) {
+			fallbackCalled = true
+			return &core.EyrieResponse{Content: "fallback"}, nil
+		},
+		stream: func(context.Context, []core.EyrieMessage, core.ChatOptions) (*core.StreamResult, error) {
+			fallbackCalled = true
+			return nil, fmt.Errorf("should not reach")
+		},
+	}
+
+	result := newStreamWithReasoningFallback(context.Background(), nil, core.ChatOptions{}, primary, fallback)
+	var gotToolCall bool
+	for event := range result.Events {
+		if event.Type == "tool_call" {
+			gotToolCall = true
+		}
+	}
+	if !gotToolCall {
+		t.Fatal("expected tool_call event to be forwarded")
+	}
+	if fallbackCalled {
+		t.Fatal("fallback should not be called when tool calls are present")
+	}
+}
+
 func TestIsReasoningOnlyStreamDiagnostic(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

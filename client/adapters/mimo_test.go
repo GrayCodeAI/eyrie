@@ -162,6 +162,36 @@ func TestMiMoClient_Ping_NoAnthropicNoFallback(t *testing.T) {
 	}
 }
 
+func TestMiMoClient_Chat_NoFallbackOnNonRetriable(t *testing.T) {
+	t.Parallel()
+	openAITransport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusBadRequest, map[string]any{"error": map[string]string{"message": "some other error"}}), nil
+	})
+	client := NewMiMoClient("key", "https://oai.example/v1", "", &XiaomiCompat, "p")
+	client.router.OpenAI.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.OpenAI.httpClient = &http.Client{Transport: openAITransport}
+
+	_, err := client.Chat(context.Background(), []core.EyrieMessage{{Role: "user", Content: "Hi"}}, core.ChatOptions{Model: "mimo"})
+	if err == nil {
+		t.Fatal("expected error without fallback")
+	}
+}
+
+func TestMiMoClient_StreamChat_NoFallbackOnNonRetriable(t *testing.T) {
+	t.Parallel()
+	openAITransport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusBadRequest, map[string]any{"error": map[string]string{"message": "some other error"}}), nil
+	})
+	client := NewMiMoClient("key", "https://oai.example/v1", "", &XiaomiCompat, "p")
+	client.router.OpenAI.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.OpenAI.httpClient = &http.Client{Transport: openAITransport}
+
+	_, err := client.StreamChat(context.Background(), []core.EyrieMessage{{Role: "user", Content: "Hi"}}, core.ChatOptions{Model: "mimo"})
+	if err == nil {
+		t.Fatal("expected error without fallback")
+	}
+}
+
 func TestMiMoClient_StreamChat_FallbackToAnthropic(t *testing.T) {
 	t.Parallel()
 	openAITransport := roundTripFunc(func(req *http.Request) (*http.Response, error) {

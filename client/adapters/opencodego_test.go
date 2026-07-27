@@ -299,3 +299,14 @@ func TestOACompatUnsupportedError(t *testing.T) {
 		})
 	}
 }
+
+func TestNewOpenCodeGoClient_DefaultBaseURL(t *testing.T) {
+	t.Parallel()
+	client := NewOpenCodeGoClient("key", "")
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+	if client.Name() != "opencodego" {
+		t.Errorf("Name = %q, want opencodego", client.Name())
+	}
+}

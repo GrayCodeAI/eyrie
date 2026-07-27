@@ -189,3 +189,58 @@ func TestDeepSeekClient_PingFallbackToAnthropic(t *testing.T) {
 		t.Fatalf("expected anthropic fallback, got %v paths", len(paths))
 	}
 }
+
+func TestDeepSeekClient_StreamChatNoFallbackWhenAnthropicNil(t *testing.T) {
+	t.Parallel()
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusServiceUnavailable, map[string]any{
+			"error": map[string]string{"message": "service unavailable"},
+		}), nil
+	})
+
+	client := NewDeepSeekClient("ds-key", "https://api.deepseek.com/v1", "", nil)
+	client.router.OpenAI.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.OpenAI.httpClient = &http.Client{Transport: transport}
+
+	_, err := client.StreamChat(context.Background(), []core.EyrieMessage{{Role: "user", Content: "Hi"}}, core.ChatOptions{Model: "deepseek-chat", MaxTokens: 256})
+	if err == nil {
+		t.Fatal("expected error when no fallback available")
+	}
+}
+
+func TestDeepSeekClient_PingNoFallbackWhenAnthropicNil(t *testing.T) {
+	t.Parallel()
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusUnauthorized, map[string]any{
+			"error": map[string]string{"message": "unauthorized"},
+		}), nil
+	})
+
+	client := NewDeepSeekClient("ds-key", "https://api.deepseek.com/v1", "", nil)
+	client.router.OpenAI.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.OpenAI.httpClient = &http.Client{Transport: transport}
+
+	err := client.Ping(context.Background())
+	if err == nil {
+		t.Fatal("expected error when no fallback available")
+	}
+}
+
+func TestDeepSeekClient_PingNonRetriableError(t *testing.T) {
+	t.Parallel()
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusUnauthorized, map[string]any{
+			"error": map[string]string{"message": "unauthorized"},
+		}), nil
+	})
+
+	client := NewDeepSeekClient("ds-key", "https://api.deepseek.com/v1", "https://api.deepseek.com/anthropic", nil)
+	client.router.OpenAI.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.OpenAI.httpClient = &http.Client{Transport: transport}
+	client.router.Anthropic.httpClient = &http.Client{Transport: transport}
+
+	err := client.Ping(context.Background())
+	if err == nil {
+		t.Fatal("expected error for non-retriable error")
+	}
+}

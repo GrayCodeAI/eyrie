@@ -246,3 +246,48 @@ func TestZAIClient_Name_NilOpenAI(t *testing.T) {
 		t.Errorf("Name() = %q, want zai_custom", client.Name())
 	}
 }
+
+func TestZAIClient_Chat_NoFallbackOnNonRetriable(t *testing.T) {
+	t.Parallel()
+	openAITransport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusBadRequest, map[string]any{"error": map[string]string{"message": "some other error"}}), nil
+	})
+	client := NewZAIClient("key", "https://zai.example/paas/v4", "", nil, "zai_payg")
+	client.router.OpenAI.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.OpenAI.httpClient = &http.Client{Transport: openAITransport}
+
+	_, err := client.Chat(context.Background(), []core.EyrieMessage{{Role: "user", Content: "Hi"}}, core.ChatOptions{Model: "glm-4"})
+	if err == nil {
+		t.Fatal("expected error without fallback")
+	}
+}
+
+func TestZAIClient_StreamChat_NoFallbackOnNonRetriable(t *testing.T) {
+	t.Parallel()
+	openAITransport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusBadRequest, map[string]any{"error": map[string]string{"message": "some other error"}}), nil
+	})
+	client := NewZAIClient("key", "https://zai.example/paas/v4", "", nil, "zai_payg")
+	client.router.OpenAI.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.OpenAI.httpClient = &http.Client{Transport: openAITransport}
+
+	_, err := client.StreamChat(context.Background(), []core.EyrieMessage{{Role: "user", Content: "Hi"}}, core.ChatOptions{Model: "glm-4"})
+	if err == nil {
+		t.Fatal("expected error without fallback")
+	}
+}
+
+func TestZAIClient_Ping_NoAnthropicNoFallback(t *testing.T) {
+	t.Parallel()
+	openAITransport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusUnauthorized, map[string]any{"error": map[string]string{"message": "unauthorized"}}), nil
+	})
+	client := NewZAIClient("key", "https://zai.example/paas/v4", "", nil, "zai_payg")
+	client.router.OpenAI.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.OpenAI.httpClient = &http.Client{Transport: openAITransport}
+
+	err := client.Ping(context.Background())
+	if err == nil {
+		t.Fatal("expected error without anthropic fallback client")
+	}
+}
