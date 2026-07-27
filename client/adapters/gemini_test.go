@@ -933,3 +933,105 @@ func TestGeminiClient_Chat_PenaltiesOnly(t *testing.T) {
 
 func ptrInt(v int) *int    { return &v }
 func ptrBool(v bool) *bool { return &v }
+
+func TestProcessStreamChunk_Content(t *testing.T) {
+	t.Parallel()
+	c := NewGeminiClient("key", "https://gemini.example")
+	events := make(chan core.EyrieStreamEvent, 1)
+	data := `{"candidates":[{"content":{"parts":[{"text":"Hello"}]}}]}`
+	cont := c.processStreamChunk(context.Background(), data, events)
+	if cont {
+		t.Fatal("processStreamChunk returned true (done), expected false")
+	}
+	select {
+	case evt := <-events:
+		if evt.Type != "content" || evt.Content != "Hello" {
+			t.Errorf("event = %+v", evt)
+		}
+	default:
+		t.Fatal("expected content event")
+	}
+}
+
+func TestProcessStreamChunk_ToolCall(t *testing.T) {
+	t.Parallel()
+	c := NewGeminiClient("key", "https://gemini.example")
+	events := make(chan core.EyrieStreamEvent, 1)
+	data := `{"candidates":[{"content":{"parts":[{"functionCall":{"name":"get_weather","args":{"city":"NYC"},"id":"call_1"}}]}}]}`
+	cont := c.processStreamChunk(context.Background(), data, events)
+	if cont {
+		t.Fatal("processStreamChunk returned true (done), expected false")
+	}
+	select {
+	case evt := <-events:
+		if evt.Type != "tool_call" || evt.ToolCall == nil || evt.ToolCall.Name != "get_weather" {
+			t.Errorf("event = %+v", evt)
+		}
+	default:
+		t.Fatal("expected tool_call event")
+	}
+}
+
+func TestProcessStreamChunk_UsageDone(t *testing.T) {
+	t.Parallel()
+	c := NewGeminiClient("key", "https://gemini.example")
+	events := make(chan core.EyrieStreamEvent, 2)
+	data := `{"candidates":[{"content":{"parts":[{"text":"Hi"}],"finishReason":"STOP"}}],"usageMetadata":{"promptTokenCount":2,"candidatesTokenCount":5,"totalTokenCount":7}}`
+	cont := c.processStreamChunk(context.Background(), data, events)
+	if !cont {
+		t.Fatal("processStreamChunk returned false, expected true (done)")
+	}
+	var gotDone bool
+	for i := 0; i < 2; i++ {
+		select {
+		case evt := <-events:
+			if evt.Type == "done" {
+				gotDone = true
+			}
+		default:
+			return
+		}
+	}
+	if !gotDone {
+		t.Fatal("expected done event")
+	}
+}
+
+func TestProcessStreamChunk_ContextCancelled(t *testing.T) {
+	t.Parallel()
+	c := NewGeminiClient("key", "https://gemini.example")
+	events := make(chan core.EyrieStreamEvent)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	data := `{"candidates":[{"content":{"parts":[{"text":"Hello"}]}}]}`
+	cont := c.processStreamChunk(ctx, data, events)
+	if cont {
+		t.Fatal("processStreamChunk returned true, expected false")
+	}
+}
+
+func TestProcessStreamChunk_EmptyCandidates(t *testing.T) {
+	t.Parallel()
+	c := NewGeminiClient("key", "https://gemini.example")
+	events := make(chan core.EyrieStreamEvent, 1)
+	data := `{"candidates":[]}`
+	cont := c.processStreamChunk(context.Background(), data, events)
+	if cont {
+		t.Fatal("processStreamChunk returned true, expected false")
+	}
+	select {
+	case <-events:
+		t.Fatal("expected no events")
+	default:
+	}
+}
+
+func TestProcessStreamChunk_InvalidJSON(t *testing.T) {
+	t.Parallel()
+	c := NewGeminiClient("key", "https://gemini.example")
+	events := make(chan core.EyrieStreamEvent, 1)
+	cont := c.processStreamChunk(context.Background(), "not json", events)
+	if cont {
+		t.Fatal("processStreamChunk returned true, expected false")
+	}
+}
