@@ -2,12 +2,14 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/eyrie/types"
 )
 
 func TestOpenCodeGoClientRoutesMiniMaxToAnthropic(t *testing.T) {
@@ -230,5 +232,70 @@ func TestOpenCodeGoClientStreamMiniMaxReasoningOnlyFallsBackToChat(t *testing.T)
 	}
 	if len(paths) < 2 {
 		t.Fatalf("expected /messages then /chat/completions, got %v", paths)
+	}
+}
+
+func TestOpenCodeGoClient_Name(t *testing.T) {
+	t.Parallel()
+	client := NewOpenCodeGoClient("key", "https://opencode.example/zen/go/v1")
+	if client.Name() != "opencodego" {
+		t.Errorf("Name() = %q, want opencodego", client.Name())
+	}
+}
+
+func TestOpenCodeGoClient_Ping_Success(t *testing.T) {
+	t.Parallel()
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusOK, map[string]any{}), nil
+	})
+	client := NewOpenCodeGoClient("key", "https://opencode.example/zen/go/v1")
+	client.router.OpenAI.httpClient = &http.Client{Transport: transport}
+	client.router.Anthropic.httpClient = &http.Client{Transport: transport}
+	if err := client.Ping(context.Background()); err != nil {
+		t.Fatalf("Ping: %v", err)
+	}
+}
+
+func TestOpenCodeGoClient_Ping_FallbackToAnthropic(t *testing.T) {
+	t.Parallel()
+	callCount := 0
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		callCount++
+		if callCount == 1 {
+			return jsonResponse(http.StatusUnauthorized, map[string]any{}), nil
+		}
+		return jsonResponse(http.StatusOK, map[string]any{}), nil
+	})
+	client := NewOpenCodeGoClient("key", "https://openai.example/v1")
+	client.router.OpenAI.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.Anthropic.SetRetry(core.RetryConfig{RetryConfig: types.RetryConfig{MaxRetries: 0}})
+	client.router.OpenAI.httpClient = &http.Client{Transport: transport}
+	client.router.Anthropic.httpClient = &http.Client{Transport: transport}
+	if err := client.Ping(context.Background()); err != nil {
+		t.Fatalf("Ping: %v", err)
+	}
+}
+
+func TestOACompatUnsupportedError(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil error", nil, false},
+		{"401 status", fmt.Errorf("status=401"), true},
+		{"http 401", fmt.Errorf("http 401"), true},
+		{"oa-compat", fmt.Errorf("oa-compat unsupported"), true},
+		{"not supported", fmt.Errorf("not supported"), true},
+		{"other error", fmt.Errorf("something else"), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := OACompatUnsupportedError(tt.err)
+			if got != tt.want {
+				t.Errorf("OACompatUnsupportedError(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
 	}
 }

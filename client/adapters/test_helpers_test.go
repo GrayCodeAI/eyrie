@@ -4,8 +4,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
+	"testing"
 )
+
+type transportError struct{ msg string }
+
+func (e *transportError) Error() string   { return e.msg }
+func (e *transportError) Timeout() bool   { return false }
+func (e *transportError) Temporary() bool { return true }
+
+func testLogger(t *testing.T) *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
@@ -35,3 +47,5 @@ func jsonDecodeRequest(req *http.Request, value any) error {
 	}
 	return json.Unmarshal(body, value)
 }
+
+func float64Ptr(v float64) *float64 { return &v }
