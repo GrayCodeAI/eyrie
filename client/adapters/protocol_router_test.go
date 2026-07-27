@@ -216,3 +216,27 @@ func TestStreamResultFromChat_NilResponse(t *testing.T) {
 		t.Errorf("expected 0 events for nil response, got %d", eventCount)
 	}
 }
+
+func TestIsReasoningOnlyStreamDiagnostic(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		message string
+		want    bool
+	}{
+		{"error_only_reasoning", "error_only_reasoning", true},
+		{"reasoning tokens but no answer", "reasoning tokens but no answer", true},
+		{"case insensitive", "ERROR_ONLY_REASONING", true},
+		{"with whitespace", "  error_only_reasoning  ", true},
+		{"normal message", "Hello world", false},
+		{"empty", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isReasoningOnlyStreamDiagnostic(tt.message)
+			if got != tt.want {
+				t.Errorf("isReasoningOnlyStreamDiagnostic(%q) = %v, want %v", tt.message, got, tt.want)
+			}
+		})
+	}
+}
