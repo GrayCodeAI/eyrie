@@ -589,6 +589,212 @@ func FetchPoolside(env map[string]string) ([]Entry, error) {
 	)
 }
 
+// FetchConcentrate lists models from the Concentrate AI OpenAI-compatible API.
+// Concentrate returns a rich format with max_input_tokens, max_tokens, and capabilities.
+// Set CONCENTRATE_FETCH_PRICING=true to fetch pricing from individual model endpoints
+// (slower but more accurate), otherwise uses OpenRouter pricing enrichment.
+func FetchConcentrate(env map[string]string) ([]Entry, error) {
+	apiKey := strings.TrimSpace(env["CONCENTRATE_API_KEY"])
+	if apiKey == "" {
+		return nil, nil
+	}
+	isCustomBaseURL := env["CONCENTRATE_BASE_URL"] != ""
+	fetchPricing := strings.EqualFold(env["CONCENTRATE_FETCH_PRICING"], "true")
+	baseURL := strings.TrimRight(envOr(env, "CONCENTRATE_BASE_URL", "https://api.concentrate.ai/v1"), "/")
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL+"/models", nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("concentrate model fetch failed (%d)", resp.StatusCode)
+	}
+
+	var payload struct {
+		Data []json.RawMessage `json:"data"`
+	}
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
+		return nil, err
+	}
+
+	var entries []Entry
+	for _, raw := range payload.Data {
+		var m struct {
+			ID            string `json:"id"`
+			DisplayName   string `json:"display_name"`
+			MaxInputTokens int   `json:"max_input_tokens"`
+			MaxTokens      int   `json:"max_tokens"`
+			OwnedBy        string `json:"owned_by"`
+			Capabilities   struct {
+				Effort struct {
+					Supported bool `json:"supported"`
+					Low       struct{ Supported bool } `json:"low"`
+					Medium    struct{ Supported bool } `json:"medium"`
+					High      struct{ Supported bool } `json:"high"`
+					XHigh     struct{ Supported bool } `json:"xhigh"`
+					Max       struct{ Supported bool } `json:"max"`
+				} `json:"effort"`
+				ImageInput struct{ Supported bool } `json:"image_input"`
+				PDFInput    struct{ Supported bool } `json:"pdf_input"`
+				StructuredOutputs struct{ Supported bool } `json:"structured_outputs"`
+				Thinking struct {
+					Supported bool `json:"supported"`
+					Types     struct {
+						Enabled  struct{ Supported bool } `json:"enabled"`
+						Adaptive struct{ Supported bool } `json:"adaptive"`
+					} `json:"types"`
+				} `json:"thinking"`
+				CodeExecution struct{ Supported bool } `json:"code_execution"`
+				Citations     struct{ Supported bool } `json:"citations"`
+			} `json:"capabilities"`
+		}
+		if err := json.Unmarshal(raw, &m); err != nil {
+			continue
+		}
+		id := strings.TrimSpace(m.ID)
+		if id == "" {
+			continue
+		}
+		label := strings.TrimSpace(m.DisplayName)
+		if label == "" {
+			label = id
+		}
+		entry := Entry{
+			ID: id, DisplayName: label, ContextWindow: m.MaxInputTokens, MaxOutput: m.MaxTokens,
+			OwnedBy: strings.TrimSpace(m.OwnedBy),
+			RawJSON: append(json.RawMessage(nil), raw...),
+		}
+		// Extract capabilities
+		entry.ThinkingEnabled = m.Capabilities.Thinking.Types.Enabled.Supported
+		entry.ThinkingAdaptive = m.Capabilities.Thinking.Types.Adaptive.Supported
+		if m.Capabilities.Effort.Supported {
+			entry.EffortSupported = true
+			var levels []string
+			for _, lvl := range []string{"low", "medium", "high", "xhigh", "max"} {
+				switch lvl {
+				case "low":
+					if m.Capabilities.Effort.Low.Supported {
+						levels = append(levels, lvl)
+					}
+				case "medium":
+					if m.Capabilities.Effort.Medium.Supported {
+						levels = append(levels, lvl)
+					}
+				case "high":
+					if m.Capabilities.Effort.High.Supported {
+						levels = append(levels, lvl)
+					}
+				case "xhigh":
+					if m.Capabilities.Effort.XHigh.Supported {
+						levels = append(levels, lvl)
+					}
+				case "max":
+					if m.Capabilities.Effort.Max.Supported {
+						levels = append(levels, lvl)
+					}
+				}
+			}
+			entry.EffortLevels = strings.Join(levels, ",")
+		}
+		entry.StructuredOutput = m.Capabilities.StructuredOutputs.Supported
+		entry.CodeExecution = m.Capabilities.CodeExecution.Supported
+		entry.CitationsSupported = m.Capabilities.Citations.Supported
+		entry.PDFInput = m.Capabilities.PDFInput.Supported
+		entry.ImageInput = m.Capabilities.ImageInput.Supported
+		// Populate Features list for downstream catalog pipeline
+		if entry.ThinkingEnabled {
+			entry.Features = append(entry.Features, "thinking:enabled")
+		}
+		if entry.ThinkingAdaptive {
+			entry.Features = append(entry.Features, "thinking:adaptive")
+		}
+		if entry.EffortSupported {
+			entry.Features = append(entry.Features, "effort")
+			if entry.EffortLevels != "" {
+				entry.Features = append(entry.Features, "effort:"+entry.EffortLevels)
+			}
+		}
+		if entry.StructuredOutput {
+			entry.Features = append(entry.Features, "structured_output")
+		}
+		if entry.CodeExecution {
+			entry.Features = append(entry.Features, "code_execution")
+		}
+		if entry.CitationsSupported {
+			entry.Features = append(entry.Features, "citations")
+		}
+		if entry.PDFInput {
+			entry.Features = append(entry.Features, "pdf_input")
+		}
+		if entry.ImageInput {
+			entry.Features = append(entry.Features, "image_input")
+		}
+		entries = append(entries, entry)
+	}
+	// Fetch precise pricing from individual model endpoints if requested (slower but accurate).
+	if fetchPricing && !isCustomBaseURL {
+		fetchConcentratePricing(context.Background(), baseURL, apiKey, entries)
+	} else if !isCustomBaseURL {
+		// Enrich with pricing from OpenRouter (slower but accurate).
+		enrichFromOpenRouter(entries, "")
+	}
+	return entries, nil
+}
+
+// fetchConcentratePricing fetches pricing from individual model endpoints with rate limiting.
+func fetchConcentratePricing(ctx context.Context, baseURL, apiKey string, entries []Entry) {
+	for i := range entries {
+		// Build request for individual model pricing
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/models/"+entries[i].ID, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			continue
+		}
+		var modelResp struct {
+			Providers map[string]struct {
+				Pricing struct {
+					Tokens struct {
+						Input  struct{ Price struct{ USD float64 } }
+						Output struct{ Price struct{ USD float64 } }
+					}
+				}
+			}
+		}
+		json.NewDecoder(resp.Body).Decode(&modelResp)
+		resp.Body.Close()
+
+		// Use first available provider's pricing (usually "openai" or the primary provider)
+		if len(modelResp.Providers) > 0 {
+			for _, p := range modelResp.Providers {
+				if p.Pricing.Tokens.Input.Price.USD > 0 {
+					entries[i].InputPricePer1M = p.Pricing.Tokens.Input.Price.USD
+				}
+				if p.Pricing.Tokens.Output.Price.USD > 0 {
+					entries[i].OutputPricePer1M = p.Pricing.Tokens.Output.Price.USD
+				}
+				break
+			}
+		}
+		// Small delay to avoid rate limiting
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
 // FetchGroq lists models from the Groq OpenAI-compatible API.
 func FetchGroq(env map[string]string) ([]Entry, error) {
 	return fetchOpenAICompatModels(

@@ -79,6 +79,7 @@ func DetectProvider() string {
 		"anthropic":  func() bool { return credentials.HasSecret(ctx, "ANTHROPIC_API_KEY") },
 		"deepseek":   func() bool { return credentials.HasSecret(ctx, "DEEPSEEK_API_KEY") },
 		"openrouter": func() bool { return credentials.HasSecret(ctx, "OPENROUTER_API_KEY") },
+		"concentrate": func() bool { return credentials.HasSecret(ctx, "CONCENTRATE_API_KEY") },
 		"grok":       func() bool { return credentials.HasSecret(ctx, "XAI_API_KEY") },
 		"gemini":     func() bool { return credentials.HasSecret(ctx, "GEMINI_API_KEY") },
 		"zai_payg":   func() bool { return credentials.HasSecret(ctx, "ZAI_API_KEY") },
