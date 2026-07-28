@@ -24,4 +24,5 @@ var (
 	BedrockCompat    = adapters.BedrockCompat
 	VertexCompat     = adapters.VertexCompat
 	DeepSeekCompat   = adapters.DeepSeekCompat
+	ConcentrateCompat = adapters.ConcentrateCompat
 )
