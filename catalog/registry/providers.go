@@ -173,6 +173,14 @@ func providerSpecs() []ProviderSpec {
 			PublicModelCatalog: true,
 			ProtocolID:         "openai-responses", AdapterID: "concentrate-responses", RuntimeProfileKey: "concentrate",
 		},
+		{
+			ProviderID: "agnes", DisplayName: "Agnes AI", DeploymentID: "agnes-direct", SortOrder: 17, ChatPreference: 25,
+			RequiresKey: true, CredentialEnv: "AGNES_API_KEY",
+			BaseURLEnv: []string{"AGNES_BASE_URL"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://apihub.agnes-ai.com/v1",
+			LiveFetcherKey: "agnes", LiveCatalogKey: "agnes",
+			ProtocolID: "openai-chat-completions", AdapterID: "openai", RuntimeProfileKey: "agnes",
+		},
 
 		// ── Niche ─────────────────────────────────────────────────────────
 		{

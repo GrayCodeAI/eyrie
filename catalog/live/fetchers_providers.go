@@ -590,6 +590,25 @@ func FetchPoolside(env map[string]string) ([]Entry, error) {
 	)
 }
 
+// FetchAgnes lists models from the Agnes AI OpenAI-compatible API.
+// Agnes models are free with RPM limits. No per-token pricing.
+func FetchAgnes(env map[string]string) ([]Entry, error) {
+	entries, err := fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "AGNES_BASE_URL", "https://apihub.agnes-ai.com/v1"),
+		env["AGNES_API_KEY"], "Bearer",
+	)
+	if err != nil {
+		return nil, err
+	}
+	// Agnes is free tier — all models have zero per-token pricing
+	for i := range entries {
+		entries[i].InputPricePer1M = 0
+		entries[i].OutputPricePer1M = 0
+	}
+	return entries, nil
+}
+
 // FetchConcentrate lists models from the public Concentrate AI model catalog.
 // Concentrate returns a rich format with max_input_tokens, max_tokens, and capabilities.
 // Pricing is fetched from individual model endpoints and cached to disk for 24 hours.
