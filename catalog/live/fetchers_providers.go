@@ -592,19 +592,21 @@ func FetchPoolside(env map[string]string) ([]Entry, error) {
 
 // FetchConcentrate lists models from the public Concentrate AI model catalog.
 // Concentrate returns a rich format with max_input_tokens, max_tokens, and capabilities.
-// Set CONCENTRATE_FETCH_PRICING=true to fetch pricing from individual model endpoints
-// (slower but more accurate). Pricing is cached to disk for 24 hours.
+// Pricing is fetched from individual model endpoints and cached to disk for 24 hours.
+// Set CONCENTRATE_FETCH_PRICING=false to skip pricing fetch (faster but shows "free").
 //
 // Note: /v1/models does not require authentication per Concentrate docs.
-// CONCENTRATE_API_KEY is only needed when CONCENTRATE_FETCH_PRICING=true.
+// CONCENTRATE_API_KEY is needed for pricing fetch from individual model endpoints.
 func FetchConcentrate(env map[string]string) ([]Entry, error) {
 	apiKey := strings.TrimSpace(env["CONCENTRATE_API_KEY"])
 	isCustomBaseURL := env["CONCENTRATE_BASE_URL"] != ""
-	fetchPricing := strings.EqualFold(env["CONCENTRATE_FETCH_PRICING"], "true")
+	// Default: fetch pricing unless explicitly disabled
+	fetchPricing := !strings.EqualFold(env["CONCENTRATE_FETCH_PRICING"], "false")
 
 	// Pricing fetch requires auth; model listing does not
 	if fetchPricing && apiKey == "" {
-		return nil, fmt.Errorf("concentrate: CONCENTRATE_API_KEY required when CONCENTRATE_FETCH_PRICING=true")
+		// Fall back to no pricing rather than erroring out
+		fetchPricing = false
 	}
 
 	baseURL := strings.TrimRight(envOr(env, "CONCENTRATE_BASE_URL", "https://api.concentrate.ai/v1"), "/")
