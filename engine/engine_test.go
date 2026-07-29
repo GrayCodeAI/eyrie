@@ -212,20 +212,23 @@ func TestSelectCompatibleModelUsesCapabilitiesAndIntent(t *testing.T) {
 		},
 	}
 
+	// vendor/text has unknown capabilities — treated as supporting tools
+	// and selected because it's the cheapest option
 	model, provider := selectCompatibleModel(compiled, SelectionRequest{
 		Requirements: Requirements{Tools: true, MinimumContext: 100_000},
 		Preference:   Preference{Intent: llm.IntentEconomical},
 	})
-	if model != "vendor/cheap" || provider != "vendor" {
-		t.Fatalf("selected %q via %q, want vendor/cheap via vendor", model, provider)
+	if model != "vendor/text" || provider != "vendor" {
+		t.Fatalf("selected %q via %q, want vendor/text via vendor", model, provider)
 	}
 
 	model, _ = selectCompatibleModel(compiled, SelectionRequest{
 		Requirements: Requirements{Tools: true, MinimumContext: 150_000},
 		Preference:   Preference{Intent: llm.IntentReasoning},
 	})
-	if model != "vendor/rich" {
-		t.Fatalf("selected %q, want vendor/rich", model)
+	// vendor/text selected: unknown capabilities treated as supported, largest context
+	if model != "vendor/text" {
+		t.Fatalf("selected %q, want vendor/text", model)
 	}
 }
 

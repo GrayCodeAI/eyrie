@@ -552,12 +552,11 @@ func offeringSupports(compiled *catalog.CompiledCatalog, modelID string, req Req
 	for _, offering := range offerings {
 		caps := offering.Capabilities
 		if req.Tools && caps.FunctionCalling != catalog.CapabilitySupported {
-			// Older Concentrate caches predate the provider-level tool
-			// capability in its model-list response. Its Responses API
-			// model-details endpoint advertises function calling, so treat
-			// an unknown value as supported while preserving explicit
-			// unsupported declarations.
-			if caps.FunctionCalling == catalog.CapabilityUnsupported || offering.DeploymentID != "concentrate-payg" {
+			// Treat unknown capability as supported. Providers that don't
+			// report function-calling capability (e.g. free tiers, smaller
+			// gateways) may still support tools. Better to try and fail than
+			// block models from being used. Only skip on explicit unsupported.
+			if caps.FunctionCalling == catalog.CapabilityUnsupported {
 				continue
 			}
 		}
