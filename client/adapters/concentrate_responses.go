@@ -65,14 +65,27 @@ type responsesRequest struct {
 	Text               *responsesTextConfig   `json:"text,omitempty"`
 	Store              *bool                  `json:"store,omitempty"`
 	// Extended parameters from Concentrate Responses API
-	Include           []string               `json:"include,omitempty"`
-	Routing           *routingConfig         `json:"routing,omitempty"`
-	MaxToolCalls      *int                   `json:"max_tool_calls,omitempty"`
-	ContextManagement []contextManagement    `json:"context_management,omitempty"`
-	SafetyIdentifier  *string                `json:"safety_identifier,omitempty"`
-	Background        *bool                  `json:"background,omitempty"`
-	Truncation        *string                `json:"truncation,omitempty"`
-	Conversation      interface{}            `json:"conversation,omitempty"`
+	Include            []string               `json:"include,omitempty"`
+	Routing            *routingConfig         `json:"routing,omitempty"`
+	MaxToolCalls       *int                   `json:"max_tool_calls,omitempty"`
+	ContextManagement  []contextManagement    `json:"context_management,omitempty"`
+	SafetyIdentifier   *string                `json:"safety_identifier,omitempty"`
+	Background         *bool                  `json:"background,omitempty"`
+	Truncation         *string                `json:"truncation,omitempty"`
+	Conversation       interface{}            `json:"conversation,omitempty"`
+	ServiceTier        string                 `json:"service_tier,omitempty"`
+	PromptCacheOptions *promptCacheOptions    `json:"prompt_cache_options,omitempty"`
+	CacheControl       *cacheControl          `json:"cache_control,omitempty"`
+}
+
+type promptCacheOptions struct {
+	Mode string `json:"mode,omitempty"` // "implicit" or "explicit"
+	TTL  string `json:"ttl,omitempty"`  // "5m", "30m", "1h"
+}
+
+type cacheControl struct {
+	Type string `json:"type"` // "ephemeral"
+	TTL  string `json:"ttl,omitempty"`
 }
 
 type routingConfig struct {
@@ -348,6 +361,21 @@ func (c *ConcentrateResponsesClient) buildRequest(messages []core.EyrieMessage, 
 	}
 	if opts.Conversation != nil {
 		req.Conversation = opts.Conversation
+	}
+	if opts.ServiceTier != "" {
+		req.ServiceTier = opts.ServiceTier
+	}
+	if opts.PromptCacheOptions != nil {
+		req.PromptCacheOptions = &promptCacheOptions{
+			Mode: opts.PromptCacheOptions.Mode,
+			TTL:  opts.PromptCacheOptions.TTL,
+		}
+	}
+	if opts.CacheControl != nil {
+		req.CacheControl = &cacheControl{
+			Type: opts.CacheControl.Type,
+			TTL:  opts.CacheControl.TTL,
+		}
 	}
 
 	return req, nil
