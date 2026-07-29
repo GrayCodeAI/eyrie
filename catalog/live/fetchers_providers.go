@@ -846,7 +846,7 @@ func fetchConcentratePricing(ctx context.Context, baseURL, apiKey string, entrie
 				}
 			}
 		}
-		json.NewDecoder(resp.Body).Decode(&modelResp)
+		_ = json.NewDecoder(resp.Body).Decode(&modelResp)
 		resp.Body.Close()
 
 		// pricePer1M converts a price with units to per-1M-token price.

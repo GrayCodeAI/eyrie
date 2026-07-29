@@ -57,7 +57,7 @@ func cacheDir() string {
 func getCache() *pricingCache {
 	defaultCacheOnce.Do(func() {
 		dir := cacheDir()
-		os.MkdirAll(dir, 0o755)
+		_ = os.MkdirAll(dir, 0o755)
 		defaultCache = &pricingCache{
 			dir:     dir,
 			ttl:     24 * time.Hour,
