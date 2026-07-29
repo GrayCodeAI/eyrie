@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/GrayCodeAI/eyrie/client/core"
 	"github.com/GrayCodeAI/eyrie/catalog/concentrate"
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 // ConcentrateClient routes Concentrate AI models through OpenAIClient and

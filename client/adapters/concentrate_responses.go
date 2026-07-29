@@ -86,23 +86,23 @@ type responsesTextConfig struct {
 
 // responsesResponse is the response from the Concentrate Responses API.
 type responsesResponse struct {
-	ID      string          `json:"id"`
-	Object  string          `json:"object"`
-	Model   string          `json:"model"`
-	Output  []outputItem    `json:"output"`
-	Usage   *responsesUsage `json:"usage,omitempty"`
+	ID     string          `json:"id"`
+	Object string          `json:"object"`
+	Model  string          `json:"model"`
+	Output []outputItem    `json:"output"`
+	Usage  *responsesUsage `json:"usage,omitempty"`
 }
 
 type outputItem struct {
-	Type      string           `json:"type"`
-	ID        string           `json:"id,omitempty"`
-	Status    string           `json:"status,omitempty"`
-	Role      string           `json:"role,omitempty"`
-	Content   []outputContent  `json:"content,omitempty"`
-	Summary   string           `json:"summary,omitempty"`
-	Name      string           `json:"name,omitempty"`
-	CallID    string           `json:"call_id,omitempty"`
-	Arguments string           `json:"arguments,omitempty"`
+	Type      string          `json:"type"`
+	ID        string          `json:"id,omitempty"`
+	Status    string          `json:"status,omitempty"`
+	Role      string          `json:"role,omitempty"`
+	Content   []outputContent `json:"content,omitempty"`
+	Summary   string          `json:"summary,omitempty"`
+	Name      string          `json:"name,omitempty"`
+	CallID    string          `json:"call_id,omitempty"`
+	Arguments string          `json:"arguments,omitempty"`
 }
 
 type outputContent struct {
@@ -544,5 +544,3 @@ func (c *ConcentrateResponsesClient) SetBaseURL(url string) {
 func (c *ConcentrateResponsesClient) SetAPIKey(key string) {
 	c.apiKey = key
 }
-
-

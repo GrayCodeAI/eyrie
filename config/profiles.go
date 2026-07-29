@@ -259,7 +259,7 @@ var OpenAICompatibleRuntimeProfileOrder = []string{
 
 // OpenAICompatibleRuntimeProfiles maps profile key to its runtime profile.
 var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
-	"concentrate":             ConcentrateRuntimeProfile,
+	"concentrate":            ConcentrateRuntimeProfile,
 	"anthropic":              AnthropicRuntimeProfile,
 	"grok":                   GrokRuntimeProfile,
 	"gemini":                 GeminiRuntimeProfile,

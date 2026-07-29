@@ -129,11 +129,11 @@ func TestPricingCache_WithReasoningAndTiers(t *testing.T) {
 	}()
 
 	SetPricing("claude-opus-5", PricingCacheEntry{
-		InputPrice:       15.0,
-		OutputPrice:      75.0,
-		ReasoningPrice:   150.0,
-		TierThreshold:    200000,
-		TieredInputPrice: 7.5,
+		InputPrice:        15.0,
+		OutputPrice:       75.0,
+		ReasoningPrice:    150.0,
+		TierThreshold:     200000,
+		TieredInputPrice:  7.5,
 		TieredOutputPrice: 37.5,
 	})
 

@@ -56,10 +56,10 @@ func TestConcentrateClient_ChatAnthropicProtocol(t *testing.T) {
 	t.Parallel()
 	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
 		return jsonResponse(http.StatusOK, map[string]any{
-			"id":    "msg_1",
-			"type":  "message",
-			"role":  "assistant",
-			"content": []map[string]string{{"type": "text", "text": "Hello from Anthropic!"}},
+			"id":          "msg_1",
+			"type":        "message",
+			"role":        "assistant",
+			"content":     []map[string]string{{"type": "text", "text": "Hello from Anthropic!"}},
 			"stop_reason": "end_turn",
 			"usage":       map[string]int{"input_tokens": 1, "output_tokens": 2},
 		}), nil

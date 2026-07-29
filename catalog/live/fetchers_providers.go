@@ -637,37 +637,37 @@ func FetchConcentrate(env map[string]string) ([]Entry, error) {
 	var entries []Entry
 	for _, raw := range payload.Data {
 		var m struct {
-			ID            string `json:"id"`
-			DisplayName   string `json:"display_name"`
-			MaxInputTokens int   `json:"max_input_tokens"`
-			MaxTokens      int   `json:"max_tokens"`
+			ID             string `json:"id"`
+			DisplayName    string `json:"display_name"`
+			MaxInputTokens int    `json:"max_input_tokens"`
+			MaxTokens      int    `json:"max_tokens"`
 			OwnedBy        string `json:"owned_by"`
 			Capabilities   struct {
 				Effort struct {
-					Supported bool `json:"supported"`
+					Supported bool                     `json:"supported"`
 					Low       struct{ Supported bool } `json:"low"`
 					Medium    struct{ Supported bool } `json:"medium"`
 					High      struct{ Supported bool } `json:"high"`
 					XHigh     struct{ Supported bool } `json:"xhigh"`
 					Max       struct{ Supported bool } `json:"max"`
 				} `json:"effort"`
-				ImageInput struct{ Supported bool } `json:"image_input"`
-				PDFInput    struct{ Supported bool } `json:"pdf_input"`
+				ImageInput        struct{ Supported bool } `json:"image_input"`
+				PDFInput          struct{ Supported bool } `json:"pdf_input"`
 				StructuredOutputs struct{ Supported bool } `json:"structured_outputs"`
-				Thinking struct {
+				Thinking          struct {
 					Supported bool `json:"supported"`
 					Types     struct {
 						Enabled  struct{ Supported bool } `json:"enabled"`
 						Adaptive struct{ Supported bool } `json:"adaptive"`
 					} `json:"types"`
 				} `json:"thinking"`
-				CodeExecution struct{ Supported bool } `json:"code_execution"`
-				Citations     struct{ Supported bool } `json:"citations"`
+				CodeExecution     struct{ Supported bool } `json:"code_execution"`
+				Citations         struct{ Supported bool } `json:"citations"`
 				ContextManagement struct {
-					Supported              bool `json:"supported"`
-					ClearThinking20251015  struct{ Supported bool } `json:"clear_thinking_20251015"`
-					ClearToolUses20250919  struct{ Supported bool } `json:"clear_tool_uses_20250919"`
-					Compact20260112        struct{ Supported bool } `json:"compact_20260112"`
+					Supported             bool                     `json:"supported"`
+					ClearThinking20251015 struct{ Supported bool } `json:"clear_thinking_20251015"`
+					ClearToolUses20250919 struct{ Supported bool } `json:"clear_tool_uses_20250919"`
+					Compact20260112       struct{ Supported bool } `json:"compact_20260112"`
 				} `json:"context_management"`
 			} `json:"capabilities"`
 		}
