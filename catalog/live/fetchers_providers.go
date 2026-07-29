@@ -590,7 +590,7 @@ func FetchPoolside(env map[string]string) ([]Entry, error) {
 	)
 }
 
-// FetchConcentrate lists models from the Concentrate AI OpenAI-compatible API.
+// FetchConcentrate lists models from the public Concentrate AI model catalog.
 // Concentrate returns a rich format with max_input_tokens, max_tokens, and capabilities.
 // Set CONCENTRATE_FETCH_PRICING=true to fetch pricing from individual model endpoints
 // (slower but more accurate). Pricing is cached to disk for 24 hours.
@@ -687,12 +687,6 @@ func FetchConcentrate(env map[string]string) ([]Entry, error) {
 			OwnedBy: strings.TrimSpace(m.OwnedBy),
 			RawJSON: append(json.RawMessage(nil), raw...),
 		}
-		// Set protocol based on owned_by (anthropic → Messages API, others → Chat Completions)
-		if strings.EqualFold(m.OwnedBy, "anthropic") {
-			entry.Protocol = "anthropic"
-		} else {
-			entry.Protocol = "openai"
-		}
 		// Extract capabilities
 		entry.ThinkingEnabled = m.Capabilities.Thinking.Types.Enabled.Supported
 		entry.ThinkingAdaptive = m.Capabilities.Thinking.Types.Adaptive.Supported
@@ -771,14 +765,14 @@ func FetchConcentrate(env map[string]string) ([]Entry, error) {
 		if entry.ImageInput {
 			entry.Features = append(entry.Features, "image_input")
 		}
+		// Concentrate's current list response exposes general model
+		// capabilities but omits the provider-level supports.tools field.
+		// The Responses API and model-details endpoint advertise function
+		// calling for these routed models, so preserve that capability for
+		// Hawk's tool-enabled coding loop.
+		entry.Features = append(entry.Features, "function_calling")
 		entries = append(entries, entry)
 	}
-	// Update protocol map for dual-protocol routing (anthropic → Messages API, others → Chat Completions).
-	protocolEntries := make([]struct{ ID, Protocol string }, 0, len(entries))
-	for i := range entries {
-		protocolEntries = append(protocolEntries, struct{ ID, Protocol string }{ID: entries[i].ID, Protocol: entries[i].Protocol})
-	}
-	concentrate.UpdateProtocolMap(protocolEntries)
 	// Fetch precise pricing from individual model endpoints if requested (slower but accurate).
 	// Pricing is cached to disk for 24 hours to avoid repeated API calls.
 	if fetchPricing && !isCustomBaseURL {

@@ -132,6 +132,7 @@ func legacyDeploymentCredentialEnv(deploymentID string) string {
 		"grok-direct":                   "XAI_API_KEY",
 		"gemini-direct":                 "GEMINI_API_KEY",
 		"openrouter":                    "OPENROUTER_API_KEY",
+		"concentrate-payg":              "CONCENTRATE_API_KEY",
 		"canopywave":                    "CANOPYWAVE_API_KEY",
 		"deepseek-direct":               "DEEPSEEK_API_KEY",
 		"poolside":                      "POOLSIDE_API_KEY",

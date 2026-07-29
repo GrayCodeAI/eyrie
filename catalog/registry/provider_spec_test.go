@@ -46,6 +46,23 @@ func TestOpenCodeGo_HasProbeBaseURL(t *testing.T) {
 	}
 }
 
+func TestConcentrateUsesResponsesAPI(t *testing.T) {
+	t.Parallel()
+	spec, ok := registry.SpecByProviderID("concentrate")
+	if !ok {
+		t.Fatal("missing Concentrate provider spec")
+	}
+	if spec.ProtocolID != "openai-responses" {
+		t.Fatalf("protocol = %q", spec.ProtocolID)
+	}
+	if spec.AdapterID != "concentrate-responses" {
+		t.Fatalf("adapter = %q", spec.AdapterID)
+	}
+	if !spec.PublicModelCatalog {
+		t.Fatal("Concentrate model catalog must be public")
+	}
+}
+
 func TestProviderRuntimePolicy_Metadata(t *testing.T) {
 	t.Parallel()
 
@@ -101,7 +118,7 @@ func TestProviderSpecs_TableDriven(t *testing.T) {
 		{"bedrock", "bedrock", true, registry.ProbeNone, true, "anthropic-bedrock"},
 		{"vertex", "vertex", true, registry.ProbeNone, true, "gemini-vertex"},
 		{"openrouter", "openrouter", true, registry.ProbeOpenAIModels, true, "openrouter"},
-		{"concentrate", "concentrate", true, registry.ProbeOpenAIModels, true, "concentrate-direct"},
+		{"concentrate", "concentrate", true, registry.ProbeOpenAIModels, true, "concentrate-payg"},
 		{"grok", "grok", true, registry.ProbeOpenAIModels, true, "grok-direct"},
 		{"zai_payg", "zai_payg", true, registry.ProbeOpenAIModels, true, "zai_payg-direct"},
 		{"zai_coding", "zai_coding", true, registry.ProbeOpenAIModels, true, "zai_coding-direct"},

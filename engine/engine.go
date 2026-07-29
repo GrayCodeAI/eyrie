@@ -552,7 +552,14 @@ func offeringSupports(compiled *catalog.CompiledCatalog, modelID string, req Req
 	for _, offering := range offerings {
 		caps := offering.Capabilities
 		if req.Tools && caps.FunctionCalling != catalog.CapabilitySupported {
-			continue
+			// Older Concentrate caches predate the provider-level tool
+			// capability in its model-list response. Its Responses API
+			// model-details endpoint advertises function calling, so treat
+			// an unknown value as supported while preserving explicit
+			// unsupported declarations.
+			if caps.FunctionCalling == catalog.CapabilityUnsupported || offering.DeploymentID != "concentrate-payg" {
+				continue
+			}
 		}
 		if req.Vision && caps.ImageInput != catalog.CapabilitySupported {
 			continue

@@ -11,6 +11,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 	"github.com/GrayCodeAI/eyrie/catalog/zai"
 	"github.com/GrayCodeAI/eyrie/client"
+	"github.com/GrayCodeAI/eyrie/client/adapters"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
 	"github.com/GrayCodeAI/eyrie/router"
@@ -273,12 +274,12 @@ func providerForDeployment(id string, deployment config.DeploymentConfig, cfg *c
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultOpenRouterOpenAIBaseURL), &client.OpenRouterCompat), true
-	case "concentrate-direct":
+	case "concentrate-payg":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("CONCENTRATE_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
-		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultConcentrateOpenAIBaseURL), &client.OpenAICompat), true
+		return adapters.NewConcentrateResponsesClient(apiKey, FirstNonEmpty(deployment.BaseURL, config.DefaultConcentrateOpenAIBaseURL)), true
 	case "canopywave":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("CANOPYWAVE_API_KEY"))
 		if apiKey == "" {
@@ -441,7 +442,7 @@ func DefaultDeploymentForProvider(provider string) string {
 	case config.ProviderOpenRouter:
 		return "openrouter"
 	case config.ProviderConcentrate:
-		return "concentrate-direct"
+		return "concentrate-payg"
 	case config.ProviderCanopyWave:
 		return "canopywave"
 	case config.ProviderPoolside:

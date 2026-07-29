@@ -229,6 +229,25 @@ func TestSelectCompatibleModelUsesCapabilitiesAndIntent(t *testing.T) {
 	}
 }
 
+func TestSelectCompatibleModel_ConcentrateLegacyCacheAssumesTools(t *testing.T) {
+	compiled := &catalog.CompiledCatalog{
+		ModelsByID: map[string]catalog.Model{
+			"concentrate/deepseek-v4-pro": {ID: "concentrate/deepseek-v4-pro", ProviderID: "concentrate", ContextWindow: 1_040_000},
+		},
+		OfferingsByCanonicalModel: map[string][]catalog.ModelOffering{
+			"concentrate/deepseek-v4-pro": {{CanonicalModelID: "concentrate/deepseek-v4-pro", DeploymentID: "concentrate-payg"}},
+		},
+	}
+
+	model, provider := selectCompatibleModel(compiled, SelectionRequest{
+		Requirements: Requirements{Tools: true},
+		Preference:   Preference{PreferredProvider: "concentrate"},
+	})
+	if model != "concentrate/deepseek-v4-pro" || provider != "concentrate" {
+		t.Fatalf("selected %q via %q, want Concentrate model with tools", model, provider)
+	}
+}
+
 func TestTypedErrorUnwrapAndCode(t *testing.T) {
 	cause := errors.New("provider down")
 	err := classify("stream", Route{Provider: "mock", Model: "m"}, cause)
