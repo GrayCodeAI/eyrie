@@ -134,9 +134,6 @@ func longcatProviderStages(deployments map[string]DeploymentConfig) []RoutingSta
 			Retries:     1,
 		})
 	}
-	if _, ok := deployments["openrouter"]; ok {
-		stages = append(stages, openRouterFallbackStage()...)
-	}
 	return stages
 }
 
