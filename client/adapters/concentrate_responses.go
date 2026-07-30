@@ -357,7 +357,7 @@ func concentrateToolChoice(choice *core.ToolChoiceOption) interface{} {
 // See: https://concentrate.ai/docs/api-reference/endpoint/tool-calling
 func normalizeToolParams(params map[string]interface{}) map[string]interface{} {
 	if params == nil {
-		return params
+		return nil
 	}
 	// Only enforce for object-typed schemas
 	if t, ok := params["type"]; ok && t == "object" {
