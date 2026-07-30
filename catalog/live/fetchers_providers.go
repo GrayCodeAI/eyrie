@@ -611,6 +611,25 @@ func FetchAgnes(env map[string]string) ([]Entry, error) {
 	return entries, nil
 }
 
+// FetchLongCat lists models from the LongCat OpenAI-compatible API.
+// LongCat supports both Token Pack and Pay-As-You-Go plans; pricing is not
+// exposed in the /models response, so it is marked unknown.
+func FetchLongCat(env map[string]string) ([]Entry, error) {
+	entries, err := fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "LONGCAT_BASE_URL", "https://api.longcat.chat/openai/v1"),
+		env["LONGCAT_API_KEY"], "Bearer",
+	)
+	if err != nil {
+		return nil, err
+	}
+	for i := range entries {
+		entries[i].InputPricePer1M = -1
+		entries[i].OutputPricePer1M = -1
+	}
+	return entries, nil
+}
+
 // FetchConcentrate lists models from the public Concentrate AI model catalog.
 // Concentrate returns a rich format with max_input_tokens, max_tokens, and capabilities.
 // Pricing is fetched from individual model endpoints and cached to disk for 24 hours.

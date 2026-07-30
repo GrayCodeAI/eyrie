@@ -347,6 +347,12 @@ func providerForDeployment(id string, deployment config.DeploymentConfig, cfg *c
 			return nil, false
 		}
 		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://apihub.agnes-ai.com/v1"), &client.AgnesCompat), true
+	case "longcat-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("LONGCAT_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://api.longcat.chat/openai/v1"), &client.OpenAICompat), true
 	case "minimax_payg-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("MINIMAX_PAYG_API_KEY"))
 		if apiKey == "" {

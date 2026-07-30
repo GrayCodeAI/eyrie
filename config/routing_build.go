@@ -22,6 +22,9 @@ func BuildRoutingPolicyFromDeployments(deployments map[string]DeploymentConfig) 
 	if stages := agnesProviderStages(deployments); len(stages) > 0 {
 		policy.Providers["agnes"] = stages
 	}
+	if stages := longcatProviderStages(deployments); len(stages) > 0 {
+		policy.Providers["longcat"] = stages
+	}
 	if stages := anthropicProviderStages(deployments); len(stages) > 0 {
 		policy.Providers["anthropic"] = stages
 	}
@@ -119,6 +122,17 @@ func agnesProviderStages(deployments map[string]DeploymentConfig) []RoutingStage
 	return stages
 }
 
+func longcatProviderStages(deployments map[string]DeploymentConfig) []RoutingStage {
+	if _, ok := deployments["longcat-direct"]; !ok {
+		return nil
+	}
+	stages := singleDeploymentStages("longcat-direct", 1)
+	if _, ok := deployments["openrouter"]; ok {
+		stages = append(stages, openRouterFallbackStage()...)
+	}
+	return stages
+}
+
 func googleProviderStages(deployments map[string]DeploymentConfig) []RoutingStage {
 	if _, ok := deployments["gemini-direct"]; ok {
 		stages := singleDeploymentStages("gemini-direct", 1)
@@ -157,6 +171,8 @@ func deploymentOwnerProviderID(deploymentID string) string {
 		return "google"
 	case "grok-direct":
 		return "xai"
+	case "longcat-direct":
+		return "longcat"
 	case "agnes-direct":
 		return "agnes"
 	case "openrouter":

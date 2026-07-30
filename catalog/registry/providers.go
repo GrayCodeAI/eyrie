@@ -181,6 +181,14 @@ func providerSpecs() []ProviderSpec {
 			LiveFetcherKey: "agnes", LiveCatalogKey: "agnes",
 			ProtocolID: "openai-chat-completions", AdapterID: "openai", RuntimeProfileKey: "agnes",
 		},
+		{
+			ProviderID: "longcat", DisplayName: "LongCat", DeploymentID: "longcat-direct", SortOrder: 18, ChatPreference: 26,
+			RequiresKey: true, CredentialEnv: "LONGCAT_API_KEY",
+			BaseURLEnv: []string{"LONGCAT_BASE_URL"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.longcat.chat/openai/v1",
+			LiveFetcherKey: "longcat", LiveCatalogKey: "longcat",
+			ProtocolID: "openai-chat-completions", AdapterID: "openai", RuntimeProfileKey: "longcat",
+		},
 
 		// ── Niche ─────────────────────────────────────────────────────────
 		{
