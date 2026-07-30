@@ -127,6 +127,13 @@ func longcatProviderStages(deployments map[string]DeploymentConfig) []RoutingSta
 		return nil
 	}
 	stages := singleDeploymentStages("longcat-direct", 1)
+	// Fallback to LongCat's Anthropic-compatible endpoint if OpenAI fails
+	if _, ok := deployments["longcat-anthropic"]; ok {
+		stages = append(stages, RoutingStage{
+			Deployments: []DeploymentChoice{{DeploymentID: "longcat-anthropic", Weight: 100}},
+			Retries:     1,
+		})
+	}
 	if _, ok := deployments["openrouter"]; ok {
 		stages = append(stages, openRouterFallbackStage()...)
 	}
@@ -172,6 +179,8 @@ func deploymentOwnerProviderID(deploymentID string) string {
 	case "grok-direct":
 		return "xai"
 	case "longcat-direct":
+		return "longcat"
+	case "longcat-anthropic":
 		return "longcat"
 	case "agnes-direct":
 		return "agnes"
