@@ -19,6 +19,9 @@ func BuildRoutingPolicyFromDeployments(deployments map[string]DeploymentConfig) 
 	if stages := openAIProviderStages(deployments); len(stages) > 0 {
 		policy.Providers["openai"] = stages
 	}
+	if stages := agnesProviderStages(deployments); len(stages) > 0 {
+		policy.Providers["agnes"] = stages
+	}
 	if stages := anthropicProviderStages(deployments); len(stages) > 0 {
 		policy.Providers["anthropic"] = stages
 	}
@@ -92,6 +95,30 @@ func anthropicProviderStages(deployments map[string]DeploymentConfig) []RoutingS
 	return stages
 }
 
+func agnesProviderStages(deployments map[string]DeploymentConfig) []RoutingStage {
+	if _, ok := deployments["agnes-direct"]; !ok {
+		return nil
+	}
+	stages := []RoutingStage{{
+		Deployments: []DeploymentChoice{{DeploymentID: "agnes-direct", Weight: 100}},
+		Retries:     1,
+	}}
+	// If Anthropic is also configured, add it as a fallback stage.
+	// Agnes uses a pre-deduction balance hold; when the account balance is
+	// too low, the request fails with insufficient_user_quota. Falling back
+	// to Anthropic (or OpenRouter) lets the request succeed.
+	if _, ok := deployments["anthropic-direct"]; ok {
+		stages = append(stages, RoutingStage{
+			Deployments: []DeploymentChoice{{DeploymentID: "anthropic-direct", Weight: 100}},
+			Retries:     1,
+		})
+	}
+	if _, ok := deployments["openrouter"]; ok {
+		stages = append(stages, openRouterFallbackStage()...)
+	}
+	return stages
+}
+
 func googleProviderStages(deployments map[string]DeploymentConfig) []RoutingStage {
 	if _, ok := deployments["gemini-direct"]; ok {
 		stages := singleDeploymentStages("gemini-direct", 1)
@@ -130,6 +157,8 @@ func deploymentOwnerProviderID(deploymentID string) string {
 		return "google"
 	case "grok-direct":
 		return "xai"
+	case "agnes-direct":
+		return "agnes"
 	case "openrouter":
 		return "openrouter"
 	case "canopywave":
