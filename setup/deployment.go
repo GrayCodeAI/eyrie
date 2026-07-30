@@ -352,13 +352,7 @@ func providerForDeployment(id string, deployment config.DeploymentConfig, cfg *c
 		if apiKey == "" {
 			return nil, false
 		}
-		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://api.longcat.chat/openai/v1"), &client.OpenAICompat), true
-	case "longcat-anthropic":
-		apiKey := FirstNonEmpty(deployment.APIKey, lookup("LONGCAT_API_KEY"))
-		if apiKey == "" {
-			return nil, false
-		}
-		return client.NewAnthropicClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://api.longcat.chat/anthropic")), true
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://api.longcat.chat/openai/v1"), &client.LongCatCompat), true
 	case "minimax_payg-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("MINIMAX_PAYG_API_KEY"))
 		if apiKey == "" {

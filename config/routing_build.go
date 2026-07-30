@@ -102,39 +102,16 @@ func agnesProviderStages(deployments map[string]DeploymentConfig) []RoutingStage
 	if _, ok := deployments["agnes-direct"]; !ok {
 		return nil
 	}
-	stages := []RoutingStage{{
-		Deployments: []DeploymentChoice{{DeploymentID: "agnes-direct", Weight: 100}},
-		Retries:     1,
-	}}
-	// If Anthropic is also configured, add it as a fallback stage.
-	// Agnes uses a pre-deduction balance hold; when the account balance is
-	// too low, the request fails with insufficient_user_quota. Falling back
-	// to Anthropic (or OpenRouter) lets the request succeed.
-	if _, ok := deployments["anthropic-direct"]; ok {
-		stages = append(stages, RoutingStage{
-			Deployments: []DeploymentChoice{{DeploymentID: "anthropic-direct", Weight: 100}},
-			Retries:     1,
-		})
-	}
-	if _, ok := deployments["openrouter"]; ok {
-		stages = append(stages, openRouterFallbackStage()...)
-	}
-	return stages
+	// Agnes is OpenAI-compatible only: one deployment, one protocol.
+	return singleDeploymentStages("agnes-direct", 1)
 }
 
 func longcatProviderStages(deployments map[string]DeploymentConfig) []RoutingStage {
 	if _, ok := deployments["longcat-direct"]; !ok {
 		return nil
 	}
-	stages := singleDeploymentStages("longcat-direct", 1)
-	// Fallback to LongCat's Anthropic-compatible endpoint if OpenAI fails
-	if _, ok := deployments["longcat-anthropic"]; ok {
-		stages = append(stages, RoutingStage{
-			Deployments: []DeploymentChoice{{DeploymentID: "longcat-anthropic", Weight: 100}},
-			Retries:     1,
-		})
-	}
-	return stages
+	// Single OpenAI-compatible endpoint only (longcat-direct).
+	return singleDeploymentStages("longcat-direct", 1)
 }
 
 func googleProviderStages(deployments map[string]DeploymentConfig) []RoutingStage {
@@ -176,8 +153,6 @@ func deploymentOwnerProviderID(deploymentID string) string {
 	case "grok-direct":
 		return "xai"
 	case "longcat-direct":
-		return "longcat"
-	case "longcat-anthropic":
 		return "longcat"
 	case "agnes-direct":
 		return "agnes"

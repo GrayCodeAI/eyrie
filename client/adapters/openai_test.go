@@ -447,6 +447,22 @@ func TestBuildRequestBase_ZAIThinking(t *testing.T) {
 	}
 }
 
+func TestBuildRequestBase_AgnesThinking(t *testing.T) {
+	t.Parallel()
+	enabled := true
+	compat := &OpenAICompatConfig{ThinkingFormat: "agnes", OmitMaxTokens: true}
+	req := BuildRequestBase([]core.EyrieMessage{{Role: "user", Content: "hi"}}, core.ChatOptions{
+		Model: "agnes-2.0-flash", MaxTokens: 0,
+		GLMThinkingEnabled: &enabled,
+	}, false, compat)
+	if req.ChatTemplateKwargs == nil || req.ChatTemplateKwargs["enable_thinking"] != true {
+		t.Errorf("ChatTemplateKwargs = %v", req.ChatTemplateKwargs)
+	}
+	if req.Thinking != nil {
+		t.Errorf("Agnes OpenAI path should not set thinking object, got %v", req.Thinking)
+	}
+}
+
 func TestOpenAIClient_Ping_MimoAuthRetry(t *testing.T) {
 	t.Parallel()
 	calls := 0

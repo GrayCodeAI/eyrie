@@ -595,6 +595,11 @@ func FetchPoolside(env map[string]string) ([]Entry, error) {
 // model uses a pre-deduction balance hold rather than a simple per-token
 // charge), so the price is marked unknown rather than assumed free. A negative
 // sentinel is the PricingFromEntry convention for PricingUnknown.
+//
+// Official text-model limits/capabilities (OpenAI chat completions only):
+// https://wiki.agnes-ai.com/en/docs/agnes-20-flash.md
+// https://wiki.agnes-ai.com/en/docs/agnes-25-flash.md
+// https://wiki.agnes-ai.com/en/docs/agnes-25-pro-alpha.md
 func FetchAgnes(env map[string]string) ([]Entry, error) {
 	entries, err := fetchOpenAICompatModels(
 		context.Background(),
@@ -607,13 +612,56 @@ func FetchAgnes(env map[string]string) ([]Entry, error) {
 	for i := range entries {
 		entries[i].InputPricePer1M = -1
 		entries[i].OutputPricePer1M = -1
+		entries[i] = enrichAgnesEntry(entries[i])
 	}
 	return entries, nil
 }
 
-// FetchLongCat lists models from the LongCat OpenAI-compatible API.
-// LongCat supports both Token Pack and Pay-As-You-Go plans; pricing is not
-// exposed in the /models response, so it is marked unknown.
+// Official Agnes text-model reference when /models omits context/capabilities.
+// Image/video models use separate generation endpoints and are left as-is.
+var agnesOfficialTextSpecs = map[string]struct {
+	ContextWindow, MaxOutput           int
+	Tools, Vision, Thinking            bool
+}{
+	"agnes-1.5-flash":     {256_000, 65_536, true, true, false},
+	"agnes-2.0-flash":     {512_000, 65_536, true, true, true},
+	"agnes-2.5-flash":     {512_000, 65_536, true, true, true},
+	"agnes-2.5-pro-alpha": {1_048_576, 65_536, true, true, true},
+}
+
+func enrichAgnesEntry(e Entry) Entry {
+	id := strings.TrimSpace(e.ID)
+	if i := strings.LastIndex(id, "/"); i >= 0 {
+		id = id[i+1:]
+	}
+	spec, ok := agnesOfficialTextSpecs[id]
+	if !ok {
+		return e
+	}
+	if e.ContextWindow <= 0 {
+		e.ContextWindow = spec.ContextWindow
+	}
+	if e.MaxOutput <= 0 {
+		e.MaxOutput = spec.MaxOutput
+	}
+	if spec.Tools {
+		e.Features = appendUnique(e.Features, "tools")
+	}
+	if spec.Vision {
+		e.ImageInput = true
+		e.Features = appendUnique(e.Features, "image_input")
+	}
+	if spec.Thinking {
+		e.ThinkingEnabled = true
+		e.Features = appendUnique(e.Features, "thinking:enabled")
+	}
+	return e
+}
+
+// FetchLongCat lists models from the LongCat OpenAI-compatible API only
+// (https://api.longcat.chat/openai/v1). Official docs:
+// https://longcat.chat/platform/docs/api/chat — text-only chat, tools, and
+// thinking={"type":"enabled"|"disabled"}; pricing is not in /models.
 func FetchLongCat(env map[string]string) ([]Entry, error) {
 	entries, err := fetchOpenAICompatModels(
 		context.Background(),
@@ -626,8 +674,28 @@ func FetchLongCat(env map[string]string) ([]Entry, error) {
 	for i := range entries {
 		entries[i].InputPricePer1M = -1
 		entries[i].OutputPricePer1M = -1
+		entries[i] = enrichLongCatEntry(entries[i])
 	}
 	return entries, nil
+}
+
+const (
+	longCatDefaultContext = 1_048_576
+	longCatDefaultMaxOut  = 131_072
+)
+
+func enrichLongCatEntry(e Entry) Entry {
+	if e.ContextWindow <= 0 {
+		e.ContextWindow = longCatDefaultContext
+	}
+	if e.MaxOutput <= 0 {
+		e.MaxOutput = longCatDefaultMaxOut
+	}
+	e.Features = appendUnique(e.Features, "tools")
+	e.ThinkingEnabled = true
+	e.Features = appendUnique(e.Features, "thinking:enabled")
+	e.ImageInput = false // official chat API is text-only
+	return e
 }
 
 // FetchConcentrate lists models from the public Concentrate AI model catalog.

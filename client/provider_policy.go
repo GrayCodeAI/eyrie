@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
-	"github.com/GrayCodeAI/eyrie/config"
 )
 
 // ApplyProviderChatDefaults applies provider policy that host applications
@@ -14,7 +13,10 @@ func ApplyProviderChatDefaults(provider string, opts ChatOptions) ChatOptions {
 	if strings.EqualFold(strings.TrimSpace(provider), "anthropic") {
 		opts.EnableCaching = true
 	}
-	if !config.IsZAIProvider(provider) {
+	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "zai_payg", "zai_coding", "longcat", "agnes":
+		// Keep GLMThinkingEnabled — these providers use thinking / chat_template_kwargs.
+	default:
 		opts.GLMThinkingEnabled = nil
 	}
 	return opts

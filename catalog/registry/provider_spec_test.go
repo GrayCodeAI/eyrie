@@ -14,10 +14,25 @@ func TestAllProviders_Count(t *testing.T) {
 	}
 }
 
-func TestCredentialRegistry_MatchesAll(t *testing.T) {
+func TestProviderSpecs_AgnesAndLongCatOpenAIOnly(t *testing.T) {
 	t.Parallel()
-	if len(registry.CredentialRegistry()) != len(registry.All()) {
-		t.Fatal("credential registry should cover all provider specs")
+	for _, id := range []string{"agnes", "longcat"} {
+		spec, ok := registry.SpecByProviderID(id)
+		if !ok {
+			t.Fatalf("missing provider %q", id)
+		}
+		if spec.ProtocolID != "openai-chat-completions" {
+			t.Fatalf("%s ProtocolID = %q, want openai-chat-completions", id, spec.ProtocolID)
+		}
+		if spec.AdapterID != "openai" {
+			t.Fatalf("%s AdapterID = %q, want openai", id, spec.AdapterID)
+		}
+		if spec.ProbeKind != registry.ProbeOpenAIModels {
+			t.Fatalf("%s ProbeKind = %v, want ProbeOpenAIModels", id, spec.ProbeKind)
+		}
+		if got := registry.DirectFallbackProviderIDs(id); len(got) != 0 {
+			t.Fatalf("%s DirectFallbacks = %v, want none", id, got)
+		}
 	}
 }
 

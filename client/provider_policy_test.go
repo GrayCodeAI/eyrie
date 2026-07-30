@@ -18,8 +18,14 @@ func TestApplyProviderChatDefaults(t *testing.T) {
 	if opts := ApplyProviderChatDefaults("zai_payg", ChatOptions{GLMThinkingEnabled: &enabled}); opts.GLMThinkingEnabled == nil {
 		t.Fatal("Z.AI thinking preference was removed")
 	}
+	if opts := ApplyProviderChatDefaults("longcat", ChatOptions{GLMThinkingEnabled: &enabled}); opts.GLMThinkingEnabled == nil {
+		t.Fatal("LongCat thinking preference was removed")
+	}
+	if opts := ApplyProviderChatDefaults("agnes", ChatOptions{GLMThinkingEnabled: &enabled}); opts.GLMThinkingEnabled == nil {
+		t.Fatal("Agnes thinking preference was removed")
+	}
 	if opts := ApplyProviderChatDefaults("openai", ChatOptions{GLMThinkingEnabled: &enabled}); opts.GLMThinkingEnabled != nil {
-		t.Fatal("non-Z.AI thinking preference was retained")
+		t.Fatal("non-thinking provider thinking preference was retained")
 	}
 }
 

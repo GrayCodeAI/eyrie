@@ -113,6 +113,8 @@ func TestCompatMatrixThinkingFormatValues(t *testing.T) {
 		{&OpenRouterCompat, "openrouter"},
 		{&ZAICompat, "zai"},
 		{&OpenCodeGoCompat, "openrouter"},
+		{&AgnesCompat, "agnes"},
+		{&LongCatCompat, "zai"},
 	}
 	for _, tc := range tests {
 		if tc.compat.ThinkingFormat != tc.format {

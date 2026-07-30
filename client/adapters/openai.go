@@ -121,6 +121,7 @@ type openaiRequest struct {
 	ResponseFormat      interface{}              `json:"response_format,omitempty"`
 	ReasoningEffort     string                   `json:"reasoning_effort,omitempty"`
 	Thinking            map[string]interface{}   `json:"thinking,omitempty"`
+	ChatTemplateKwargs  map[string]interface{}   `json:"chat_template_kwargs,omitempty"`
 	Stop                interface{}              `json:"stop,omitempty"`
 	ServiceTier         string                   `json:"service_tier,omitempty"`
 	User                string                   `json:"user,omitempty"`
@@ -408,12 +409,17 @@ func buildRequestBase(messages []core.EyrieMessage, opts core.ChatOptions, strea
 	if len(opts.Metadata) > 0 {
 		req.Metadata = opts.Metadata
 	}
-	if compat != nil && compat.ThinkingFormat == "zai" && opts.GLMThinkingEnabled != nil {
-		thinkingType := "disabled"
-		if *opts.GLMThinkingEnabled {
-			thinkingType = "enabled"
+	if compat != nil && opts.GLMThinkingEnabled != nil {
+		switch compat.ThinkingFormat {
+		case "zai":
+			thinkingType := "disabled"
+			if *opts.GLMThinkingEnabled {
+				thinkingType = "enabled"
+			}
+			req.Thinking = map[string]interface{}{"type": thinkingType}
+		case "agnes":
+			req.ChatTemplateKwargs = map[string]interface{}{"enable_thinking": *opts.GLMThinkingEnabled}
 		}
-		req.Thinking = map[string]interface{}{"type": thinkingType}
 	}
 	return req
 }

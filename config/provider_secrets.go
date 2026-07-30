@@ -141,6 +141,7 @@ func legacyDeploymentCredentialEnv(deploymentID string) string {
 		"groq-direct":                   "GROQ_API_KEY",
 		"clinepass":                     "CLINE_API_KEY",
 		"agnes-direct":                  "AGNES_API_KEY",
+		"longcat-direct":                "LONGCAT_API_KEY",
 		"zai_payg-direct":               "ZAI_API_KEY",
 		"zai_coding-direct":             "ZAI_CODING_API_KEY",
 		"opencodego":                    "OPENCODEGO_API_KEY",

@@ -43,7 +43,7 @@ var (
 		ThinkingFormat: "openrouter", MaxTokensField: "max_tokens",
 		SupportsUsageInStreaming: true,
 	}
-	// AgnesCompat: Agnes AI is a minimal OpenAI-compatible endpoint. It does
+	// AgnesCompat: Agnes AI is OpenAI-compatible only (chat completions). It does
 	// not honor OpenAI-specific features like store/developer-role/reasoning,
 	// so those are left disabled. It uses the standard max_tokens field.
 	// Agnes pre-authorizes the maximum token cost of every request; sending the
@@ -51,10 +51,19 @@ var (
 	// triggers an insufficient_user_quota (403). OmitMaxTokens leaves max_tokens
 	// unset so Agnes applies its own default, which keeps the hold small — this
 	// matches the behavior of a bare curl to the Agnes API.
+	// Thinking uses chat_template_kwargs.enable_thinking per Agnes OpenAI docs.
 	AgnesCompat = OpenAICompatConfig{
 		MaxTokensField:           "max_tokens",
 		SupportsUsageInStreaming: true,
 		OmitMaxTokens:            true,
+		ThinkingFormat:           "agnes",
+	}
+	// LongCatCompat: OpenAI-compatible only (https://api.longcat.chat/openai).
+	// Official docs: max_tokens, thinking={"type":"enabled"|"disabled"}, tools.
+	LongCatCompat = OpenAICompatConfig{
+		MaxTokensField:           "max_tokens",
+		SupportsUsageInStreaming: true,
+		ThinkingFormat:           "zai", // same thinking object wire shape as LongCat docs
 	}
 	GeminiCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens", SupportsUsageInStreaming: true,
@@ -124,6 +133,10 @@ func init() {
 	if p, ok := OpenAICompatibleProviders["agnes"]; ok {
 		p.Compat = &AgnesCompat
 		OpenAICompatibleProviders["agnes"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["longcat"]; ok {
+		p.Compat = &LongCatCompat
+		OpenAICompatibleProviders["longcat"] = p
 	}
 	if p, ok := OpenAICompatibleProviders["grok"]; ok {
 		p.Compat = &GrokCompat

@@ -9,6 +9,7 @@ type OpenAICompatConfig = adapters.OpenAICompatConfig
 var (
 	OpenAICompat      = adapters.OpenAICompat
 	AgnesCompat       = adapters.AgnesCompat
+	LongCatCompat     = adapters.LongCatCompat
 	GrokCompat        = adapters.GrokCompat
 	OpenRouterCompat  = adapters.OpenRouterCompat
 	GeminiCompat      = adapters.GeminiCompat
