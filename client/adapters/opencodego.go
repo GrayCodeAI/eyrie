@@ -56,4 +56,3 @@ func (c *OpenCodeGoClient) Ping(ctx context.Context) error {
 }
 
 var _ core.Provider = (*OpenCodeGoClient)(nil)
-

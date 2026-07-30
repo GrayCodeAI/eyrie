@@ -111,7 +111,7 @@ func TestFetchAgnes_Unauthorized(t *testing.T) {
 	defer server.Close()
 
 	_, err := FetchAgnes(map[string]string{
-		"AGNES_API_KEY": "invalid-key",
+		"AGNES_API_KEY":  "invalid-key",
 		"AGNES_BASE_URL": server.URL,
 	})
 	if err == nil {

@@ -48,34 +48,34 @@ func (c *ConcentrateResponsesClient) Name() string { return "concentrate" }
 
 // responsesRequest is the request body for the Concentrate Responses API.
 type responsesRequest struct {
-	Input              interface{}            `json:"input"`
-	Model              string                 `json:"model"`
-	Instructions       string                 `json:"instructions,omitempty"`
-	MaxOutputTokens    int                    `json:"max_output_tokens,omitempty"`
-	Temperature        *float64               `json:"temperature,omitempty"`
-	TopP               *float64               `json:"top_p,omitempty"`
-	Stream             bool                   `json:"stream,omitempty"`
-	Reasoning          *responsesReasoning    `json:"reasoning,omitempty"`
-	Tools              []responsesTool        `json:"tools,omitempty"`
-	ToolChoice         interface{}            `json:"tool_choice,omitempty"`
-	ParallelToolCalls  *bool                  `json:"parallel_tool_calls,omitempty"`
-	PreviousResponseID string                 `json:"previous_response_id,omitempty"`
-	PromptCacheKey     string                 `json:"prompt_cache_key,omitempty"`
-	Metadata           map[string]string      `json:"metadata,omitempty"`
-	Text               *responsesTextConfig   `json:"text,omitempty"`
-	Store              *bool                  `json:"store,omitempty"`
+	Input              interface{}          `json:"input"`
+	Model              string               `json:"model"`
+	Instructions       string               `json:"instructions,omitempty"`
+	MaxOutputTokens    int                  `json:"max_output_tokens,omitempty"`
+	Temperature        *float64             `json:"temperature,omitempty"`
+	TopP               *float64             `json:"top_p,omitempty"`
+	Stream             bool                 `json:"stream,omitempty"`
+	Reasoning          *responsesReasoning  `json:"reasoning,omitempty"`
+	Tools              []responsesTool      `json:"tools,omitempty"`
+	ToolChoice         interface{}          `json:"tool_choice,omitempty"`
+	ParallelToolCalls  *bool                `json:"parallel_tool_calls,omitempty"`
+	PreviousResponseID string               `json:"previous_response_id,omitempty"`
+	PromptCacheKey     string               `json:"prompt_cache_key,omitempty"`
+	Metadata           map[string]string    `json:"metadata,omitempty"`
+	Text               *responsesTextConfig `json:"text,omitempty"`
+	Store              *bool                `json:"store,omitempty"`
 	// Extended parameters from Concentrate Responses API
-	Include            []string               `json:"include,omitempty"`
-	Routing            *routingConfig         `json:"routing,omitempty"`
-	MaxToolCalls       *int                   `json:"max_tool_calls,omitempty"`
-	ContextManagement  []contextManagement    `json:"context_management,omitempty"`
-	SafetyIdentifier   *string                `json:"safety_identifier,omitempty"`
-	Background         *bool                  `json:"background,omitempty"`
-	Truncation         *string                `json:"truncation,omitempty"`
-	Conversation       interface{}            `json:"conversation,omitempty"`
-	ServiceTier        string                 `json:"service_tier,omitempty"`
-	PromptCacheOptions *promptCacheOptions    `json:"prompt_cache_options,omitempty"`
-	CacheControl       *cacheControl          `json:"cache_control,omitempty"`
+	Include            []string            `json:"include,omitempty"`
+	Routing            *routingConfig      `json:"routing,omitempty"`
+	MaxToolCalls       *int                `json:"max_tool_calls,omitempty"`
+	ContextManagement  []contextManagement `json:"context_management,omitempty"`
+	SafetyIdentifier   *string             `json:"safety_identifier,omitempty"`
+	Background         *bool               `json:"background,omitempty"`
+	Truncation         *string             `json:"truncation,omitempty"`
+	Conversation       interface{}         `json:"conversation,omitempty"`
+	ServiceTier        string              `json:"service_tier,omitempty"`
+	PromptCacheOptions *promptCacheOptions `json:"prompt_cache_options,omitempty"`
+	CacheControl       *cacheControl       `json:"cache_control,omitempty"`
 }
 
 type promptCacheOptions struct {
@@ -328,54 +328,8 @@ func (c *ConcentrateResponsesClient) buildRequest(messages []core.EyrieMessage, 
 	}
 
 	// Map extended Responses API parameters
-	if opts.PreviousResponseID != "" {
-		req.PreviousResponseID = opts.PreviousResponseID
-	}
-	if len(opts.Include) > 0 {
-		req.Include = opts.Include
-	}
-	if opts.Routing != nil {
-		req.Routing = &routingConfig{
-			Model:    opts.Routing.Model,
-			Strategy: opts.Routing.Strategy,
-			Metric:   opts.Routing.Metric,
-		}
-	}
-	if opts.MaxToolCalls != nil {
-		req.MaxToolCalls = opts.MaxToolCalls
-	}
-	if len(opts.ContextManagement) > 0 {
-		req.ContextManagement = make([]contextManagement, 0, len(opts.ContextManagement))
-		for _, cm := range opts.ContextManagement {
-			req.ContextManagement = append(req.ContextManagement, contextManagement{Type: cm.Type})
-		}
-	}
-	if opts.SafetyIdentifier != nil {
-		req.SafetyIdentifier = opts.SafetyIdentifier
-	}
-	if opts.Background != nil {
-		req.Background = opts.Background
-	}
-	if opts.Truncation != nil {
-		req.Truncation = opts.Truncation
-	}
-	if opts.Conversation != nil {
-		req.Conversation = opts.Conversation
-	}
 	if opts.ServiceTier != "" {
 		req.ServiceTier = opts.ServiceTier
-	}
-	if opts.PromptCacheOptions != nil {
-		req.PromptCacheOptions = &promptCacheOptions{
-			Mode: opts.PromptCacheOptions.Mode,
-			TTL:  opts.PromptCacheOptions.TTL,
-		}
-	}
-	if opts.CacheControl != nil {
-		req.CacheControl = &cacheControl{
-			Type: opts.CacheControl.Type,
-			TTL:  opts.CacheControl.TTL,
-		}
 	}
 
 	return req, nil

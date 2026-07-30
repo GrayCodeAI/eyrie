@@ -36,7 +36,7 @@ const (
 	DefaultMiniMaxOpenAIBaseURL     = "https://api.minimax.io/v1"
 	DefaultGroqOpenAIBaseURL        = "https://api.groq.com/openai/v1"
 	DefaultPoolsideOpenAIBaseURL    = "https://inference.poolside.ai/v1"
-	DefaultClinePassOpenAIBaseURL  = "https://api.cline.bot/api/v1" // #nosec G101 -- public API base URL, not a secret value
+	DefaultClinePassOpenAIBaseURL   = "https://api.cline.bot/api/v1" // #nosec G101 -- public API base URL, not a secret value
 )
 
 // ProviderTransport is the transport type for provider requests.

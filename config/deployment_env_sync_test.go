@@ -58,10 +58,10 @@ func TestBuildRoutingPolicyFromDeployments_CanopyWave(t *testing.T) {
 func TestBuildRoutingPolicyFromDeployments_AgnesAndLongCatSingleEndpoint(t *testing.T) {
 	t.Parallel()
 	deployments := map[string]DeploymentConfig{
-		"agnes-direct":      {},
-		"longcat-direct":    {},
-		"anthropic-direct":  {},
-		"openrouter":        {},
+		"agnes-direct":     {},
+		"longcat-direct":   {},
+		"anthropic-direct": {},
+		"openrouter":       {},
 	}
 	policy := BuildRoutingPolicyFromDeployments(deployments)
 	for _, provider := range []string{"agnes", "longcat"} {
