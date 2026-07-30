@@ -591,7 +591,10 @@ func FetchPoolside(env map[string]string) ([]Entry, error) {
 }
 
 // FetchAgnes lists models from the Agnes AI OpenAI-compatible API.
-// Agnes models are free with RPM limits. No per-token pricing.
+// Agnes exposes no per-token pricing in its /models response (and the Pro
+// model uses a pre-deduction balance hold rather than a simple per-token
+// charge), so the price is marked unknown rather than assumed free. A negative
+// sentinel is the PricingFromEntry convention for PricingUnknown.
 func FetchAgnes(env map[string]string) ([]Entry, error) {
 	entries, err := fetchOpenAICompatModels(
 		context.Background(),
@@ -601,10 +604,9 @@ func FetchAgnes(env map[string]string) ([]Entry, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Agnes is free tier — all models have zero per-token pricing
 	for i := range entries {
-		entries[i].InputPricePer1M = 0
-		entries[i].OutputPricePer1M = 0
+		entries[i].InputPricePer1M = -1
+		entries[i].OutputPricePer1M = -1
 	}
 	return entries, nil
 }

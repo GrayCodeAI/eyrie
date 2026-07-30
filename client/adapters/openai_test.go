@@ -214,6 +214,21 @@ func TestBuildRequestBase_MaxCompletionTokens(t *testing.T) {
 	}
 }
 
+func TestBuildRequestBase_OmitMaxTokens(t *testing.T) {
+	t.Parallel()
+	// Agnes AI pre-authorizes the maximum token cost; sending the default 4096
+	// can exceed the account balance and trigger insufficient_user_quota. With
+	// OmitMaxTokens set, neither max_tokens nor max_completion_tokens is sent.
+	compat := &OpenAICompatConfig{MaxTokensField: "max_tokens", OmitMaxTokens: true}
+	req := BuildRequestBase([]core.EyrieMessage{{Role: "user", Content: "hi"}}, core.ChatOptions{Model: "agnes-2.5-pro-alpha", MaxTokens: 0}, false, compat)
+	if req.MaxTokens != nil {
+		t.Errorf("MaxTokens should be nil when OmitMaxTokens is set, got %v", *req.MaxTokens)
+	}
+	if req.MaxCompletionTokens != nil {
+		t.Errorf("MaxCompletionTokens should be nil when OmitMaxTokens is set, got %v", *req.MaxCompletionTokens)
+	}
+}
+
 func TestBuildRequestBase_StreamOptions(t *testing.T) {
 	t.Parallel()
 	req := BuildRequestBase([]core.EyrieMessage{{Role: "user", Content: "hi"}}, core.ChatOptions{Model: "gpt-4o", MaxTokens: 256}, true, nil)

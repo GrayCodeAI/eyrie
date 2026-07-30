@@ -61,10 +61,12 @@ func TestFetchAgnes_Mock(t *testing.T) {
 		t.Errorf("expected agnes-2.0-pro, got %s", entries[1].ID)
 	}
 
-	// Agnes is free — prices should be 0
+	// Agnes exposes no per-token pricing and the Pro model uses a pre-deduction
+	// balance hold, so pricing is marked unknown (negative sentinel) rather
+	// than assumed free. PricingFromEntry maps this to PricingUnknown.
 	for _, e := range entries {
-		if e.InputPricePer1M != 0 || e.OutputPricePer1M != 0 {
-			t.Errorf("expected zero pricing for free Agnes model %s, got in=%f out=%f", e.ID, e.InputPricePer1M, e.OutputPricePer1M)
+		if e.InputPricePer1M >= 0 || e.OutputPricePer1M >= 0 {
+			t.Errorf("expected unknown (negative) pricing for Agnes model %s, got in=%f out=%f", e.ID, e.InputPricePer1M, e.OutputPricePer1M)
 		}
 	}
 }

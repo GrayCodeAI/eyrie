@@ -21,6 +21,12 @@ type OpenAICompatConfig struct {
 	// core.ChatOptions.KimiContextCacheID is non-empty, buildRequestBase prepends a
 	// {"role":"cache","content":<id>} message per the MoonshotAI-Cookbook spec.
 	SupportsCacheRole bool `json:"supports_cache_role,omitempty"`
+	// OmitMaxTokens instructs buildRequestBase to leave max_tokens unset instead
+	// of sending the default 4096. Providers that pre-authorize the maximum token
+	// cost (e.g. Agnes AI) can return insufficient_user_quota when that hold
+	// exceeds the account balance; omitting max_tokens lets the provider apply its
+	// own default, which avoids the oversized hold.
+	OmitMaxTokens bool `json:"omit_max_tokens,omitempty"`
 }
 
 // Per-provider compat configs.
@@ -36,6 +42,19 @@ var (
 	OpenRouterCompat = OpenAICompatConfig{
 		ThinkingFormat: "openrouter", MaxTokensField: "max_tokens",
 		SupportsUsageInStreaming: true,
+	}
+	// AgnesCompat: Agnes AI is a minimal OpenAI-compatible endpoint. It does
+	// not honor OpenAI-specific features like store/developer-role/reasoning,
+	// so those are left disabled. It uses the standard max_tokens field.
+	// Agnes pre-authorizes the maximum token cost of every request; sending the
+	// default 4096 max_tokens makes that hold exceed the account balance and
+	// triggers an insufficient_user_quota (403). OmitMaxTokens leaves max_tokens
+	// unset so Agnes applies its own default, which keeps the hold small — this
+	// matches the behavior of a bare curl to the Agnes API.
+	AgnesCompat = OpenAICompatConfig{
+		MaxTokensField:           "max_tokens",
+		SupportsUsageInStreaming: true,
+		OmitMaxTokens:            true,
 	}
 	GeminiCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens", SupportsUsageInStreaming: true,
@@ -102,6 +121,10 @@ func init() {
 	DynamicMu.Lock()
 	defer DynamicMu.Unlock()
 
+	if p, ok := OpenAICompatibleProviders["agnes"]; ok {
+		p.Compat = &AgnesCompat
+		OpenAICompatibleProviders["agnes"] = p
+	}
 	if p, ok := OpenAICompatibleProviders["grok"]; ok {
 		p.Compat = &GrokCompat
 		OpenAICompatibleProviders["grok"] = p

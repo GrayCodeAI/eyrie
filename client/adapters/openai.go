@@ -314,14 +314,20 @@ func buildRequestBase(messages []core.EyrieMessage, opts core.ChatOptions, strea
 		}
 		req.Tools = tools
 	}
-	maxTok := opts.MaxTokens
-	if maxTok == 0 {
-		maxTok = 4096
-	}
-	if compat != nil && compat.MaxTokensField == "max_completion_tokens" {
-		req.MaxCompletionTokens = &maxTok
-	} else {
-		req.MaxTokens = &maxTok
+	// When OmitMaxTokens is set, leave max_tokens unset so the provider applies
+	// its own default. Sending the 4096 default can trigger an
+	// insufficient_user_quota hold for providers that pre-authorize the maximum
+	// token cost (e.g. Agnes AI).
+	if compat == nil || !compat.OmitMaxTokens {
+		maxTok := opts.MaxTokens
+		if maxTok == 0 {
+			maxTok = 4096
+		}
+		if compat != nil && compat.MaxTokensField == "max_completion_tokens" {
+			req.MaxCompletionTokens = &maxTok
+		} else {
+			req.MaxTokens = &maxTok
+		}
 	}
 	if stream {
 		if compat == nil || compat.SupportsUsageInStreaming {

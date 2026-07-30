@@ -8,6 +8,7 @@ type OpenAICompatConfig = adapters.OpenAICompatConfig
 // Per-provider compat configs.
 var (
 	OpenAICompat      = adapters.OpenAICompat
+	AgnesCompat       = adapters.AgnesCompat
 	GrokCompat        = adapters.GrokCompat
 	OpenRouterCompat  = adapters.OpenRouterCompat
 	GeminiCompat      = adapters.GeminiCompat

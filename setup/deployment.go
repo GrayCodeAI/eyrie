@@ -346,7 +346,7 @@ func providerForDeployment(id string, deployment config.DeploymentConfig, cfg *c
 		if apiKey == "" {
 			return nil, false
 		}
-		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://apihub.agnes-ai.com/v1"), &client.OpenAICompat), true
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://apihub.agnes-ai.com/v1"), &client.AgnesCompat), true
 	case "minimax_payg-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("MINIMAX_PAYG_API_KEY"))
 		if apiKey == "" {
