@@ -619,14 +619,16 @@ func FetchAgnes(env map[string]string) ([]Entry, error) {
 
 // Official Agnes text-model reference when /models omits context/capabilities.
 // Image/video models use separate generation endpoints and are left as-is.
+// Pricing from wiki docs (current promotional $0 for flash; pro-alpha is paid).
 var agnesOfficialTextSpecs = map[string]struct {
-	ContextWindow, MaxOutput           int
-	Tools, Vision, Thinking            bool
+	ContextWindow, MaxOutput int
+	Tools, Vision, Thinking  bool
+	InputPrice, OutputPrice  float64 // per 1M tokens; negative = unknown
 }{
-	"agnes-1.5-flash":     {256_000, 65_536, true, true, false},
-	"agnes-2.0-flash":     {512_000, 65_536, true, true, true},
-	"agnes-2.5-flash":     {512_000, 65_536, true, true, true},
-	"agnes-2.5-pro-alpha": {1_048_576, 65_536, true, true, true},
+	"agnes-1.5-flash":     {256_000, 65_536, true, true, false, 0, 0},
+	"agnes-2.0-flash":     {512_000, 65_536, true, true, true, 0, 0},
+	"agnes-2.5-flash":     {512_000, 65_536, true, true, true, 0, 0},
+	"agnes-2.5-pro-alpha": {1_048_576, 65_536, true, true, true, 0.45, 0.90},
 }
 
 func enrichAgnesEntry(e Entry) Entry {
@@ -654,6 +656,10 @@ func enrichAgnesEntry(e Entry) Entry {
 	if spec.Thinking {
 		e.ThinkingEnabled = true
 		e.Features = appendUnique(e.Features, "thinking:enabled")
+	}
+	if spec.InputPrice >= 0 && spec.OutputPrice >= 0 {
+		e.InputPricePer1M = spec.InputPrice
+		e.OutputPricePer1M = spec.OutputPrice
 	}
 	return e
 }

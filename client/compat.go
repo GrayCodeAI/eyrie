@@ -27,4 +27,5 @@ var (
 	VertexCompat      = adapters.VertexCompat
 	DeepSeekCompat    = adapters.DeepSeekCompat
 	ConcentrateCompat = adapters.ConcentrateCompat
+	MiniMaxCompat     = adapters.MiniMaxCompat
 )

@@ -12,7 +12,7 @@ type OpenAICompatConfig struct {
 	RequiresToolResultName           bool   `json:"requires_tool_result_name,omitempty"`
 	RequiresAssistantAfterToolResult bool   `json:"requires_assistant_after_tool_result,omitempty"`
 	RequiresThinkingAsText           bool   `json:"requires_thinking_as_text,omitempty"`
-	ThinkingFormat                   string `json:"thinking_format,omitempty"` // "openai", "zai", "qwen", "openrouter"
+	ThinkingFormat                   string `json:"thinking_format,omitempty"` // "zai","longcat","kimi","deepseek","xiaomi","minimax","agnes","qwen","openrouter"
 	// StripReasoningFromInput instructs buildRequestBase to omit the reasoning_content
 	// field from assistant messages. DeepSeek (and compatible providers) return HTTP 400
 	// if reasoning_content appears in the input context of a multi-turn conversation.
@@ -27,6 +27,11 @@ type OpenAICompatConfig struct {
 	// exceeds the account balance; omitting max_tokens lets the provider apply its
 	// own default, which avoids the oversized hold.
 	OmitMaxTokens bool `json:"omit_max_tokens,omitempty"`
+	// DefaultDisableThinking: when ThinkingEnabled is nil, emit an explicit
+	// thinking={"type":"disabled"} for formats that use the thinking object.
+	// LongCat enables thinking by default when the field is omitted; that often
+	// burns the entire max_tokens budget on reasoning_content with no reply.
+	DefaultDisableThinking bool `json:"default_disable_thinking,omitempty"`
 }
 
 // Per-provider compat configs.
@@ -40,7 +45,9 @@ var (
 		MaxTokensField: "max_tokens",
 	}
 	OpenRouterCompat = OpenAICompatConfig{
-		ThinkingFormat: "openrouter", MaxTokensField: "max_tokens",
+		// OpenRouter: reasoning={enabled|effort} per official reasoning-tokens guide.
+		ThinkingFormat:           "openrouter",
+		MaxTokensField:           "max_tokens",
 		SupportsUsageInStreaming: true,
 	}
 	// AgnesCompat: Agnes AI is OpenAI-compatible only (chat completions). It does
@@ -60,10 +67,13 @@ var (
 	}
 	// LongCatCompat: OpenAI-compatible only (https://api.longcat.chat/openai).
 	// Official docs: max_tokens, thinking={"type":"enabled"|"disabled"}, tools.
+	// DefaultDisableThinking is required: omitting thinking leaves LongCat's
+	// server-side default (enabled), which commonly yields reasoning-only replies.
 	LongCatCompat = OpenAICompatConfig{
 		MaxTokensField:           "max_tokens",
 		SupportsUsageInStreaming: true,
-		ThinkingFormat:           "zai", // same thinking object wire shape as LongCat docs
+		ThinkingFormat:           "longcat",
+		DefaultDisableThinking:   true,
 	}
 	GeminiCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens", SupportsUsageInStreaming: true,
@@ -81,8 +91,9 @@ var (
 	OpenCodeGoCompat = OpenAICompatConfig{
 		MaxTokensField:           "max_tokens",
 		SupportsUsageInStreaming: true,
-		ThinkingFormat:           "openrouter",
-		StripReasoningFromInput:  true,
+		// OpenCode Go routes many models through OpenRouter-style reasoning.
+		ThinkingFormat:          "openrouter",
+		StripReasoningFromInput: true,
 	}
 	PoolsideCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens",
@@ -96,9 +107,17 @@ var (
 	KimiCompat = OpenAICompatConfig{
 		MaxTokensField:    "max_tokens",
 		SupportsCacheRole: true,
+		// Kimi K2.5/K2.6: thinking={"type":"enabled"|"disabled"} (defaults enabled).
+		// https://platform.kimi.ai/docs/guide/use-kimi-k2-thinking-model
+		ThinkingFormat:         "kimi",
+		DefaultDisableThinking: true,
 	}
 	XiaomiCompat = OpenAICompatConfig{
 		MaxTokensField: "max_completion_tokens",
+		// Xiaomi MiMo: thinking={"type":"enabled"|"disabled"} (on by default for pro).
+		// https://mimo.mi.com/docs/en-US/quick-start/usage-guide/text-generation/deep-thinking
+		ThinkingFormat:         "xiaomi",
+		DefaultDisableThinking: true,
 	}
 	AzureCompat = OpenAICompatConfig{
 		MaxTokensField: "max_tokens",
@@ -110,16 +129,29 @@ var (
 		MaxTokensField: "max_tokens",
 	}
 	// DeepSeekCompat: OpenAI-compatible with usage in streaming.
-	// The provider rejects reasoning_content in input messages with HTTP 400, so we strip it.
+	// The provider rejects reasoning_content in input messages with HTTP 400, so we strip it
+	// for non-tool turns. Thinking mode: thinking={"type":...} (defaults enabled per
+	// https://api-docs.deepseek.com/guides/thinking_mode).
 	DeepSeekCompat = OpenAICompatConfig{
 		MaxTokensField:           "max_tokens",
 		SupportsUsageInStreaming: true,
 		StripReasoningFromInput:  true,
+		ThinkingFormat:           "deepseek",
+		DefaultDisableThinking:   true,
 	}
 	// ConcentrateCompat: OpenAI-compatible with usage in streaming.
 	ConcentrateCompat = OpenAICompatConfig{
 		MaxTokensField:           "max_tokens",
 		SupportsUsageInStreaming: true,
+	}
+	// MiniMaxCompat: OpenAI chat completions at api.minimax.io/v1.
+	// Official OpenAI path: thinking.type is "disabled" | "adaptive" (default on when omitted).
+	// https://platform.minimax.io/docs/api-reference/text-openai-api
+	MiniMaxCompat = OpenAICompatConfig{
+		MaxTokensField:           "max_tokens",
+		SupportsUsageInStreaming: true,
+		ThinkingFormat:           "minimax",
+		DefaultDisableThinking:   true,
 	}
 )
 
@@ -197,6 +229,12 @@ func init() {
 	if p, ok := OpenAICompatibleProviders["concentrate"]; ok {
 		p.Compat = &ConcentrateCompat
 		OpenAICompatibleProviders["concentrate"] = p
+	}
+	for _, id := range []string{"minimax_payg", "minimax_token_plan"} {
+		if p, ok := OpenAICompatibleProviders[id]; ok {
+			p.Compat = &MiniMaxCompat
+			OpenAICompatibleProviders[id] = p
+		}
 	}
 	if p, ok := CoreProviders["openai"]; ok {
 		p.Compat = &OpenAICompat

@@ -68,6 +68,9 @@ func TestFetchAgnes_Mock(t *testing.T) {
 	if !flash.ImageInput || !flash.ThinkingEnabled {
 		t.Fatalf("agnes-2.0-flash caps image=%v thinking=%v", flash.ImageInput, flash.ThinkingEnabled)
 	}
+	if flash.InputPricePer1M != 0 || flash.OutputPricePer1M != 0 {
+		t.Fatalf("agnes-2.0-flash should be free (0), got in=%f out=%f", flash.InputPricePer1M, flash.OutputPricePer1M)
+	}
 	foundTools := false
 	for _, f := range flash.Features {
 		if f == "tools" {
@@ -78,12 +81,10 @@ func TestFetchAgnes_Mock(t *testing.T) {
 		t.Fatalf("agnes-2.0-flash missing tools feature: %v", flash.Features)
 	}
 
-	// Agnes exposes no per-token pricing and the Pro model uses a pre-deduction
-	// balance hold, so pricing is marked unknown (negative sentinel) rather
-	// than assumed free. PricingFromEntry maps this to PricingUnknown.
+	// Unknown models keep unknown pricing; flash enrichment overrides to free.
 	for _, e := range entries {
-		if e.InputPricePer1M >= 0 || e.OutputPricePer1M >= 0 {
-			t.Errorf("expected unknown (negative) pricing for Agnes model %s, got in=%f out=%f", e.ID, e.InputPricePer1M, e.OutputPricePer1M)
+		if e.ID == "agnes-2.0-pro" && (e.InputPricePer1M >= 0 || e.OutputPricePer1M >= 0) {
+			t.Errorf("expected unknown pricing for %s, got in=%f out=%f", e.ID, e.InputPricePer1M, e.OutputPricePer1M)
 		}
 	}
 }

@@ -111,6 +111,7 @@ func longcatProviderStages(deployments map[string]DeploymentConfig) []RoutingSta
 		return nil
 	}
 	// Single OpenAI-compatible endpoint only (longcat-direct).
+	// Official LongCat also documents /anthropic; hawk does not require it when OpenAI works.
 	return singleDeploymentStages("longcat-direct", 1)
 }
 

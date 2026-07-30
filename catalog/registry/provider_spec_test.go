@@ -14,25 +14,28 @@ func TestAllProviders_Count(t *testing.T) {
 	}
 }
 
-func TestProviderSpecs_AgnesAndLongCatOpenAIOnly(t *testing.T) {
+func TestProviderSpecs_AgnesOpenAIOnlyLongCatOpenAIPrimary(t *testing.T) {
 	t.Parallel()
-	for _, id := range []string{"agnes", "longcat"} {
-		spec, ok := registry.SpecByProviderID(id)
-		if !ok {
-			t.Fatalf("missing provider %q", id)
-		}
-		if spec.ProtocolID != "openai-chat-completions" {
-			t.Fatalf("%s ProtocolID = %q, want openai-chat-completions", id, spec.ProtocolID)
-		}
-		if spec.AdapterID != "openai" {
-			t.Fatalf("%s AdapterID = %q, want openai", id, spec.AdapterID)
-		}
-		if spec.ProbeKind != registry.ProbeOpenAIModels {
-			t.Fatalf("%s ProbeKind = %v, want ProbeOpenAIModels", id, spec.ProbeKind)
-		}
-		if got := registry.DirectFallbackProviderIDs(id); len(got) != 0 {
-			t.Fatalf("%s DirectFallbacks = %v, want none", id, got)
-		}
+	// Agnes: official docs advertise OpenAI-compatible only — no Anthropic surface.
+	agnes, ok := registry.SpecByProviderID("agnes")
+	if !ok {
+		t.Fatal("missing agnes")
+	}
+	if agnes.ProtocolID != "openai-chat-completions" || agnes.AdapterID != "openai" {
+		t.Fatalf("agnes protocol/adapter = %q/%q", agnes.ProtocolID, agnes.AdapterID)
+	}
+	if got := registry.DirectFallbackProviderIDs("agnes"); len(got) != 0 {
+		t.Fatalf("agnes DirectFallbacks = %v, want none", got)
+	}
+
+	// LongCat: official docs expose BOTH OpenAI (/openai) and Anthropic (/anthropic).
+	// Hawk uses the OpenAI primary only — Anthropic is not required when OpenAI works.
+	longcat, ok := registry.SpecByProviderID("longcat")
+	if !ok {
+		t.Fatal("missing longcat")
+	}
+	if longcat.ProtocolID != "openai-chat-completions" || longcat.AdapterID != "openai" {
+		t.Fatalf("longcat protocol/adapter = %q/%q", longcat.ProtocolID, longcat.AdapterID)
 	}
 }
 

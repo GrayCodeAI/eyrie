@@ -121,22 +121,26 @@ type openaiRequest struct {
 	ResponseFormat      interface{}              `json:"response_format,omitempty"`
 	ReasoningEffort     string                   `json:"reasoning_effort,omitempty"`
 	Thinking            map[string]interface{}   `json:"thinking,omitempty"`
-	ChatTemplateKwargs  map[string]interface{}   `json:"chat_template_kwargs,omitempty"`
-	Stop                interface{}              `json:"stop,omitempty"`
-	ServiceTier         string                   `json:"service_tier,omitempty"`
-	User                string                   `json:"user,omitempty"`
-	PresencePenalty     *float64                 `json:"presence_penalty,omitempty"`
-	FrequencyPenalty    *float64                 `json:"frequency_penalty,omitempty"`
-	N                   *int                     `json:"n,omitempty"`
-	LogProbs            *bool                    `json:"logprobs,omitempty"`
-	TopLogProbs         *int                     `json:"top_logprobs,omitempty"`
-	Seed                *int                     `json:"seed,omitempty"`
-	Store               *bool                    `json:"store,omitempty"`
-	Metadata            map[string]string        `json:"metadata,omitempty"`
-	Modalities          []string                 `json:"modalities,omitempty"`
-	Audio               map[string]interface{}   `json:"audio,omitempty"`
-	Prediction          map[string]interface{}   `json:"prediction,omitempty"`
-	WebSearchOptions    map[string]interface{}   `json:"web_search_options,omitempty"`
+	// Reasoning is OpenRouter's unified reasoning object (enabled / effort / max_tokens).
+	// Docs: https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+	Reasoning          map[string]interface{} `json:"reasoning,omitempty"`
+	ChatTemplateKwargs map[string]interface{} `json:"chat_template_kwargs,omitempty"`
+	EnableThinking     *bool                  `json:"enable_thinking,omitempty"` // Qwen/DashScope-style top-level flag
+	Stop               interface{}            `json:"stop,omitempty"`
+	ServiceTier        string                 `json:"service_tier,omitempty"`
+	User               string                 `json:"user,omitempty"`
+	PresencePenalty    *float64               `json:"presence_penalty,omitempty"`
+	FrequencyPenalty   *float64               `json:"frequency_penalty,omitempty"`
+	N                  *int                   `json:"n,omitempty"`
+	LogProbs           *bool                  `json:"logprobs,omitempty"`
+	TopLogProbs        *int                   `json:"top_logprobs,omitempty"`
+	Seed               *int                   `json:"seed,omitempty"`
+	Store              *bool                  `json:"store,omitempty"`
+	Metadata           map[string]string      `json:"metadata,omitempty"`
+	Modalities         []string               `json:"modalities,omitempty"`
+	Audio              map[string]interface{} `json:"audio,omitempty"`
+	Prediction         map[string]interface{} `json:"prediction,omitempty"`
+	WebSearchOptions   map[string]interface{} `json:"web_search_options,omitempty"`
 }
 
 type streamOptions struct {
@@ -409,16 +413,51 @@ func buildRequestBase(messages []core.EyrieMessage, opts core.ChatOptions, strea
 	if len(opts.Metadata) > 0 {
 		req.Metadata = opts.Metadata
 	}
-	if compat != nil && opts.GLMThinkingEnabled != nil {
-		switch compat.ThinkingFormat {
-		case "zai":
-			thinkingType := "disabled"
-			if *opts.GLMThinkingEnabled {
-				thinkingType = "enabled"
+	if compat != nil {
+		thinkingEnabled := opts.ThinkingEnabled
+		if thinkingEnabled == nil {
+			thinkingEnabled = opts.GLMThinkingEnabled // deprecated Z.AI-era alias
+		}
+		if thinkingEnabled == nil && compat.DefaultDisableThinking {
+			disabled := false
+			thinkingEnabled = &disabled
+		}
+		if thinkingEnabled != nil {
+			switch compat.ThinkingFormat {
+			case "zai", "longcat", "kimi", "deepseek", "xiaomi":
+				// Official thinking={"type":"enabled"|"disabled"} shape used by
+				// Z.AI, LongCat, Kimi (k2.5/k2.6), DeepSeek V4, and Xiaomi MiMo.
+				thinkingType := "disabled"
+				if *thinkingEnabled {
+					thinkingType = "enabled"
+				}
+				req.Thinking = map[string]interface{}{"type": thinkingType}
+			case "minimax":
+				// MiniMax OpenAI docs: thinking.type is "disabled" | "adaptive"
+				// (not "enabled"). Default when omitted is thinking on.
+				thinkingType := "disabled"
+				if *thinkingEnabled {
+					thinkingType = "adaptive"
+				}
+				req.Thinking = map[string]interface{}{"type": thinkingType}
+			case "agnes":
+				// Agnes OpenAI docs: chat_template_kwargs.enable_thinking
+				req.ChatTemplateKwargs = map[string]interface{}{"enable_thinking": *thinkingEnabled}
+			case "qwen":
+				// Qwen/DashScope OpenAI-compatible: top-level enable_thinking
+				// (https://docs.qwencloud.com/developer-guides/text-generation/thinking).
+				v := *thinkingEnabled
+				req.EnableThinking = &v
+			case "openrouter":
+				// OpenRouter unified reasoning object
+				// (https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
+				if *thinkingEnabled {
+					req.Reasoning = map[string]interface{}{"enabled": true}
+				} else {
+					// effort "none" is the documented OpenAI-style disable.
+					req.Reasoning = map[string]interface{}{"effort": "none"}
+				}
 			}
-			req.Thinking = map[string]interface{}{"type": thinkingType}
-		case "agnes":
-			req.ChatTemplateKwargs = map[string]interface{}{"enable_thinking": *opts.GLMThinkingEnabled}
 		}
 	}
 	return req
