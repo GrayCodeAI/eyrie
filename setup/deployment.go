@@ -341,6 +341,12 @@ func providerForDeployment(id string, deployment config.DeploymentConfig, cfg *c
 			return nil, false
 		}
 		return newMiniMaxDualProtocolClient(apiKey, deployment.BaseURL), true
+	case "agnes-direct":
+		apiKey := FirstNonEmpty(deployment.APIKey, lookup("AGNES_API_KEY"))
+		if apiKey == "" {
+			return nil, false
+		}
+		return client.NewOpenAIClient(apiKey, FirstNonEmpty(deployment.BaseURL, "https://apihub.agnes-ai.com/v1"), &client.OpenAICompat), true
 	case "minimax_payg-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("MINIMAX_PAYG_API_KEY"))
 		if apiKey == "" {
