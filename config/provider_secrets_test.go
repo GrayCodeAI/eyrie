@@ -60,7 +60,7 @@ func TestLegacyProviderSecretsStrictMapsAgnesDirect(t *testing.T) {
 		t.Fatal(err)
 	}
 	if secrets["AGNES_API_KEY"] != "agnes-secret-1234567890" {
-		t.Fatalf("AGNES_API_KEY = %#v, want agnes deployment key", secrets["AGNES_API_KEY"])
+		t.Fatalf("AGNES_API_KEY mismatch: got %q, want %q", secrets["AGNES_API_KEY"], "agnes-secret-1234567890")
 	}
 }
 
