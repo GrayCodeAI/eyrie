@@ -291,9 +291,8 @@ func providerForDeployment(id string, deployment config.DeploymentConfig, cfg *c
 		if apiKey == "" {
 			return nil, false
 		}
-		openBase := FirstNonEmpty(deployment.BaseURL, "https://api.deepseek.com/v1")
-		anthropicBase := "https://api.deepseek.com/anthropic"
-		return client.NewDeepSeekClient(apiKey, openBase, anthropicBase, &client.DeepSeekCompat), true
+		openBase := FirstNonEmpty(deployment.BaseURL, "https://api.deepseek.com")
+		return client.NewDeepSeekClient(apiKey, openBase, &client.DeepSeekCompat), true
 	case "poolside":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("POOLSIDE_API_KEY"))
 		if apiKey == "" {
@@ -340,13 +339,13 @@ func providerForDeployment(id string, deployment config.DeploymentConfig, cfg *c
 		if apiKey == "" {
 			return nil, false
 		}
-		return newMiniMaxDualProtocolClient(apiKey, deployment.BaseURL), true
+		return newMiniMaxClient(apiKey, deployment.BaseURL), true
 	case "minimax_payg-direct":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("MINIMAX_PAYG_API_KEY"))
 		if apiKey == "" {
 			return nil, false
 		}
-		return newMiniMaxDualProtocolClient(apiKey, deployment.BaseURL), true
+		return newMiniMaxClient(apiKey, deployment.BaseURL), true
 	case "concentrate-payg":
 		apiKey := FirstNonEmpty(deployment.APIKey, lookup("CONCENTRATE_API_KEY"))
 		if apiKey == "" {
@@ -374,8 +373,7 @@ func newMiMoDeploymentClient(deployment config.DeploymentConfig, providerID, env
 			openBase = override
 		}
 	}
-	anthropicBase, _ := config.ResolveXiaomiAnthropicBase(providerID, cfg)
-	return client.NewMiMoClient(apiKey, openBase, anthropicBase, &client.XiaomiCompat, providerID), true
+	return client.NewMiMoClient(apiKey, openBase, &client.XiaomiCompat, providerID), true
 }
 
 // newZAIDeploymentClient constructs a dual-protocol (OpenAI + Anthropic) Z.AI client
@@ -492,19 +490,10 @@ func FirstNonEmpty(values ...string) string {
 	return ""
 }
 
-// newMiniMaxDualProtocolClient creates a FallbackProvider that tries OpenAI-compatible
-// endpoint first, then falls back to Anthropic-compatible endpoint. Both use the same API key.
-func newMiniMaxDualProtocolClient(apiKey, baseURL string) client.Provider {
+// newMiniMaxClient builds the MiniMax OpenAI-compatible client.
+func newMiniMaxClient(apiKey, baseURL string) client.Provider {
 	openaiBase := FirstNonEmpty(baseURL, config.DefaultMiniMaxOpenAIBaseURL)
-	anthropicBase := config.DefaultMiniMaxAnthropicBaseURL
-	openaiClient := client.NewOpenAIClient(apiKey, openaiBase, &client.OpenAICompat)
-	anthropicClient := client.NewAnthropicClient(apiKey, anthropicBase)
-	fp, err := client.NewFallbackProvider(openaiClient, anthropicClient)
-	if err != nil {
-		// Cannot happen with two providers; return the primary as fallback.
-		return openaiClient
-	}
-	return fp
+	return client.NewOpenAIClient(apiKey, openaiBase, &client.OpenAICompat)
 }
 
 // CloneStringMap returns a shallow copy of m.

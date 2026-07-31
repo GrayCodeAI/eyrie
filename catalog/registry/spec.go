@@ -49,7 +49,6 @@ type ProviderSpec struct {
 	ProtocolID             string
 	AdapterID              string
 	RuntimeProfileKey      string
-	DirectFallbacks        []string
 	PrepareCredentialEnv   bool
 	RetryConfig            *RetryConfig
 	IsLocal                bool

@@ -323,16 +323,16 @@ func NewVertexClient(projectID, region, token string) *VertexClient {
 	return adapters.NewVertexClient(projectID, region, token)
 }
 
-func NewDeepSeekClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompatConfig, opts ...ClientOption) *DeepSeekClient {
-	return adapters.NewDeepSeekClient(apiKey, openAIBase, anthropicBase, compat, opts...)
+func NewDeepSeekClient(apiKey, openAIBase string, compat *OpenAICompatConfig, opts ...ClientOption) *DeepSeekClient {
+	return adapters.NewDeepSeekClient(apiKey, openAIBase, compat, opts...)
 }
 
 func NewZAIClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompatConfig, providerID string, opts ...ClientOption) *ZAIClient {
 	return adapters.NewZAIClient(apiKey, openAIBase, anthropicBase, compat, providerID, opts...)
 }
 
-func NewMiMoClient(apiKey, openAIBase, anthropicBase string, compat *OpenAICompatConfig, providerID string, opts ...ClientOption) *MiMoClient {
-	return adapters.NewMiMoClient(apiKey, openAIBase, anthropicBase, compat, providerID, opts...)
+func NewMiMoClient(apiKey, openAIBase string, compat *OpenAICompatConfig, providerID string, opts ...ClientOption) *MiMoClient {
+	return adapters.NewMiMoClient(apiKey, openAIBase, compat, providerID, opts...)
 }
 
 func NewConcentrateResponsesClient(apiKey, baseURL string, opts ...ClientOption) *ConcentrateResponsesClient {
@@ -386,8 +386,6 @@ var (
 	dynamicProviderEnvVar       = adapters.DynamicProviderEnvVar
 	geminiSharedParserEnvVar    = adapters.GeminiSharedParserEnvVar
 	processGeminiStream         = adapters.ProcessGeminiStream
-	mimoRetryableChatError      = adapters.MimoRetryableChatError
-	mimoFallbackChatError       = adapters.MimoFallbackChatError
 	oaCompatUnsupportedError    = adapters.OACompatUnsupportedError
 	CoreProviders               = adapters.CoreProviders
 	OpenAICompatibleProviders   = adapters.OpenAICompatibleProviders

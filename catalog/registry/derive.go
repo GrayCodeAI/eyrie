@@ -90,21 +90,6 @@ func RuntimeProfileKey(providerID string) string {
 	return ""
 }
 
-// DirectFallbackProviderIDs returns direct-provider fallback ids for providerID.
-func DirectFallbackProviderIDs(providerID string) []string {
-	spec, ok := SpecByProviderID(providerID)
-	if !ok || len(spec.DirectFallbacks) == 0 {
-		return nil
-	}
-	out := make([]string, 0, len(spec.DirectFallbacks))
-	for _, id := range spec.DirectFallbacks {
-		if trimmed := strings.TrimSpace(id); trimmed != "" {
-			out = append(out, trimmed)
-		}
-	}
-	return out
-}
-
 // CredentialAliases returns compatibility env var names for providerID.
 func CredentialAliases(providerID string) []string {
 	spec, ok := SpecByProviderID(providerID)

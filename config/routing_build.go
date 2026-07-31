@@ -68,9 +68,6 @@ func openAIProviderStages(deployments map[string]DeploymentConfig) []RoutingStag
 	default:
 		return nil
 	}
-	if _, ok := deployments["openrouter"]; ok {
-		stages = append(stages, openRouterFallbackStage()...)
-	}
 	return stages
 }
 
@@ -96,9 +93,6 @@ func anthropicProviderStages(deployments map[string]DeploymentConfig) []RoutingS
 	if len(stages) == 0 {
 		return nil
 	}
-	if _, ok := deployments["openrouter"]; ok {
-		stages = append(stages, openRouterFallbackStage()...)
-	}
 	return stages
 }
 
@@ -121,11 +115,7 @@ func longcatProviderStages(deployments map[string]DeploymentConfig) []RoutingSta
 
 func googleProviderStages(deployments map[string]DeploymentConfig) []RoutingStage {
 	if _, ok := deployments["gemini-direct"]; ok {
-		stages := singleDeploymentStages("gemini-direct", 1)
-		if _, ok := deployments["openrouter"]; ok {
-			stages = append(stages, openRouterFallbackStage()...)
-		}
-		return stages
+		return singleDeploymentStages("gemini-direct", 1)
 	}
 	if _, ok := deployments["gemini-vertex"]; ok {
 		return singleDeploymentStages("gemini-vertex", 1)
@@ -138,13 +128,6 @@ func grokProviderStages(deployments map[string]DeploymentConfig) []RoutingStage 
 		return singleDeploymentStages("grok-direct", 1)
 	}
 	return nil
-}
-
-func openRouterFallbackStage() []RoutingStage {
-	return []RoutingStage{{
-		Deployments: []DeploymentChoice{{DeploymentID: "openrouter", Weight: 100}},
-		Retries:     1,
-	}}
 }
 
 func deploymentOwnerProviderID(deploymentID string) string {
