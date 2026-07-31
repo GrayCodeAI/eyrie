@@ -125,6 +125,13 @@ var (
 		ThinkingFormat:           "deepseek",
 		DefaultDisableThinking:   true,
 	}
+	ConcentrateCompat = OpenAICompatConfig{
+		MaxTokensField:           "max_tokens",
+		SupportsUsageInStreaming: true,
+	}
+	StepFunCompat = OpenAICompatConfig{
+		MaxTokensField: "max_tokens",
+	}
 )
 
 func init() {
@@ -189,6 +196,32 @@ func init() {
 	if p, ok := OpenAICompatibleProviders["deepseek"]; ok {
 		p.Compat = &DeepSeekCompat
 		OpenAICompatibleProviders["deepseek"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["opengateway"]; ok {
+		p.Compat = &OpenGatewayCompat
+		OpenAICompatibleProviders["opengateway"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["longcat"]; ok {
+		p.Compat = &LongCatCompat
+		OpenAICompatibleProviders["longcat"] = p
+	}
+	for _, id := range []string{"minimax_token_plan", "minimax_payg"} {
+		if p, ok := OpenAICompatibleProviders[id]; ok {
+			p.Compat = &MiniMaxCompat
+			OpenAICompatibleProviders[id] = p
+		}
+	}
+	if p, ok := OpenAICompatibleProviders["stepfun"]; ok {
+		p.Compat = &StepFunCompat
+		OpenAICompatibleProviders["stepfun"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["concentrate"]; ok {
+		p.Compat = &ConcentrateCompat
+		OpenAICompatibleProviders["concentrate"] = p
+	}
+	if p, ok := OpenAICompatibleProviders["agnes"]; ok {
+		p.Compat = &AgnesCompat
+		OpenAICompatibleProviders["agnes"] = p
 	}
 	if p, ok := CoreProviders["openai"]; ok {
 		p.Compat = &OpenAICompat
