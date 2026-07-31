@@ -109,6 +109,12 @@ func LegacyProviderSecretsStrict(cfg ProviderConfig) (map[string]string, error) 
 				return nil, fmt.Errorf("provider deployment %q contains unsupported credential fields", id)
 			}
 			put("VERTEX_ACCESS_TOKEN", firstNonEmpty(deployment.Token, deployment.APIKey))
+		case "agnes-direct":
+			if strings.TrimSpace(deployment.Token) != "" || strings.TrimSpace(deployment.SecretAccessKey) != "" ||
+				strings.TrimSpace(deployment.AccessKeyID) != "" || strings.TrimSpace(deployment.SessionToken) != "" {
+				return nil, fmt.Errorf("provider deployment %q contains unsupported credential fields", id)
+			}
+			put("AGNES_API_KEY", deployment.APIKey)
 		default:
 			envKey := legacyDeploymentCredentialEnv(id)
 			if envKey == "" && deploymentContainsSecrets(deployment) {

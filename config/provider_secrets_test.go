@@ -52,6 +52,18 @@ func TestLegacyProviderSecretsStrictRejectsUnmappedDeploymentFields(t *testing.T
 	}
 }
 
+func TestLegacyProviderSecretsStrictMapsAgnesDirect(t *testing.T) {
+	secrets, err := LegacyProviderSecretsStrict(ProviderConfig{Deployments: map[string]DeploymentConfig{
+		"agnes-direct": {APIKey: "agnes-secret-1234567890"},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if secrets["AGNES_API_KEY"] != "agnes-secret-1234567890" {
+		t.Fatalf("AGNES_API_KEY = %#v, want agnes deployment key", secrets["AGNES_API_KEY"])
+	}
+}
+
 func TestLegacyProviderSecretsStrictMapsBedrockCompatibilityFields(t *testing.T) {
 	secrets, err := LegacyProviderSecretsStrict(ProviderConfig{Deployments: map[string]DeploymentConfig{
 		"anthropic-bedrock": {APIKey: "AKIALEGACY123456789", Token: "legacy-secret-1234567890"},
