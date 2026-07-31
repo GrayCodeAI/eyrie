@@ -164,6 +164,39 @@ func providerSpecs() []ProviderSpec {
 			LiveFetcherKey: "openrouter", LiveCatalogKey: "openrouter",
 			ProtocolID: "openai-chat-completions", AdapterID: "openrouter", RuntimeProfileKey: "openrouter",
 		},
+		{
+			ProviderID: "concentrate", DisplayName: "Concentrate AI (Pay-as-you-go)", DeploymentID: "concentrate-payg", SortOrder: 7, ChatPreference: 4,
+			RequiresKey: true, CredentialEnv: "CONCENTRATE_API_KEY",
+			BaseURLEnv: []string{"CONCENTRATE_BASE_URL"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.concentrate.ai/v1",
+			LiveFetcherKey: "concentrate", LiveCatalogKey: "concentrate",
+			PublicModelCatalog: true,
+			ProtocolID:         "openai-responses", AdapterID: "concentrate-responses", RuntimeProfileKey: "concentrate",
+		},
+		{
+			ProviderID: "stepfun", DisplayName: "StepFun", DeploymentID: "stepfun-direct", SortOrder: 2, ChatPreference: 27,
+			RequiresKey: true, CredentialEnv: "STEP_API_KEY",
+			BaseURLEnv: []string{"STEP_BASE_URL"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.stepfun.ai/v1",
+			LiveFetcherKey: "stepfun", LiveCatalogKey: "stepfun",
+			ProtocolID: "openai-chat-completions", AdapterID: "openai", RuntimeProfileKey: "stepfun",
+		},
+		{
+			ProviderID: "agnes", DisplayName: "Agnes AI", DeploymentID: "agnes-direct", SortOrder: 1, ChatPreference: 25,
+			RequiresKey: true, CredentialEnv: "AGNES_API_KEY",
+			BaseURLEnv: []string{"AGNES_BASE_URL"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://apihub.agnes-ai.com/v1",
+			LiveFetcherKey: "agnes", LiveCatalogKey: "agnes",
+			ProtocolID: "openai-chat-completions", AdapterID: "openai", RuntimeProfileKey: "agnes",
+		},
+		{
+			ProviderID: "longcat", DisplayName: "LongCat", DeploymentID: "longcat-direct", SortOrder: 12, ChatPreference: 26,
+			RequiresKey: true, CredentialEnv: "LONGCAT_API_KEY",
+			BaseURLEnv: []string{"LONGCAT_BASE_URL"},
+			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.longcat.chat/openai/v1",
+			LiveFetcherKey: "longcat", LiveCatalogKey: "longcat",
+			ProtocolID: "openai-chat-completions", AdapterID: "openai", RuntimeProfileKey: "longcat",
+		},
 
 		// ── Niche ─────────────────────────────────────────────────────────
 		{

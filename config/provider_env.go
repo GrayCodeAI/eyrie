@@ -63,10 +63,19 @@ type ProviderConfig struct {
 	ClinePassAPIKey            string                      `json:"clinepass_api_key,omitempty"`
 	ClinePassBaseURL           string                      `json:"clinepass_base_url,omitempty"`
 	ClinePassModel             string                      `json:"clinepass_model,omitempty"`
+	StepFunAPIKey              string                      `json:"stepfun_api_key,omitempty"`
+	StepFunBaseURL             string                      `json:"stepfun_base_url,omitempty"`
+	StepFunModel               string                      `json:"stepfun_model,omitempty"`
 	MiniMaxModel               string                      `json:"minimax_model,omitempty"`
 	AnthropicModel             string                      `json:"anthropic_model,omitempty"`
 	OpenAIModel                string                      `json:"openai_model,omitempty"`
 	CanopyWaveModel            string                      `json:"canopywave_model,omitempty"`
+	ConcentrateAPIKey          string                      `json:"concentrate_api_key,omitempty"`
+	ConcentrateBaseURL         string                      `json:"concentrate_base_url,omitempty"`
+	ConcentrateModel           string                      `json:"concentrate_model,omitempty"`
+	AgnesAPIKey                string                      `json:"agnes_api_key,omitempty"`
+	AgnesBaseURL               string                      `json:"agnes_base_url,omitempty"`
+	AgnesModel                 string                      `json:"agnes_model,omitempty"`
 	DeepSeekModel              string                      `json:"deepseek_model,omitempty"`
 	ZAIModel                   string                      `json:"zai_model,omitempty"`
 	GrokModel                  string                      `json:"grok_model,omitempty"`
@@ -158,6 +167,11 @@ var providerFields = map[string]providerFieldMap{
 		Models:  func(c *ProviderConfig) []string { return []string{c.CanopyWaveModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.CanopyWaveBaseURL },
 	},
+	ProviderConcentrate: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.ConcentrateAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.ConcentrateModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.ConcentrateBaseURL },
+	},
 	ProviderDeepSeek: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.DeepSeekAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.DeepSeekModel} },
@@ -229,6 +243,11 @@ var providerFields = map[string]providerFieldMap{
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.XiaomiMimoTokenPlanAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.XiaomiModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.XiaomiMimoTokenPlanBaseURL },
+	},
+	ProviderStepFun: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.StepFunAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.StepFunModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.StepFunBaseURL },
 	},
 }
 
@@ -563,6 +582,7 @@ func ClearProviderRuntimeEnv() {
 		"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION", "AWS_DEFAULT_REGION", "BEDROCK_MODEL",
 		"VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN", "VERTEX_PROJECT_ID", "VERTEX_REGION", "VERTEX_MODEL",
 		"OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL",
+		"CONCENTRATE_API_KEY", "CONCENTRATE_MODEL", "CONCENTRATE_BASE_URL",
 		"CANOPYWAVE_API_KEY", "CANOPYWAVE_MODEL", "CANOPYWAVE_BASE_URL",
 		"DEEPSEEK_API_KEY", "DEEPSEEK_MODEL", "DEEPSEEK_BASE_URL",
 		"ZAI_API_KEY", "ZAI_CODING_API_KEY", "ZAI_MODEL", "ZAI_BASE_URL", "ZAI_CODING_BASE_URL", "ZAI_API_BASE",
@@ -575,6 +595,7 @@ func ClearProviderRuntimeEnv() {
 		"POOLSIDE_API_KEY", "POOLSIDE_MODEL", "POOLSIDE_BASE_URL",
 		"CLINE_API_KEY", "CLINE_MODEL", "CLINE_API_BASE",
 		"MOONSHOT_API_KEY", "MOONSHOT_MODEL", "MOONSHOT_BASE_URL",
+		"STEP_API_KEY", "STEP_MODEL", "STEP_BASE_URL",
 		"XIAOMI_MIMO_PAYG_API_KEY", "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
 		"XIAOMI_MIMO_TOKEN_PLAN_REGION", "XIAOMI_MODEL", "XIAOMI_BASE_URL",
 		"XIAOMI_MIMO_PAYG_BASE_URL", "XIAOMI_MIMO_TOKEN_PLAN_BASE_URL",
@@ -713,6 +734,14 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 			m = catalog.GetProviderDefaultModel("canopywave", cat)
 		}
 		collectOpenAICompatibleProvider(env, "CANOPYWAVE", apiKey, m, base, overwrite)
+	case ProviderConcentrate:
+		apiKey := AsNonEmptyString(config.ConcentrateAPIKey)
+		base := firstNonEmpty(config.ConcentrateBaseURL, DefaultConcentrateOpenAIBaseURL)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("concentrate", cat)
+		}
+		collectOpenAICompatibleProvider(env, "CONCENTRATE", apiKey, m, base, overwrite)
 	case ProviderDeepSeek:
 		apiKey := AsNonEmptyString(config.DeepSeekAPIKey)
 		base := firstNonEmpty(config.DeepSeekBaseURL, "https://api.deepseek.com/v1")
@@ -803,6 +832,14 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 		if base != "" {
 			collectOpenAICompatibleProvider(env, "XIAOMI", apiKey, m, base, overwrite)
 		}
+	case ProviderStepFun:
+		apiKey := AsNonEmptyString(config.StepFunAPIKey)
+		base := firstNonEmpty(config.StepFunBaseURL, DefaultStepFunOpenAIBaseURL)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("stepfun", cat)
+		}
+		collectOpenAICompatibleProvider(env, "STEP", apiKey, m, base, overwrite)
 	}
 	return env
 }

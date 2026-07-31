@@ -14,6 +14,8 @@ const (
 	ProviderZAICoding           APIProvider = "zai_coding"
 	ProviderZAIPayg             APIProvider = "zai_payg"
 	ProviderOpenRouter          APIProvider = "openrouter"
+	ProviderConcentrate         APIProvider = "concentrate"
+	ProviderAgnes               APIProvider = "agnes"
 	ProviderGrok                APIProvider = "grok"
 	ProviderGemini              APIProvider = "gemini"
 	ProviderBedrock             APIProvider = "bedrock"
@@ -28,6 +30,7 @@ const (
 	ProviderPoolside            APIProvider = "poolside"
 	ProviderGroq                APIProvider = "groq"
 	ProviderClinePass           APIProvider = "clinepass"
+	ProviderStepFun             APIProvider = "stepfun"
 )
 
 // RuntimeProviderProfile defines how a provider is detected and configured at runtime.
@@ -104,6 +107,13 @@ var (
 		ModelEnv:     []string{"OPENROUTER_MODEL", "OPENAI_MODEL"},
 		BaseURLEnv:   []string{"OPENROUTER_BASE_URL"},
 		APIKeys:      []APIKeyDef{{Env: "OPENROUTER_API_KEY", Source: "openrouter"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
+	}
+	ConcentrateRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultConcentrateOpenAIBaseURL,
+		DetectionEnv: []string{"CONCENTRATE_API_KEY"},
+		ModelEnv:     []string{"CONCENTRATE_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"CONCENTRATE_BASE_URL"},
+		APIKeys:      []APIKeyDef{{Env: "CONCENTRATE_API_KEY", Source: "concentrate"}, {Env: "OPENAI_API_KEY", Source: "openai"}},
 	}
 	ZAIPaygRuntimeProfile = RuntimeProviderProfile{
 		Mode: "openai", DefaultBaseURL: DefaultZAIOpenAIBaseURL,
@@ -203,13 +213,20 @@ var (
 		BaseURLEnv:   []string{"CLINE_API_BASE"},
 		APIKeys:      []APIKeyDef{{Env: "CLINE_API_KEY", Source: "clinepass"}},
 	}
+	StepFunRuntimeProfile = RuntimeProviderProfile{
+		Mode: "openai", DefaultBaseURL: DefaultStepFunOpenAIBaseURL,
+		DetectionEnv: []string{"STEP_API_KEY"},
+		ModelEnv:     []string{"STEP_MODEL", "OPENAI_MODEL"},
+		BaseURLEnv:   []string{"STEP_BASE_URL"},
+		APIKeys:      []APIKeyDef{{Env: "STEP_API_KEY", Source: "stepfun"}},
+	}
 )
 
 // APIProviderDetectionOrder is the priority order for provider detection.
 var APIProviderDetectionOrder = []APIProvider{
-	ProviderAnthropic, ProviderOpenRouter, ProviderGrok, ProviderGemini,
+	ProviderAnthropic, ProviderConcentrate, ProviderOpenRouter, ProviderGrok, ProviderGemini,
 	ProviderVertex, ProviderBedrock, ProviderZAICoding, ProviderZAIPayg, ProviderCanopyWave, ProviderDeepSeek, ProviderPoolside, ProviderGroq, ProviderClinePass, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
-	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderMiniMaxTokenPlan, ProviderMiniMaxPayg, ProviderOllama,
+	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderMiniMaxTokenPlan, ProviderMiniMaxPayg, ProviderOllama, ProviderStepFun,
 }
 
 // ProviderModelEnvKeys maps each provider to its model env var keys.
@@ -225,6 +242,7 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 	ProviderZAIPayg:             ZAIPaygRuntimeProfile.ModelEnv,
 	ProviderZAICoding:           ZAICodingRuntimeProfile.ModelEnv,
 	ProviderOpenRouter:          OpenRouterRuntimeProfile.ModelEnv,
+	ProviderConcentrate:         ConcentrateRuntimeProfile.ModelEnv,
 	ProviderGrok:                GrokRuntimeProfile.ModelEnv,
 	ProviderGemini:              GeminiRuntimeProfile.ModelEnv,
 	ProviderBedrock:             BedrockRuntimeProfile.ModelEnv,
@@ -236,6 +254,7 @@ var ProviderModelEnvKeys = map[APIProvider][]string{
 	ProviderXiaomiMimoTokenPlan: XiaomiTokenPlanRuntimeProfile.ModelEnv,
 	ProviderMiniMaxTokenPlan:    {"MINIMAX_TOKEN_PLAN_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
 	ProviderMiniMaxPayg:         {"MINIMAX_PAYG_MODEL", "MINIMAX_MODEL", "OPENAI_MODEL"},
+	ProviderStepFun:             StepFunRuntimeProfile.ModelEnv,
 }
 
 const (
@@ -245,11 +264,14 @@ const (
 
 // OpenAICompatibleRuntimeProfileOrder is the detection order for runtime profiles.
 var OpenAICompatibleRuntimeProfileOrder = []string{
-	"openrouter", "grok", "gemini", "anthropic", "zai_coding", "zai_payg", "canopywave", "deepseek", "poolside", "groq", "clinepass", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "minimax_token_plan", "minimax_payg",
+	"concentrate", "agnes", "longcat", "openrouter", "grok", "gemini", "anthropic", "zai_coding", "zai_payg", "canopywave", "deepseek", "poolside", "groq", "clinepass", "openai", "opencodego", "kimi", "xiaomi_mimo_payg", "xiaomi_mimo_token_plan", "minimax_token_plan", "minimax_payg", "stepfun",
 }
 
 // OpenAICompatibleRuntimeProfiles maps profile key to its runtime profile.
 var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
+	"concentrate":            ConcentrateRuntimeProfile,
+	"agnes":                  OpenAIRuntimeProfile,
+	"longcat":                OpenAIRuntimeProfile,
 	"anthropic":              AnthropicRuntimeProfile,
 	"grok":                   GrokRuntimeProfile,
 	"gemini":                 GeminiRuntimeProfile,
@@ -268,18 +290,21 @@ var OpenAICompatibleRuntimeProfiles = map[string]RuntimeProviderProfile{
 	"xiaomi_mimo_token_plan": XiaomiTokenPlanRuntimeProfile,
 	"minimax_token_plan":     MiniMaxTokenPlanRuntimeProfile,
 	"minimax_payg":           MiniMaxPaygRuntimeProfile,
+	"stepfun":                StepFunRuntimeProfile,
 }
 
 // RuntimeProviderProfiles maps provider/profile keys to runtime detection profiles.
 var RuntimeProviderProfiles = map[string]RuntimeProviderProfile{
 	"anthropic":              AnthropicRuntimeProfile,
 	"openai":                 OpenAIRuntimeProfile,
+	"agnes":                  OpenAIRuntimeProfile,
 	"grok":                   GrokRuntimeProfile,
 	"gemini":                 GeminiRuntimeProfile,
 	"vertex":                 VertexRuntimeProfile,
 	"azure":                  AzureRuntimeProfile,
 	"bedrock":                BedrockRuntimeProfile,
 	"openrouter":             OpenRouterRuntimeProfile,
+	"concentrate":            ConcentrateRuntimeProfile,
 	"zai_payg":               ZAIPaygRuntimeProfile,
 	"zai_coding":             ZAICodingRuntimeProfile,
 	"canopywave":             CanopyWaveRuntimeProfile,
@@ -293,6 +318,7 @@ var RuntimeProviderProfiles = map[string]RuntimeProviderProfile{
 	"xiaomi_mimo_token_plan": XiaomiTokenPlanRuntimeProfile,
 	"minimax_token_plan":     MiniMaxTokenPlanRuntimeProfile,
 	"minimax_payg":           MiniMaxPaygRuntimeProfile,
+	"stepfun":                StepFunRuntimeProfile,
 	"ollama":                 OllamaRuntimeProfile,
 }
 

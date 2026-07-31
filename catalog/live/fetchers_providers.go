@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GrayCodeAI/eyrie/catalog/concentrate"
 	"github.com/GrayCodeAI/eyrie/catalog/opencodego"
 	"github.com/GrayCodeAI/eyrie/catalog/xiaomi"
 )
@@ -589,6 +590,425 @@ func FetchPoolside(env map[string]string) ([]Entry, error) {
 	)
 }
 
+// FetchAgnes lists models from the Agnes AI OpenAI-compatible API.
+// Agnes exposes no per-token pricing in its /models response (and the Pro
+// model uses a pre-deduction balance hold rather than a simple per-token
+// charge), so the price is marked unknown rather than assumed free. A negative
+// sentinel is the PricingFromEntry convention for PricingUnknown.
+//
+// Official text-model limits/capabilities (OpenAI chat completions only):
+// https://wiki.agnes-ai.com/en/docs/agnes-20-flash.md
+// https://wiki.agnes-ai.com/en/docs/agnes-25-flash.md
+// https://wiki.agnes-ai.com/en/docs/agnes-25-pro-alpha.md
+func FetchAgnes(env map[string]string) ([]Entry, error) {
+	entries, err := fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "AGNES_BASE_URL", "https://apihub.agnes-ai.com/v1"),
+		env["AGNES_API_KEY"], "Bearer",
+	)
+	if err != nil {
+		return nil, err
+	}
+	for i := range entries {
+		entries[i].InputPricePer1M = -1
+		entries[i].OutputPricePer1M = -1
+		entries[i] = enrichAgnesEntry(entries[i])
+	}
+	return entries, nil
+}
+
+// Official Agnes text-model reference when /models omits context/capabilities.
+// Image/video models use separate generation endpoints and are left as-is.
+// Pricing from wiki docs (current promotional $0 for flash; pro-alpha is paid).
+var agnesOfficialTextSpecs = map[string]struct {
+	ContextWindow, MaxOutput int
+	Tools, Vision, Thinking  bool
+	InputPrice, OutputPrice  float64 // per 1M tokens; negative = unknown
+}{
+	"agnes-1.5-flash":     {256_000, 65_536, true, true, false, 0, 0},
+	"agnes-2.0-flash":     {512_000, 65_536, true, true, true, 0, 0},
+	"agnes-2.5-flash":     {512_000, 65_536, true, true, true, 0, 0},
+	"agnes-2.5-pro-alpha": {1_048_576, 65_536, true, true, true, 0.45, 0.90},
+}
+
+func enrichAgnesEntry(e Entry) Entry {
+	id := strings.TrimSpace(e.ID)
+	if i := strings.LastIndex(id, "/"); i >= 0 {
+		id = id[i+1:]
+	}
+	spec, ok := agnesOfficialTextSpecs[id]
+	if !ok {
+		return e
+	}
+	if e.ContextWindow <= 0 {
+		e.ContextWindow = spec.ContextWindow
+	}
+	if e.MaxOutput <= 0 {
+		e.MaxOutput = spec.MaxOutput
+	}
+	if spec.Tools {
+		e.Features = appendUnique(e.Features, "tools")
+	}
+	if spec.Vision {
+		e.ImageInput = true
+		e.Features = appendUnique(e.Features, "image_input")
+	}
+	if spec.Thinking {
+		e.ThinkingEnabled = true
+		e.Features = appendUnique(e.Features, "thinking:enabled")
+	}
+	if spec.InputPrice >= 0 && spec.OutputPrice >= 0 {
+		e.InputPricePer1M = spec.InputPrice
+		e.OutputPricePer1M = spec.OutputPrice
+	}
+	return e
+}
+
+// FetchLongCat lists models from the LongCat OpenAI-compatible API only
+// (https://api.longcat.chat/openai/v1). Official docs:
+// https://longcat.chat/platform/docs/api/chat — text-only chat, tools, and
+// thinking={"type":"enabled"|"disabled"}; pricing is not in /models.
+func FetchLongCat(env map[string]string) ([]Entry, error) {
+	entries, err := fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "LONGCAT_BASE_URL", "https://api.longcat.chat/openai/v1"),
+		env["LONGCAT_API_KEY"], "Bearer",
+	)
+	if err != nil {
+		return nil, err
+	}
+	for i := range entries {
+		entries[i].InputPricePer1M = -1
+		entries[i].OutputPricePer1M = -1
+		entries[i] = enrichLongCatEntry(entries[i])
+	}
+	return entries, nil
+}
+
+const (
+	longCatDefaultContext = 1_048_576
+	longCatDefaultMaxOut  = 131_072
+)
+
+func enrichLongCatEntry(e Entry) Entry {
+	if e.ContextWindow <= 0 {
+		e.ContextWindow = longCatDefaultContext
+	}
+	if e.MaxOutput <= 0 {
+		e.MaxOutput = longCatDefaultMaxOut
+	}
+	e.Features = appendUnique(e.Features, "tools")
+	e.ThinkingEnabled = true
+	e.Features = appendUnique(e.Features, "thinking:enabled")
+	e.ImageInput = false // official chat API is text-only
+	return e
+}
+
+// FetchConcentrate lists models from the public Concentrate AI model catalog.
+// Concentrate returns a rich format with max_input_tokens, max_tokens, and capabilities.
+// Pricing is fetched from individual model endpoints and cached to disk for 24 hours.
+// Set CONCENTRATE_FETCH_PRICING=false to skip pricing fetch (faster but shows "free").
+//
+// Note: /v1/models does not require authentication per Concentrate docs.
+// CONCENTRATE_API_KEY is needed for pricing fetch from individual model endpoints.
+func FetchConcentrate(env map[string]string) ([]Entry, error) {
+	apiKey := strings.TrimSpace(env["CONCENTRATE_API_KEY"])
+	isCustomBaseURL := env["CONCENTRATE_BASE_URL"] != ""
+	// Default: fetch pricing unless explicitly disabled
+	fetchPricing := !strings.EqualFold(env["CONCENTRATE_FETCH_PRICING"], "false")
+
+	// Pricing fetch requires auth; model listing does not
+	if fetchPricing && apiKey == "" {
+		// Fall back to no pricing rather than erroring out
+		fetchPricing = false
+	}
+
+	baseURL := strings.TrimRight(envOr(env, "CONCENTRATE_BASE_URL", "https://api.concentrate.ai/v1"), "/")
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL+"/models", nil)
+	if err != nil {
+		return nil, fmt.Errorf("live: create request: %w", err)
+	}
+	if apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("concentrate model fetch failed (%d)", resp.StatusCode)
+	}
+
+	var payload struct {
+		Data []json.RawMessage `json:"data"`
+	}
+	if err := decodeJSONLimited(resp.Body, &payload); err != nil {
+		return nil, err
+	}
+
+	var entries []Entry
+	for _, raw := range payload.Data {
+		var m struct {
+			ID             string `json:"id"`
+			DisplayName    string `json:"display_name"`
+			MaxInputTokens int    `json:"max_input_tokens"`
+			MaxTokens      int    `json:"max_tokens"`
+			OwnedBy        string `json:"owned_by"`
+			Capabilities   struct {
+				Effort struct {
+					Supported bool                     `json:"supported"`
+					Low       struct{ Supported bool } `json:"low"`
+					Medium    struct{ Supported bool } `json:"medium"`
+					High      struct{ Supported bool } `json:"high"`
+					XHigh     struct{ Supported bool } `json:"xhigh"`
+					Max       struct{ Supported bool } `json:"max"`
+				} `json:"effort"`
+				ImageInput        struct{ Supported bool } `json:"image_input"`
+				PDFInput          struct{ Supported bool } `json:"pdf_input"`
+				StructuredOutputs struct{ Supported bool } `json:"structured_outputs"`
+				Thinking          struct {
+					Supported bool `json:"supported"`
+					Types     struct {
+						Enabled  struct{ Supported bool } `json:"enabled"`
+						Adaptive struct{ Supported bool } `json:"adaptive"`
+					} `json:"types"`
+				} `json:"thinking"`
+				CodeExecution     struct{ Supported bool } `json:"code_execution"`
+				Citations         struct{ Supported bool } `json:"citations"`
+				ContextManagement struct {
+					Supported             bool                     `json:"supported"`
+					ClearThinking20251015 struct{ Supported bool } `json:"clear_thinking_20251015"`
+					ClearToolUses20250919 struct{ Supported bool } `json:"clear_tool_uses_20250919"`
+					Compact20260112       struct{ Supported bool } `json:"compact_20260112"`
+				} `json:"context_management"`
+			} `json:"capabilities"`
+		}
+		if err := json.Unmarshal(raw, &m); err != nil {
+			continue
+		}
+		id := strings.TrimSpace(m.ID)
+		if id == "" {
+			continue
+		}
+		label := strings.TrimSpace(m.DisplayName)
+		if label == "" {
+			label = id
+		}
+		entry := Entry{
+			ID: id, DisplayName: label, ContextWindow: m.MaxInputTokens, MaxOutput: m.MaxTokens,
+			OwnedBy: strings.TrimSpace(m.OwnedBy),
+			RawJSON: append(json.RawMessage(nil), raw...),
+		}
+		// Extract capabilities
+		entry.ThinkingEnabled = m.Capabilities.Thinking.Types.Enabled.Supported
+		entry.ThinkingAdaptive = m.Capabilities.Thinking.Types.Adaptive.Supported
+		if m.Capabilities.Effort.Supported {
+			entry.EffortSupported = true
+			var levels []string
+			for _, lvl := range []string{"low", "medium", "high", "xhigh", "max"} {
+				switch lvl {
+				case "low":
+					if m.Capabilities.Effort.Low.Supported {
+						levels = append(levels, lvl)
+					}
+				case "medium":
+					if m.Capabilities.Effort.Medium.Supported {
+						levels = append(levels, lvl)
+					}
+				case "high":
+					if m.Capabilities.Effort.High.Supported {
+						levels = append(levels, lvl)
+					}
+				case "xhigh":
+					if m.Capabilities.Effort.XHigh.Supported {
+						levels = append(levels, lvl)
+					}
+				case "max":
+					if m.Capabilities.Effort.Max.Supported {
+						levels = append(levels, lvl)
+					}
+				}
+			}
+			entry.EffortLevels = strings.Join(levels, ",")
+		}
+		entry.StructuredOutput = m.Capabilities.StructuredOutputs.Supported
+		entry.CodeExecution = m.Capabilities.CodeExecution.Supported
+		entry.CitationsSupported = m.Capabilities.Citations.Supported
+		entry.PDFInput = m.Capabilities.PDFInput.Supported
+		entry.ImageInput = m.Capabilities.ImageInput.Supported
+		// Context management (Concentrate-specific capability)
+		if m.Capabilities.ContextManagement.Supported {
+			entry.Features = append(entry.Features, "context_management")
+			if m.Capabilities.ContextManagement.ClearThinking20251015.Supported {
+				entry.Features = append(entry.Features, "context_management:clear_thinking")
+			}
+			if m.Capabilities.ContextManagement.ClearToolUses20250919.Supported {
+				entry.Features = append(entry.Features, "context_management:clear_tool_uses")
+			}
+			if m.Capabilities.ContextManagement.Compact20260112.Supported {
+				entry.Features = append(entry.Features, "context_management:compact")
+			}
+		}
+		// Populate Features list for downstream catalog pipeline
+		if entry.ThinkingEnabled {
+			entry.Features = append(entry.Features, "thinking:enabled")
+		}
+		if entry.ThinkingAdaptive {
+			entry.Features = append(entry.Features, "thinking:adaptive")
+		}
+		if entry.EffortSupported {
+			entry.Features = append(entry.Features, "effort")
+			if entry.EffortLevels != "" {
+				entry.Features = append(entry.Features, "effort:"+entry.EffortLevels)
+			}
+		}
+		if entry.StructuredOutput {
+			entry.Features = append(entry.Features, "structured_output")
+		}
+		if entry.CodeExecution {
+			entry.Features = append(entry.Features, "code_execution")
+		}
+		if entry.CitationsSupported {
+			entry.Features = append(entry.Features, "citations")
+		}
+		if entry.PDFInput {
+			entry.Features = append(entry.Features, "pdf_input")
+		}
+		if entry.ImageInput {
+			entry.Features = append(entry.Features, "image_input")
+		}
+		// Concentrate's current list response exposes general model
+		// capabilities but omits the provider-level supports.tools field.
+		// The Responses API and model-details endpoint advertise function
+		// calling for these routed models, so preserve that capability for
+		// Hawk's tool-enabled coding loop.
+		entry.Features = append(entry.Features, "function_calling")
+		entries = append(entries, entry)
+	}
+	// Fetch precise pricing from individual model endpoints if requested (slower but accurate).
+	// Pricing is cached to disk for 24 hours to avoid repeated API calls.
+	if fetchPricing && !isCustomBaseURL {
+		fetchConcentratePricing(context.Background(), baseURL, apiKey, entries)
+	}
+	return entries, nil
+}
+
+// fetchConcentratePricing fetches pricing from individual model endpoints with rate limiting.
+// Pricing is cached to disk for 24 hours to avoid repeated API calls.
+// Captures input, output, reasoning, and tiered pricing per the Concentrate API format.
+func fetchConcentratePricing(ctx context.Context, baseURL, apiKey string, entries []Entry) {
+	for i := range entries {
+		// Check cache first
+		if entry, ok := concentrate.GetPricing(entries[i].ID); ok {
+			entries[i].InputPricePer1M = entry.InputPrice
+			entries[i].OutputPricePer1M = entry.OutputPrice
+			entries[i].TierThreshold = entry.TierThreshold
+			entries[i].TieredInputPricePer1M = entry.TieredInputPrice
+			entries[i].TieredOutputPricePer1M = entry.TieredOutputPrice
+			continue
+		}
+
+		// Build request for individual model pricing
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/models/"+entries[i].ID, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("User-Agent", "eyrie-model-catalog/1.0")
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			continue
+		}
+		var modelResp struct {
+			Providers map[string]struct {
+				Pricing struct {
+					Tokens struct {
+						Input struct {
+							Price struct{ USD float64 }
+							Units float64
+						}
+						Output struct {
+							Price struct{ USD float64 }
+							Units float64
+						}
+						Reasoning struct {
+							Price struct{ USD float64 }
+							Units float64
+						}
+						Tiers []struct {
+							Above int `json:"above"`
+							Input struct {
+								Price struct{ USD float64 }
+								Units float64
+							}
+							Output struct {
+								Price struct{ USD float64 }
+								Units float64
+							}
+						}
+					}
+				}
+			}
+		}
+		_ = json.NewDecoder(resp.Body).Decode(&modelResp)
+		resp.Body.Close()
+
+		// pricePer1M converts a price with units to per-1M-token price.
+		// If units is 1 (per-token), multiply by 1M.
+		// If units is 1000 (per-1K-tokens), multiply by 1000.
+		// If units is 0 or missing, assume per-token.
+		pricePer1M := func(price, units float64) float64 {
+			if units <= 0 {
+				units = 1
+			}
+			return price * (1_000_000 / units)
+		}
+
+		// Use first available provider's pricing (usually "openai" or the primary provider)
+		var cacheEntry concentrate.PricingCacheEntry
+		if len(modelResp.Providers) > 0 {
+			for _, p := range modelResp.Providers {
+				if p.Pricing.Tokens.Input.Price.USD > 0 {
+					cacheEntry.InputPrice = pricePer1M(p.Pricing.Tokens.Input.Price.USD, p.Pricing.Tokens.Input.Units)
+					entries[i].InputPricePer1M = cacheEntry.InputPrice
+				}
+				if p.Pricing.Tokens.Output.Price.USD > 0 {
+					cacheEntry.OutputPrice = pricePer1M(p.Pricing.Tokens.Output.Price.USD, p.Pricing.Tokens.Output.Units)
+					entries[i].OutputPricePer1M = cacheEntry.OutputPrice
+				}
+				if p.Pricing.Tokens.Reasoning.Price.USD > 0 {
+					cacheEntry.ReasoningPrice = pricePer1M(p.Pricing.Tokens.Reasoning.Price.USD, p.Pricing.Tokens.Reasoning.Units)
+				}
+				// Capture tiered pricing if present
+				for _, tier := range p.Pricing.Tokens.Tiers {
+					if tier.Above > 0 && tier.Input.Price.USD > 0 {
+						cacheEntry.TierThreshold = tier.Above
+						cacheEntry.TieredInputPrice = pricePer1M(tier.Input.Price.USD, tier.Input.Units)
+						cacheEntry.TieredOutputPrice = pricePer1M(tier.Output.Price.USD, tier.Output.Units)
+						entries[i].TierThreshold = tier.Above
+						entries[i].TieredInputPricePer1M = cacheEntry.TieredInputPrice
+						entries[i].TieredOutputPricePer1M = cacheEntry.TieredOutputPrice
+						break
+					}
+				}
+				break
+			}
+		}
+
+		// Cache the pricing for future runs
+		concentrate.SetPricing(entries[i].ID, cacheEntry)
+
+		// Small delay to avoid rate limiting
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
 // FetchGroq lists models from the Groq OpenAI-compatible API.
 func FetchGroq(env map[string]string) ([]Entry, error) {
 	return fetchOpenAICompatModels(
@@ -637,4 +1057,65 @@ func FetchClinePass(env map[string]string) ([]Entry, error) {
 		}
 	}
 	return entries, nil
+}
+
+// FetchStepFun lists models from the StepFun OpenAI-compatible API.
+// Docs: https://platform.stepfun.ai/docs/en/guides/basic-concepts
+// Pricing: https://platform.stepfun.ai/docs/en/guides/pricing/details
+func FetchStepFun(env map[string]string) ([]Entry, error) {
+	entries, err := fetchOpenAICompatModels(
+		context.Background(),
+		envOr(env, "STEP_BASE_URL", "https://api.stepfun.ai/v1"),
+		env["STEP_API_KEY"], "Bearer",
+	)
+	if err != nil {
+		return nil, err
+	}
+	for i := range entries {
+		entries[i] = enrichStepFunEntry(entries[i])
+	}
+	return entries, nil
+}
+
+var stepFunOfficialTextSpecs = map[string]struct {
+	ContextWindow, MaxOutput int
+	Tools, Vision, Thinking  bool
+	InputPrice, OutputPrice  float64
+}{
+	"step-3.7-flash":      {256_000, 65_536, true, true, true, 0.20, 1.15},
+	"step-3.5-flash":      {256_000, 65_536, true, false, true, 0.10, 0.30},
+	"step-3.5-flash-2603": {256_000, 65_536, true, false, true, 0.10, 0.30},
+}
+
+func enrichStepFunEntry(e Entry) Entry {
+	id := strings.TrimSpace(e.ID)
+	if i := strings.LastIndex(id, "/"); i >= 0 {
+		id = id[i+1:]
+	}
+	spec, ok := stepFunOfficialTextSpecs[id]
+	if !ok {
+		return e
+	}
+	if e.ContextWindow <= 0 {
+		e.ContextWindow = spec.ContextWindow
+	}
+	if e.MaxOutput <= 0 {
+		e.MaxOutput = spec.MaxOutput
+	}
+	if spec.Tools {
+		e.Features = appendUnique(e.Features, "tools")
+	}
+	if spec.Vision {
+		e.ImageInput = true
+		e.Features = appendUnique(e.Features, "image_input")
+	}
+	if spec.Thinking {
+		e.ThinkingEnabled = true
+		e.Features = appendUnique(e.Features, "thinking:enabled")
+	}
+	if spec.InputPrice >= 0 && spec.OutputPrice >= 0 {
+		e.InputPricePer1M = spec.InputPrice
+		e.OutputPricePer1M = spec.OutputPrice
+	}
+	return e
 }

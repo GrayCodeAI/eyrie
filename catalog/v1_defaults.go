@@ -15,6 +15,7 @@ func defaultProviders() map[string]Provider {
 		"google":                 {ID: "google", Name: "Google"},
 		"xai":                    {ID: "xai", Name: "xAI"},
 		"openrouter":             {ID: "openrouter", Name: "OpenRouter"},
+		"concentrate":            {ID: "concentrate", Name: "Concentrate AI (Pay-as-you-go)"},
 		"canopywave":             {ID: "canopywave", Name: "CanopyWave"},
 		"zai_payg":               {ID: "zai_payg", Name: "Z.AI Pay-as-you-go"},
 		"zai_coding":             {ID: "zai_coding", Name: "Z.AI Coding Plan"},
@@ -25,6 +26,7 @@ func defaultProviders() map[string]Provider {
 		"xiaomi_mimo_payg":       {ID: "xiaomi_mimo_payg", Name: "Xiaomi MiMo (Pay-as-you-go)"},
 		"xiaomi_mimo_token_plan": {ID: "xiaomi_mimo_token_plan", Name: "Xiaomi MiMo (Token Plan)"},
 		"deepseek":               {ID: "deepseek", Name: "DeepSeek"},
+		"stepfun":                {ID: "stepfun", Name: "StepFun"},
 	}
 }
 
@@ -32,6 +34,7 @@ func defaultProviders() map[string]Provider {
 func defaultProtocols() map[string]Protocol {
 	return map[string]Protocol{
 		"openai-chat-completions": {ID: "openai-chat-completions", Name: "OpenAI Chat Completions"},
+		"openai-responses":        {ID: "openai-responses", Name: "OpenAI Responses"},
 	}
 }
 
@@ -47,6 +50,7 @@ func defaultDeployments() map[string]Deployment {
 		"gemini-vertex":                 deployment("gemini-vertex", "Gemini on Vertex", "google", "openai-chat-completions", "gemini-vertex", NativeModelIDCatalogKnown),
 		"grok-direct":                   deployment("grok-direct", "Grok", "xai", "openai-chat-completions", "grok", NativeModelIDCatalogKnown),
 		"openrouter":                    deployment("openrouter", "OpenRouter", "openrouter", "openai-chat-completions", "openrouter", NativeModelIDDiscovered),
+		"concentrate-payg":              deployment("concentrate-payg", "Concentrate AI (Pay-as-you-go)", "concentrate", "openai-responses", "concentrate-responses", NativeModelIDDiscovered),
 		"zai_payg-direct":               deployment("zai_payg-direct", "Z.AI Pay-as-you-go", "zai_payg", "openai-chat-completions", "zai_payg", NativeModelIDCatalogKnown),
 		"zai_coding-direct":             deployment("zai_coding-direct", "Z.AI Coding Plan", "zai_coding", "openai-chat-completions", "zai_coding", NativeModelIDCatalogKnown),
 		"canopywave":                    deployment("canopywave", "CanopyWave", "canopywave", "openai-chat-completions", "canopywave", NativeModelIDDiscovered),
@@ -56,6 +60,7 @@ func defaultDeployments() map[string]Deployment {
 		"xiaomi_mimo_payg-direct":       deployment("xiaomi_mimo_payg-direct", "Xiaomi MiMo Pay-as-you-go", "xiaomi_mimo_payg", "openai-chat-completions", "xiaomi_mimo", NativeModelIDDiscovered),
 		"xiaomi_mimo_token_plan-direct": deployment("xiaomi_mimo_token_plan-direct", "Xiaomi MiMo Token Plan", "xiaomi_mimo_token_plan", "openai-chat-completions", "xiaomi_mimo", NativeModelIDDiscovered),
 		"deepseek-direct":               deployment("deepseek-direct", "DeepSeek", "deepseek", "openai-chat-completions", "deepseek", NativeModelIDCatalogKnown),
+		"stepfun-direct":                deployment("stepfun-direct", "StepFun", "stepfun", "openai-chat-completions", "openai", NativeModelIDDiscovered),
 	}
 }
 
