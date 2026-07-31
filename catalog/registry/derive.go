@@ -138,7 +138,12 @@ func CredentialRegistry() []CredentialSpec {
 			SortOrder:    s.SortOrder,
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].SortOrder < out[j].SortOrder })
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].SortOrder != out[j].SortOrder {
+			return out[i].SortOrder < out[j].SortOrder
+		}
+		return strings.ToLower(out[i].DisplayName) < strings.ToLower(out[j].DisplayName)
+	})
 	return out
 }
 

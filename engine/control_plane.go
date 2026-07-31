@@ -97,7 +97,7 @@ func (e *Engine) GatewayDefinitions() []Gateway {
 		if out[i].SortOrder != out[j].SortOrder {
 			return out[i].SortOrder < out[j].SortOrder
 		}
-		return out[i].ID < out[j].ID
+		return strings.ToLower(out[i].DisplayName) < strings.ToLower(out[j].DisplayName)
 	})
 	return out
 }

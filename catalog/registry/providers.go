@@ -56,7 +56,7 @@ func providerSpecs() []ProviderSpec {
 			ProtocolID: "openai-chat-completions", AdapterID: "deepseek", RuntimeProfileKey: "deepseek",
 		},
 		{
-			ProviderID: "grok", DisplayName: "xAI", DeploymentID: "grok-direct", SortOrder: 21, ChatPreference: 4,
+			ProviderID: "grok", DisplayName: "xAI", DeploymentID: "grok-direct", SortOrder: 23, ChatPreference: 4,
 			RequiresKey: true, CredentialEnv: "XAI_API_KEY",
 			BaseURLEnv: []string{"XAI_BASE_URL"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.x.ai/v1",
@@ -72,7 +72,7 @@ func providerSpecs() []ProviderSpec {
 			ProtocolID: "openai-chat-completions", AdapterID: "kimi", RuntimeProfileKey: "kimi",
 		},
 		{
-			ProviderID: "zai_coding", DisplayName: "Z.AI — Coding Plan", DeploymentID: "zai_coding-direct", SortOrder: 24, ChatPreference: 8,
+			ProviderID: "zai_coding", DisplayName: "Z.AI — Coding Plan", DeploymentID: "zai_coding-direct", SortOrder: 26, ChatPreference: 8,
 			RequiresKey: true, CredentialEnv: "ZAI_CODING_API_KEY",
 			BaseURLEnv: []string{"ZAI_CODING_BASE_URL", "ZAI_BASE_URL"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.z.ai/api/coding/paas/v4",
@@ -81,7 +81,7 @@ func providerSpecs() []ProviderSpec {
 			PrepareCredentialEnv: true,
 		},
 		{
-			ProviderID: "zai_payg", DisplayName: "Z.AI — Pay-as-you-go", DeploymentID: "zai_payg-direct", SortOrder: 25, ChatPreference: 9,
+			ProviderID: "zai_payg", DisplayName: "Z.AI — Pay-as-you-go", DeploymentID: "zai_payg-direct", SortOrder: 27, ChatPreference: 9,
 			RequiresKey: true, CredentialEnv: "ZAI_API_KEY",
 			BaseURLEnv: []string{"ZAI_BASE_URL", "ZAI_API_BASE"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.z.ai/api/paas/v4",
@@ -90,7 +90,7 @@ func providerSpecs() []ProviderSpec {
 			PrepareCredentialEnv: true,
 		},
 		{
-			ProviderID: "xiaomi_mimo_token_plan", DisplayName: "Xiaomi MiMo — Token Plan", DeploymentID: "xiaomi_mimo_token_plan-direct", SortOrder: 23, ChatPreference: 16,
+			ProviderID: "xiaomi_mimo_token_plan", DisplayName: "Xiaomi MiMo — Token Plan", DeploymentID: "xiaomi_mimo_token_plan-direct", SortOrder: 25, ChatPreference: 16,
 			RequiresKey: true, CredentialEnv: "XIAOMI_MIMO_TOKEN_PLAN_API_KEY",
 			BaseURLEnv: []string{"XIAOMI_MIMO_TOKEN_PLAN_BASE_URL"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "",
@@ -99,7 +99,7 @@ func providerSpecs() []ProviderSpec {
 			PrepareCredentialEnv: true,
 		},
 		{
-			ProviderID: "xiaomi_mimo_payg", DisplayName: "Xiaomi MiMo — Pay-as-you-go", DeploymentID: "xiaomi_mimo_payg-direct", SortOrder: 22, ChatPreference: 15,
+			ProviderID: "xiaomi_mimo_payg", DisplayName: "Xiaomi MiMo — Pay-as-you-go", DeploymentID: "xiaomi_mimo_payg-direct", SortOrder: 24, ChatPreference: 15,
 			RequiresKey: true, CredentialEnv: "XIAOMI_MIMO_PAYG_API_KEY",
 			CredentialAliases: []string{"XIAOMI_MIMO_API_KEY"},
 			BaseURLEnv:        []string{"XIAOMI_MIMO_PAYG_BASE_URL", "XIAOMI_BASE_URL"},
@@ -145,7 +145,7 @@ func providerSpecs() []ProviderSpec {
 			ProtocolID: "anthropic-messages", AdapterID: "anthropic-bedrock", RuntimeProfileKey: "bedrock",
 		},
 		{
-			ProviderID: "vertex", DisplayName: "Vertex AI", DeploymentID: "gemini-vertex", SortOrder: 20, ChatPreference: 6,
+			ProviderID: "vertex", DisplayName: "Vertex AI", DeploymentID: "gemini-vertex", SortOrder: 22, ChatPreference: 6,
 			TransportKind: "vertex",
 			RequiresKey:   true, CredentialEnv: "VERTEX_ACCESS_TOKEN",
 			CredentialEnvFallbacks: []string{"GOOGLE_OAUTH_ACCESS_TOKEN"},
@@ -157,7 +157,7 @@ func providerSpecs() []ProviderSpec {
 
 		// ── Aggregators ───────────────────────────────────────────────────
 		{
-			ProviderID: "openrouter", DisplayName: "OpenRouter", DeploymentID: "openrouter", SortOrder: 17, ChatPreference: 3,
+			ProviderID: "openrouter", DisplayName: "OpenRouter", DeploymentID: "openrouter", SortOrder: 18, ChatPreference: 3,
 			RequiresKey: true, CredentialEnv: "OPENROUTER_API_KEY",
 			BaseURLEnv: []string{"OPENROUTER_BASE_URL"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://openrouter.ai/api/v1",
@@ -174,7 +174,7 @@ func providerSpecs() []ProviderSpec {
 			ProtocolID:         "openai-responses", AdapterID: "concentrate-responses", RuntimeProfileKey: "concentrate",
 		},
 		{
-			ProviderID: "opengateway", DisplayName: "OpenGateway (Pay-as-you-go)", DeploymentID: "opengateway-payg", SortOrder: 27, ChatPreference: 28,
+			ProviderID: "opengateway", DisplayName: "OpenGateway (Pay-as-you-go)", DeploymentID: "opengateway-payg", SortOrder: 17, ChatPreference: 28,
 			RequiresKey: true, CredentialEnv: "OPENGATEWAY_API_KEY",
 			BaseURLEnv: []string{"OPENGATEWAY_BASE_URL"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://opengateway.gitlawb.com/v1",
@@ -183,7 +183,7 @@ func providerSpecs() []ProviderSpec {
 			ProtocolID:         "openai-chat-completions", AdapterID: "openai", RuntimeProfileKey: "opengateway",
 		},
 		{
-			ProviderID: "stepfun", DisplayName: "StepFun", DeploymentID: "stepfun-direct", SortOrder: 26, ChatPreference: 27,
+			ProviderID: "stepfun", DisplayName: "StepFun", DeploymentID: "stepfun-direct", SortOrder: 21, ChatPreference: 27,
 			RequiresKey: true, CredentialEnv: "STEP_API_KEY",
 			BaseURLEnv: []string{"STEP_BASE_URL"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://api.stepfun.ai/v1",
@@ -217,7 +217,7 @@ func providerSpecs() []ProviderSpec {
 			ProtocolID: "openai-chat-completions", AdapterID: "canopywave", RuntimeProfileKey: "canopywave",
 		},
 		{
-			ProviderID: "poolside", DisplayName: "Poolside", DeploymentID: "poolside", SortOrder: 19, ChatPreference: 20,
+			ProviderID: "poolside", DisplayName: "Poolside", DeploymentID: "poolside", SortOrder: 20, ChatPreference: 20,
 			RequiresKey: true, CredentialEnv: "POOLSIDE_API_KEY",
 			BaseURLEnv: []string{"POOLSIDE_BASE_URL"},
 			ProbeKind:  ProbeOpenAIModels, ProbeBaseURL: "https://inference.poolside.ai/v1",
@@ -253,7 +253,7 @@ func providerSpecs() []ProviderSpec {
 
 		// ── Local ─────────────────────────────────────────────────────────
 		{
-			ProviderID: "ollama", DisplayName: "Ollama", DeploymentID: "ollama-local", SortOrder: 18, ChatPreference: 19,
+			ProviderID: "ollama", DisplayName: "Ollama", DeploymentID: "ollama-local", SortOrder: 19, ChatPreference: 19,
 			RuntimeBaseURL: "http://localhost:11434/v1", RuntimeCredentialEnv: "OLLAMA_API_KEY",
 			RequiresKey: false, CredentialEnv: "OLLAMA_BASE_URL",
 			BaseURLEnv:     []string{"OLLAMA_BASE_URL"},
