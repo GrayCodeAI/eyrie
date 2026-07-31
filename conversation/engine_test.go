@@ -258,10 +258,8 @@ func TestConversationEngine_ContextCancelClosesStream(t *testing.T) {
 }
 
 // blockingMockProvider returns a StreamResult whose Events channel blocks
-// until the context is cancelled. It signals via a channel when Close is called.
-type blockingMockProvider struct {
-	closed chan struct{}
-}
+// until the context is cancelled.
+type blockingMockProvider struct{}
 
 func (b *blockingMockProvider) Name() string {
 	return "blocking-mock"
