@@ -229,7 +229,6 @@ var (
 	emit             = core.Emit
 	parseImageString = core.ParseImageString
 	applyGuardrails  = core.ApplyGuardrails
-	isRetriableError = core.IsRetriableError
 )
 
 // NewStreamResult creates a StreamResult with a cancel function for resource
