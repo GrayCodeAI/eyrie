@@ -168,7 +168,7 @@ func (m *maxTokensMockProvider) StreamChat(_ context.Context, msgs []client.Eyri
 	sr := &client.StreamResult{Events: ch}
 	// Wrap Close so we can count invocations.
 	return &client.StreamResult{
-		Events: sr.Events,
+		Events:    sr.Events,
 		RequestID: sr.RequestID,
 	}, nil
 }
