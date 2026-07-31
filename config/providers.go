@@ -39,6 +39,9 @@ const (
 	DefaultPoolsideOpenAIBaseURL    = "https://inference.poolside.ai/v1"
 	DefaultClinePassOpenAIBaseURL   = "https://api.cline.bot/api/v1" // #nosec G101 -- public API base URL, not a secret value
 	DefaultStepFunOpenAIBaseURL     = "https://api.stepfun.ai/v1"
+	DefaultAgnesOpenAIBaseURL       = "https://apihub.agnes-ai.com/v1"
+	DefaultLongCatOpenAIBaseURL     = "https://api.longcat.chat/openai/v1"
+	DefaultLongCatAnthropicBaseURL  = "https://api.longcat.chat/anthropic"
 )
 
 // ProviderTransport is the transport type for provider requests.
