@@ -1,5 +1,9 @@
 package config
 
+import (
+	"github.com/GrayCodeAI/eyrie/catalog/registry"
+)
+
 // BuildRoutingPolicyFromDeployments builds deployment routing from configured deployments.
 // Hawk should not author routing rules — consume this JSON from eyrie only.
 func BuildRoutingPolicyFromDeployments(deployments map[string]DeploymentConfig) *RoutingPolicy {
@@ -153,35 +157,12 @@ func deploymentOwnerProviderID(deploymentID string) string {
 		return "google"
 	case "grok-direct":
 		return "xai"
-	case "longcat-direct":
-		return "longcat"
-	case "agnes-direct":
-		return "agnes"
-	case "openrouter":
-		return "openrouter"
-	case "canopywave":
-		return "canopywave"
-	case "poolside":
-		return "poolside"
-	case "groq-direct":
-		return "groq"
-	case "clinepass":
-		return "clinepass"
-	case "zai_payg-direct":
-		return "zai_payg"
-	case "zai_coding-direct":
-		return "zai_coding"
-	case "ollama-local":
-		return "ollama"
-	case "opencodego":
-		return "opencodego"
-	case "kimi-direct":
-		return "kimi"
 	case "xiaomi_mimo_payg-direct", "xiaomi_mimo-direct":
 		return "xiaomi_mimo_payg"
-	case "xiaomi_mimo_token_plan-direct":
-		return "xiaomi_mimo_token_plan"
 	default:
+		if spec, ok := registry.SpecByDeploymentID(deploymentID); ok {
+			return spec.ProviderID
+		}
 		return ""
 	}
 }

@@ -38,6 +38,16 @@ func SpecByEnvVar(env string) (ProviderSpec, bool) {
 	return DefaultRegistry.GetByEnv(env)
 }
 
+// SpecByDeploymentID finds a provider spec by its deployment id.
+func SpecByDeploymentID(deploymentID string) (ProviderSpec, bool) {
+	for _, spec := range DefaultRegistry.All() {
+		if spec.DeploymentID == deploymentID {
+			return spec, true
+		}
+	}
+	return ProviderSpec{}, false
+}
+
 // DisplayName returns the UI label for a provider id.
 func DisplayName(providerID string) string {
 	if s, ok := SpecByProviderID(providerID); ok {
@@ -138,12 +148,7 @@ func CredentialRegistry() []CredentialSpec {
 			SortOrder:    s.SortOrder,
 		}
 	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].SortOrder != out[j].SortOrder {
-			return out[i].SortOrder < out[j].SortOrder
-		}
-		return strings.ToLower(out[i].DisplayName) < strings.ToLower(out[j].DisplayName)
-	})
+	sort.Slice(out, func(i, j int) bool { return out[i].SortOrder < out[j].SortOrder })
 	return out
 }
 
