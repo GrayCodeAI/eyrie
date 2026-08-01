@@ -458,14 +458,11 @@ func buildRequestBase(messages []core.EyrieMessage, opts core.ChatOptions, strea
 				v := *thinkingEnabled
 				req.EnableThinking = &v
 			case "openrouter":
-				// OpenRouter unified reasoning object
-				// (https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
-				if *thinkingEnabled {
-					req.Reasoning = map[string]interface{}{"enabled": true}
-				} else {
-					// effort "none" is the documented OpenAI-style disable.
-					req.Reasoning = map[string]interface{}{"effort": "none"}
-				}
+				// OpenRouter unified reasoning object. On/off is controlled with the
+				// boolean "enabled" field; the docs warn NOT to send effort:"none"
+				// to disable because models with mandatory reasoning reject it.
+				// (https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)
+				req.Reasoning = map[string]interface{}{"enabled": *thinkingEnabled}
 			}
 		}
 	}
