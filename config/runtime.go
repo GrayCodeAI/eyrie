@@ -34,10 +34,7 @@ func IsOpenAICompatibleRuntimeEnabled() bool {
 			}
 		}
 	}
-	if envValue("OLLAMA_BASE_URL") != "" {
-		return true
-	}
-	return false
+	return envValue("OLLAMA_BASE_URL") != ""
 }
 
 func envValue(key string) string {
