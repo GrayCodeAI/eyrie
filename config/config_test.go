@@ -96,8 +96,6 @@ func TestProviderDetectionOrder(t *testing.T) {
 	t.Parallel()
 	if len(APIProviderDetectionOrder) != 28 {
 		t.Errorf("expected 28 providers in detection order, got %d", len(APIProviderDetectionOrder))
-	if len(APIProviderDetectionOrder) != 27 {
-		t.Errorf("expected 27 providers in detection order, got %d", len(APIProviderDetectionOrder))
 	}
 	if APIProviderDetectionOrder[0] != ProviderAnthropic {
 		t.Error("expected anthropic first in detection order")
