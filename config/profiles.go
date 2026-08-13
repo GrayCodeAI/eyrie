@@ -256,6 +256,7 @@ var (
 // APIProviderDetectionOrder is the priority order for provider detection.
 var APIProviderDetectionOrder = []APIProvider{
 	ProviderAnthropic, ProviderConcentrate, ProviderAgnes, ProviderLongCat, ProviderFireworks, ProviderOpenRouter, ProviderGrok, ProviderGemini,
+	ProviderAnthropic, ProviderConcentrate, ProviderAgnes, ProviderLongCat, ProviderOpenRouter, ProviderGrok, ProviderGemini,
 	ProviderVertex, ProviderBedrock, ProviderZAICoding, ProviderZAIPayg, ProviderCanopyWave, ProviderDeepSeek, ProviderPoolside, ProviderGroq, ProviderClinePass, ProviderAzure, ProviderOpenAI, ProviderOpenCodeGo,
 	ProviderKimi, ProviderXiaomiMimoPayg, ProviderXiaomiMimoTokenPlan, ProviderMiniMaxTokenPlan, ProviderMiniMaxPayg, ProviderOllama, ProviderStepFun, ProviderOpenGateway,
 }
