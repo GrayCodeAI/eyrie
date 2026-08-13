@@ -44,6 +44,7 @@ func TestDetectProvider_AdditionalProviders(t *testing.T) {
 		{name: "concentrate", env: "CONCENTRATE_API_KEY", want: "concentrate"},
 		{name: "agnes", env: "AGNES_API_KEY", want: "agnes"},
 		{name: "longcat", env: "LONGCAT_API_KEY", want: "longcat"},
+		{name: "fireworks", env: "FIREWORKS_API_KEY", want: "fireworks"},
 		{name: "stepfun", env: "STEP_API_KEY", want: "stepfun"},
 		{name: "opengateway", env: "OPENGATEWAY_API_KEY", want: "opengateway"},
 		{name: "clinepass", env: "CLINE_API_KEY", want: "clinepass"},

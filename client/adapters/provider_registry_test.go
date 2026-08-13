@@ -93,6 +93,7 @@ func TestDetectProvider_AllProfileCredentialProviders(t *testing.T) {
 		{"concentrate", "CONCENTRATE_API_KEY"},
 		{"agnes", "AGNES_API_KEY"},
 		{"longcat", "LONGCAT_API_KEY"},
+		{"fireworks", "FIREWORKS_API_KEY"},
 		{"stepfun", "STEP_API_KEY"},
 		{"opengateway", "OPENGATEWAY_API_KEY"},
 		{"clinepass", "CLINE_API_KEY"},

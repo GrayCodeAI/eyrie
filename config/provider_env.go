@@ -80,6 +80,9 @@ type ProviderConfig struct {
 	AgnesAPIKey                string                      `json:"agnes_api_key,omitempty"`
 	AgnesBaseURL               string                      `json:"agnes_base_url,omitempty"`
 	AgnesModel                 string                      `json:"agnes_model,omitempty"`
+	FireworksAPIKey            string                      `json:"fireworks_api_key,omitempty"`
+	FireworksBaseURL           string                      `json:"fireworks_base_url,omitempty"`
+	FireworksModel             string                      `json:"fireworks_model,omitempty"`
 	DeepSeekModel              string                      `json:"deepseek_model,omitempty"`
 	ZAIModel                   string                      `json:"zai_model,omitempty"`
 	GrokModel                  string                      `json:"grok_model,omitempty"`
@@ -262,6 +265,11 @@ var providerFields = map[string]providerFieldMap{
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.AgnesAPIKey} },
 		Models:  func(c *ProviderConfig) []string { return []string{c.AgnesModel} },
 		BaseURL: func(c *ProviderConfig) string { return c.AgnesBaseURL },
+	},
+	ProviderFireworks: {
+		APIKeys: func(c *ProviderConfig) []string { return []string{c.FireworksAPIKey} },
+		Models:  func(c *ProviderConfig) []string { return []string{c.FireworksModel} },
+		BaseURL: func(c *ProviderConfig) string { return c.FireworksBaseURL },
 	},
 	ProviderMiniMaxTokenPlan: {
 		APIKeys: func(c *ProviderConfig) []string { return []string{c.MiniMaxTokenPlanAPIKey} },
