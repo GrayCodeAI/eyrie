@@ -68,6 +68,13 @@ func TestIsOpenAICompatibleRuntimeEnabled(t *testing.T) {
 	if !IsOpenAICompatibleRuntimeEnabled() {
 		t.Error("expected true with OPENAI_API_KEY in secure store")
 	}
+	store = &credentials.MapStore{}
+	credentials.SetDefaultStore(store)
+	ClearProviderRuntimeEnv()
+	_ = store.Set(context.Background(), credentials.AccountForEnv("FIREWORKS_API_KEY"), "fireworks-test-key")
+	if !IsOpenAICompatibleRuntimeEnabled() {
+		t.Error("expected true with FIREWORKS_API_KEY in secure store")
+	}
 }
 
 func TestNormalizeOllamaOpenAIBaseURL(t *testing.T) {

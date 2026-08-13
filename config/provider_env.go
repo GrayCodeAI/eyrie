@@ -630,6 +630,7 @@ func ClearProviderRuntimeEnv() {
 		"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION", "AWS_DEFAULT_REGION", "BEDROCK_MODEL",
 		"VERTEX_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN", "VERTEX_PROJECT_ID", "VERTEX_REGION", "VERTEX_MODEL",
 		"OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL",
+		"FIREWORKS_API_KEY", "FIREWORKS_MODEL", "FIREWORKS_BASE_URL",
 		"CONCENTRATE_API_KEY", "CONCENTRATE_MODEL", "CONCENTRATE_BASE_URL",
 		"OPENGATEWAY_API_KEY", "OPENGATEWAY_MODEL", "OPENGATEWAY_BASE_URL",
 		"CANOPYWAVE_API_KEY", "CANOPYWAVE_MODEL", "CANOPYWAVE_BASE_URL",
@@ -831,6 +832,14 @@ func ApplyProviderEnv(provider string, config *ProviderConfig, activeModel strin
 			m = catalog.GetProviderDefaultModel("openrouter", cat)
 		}
 		collectOpenAICompatibleProvider(env, "OPENROUTER", apiKey, m, base, overwrite)
+	case ProviderFireworks:
+		apiKey := AsNonEmptyString(config.FireworksAPIKey)
+		base := firstNonEmpty(config.FireworksBaseURL, DefaultFireworksOpenAIBaseURL)
+		m := activeModel
+		if m == "" {
+			m = catalog.GetProviderDefaultModel("fireworks", cat)
+		}
+		collectOpenAICompatibleProvider(env, "FIREWORKS", apiKey, m, base, overwrite)
 	case ProviderOllama:
 		m := activeModel
 		if m == "" {
