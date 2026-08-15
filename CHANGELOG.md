@@ -7,6 +7,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Fixed — Concentrate adapter robustness (2026-08-16)
+- **Concentrate Responses client now uses the shared pooled HTTP client**
+  (`core.NewPooledHTTPClient(core.DefaultTimeout)`) instead of a private
+  `&http.Client{Timeout: 120s}` literal — long streams are no longer cut off
+  at 2 minutes and connections reuse the process-wide transport pool like
+  every other adapter.
+- **Concentrate requests are retried via `core.DoWithRetry`** (chat and
+  stream paths) on 429/500/502/503/529 with backoff and `Retry-After`
+  support; `SetRetry` previously discarded the config with a comment claiming
+  the HTTP client handled retries (it never does).
+- **Concentrate errors are structured `*core.EyrieError`s** built by
+  `core.ParseProviderError`/`core.FormatAPIError` (8KB bounded read,
+  provider/op/status/request-ID preserved), so `IsRetriable()`/`IsAuthError()`
+  and the engine's error classification work; the captured `X-Request-Id` is
+  also propagated to stream results.
+- **`normalizeToolParams` no longer mutates the caller's tool schema map** —
+  a shallow copy gets `additionalProperties:false` injected for strict mode.
+
 ### Added — Round 3 ecosystem improvements (2026-06-06)
 - **Reasoning controls** — `reasoning_effort` and Anthropic extended-thinking
   `thinking_budget_tokens` passthrough on `ChatOptions` (omitted when unset).
