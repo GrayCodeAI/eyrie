@@ -7,6 +7,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Fixed — Non-fatal stream diagnostics no longer fail the stream (2026-08-16)
+- **Stream health diagnostics are now warnings, not terminal errors.**
+  `client/core`'s OpenAI stream processor emits end-of-stream diagnostics
+  (reasoning-only responses, empty responses) as error-type events followed
+  by the terminal `done` — but the engine mapped *every* error event to
+  `provider_unavailable`, stopped forwarding, and set `Err()` even though
+  content had been delivered. Diagnostic events are now marked non-fatal via
+  the existing `EyrieStreamEvent.Warning` field (additive); the engine
+  forwards them as `warning` events and still delivers the final
+  `done`/usage event with `Err()` unset. Genuinely fatal stream errors keep
+  the previous behavior. The deprecated client continuation helper and the
+  tracing middleware treat warning-marked events the same way.
+
 ### Fixed — Concentrate adapter robustness (2026-08-16)
 - **Concentrate Responses client now uses the shared pooled HTTP client**
   (`core.NewPooledHTTPClient(core.DefaultTimeout)`) instead of a private
