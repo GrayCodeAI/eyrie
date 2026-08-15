@@ -7,6 +7,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Fixed — Gemini stream request IDs (2026-08-16)
+- **Gemini `StreamChat` now propagates the provider request ID.** The client
+  captured `X-Goog-Request-Id` from the response headers but passed an empty
+  string to the stream result, so hosts lost the correlation ID on
+  successful streams (it was only preserved on errors). Both the shared
+  parser path and the legacy opt-out parser now carry it.
+
 ### Fixed — Non-fatal stream diagnostics no longer fail the stream (2026-08-16)
 - **Stream health diagnostics are now warnings, not terminal errors.**
   `client/core`'s OpenAI stream processor emits end-of-stream diagnostics
