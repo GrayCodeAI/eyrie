@@ -7,6 +7,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Changed — Shared MiMo auth-retry helper (2026-08-16)
+- **Deduplicated `doRequestWithMimoAuthRetry`** between the OpenAI and
+  Anthropic adapters into one `doWithMimoAuthRetry` helper (client/adapters,
+  next to `mimoAuthHeaders`); the two adapters now differ only in the Bearer
+  headers they apply to the 401 retry. No behavior change.
+
 ### Fixed — Gemini stream request IDs (2026-08-16)
 - **Gemini `StreamChat` now propagates the provider request ID.** The client
   captured `X-Goog-Request-Id` from the response headers but passed an empty
