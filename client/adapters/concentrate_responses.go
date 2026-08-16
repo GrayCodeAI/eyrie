@@ -238,6 +238,7 @@ func (c *ConcentrateResponsesClient) StreamChat(ctx context.Context, messages []
 
 	if resp.StatusCode != http.StatusOK {
 		detail, readErr := core.ParseProviderError(resp.Body)
+		_ = resp.Body.Close()
 		cancel()
 		return nil, core.FormatAPIError("concentrate", "stream", resp.StatusCode, requestID, detail, readErr)
 	}
