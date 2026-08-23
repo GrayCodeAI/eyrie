@@ -81,13 +81,6 @@ func backoffDelay(attempt int, retryAfter string, o PollOptions) time.Duration {
 	return d
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // WaitUntilDone polls the batch until it reaches a terminal state or the
 // timeout elapses. Non-terminal responses keep polling; 429/5xx responses
 // are retried with Retry-After-aware backoff; other non-200s fail fast.
@@ -107,7 +100,8 @@ func (bc *BatchClient) WaitUntilDone(ctx context.Context, batchID string, opts P
 		if err != nil {
 			return nil, fmt.Errorf("eyrie: batch wait: %w", err)
 		}
-		if resp.StatusCode == http.StatusOK {
+		switch {
+		case resp.StatusCode == http.StatusOK:
 			var res BatchResult
 			derr := json.NewDecoder(resp.Body).Decode(&res)
 			_ = resp.Body.Close()
@@ -117,12 +111,12 @@ func (bc *BatchClient) WaitUntilDone(ctx context.Context, batchID string, opts P
 			if isTerminalBatchState(res.Status) {
 				return &res, nil
 			}
-		} else if !(resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500) {
+		case resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500:
+			// transient: retried below with Retry-After-aware backoff
+		default:
 			errBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 			_ = resp.Body.Close()
 			return nil, fmt.Errorf("eyrie: batch wait error %d: %s", resp.StatusCode, strings.TrimSpace(string(errBody)))
-		} else {
-			_ = resp.Body.Close()
 		}
 
 		if time.Now().After(deadline) {
