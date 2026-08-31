@@ -1,5 +1,5 @@
-github.com/GrayCodeAI/eagle v0.0.0-20260830103740-9d358dde4ad8 h1:S/eA2E0bD82k1B0aYSZGC4c4Gx1Uo4/j6Fi5n8XPBmY=
-github.com/GrayCodeAI/eagle v0.0.0-20260830103740-9d358dde4ad8/go.mod h1:wjWP4o2xfIAoPx2JdizFYvlsLMjufmKy7anToKjEj3U=
+github.com/GrayCodeAI/eagle v0.0.0-20260831121050-12ea8cc11b16 h1:WGwrRrtWXZ9Vh93VAe1iit7kxG6nbpmqGhVDXAMPnK8=
+github.com/GrayCodeAI/eagle v0.0.0-20260831121050-12ea8cc11b16/go.mod h1:wjWP4o2xfIAoPx2JdizFYvlsLMjufmKy7anToKjEj3U=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/danieljoos/wincred v1.2.3 h1:v7dZC2x32Ut3nEfRH+vhoZGvN72+dQ/snVXo/vMFLdQ=

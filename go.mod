@@ -3,7 +3,7 @@ module github.com/GrayCodeAI/eyrie
 go 1.26.6
 
 require (
-	github.com/GrayCodeAI/eagle v0.0.0-20260830103740-9d358dde4ad8
+	github.com/GrayCodeAI/eagle v0.0.0-20260831121050-12ea8cc11b16
 	github.com/google/uuid v1.6.0
 	github.com/tiktoken-go/tokenizer v0.8.0
 	github.com/zalando/go-keyring v0.2.8
