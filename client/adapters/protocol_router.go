@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/GrayCodeAI/eyrie/client/core"
-	"github.com/GrayCodeAI/hawk-core-contracts/llm"
+	"github.com/GrayCodeAI/eagle/llm"
 )
 
 // ChatProtocol selects which existing eyrie client handles a gateway request.

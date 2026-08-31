@@ -17,7 +17,7 @@ import (
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
 	"github.com/GrayCodeAI/eyrie/setup"
-	"github.com/GrayCodeAI/hawk-core-contracts/llm"
+	"github.com/GrayCodeAI/eagle/llm"
 )
 
 // ContractVersion is the compatibility version of the host-facing API.
