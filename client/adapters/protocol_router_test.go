@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/GrayCodeAI/eyrie/client/core"
 	"github.com/GrayCodeAI/eagle/llm"
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 func TestNewStreamWithReasoningFallbackChatFirst(t *testing.T) {

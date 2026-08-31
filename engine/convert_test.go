@@ -3,8 +3,8 @@ package engine
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/eyrie/client"
 	llm "github.com/GrayCodeAI/eagle/llm"
+	"github.com/GrayCodeAI/eyrie/client"
 )
 
 func TestToClientMessages_ReturnsMessagesUnchanged(t *testing.T) {

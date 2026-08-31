@@ -11,8 +11,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GrayCodeAI/eyrie/client/core"
 	"github.com/GrayCodeAI/eagle/llm"
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 // geminiSharedParserEnvVar is the opt-out flag for the new

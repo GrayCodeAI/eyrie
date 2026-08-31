@@ -3,8 +3,8 @@ package adapters
 import (
 	"strings"
 
-	"github.com/GrayCodeAI/eyrie/client/core"
 	"github.com/GrayCodeAI/eagle/llm"
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 // AnthropicBaseFromOpenAIV1 strips a trailing /v1 from an OpenAI-compatible base URL.

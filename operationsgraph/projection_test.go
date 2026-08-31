@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/eyrie/operationsgraph"
 	graphcontracts "github.com/GrayCodeAI/eagle/graph"
 	llmcontracts "github.com/GrayCodeAI/eagle/llm"
+	"github.com/GrayCodeAI/eyrie/operationsgraph"
 )
 
 func TestBuildPrivacySafeOperationsProjection(t *testing.T) {

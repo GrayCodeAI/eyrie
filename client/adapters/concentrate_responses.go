@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/eyrie/client/core"
 	"github.com/GrayCodeAI/eagle/llm"
+	"github.com/GrayCodeAI/eyrie/client/core"
 )
 
 // ConcentrateResponsesClient uses the Concentrate Responses API (the production-ready
