@@ -9,8 +9,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/GrayCodeAI/eyrie/llm"
 	"github.com/GrayCodeAI/eyrie/client/core"
-	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 // maxVertexRequestSize is the maximum request body size for Vertex AI (30 MB).

@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GrayCodeAI/eyrie/llm"
 	"github.com/GrayCodeAI/eyrie/client/core"
-	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 const (

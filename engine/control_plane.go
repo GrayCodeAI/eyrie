@@ -6,11 +6,11 @@ import (
 	"sort"
 	"strings"
 
+	llm "github.com/GrayCodeAI/eyrie/llm"
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
-	llm "github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 // ResolveCredential validates credential input and returns safe provider

@@ -11,13 +11,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GrayCodeAI/eyrie/llm"
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/catalog/registry"
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
 	"github.com/GrayCodeAI/eyrie/setup"
-	"github.com/GrayCodeAI/hawk-core-contracts/llm"
 )
 
 // ContractVersion is the compatibility version of the host-facing API.
