@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GrayCodeAI/eyrie/llm"
 	"github.com/GrayCodeAI/eyrie/client/adapters"
 	"github.com/GrayCodeAI/eyrie/client/core"
 	"github.com/GrayCodeAI/eyrie/client/embeddings"
+	"github.com/GrayCodeAI/eyrie/llm"
 )
 
 // The provider contract and request/response data types live in

@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/GrayCodeAI/eyrie/llm"
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/eyrie/llm"
 )
 
 // maxAnthropicRequestSize is the maximum request body size for the Messages API (32 MB).

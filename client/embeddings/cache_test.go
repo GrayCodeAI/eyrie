@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/GrayCodeAI/eyrie/llm"
 	"github.com/GrayCodeAI/eyrie/client/core"
+	"github.com/GrayCodeAI/eyrie/llm"
 )
 
 // echoMock is a minimal core.Provider that echoes the last user message and

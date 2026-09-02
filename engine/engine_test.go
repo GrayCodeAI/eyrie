@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/eyrie/llm"
 	"github.com/GrayCodeAI/eyrie/catalog"
 	"github.com/GrayCodeAI/eyrie/client"
 	"github.com/GrayCodeAI/eyrie/config"
 	"github.com/GrayCodeAI/eyrie/credentials"
+	"github.com/GrayCodeAI/eyrie/llm"
 )
 
 func TestNewUsesInjectedCredentialStore(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GrayCodeAI/eyrie/llm"
 	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/llm"
 )
 
 func (e *Engine) policyCatalog(ctx context.Context) (*catalog.CompiledCatalog, error) {
