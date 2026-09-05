@@ -45,13 +45,26 @@ provider packages.
 
 ## Ecosystem Boundaries
 
-graycode-router is a Hawk support engine. Keep the dependency edge one-way:
+graycode-router is a Graycode support engine. Keep the dependency edge one-way.
 
-- host-facing DTOs and the `Provider` port live in `eagle/llm`; `engine/` re-exports them as aliases (`*Engine` implements `llm.Provider`)
-- internal provider/transport types stay graycode-router-scoped (not shared contracts)
-- do not import `hawk/internal/*`
-- do not import removed legacy path `hawk/shared/types`
-- do not import other engines (`harrier`, `shrike`, `swift`, `kestrel`, `merlin`) — engines are peers, not dependencies
+Hosts may import exactly four packages:
+
+| Package | Carries |
+|---|---|
+| `engine` | the stable host-facing facade |
+| `llm` | host-facing DTOs and the `Provider` port that `engine` re-exports as aliases |
+| `graph` | the portable execution-graph vocabulary |
+| `tools` | tool-call and tool-result contracts |
+
+Everything else is engine-internal: `client`, `catalog`, `config`,
+`credentials`, `router`, `runtime`, and their subpackages are not shared
+contracts. Enforced by `graycode-cli/scripts/check-graycode-router-engine-boundary.sh`
+and two Go AST tests in `graycode-cli/internal/testaudit/`.
+
+- do not import `graycode-cli/internal/*`
+- do not import the removed legacy path `graycode/shared/types`
+- do not import other engines (`harrier`, `shrike`, `swift`, `kestrel`,
+  `merlin`) — engines are peers, not dependencies
 
 ## Quick Start
 

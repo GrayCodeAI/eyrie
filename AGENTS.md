@@ -49,8 +49,12 @@ make ci                          # Full CI suite
 
 ## Common Pitfalls
 
-- `engine` is Hawk's product boundary; Hawk must not assemble lower-level
-  `client`, `catalog`, `config`, `credentials`, `router`, or `runtime` packages
+- `engine`, `llm`, `graph` and `tools` are the host contract surface. Graycode
+  must not assemble `client`, `catalog`, `config`, `credentials`, `router` or
+  `runtime`. Six symbols Graycode needs (`ChatOptions`, `ContinuationConfig`,
+  `StreamResult`, `ResponseFormat`, `ImageURLPart`, `InputAudioPart`) live in
+  `llm` with no `engine` alias; widening the facade to cover them is a
+  deliberate API change, not an incidental one.
 - `client.Provider` remains the lower-level compatibility boundary for other
   consumers; preserve its method set and the facade's type identity
 - Streaming tests need careful goroutine management
