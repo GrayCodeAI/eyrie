@@ -30,16 +30,16 @@
 
 ## What is graycode-router
 
-graycode-router is the LLM provider runtime that powers the [hawk](https://github.com/GrayCodeAI/hawk) coding agent. It handles everything between your application and LLM APIs — authentication, model resolution, streaming, retries, rate limiting, and caching.
+graycode-router is the LLM provider runtime that powers the [graycode](https://github.com/GrayCodeAI/graycode-cli) coding agent. It handles everything between your application and LLM APIs — authentication, model resolution, streaming, retries, rate limiting, and caching.
 
 When your app calls a model, graycode-router figures out which provider to use, how to talk to it, and how to stream the response back. Switch from Anthropic to Ollama? graycode-router handles the translation. API returns 529? graycode-router retries with backoff. Response hits `max_tokens`? graycode-router continues automatically.
 
 **Your app never talks to an LLM API directly. graycode-router does.**
 
-Hawk is the product face: it owns UX, agent orchestration, tools, permissions,
+Graycode is the product face: it owns UX, agent orchestration, tools, permissions,
 sessions, and product semantics. GraycodeRouter is the provider engine: it owns
 credentials, catalog and route resolution, provider transports, normalized
-streams, retry/fallback, usage, and provider telemetry. Hawk integrates through
+streams, retry/fallback, usage, and provider telemetry. Graycode integrates through
 the stable [`engine`](engine/) facade rather than assembling GraycodeRouter's internal
 provider packages.
 
@@ -187,7 +187,7 @@ ANTHROPIC_API_KEY=sk-... go run ./examples/basic/
 
 ## Supported Providers
 
-22 provider gateways in `catalog/registry/providers.go` (hawk `/config` uses the same list), listed in registry `SortOrder`:
+22 provider gateways in `catalog/registry/providers.go` (graycode `/config` uses the same list), listed in registry `SortOrder`:
 
 | Provider | ID | Env variable |
 |---|---|---|
@@ -315,11 +315,11 @@ tool-call count, and deployment-routing state remain queryable.
 
 ## Ecosystem
 
-graycode-router is part of the hawk-eco:
+graycode-router is part of the graycode-eco:
 
 | Component | Repository | Purpose |
 |---|---|---|
-| **hawk** | [GrayCodeAI/hawk](https://github.com/GrayCodeAI/hawk) | AI coding agent |
+| **graycode** | [GrayCodeAI/graycode-cli](https://github.com/GrayCodeAI/graycode-cli) | AI coding agent |
 | **graycode-router** | This repo | LLM provider runtime |
 | **shrike** | [GrayCodeAI/shrike](https://github.com/GrayCodeAI/shrike) | Tokenizer & compression |
 | **harrier** | [GrayCodeAI/harrier](https://github.com/GrayCodeAI/harrier) | Graph-based memory |

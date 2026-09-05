@@ -15,7 +15,7 @@ When starting any new work (feature, fix, refactor, chore), always create a feat
 
 ## Observability
 
-See [hawk/docs/OTEL-CONVENTIONS.md](https://github.com/GrayCodeAI/hawk/blob/main/docs/OTEL-CONVENTIONS.md) for the shared OpenTelemetry attribute vocabulary (`gen_ai.*`, `cost.usd`, etc.) used across all GrayCodeAI repos.
+See [graycode/docs/OTEL-CONVENTIONS.md](https://github.com/GrayCodeAI/graycode-cli/blob/main/docs/OTEL-CONVENTIONS.md) for the shared OpenTelemetry attribute vocabulary (`gen_ai.*`, `cost.usd`, etc.) used across all GrayCodeAI repos.
 
 ## Build & Test
 
@@ -59,7 +59,7 @@ make ci                          # Full CI suite
   consumers; preserve its method set and the facade's type identity
 - Streaming tests need careful goroutine management
 - `go.work` here should stay minimal; the parent `graycode-eco/go.work`
-  connects this independent `graycode-router` checkout beside Hawk for local development.
+  connects this independent `graycode-router` checkout beside Graycode for local development.
   Do not add extra local `replace` directives here without coordinating with
   the parent workspace.
 
@@ -145,7 +145,7 @@ make ci                          # Full CI suite
 | Main test file | `client/client_test.go` (httptest servers, provider detection) |
 | Linter config | `.golangci.yml` (govet, ineffassign, misspell — minimal) |
 
-This is an independent repository consumed by Hawk. In the local
-`graycode-eco` parent workspace it is checked out beside `hawk` as `../graycode-router`
+This is an independent repository consumed by Graycode. In the local
+`graycode-eco` parent workspace it is checked out beside `graycode` as `../graycode-router`
 and connected through the parent `go.work`; publish changes here, then update
-Hawk's module pin through a separate PR.
+Graycode's module pin through a separate PR.
