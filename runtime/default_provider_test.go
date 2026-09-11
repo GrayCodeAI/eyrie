@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/GrayCodeAI/graycode-router/catalog"
-	"github.com/GrayCodeAI/graycode-router/config"
+	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/config"
 )
 
 func TestDefaultModelProviderFilter_FromProviderConfig(t *testing.T) {

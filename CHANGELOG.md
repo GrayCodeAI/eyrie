@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to graycode-router are documented here.  
+All notable changes to eyrie are documented here.  
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: [SemVer](https://semver.org/)
 
 ---
@@ -14,6 +14,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) · Versioning: 
   behavior change; prior history is preserved below.
 
 ## [Unreleased]
+
+### Changed — Renamed graycode-router back to eyrie (2026-09-11)
+- **Module is `github.com/GrayCodeAI/eyrie` again**, matching the
+  `GrayCodeAI/eyrie` repository name. `GraycodeRouter*` types are `Eyrie*`,
+  `GRAYCODE_ROUTER_*` env vars are `EYRIE_*`, config lives under `~/.eyrie`,
+  and host references name `hawk`. Breaking rename with no behavior change.
+  The `v0.0.1` tag declares the old `graycode-router` module path, so the
+  next release must use a new version.
 
 ### Changed — Shared MiMo auth-retry helper (2026-08-16)
 - **Deduplicated `doRequestWithMimoAuthRetry`** between the OpenAI and

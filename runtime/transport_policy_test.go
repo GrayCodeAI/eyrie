@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/graycode-router/credentials"
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 func boolPtr(v bool) *bool { return &v }

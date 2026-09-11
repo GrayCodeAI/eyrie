@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/GrayCodeAI/graycode-router/catalog"
-	"github.com/GrayCodeAI/graycode-router/credentials"
+	"github.com/GrayCodeAI/eyrie/catalog"
+	"github.com/GrayCodeAI/eyrie/credentials"
 )
 
 func TestHasAnyConfiguredDeployment_FromStore(t *testing.T) {

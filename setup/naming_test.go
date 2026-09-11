@@ -8,7 +8,8 @@ import (
 )
 
 // TestNoLegacyHostNameInUserFacingStrings guards the three call sites that
-// print a command for the user to run. They named the old product.
+// print a command for the user to run. They must name the hawk host, not the
+// retired graycode name.
 func TestNoLegacyHostNameInUserFacingStrings(t *testing.T) {
 	files := []string{
 		filepath.Join("..", "catalog", "v1.go"),
@@ -24,7 +25,7 @@ func TestNoLegacyHostNameInUserFacingStrings(t *testing.T) {
 			if !strings.Contains(line, `"`) {
 				continue
 			}
-			if strings.Contains(line, "hawk models refresh") || strings.Contains(line, "hawk will discover") || strings.Contains(line, "hawk refreshes") {
+			if strings.Contains(line, "graycode models refresh") || strings.Contains(line, "graycode will discover") || strings.Contains(line, "graycode refreshes") {
 				t.Errorf("%s:%d prints the legacy host name to the user: %s", f, i+1, strings.TrimSpace(line))
 			}
 		}
