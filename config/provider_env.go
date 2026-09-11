@@ -397,15 +397,8 @@ func GetProviderConfigDir() (string, error) {
 	if d := strings.TrimSpace(os.Getenv("EYRIE_CONFIG_DIR")); d != "" {
 		return d, nil
 	}
-	// HAWK_CONFIG_DIR is retained as a compatibility fallback for hosts that
-	// predate Eyrie's host-neutral configuration namespace.
-	if d := os.Getenv("HAWK_CONFIG_DIR"); d != "" {
-		return d, nil
-	}
 	d, err := os.UserConfigDir()
 	if err == nil && d != "" {
-		// Host-neutral default. Embedders that migrate from a product-specific
-		// directory should copy existing provider state to this path.
 		return filepath.Join(d, "eyrie"), nil
 	}
 	return "", fmt.Errorf("eyrie provider config: user config directory unavailable")

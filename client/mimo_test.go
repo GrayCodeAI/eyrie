@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetOrCreateProvider_XiaomiTokenPlanUsesMimoBase(t *testing.T) {
-	t.Setenv("HAWK_CONFIG_DIR", t.TempDir())
+	t.Setenv("EYRIE_CONFIG_DIR", t.TempDir())
 	if err := eyriecfg.SaveProviderConfig(&eyriecfg.ProviderConfig{
 		XiaomiMimoTokenPlanRegion: "sgp",
 	}, ""); err != nil {

@@ -49,7 +49,7 @@ func TestProbeCredential_XiaomiTokenPlan_ResolvesBaseFromProviderConfig(t *testi
 	defer srv.Close()
 
 	dir := t.TempDir()
-	t.Setenv("HAWK_CONFIG_DIR", dir)
+	t.Setenv("EYRIE_CONFIG_DIR", dir)
 	mockBase := strings.TrimRight(srv.URL, "/") + "/v1"
 	cfg := &eyriecfg.ProviderConfig{
 		Version:                    "1",

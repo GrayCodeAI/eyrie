@@ -751,7 +751,7 @@ func TestProviderForDeployment_XiaomiDirect(t *testing.T) {
 
 func TestProviderForDeployment_XiaomiTokenPlanDirect(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HAWK_CONFIG_DIR", dir)
+	t.Setenv("EYRIE_CONFIG_DIR", dir)
 	cfg := &config.ProviderConfig{
 		Version:                    "1",
 		XiaomiMimoTokenPlanRegion:  "sgp",

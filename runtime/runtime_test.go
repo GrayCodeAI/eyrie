@@ -354,7 +354,7 @@ func TestDefaultPaths_ContainsEyrieDir(t *testing.T) {
 
 func TestLoad_WithEmptyConfigDir(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HAWK_CONFIG_DIR", dir)
+	t.Setenv("EYRIE_CONFIG_DIR", dir)
 	t.Setenv("EYRIE_MODEL_CATALOG_PATH", filepath.Join(dir, "missing.json"))
 
 	if err := os.WriteFile(filepath.Join(dir, "provider.json"), []byte("{}\n"), 0o600); err != nil {
@@ -370,7 +370,7 @@ func TestLoad_WithEmptyConfigDir(t *testing.T) {
 
 func TestLoad_MissingConfigDir(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HAWK_CONFIG_DIR", filepath.Join(dir, "nonexistent"))
+	t.Setenv("EYRIE_CONFIG_DIR", filepath.Join(dir, "nonexistent"))
 	t.Setenv("EYRIE_MODEL_CATALOG_PATH", filepath.Join(dir, "missing.json"))
 
 	// Load should not panic even with missing config dir
@@ -381,7 +381,7 @@ func TestLoad_MissingConfigDir(t *testing.T) {
 
 func TestChatProvider_NilProvider(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HAWK_CONFIG_DIR", dir)
+	t.Setenv("EYRIE_CONFIG_DIR", dir)
 	t.Setenv("EYRIE_MODEL_CATALOG_PATH", filepath.Join(dir, "missing.json"))
 	if err := os.WriteFile(filepath.Join(dir, "provider.json"), []byte("{}\n"), 0o600); err != nil {
 		t.Fatal(err)

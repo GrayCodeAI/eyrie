@@ -168,8 +168,8 @@ func TestLoadProviderConfigWithErrorRejectsConflictingVersionAliases(t *testing.
 func TestGetProviderConfigDir(t *testing.T) {
 	// Test with env var set
 	dir := t.TempDir()
-	os.Setenv("HAWK_CONFIG_DIR", dir)
-	defer os.Unsetenv("HAWK_CONFIG_DIR")
+	os.Setenv("EYRIE_CONFIG_DIR", dir)
+	defer os.Unsetenv("EYRIE_CONFIG_DIR")
 
 	got, err := GetProviderConfigDir()
 	if err != nil {
@@ -180,29 +180,17 @@ func TestGetProviderConfigDir(t *testing.T) {
 	}
 
 	// Test without env var (uses OS config dir when available)
-	os.Unsetenv("HAWK_CONFIG_DIR")
+	os.Unsetenv("EYRIE_CONFIG_DIR")
 	got, _ = GetProviderConfigDir()
 	if !strings.HasSuffix(got, filepath.Join("eyrie")) {
 		t.Errorf("expected path ending in eyrie, got %q", got)
 	}
 }
 
-func TestGetProviderConfigDirPrefersEyrieNamespace(t *testing.T) {
-	t.Setenv("EYRIE_CONFIG_DIR", "/tmp/eyrie-config")
-	t.Setenv("HAWK_CONFIG_DIR", "/tmp/legacy-hawk-config")
-	got, err := GetProviderConfigDir()
-	if err != nil {
-		t.Fatalf("GetProviderConfigDir() error = %v", err)
-	}
-	if got != "/tmp/eyrie-config" {
-		t.Fatalf("GetProviderConfigDir() = %q, want EYRIE_CONFIG_DIR", got)
-	}
-}
-
 func TestGetProviderConfigPath(t *testing.T) {
 	dir := t.TempDir()
-	os.Setenv("HAWK_CONFIG_DIR", dir)
-	defer os.Unsetenv("HAWK_CONFIG_DIR")
+	os.Setenv("EYRIE_CONFIG_DIR", dir)
+	defer os.Unsetenv("EYRIE_CONFIG_DIR")
 
 	got, err := GetProviderConfigPath()
 	if err != nil {

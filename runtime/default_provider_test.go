@@ -50,6 +50,6 @@ func TestDefaultModelProviderFilter_LoadDoesNotPanic(t *testing.T) {
 
 func TestDefaultModelProviderFilter_WithEmptyDir(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HAWK_CONFIG_DIR", dir)
+	t.Setenv("EYRIE_CONFIG_DIR", dir)
 	_ = DefaultModelProviderFilter(context.Background())
 }

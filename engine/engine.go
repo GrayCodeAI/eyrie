@@ -3,12 +3,9 @@ package engine
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/GrayCodeAI/eyrie/catalog"
@@ -118,68 +115,7 @@ func New(opts Options) (*Engine, error) {
 		cacheConfig:        opts.CacheConfig,
 	}
 	engine.resolveTransport = engine.defaultTransport
-	migrateProviderConfigDirOnce.Do(migrateProviderConfigDir)
 	return engine, nil
-}
-
-// migrateProviderConfigDir copies a provider.json left in the old
-// product-specific "hawk" config dir into the new host-neutral "eyrie" dir the
-// first time an engine starts after the rename. Without this, upgrading users
-// silently lose their active provider/model selection, deployments, and routing
-// (hawk starts as if unconfigured and they must re-run /config).
-//
-// The copy only happens when the eyrie-dir provider.json does not yet exist, so
-// it is a one-time, idempotent migration that never overwrites newer state.
-var migrateProviderConfigDirOnce sync.Once
-
-func migrateProviderConfigDir() {
-	// Resolve the target dir from the same source eyrie reads provider.json
-	// from. Honors EYRIE_CONFIG_DIR and the HAWK_CONFIG_DIR compat fallback,
-	// instead of hard-coding the default user-config dir.
-	resolvedDir, err := config.GetProviderConfigDir()
-	if err != nil || resolvedDir == "" {
-		return
-	}
-	userDir, err := os.UserConfigDir()
-	if err != nil || userDir == "" {
-		return
-	}
-	// The old "hawk" subdir lived in the user-config root. If a custom
-	// EYRIE_CONFIG_DIR is in use, there is no old "hawk" subdir to migrate
-	// from; skip.
-	oldDir := filepath.Join(userDir, "hawk")
-	// Copy old <oldDir>/<name> → <resolvedDir>/<name> the first time an
-	// engine starts after the rename, for each file that does not yet exist
-	// in the destination. One-time, idempotent, never overwrites newer state.
-	// The .tmp+rename pair makes the write atomic, so a parallel engine
-	// starting in the same instant cannot observe a half-written file.
-	for _, name := range []string{"provider.json", "categories.json"} {
-		dest := filepath.Join(resolvedDir, name)
-		if _, err := os.Stat(dest); err == nil {
-			continue // already present (fresh install or previously migrated)
-		}
-		oldPath := filepath.Join(oldDir, name)
-		data, readErr := os.ReadFile(oldPath)
-		if readErr != nil {
-			continue // no old file to migrate; nothing to do
-		}
-		if err := os.MkdirAll(resolvedDir, 0o700); err != nil {
-			slog.Warn("config: config-dir migration mkdir failed",
-				"dir", resolvedDir, "name", name, "error", err)
-			continue
-		}
-		tmp := dest + ".tmp"
-		if err := os.WriteFile(tmp, data, 0o600); err != nil {
-			slog.Warn("config: config-dir migration write failed",
-				"path", tmp, "name", name, "error", err)
-			continue
-		}
-		if err := os.Rename(tmp, dest); err != nil {
-			slog.Warn("config: config-dir migration rename failed",
-				"from", tmp, "to", dest, "name", name, "error", err)
-			_ = os.Remove(tmp)
-		}
-	}
 }
 
 // SelectionRequest asks Eyrie to resolve a concrete provider/model route.

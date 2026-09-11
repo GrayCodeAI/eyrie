@@ -119,9 +119,6 @@ func ResetCategoryRegistry() {
 func (r *CategoryRegistry) loadOverrides() {
 	configDir := os.Getenv("EYRIE_CONFIG_DIR")
 	if configDir == "" {
-		configDir = os.Getenv("HAWK_CONFIG_DIR")
-	}
-	if configDir == "" {
 		dir, err := os.UserConfigDir()
 		if err != nil || dir == "" {
 			return
